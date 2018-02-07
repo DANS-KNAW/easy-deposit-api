@@ -7,6 +7,6 @@ JSON-base deposit service.
 Welcome
 -------
 
-Welcome to the `easy-deposit-api` project. See the [GitHub pages](https://dans-knaw.github.io/easy-deposi-api/) for the manual and API documentation.
+Welcome to the `easy-deposit-api` project. See the [GitHub pages](https://dans-knaw.github.io/easy-deposit-api/) for the manual and API documentation.
 
 
