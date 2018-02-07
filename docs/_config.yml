@@ -1,0 +1,11 @@
+title: easy-deposit-api
+description: >-
+  JSON-based deposit service.
+baseurl: "/easy-deposit-api"
+github_username: DANS-KNAW
+
+# Build settings
+markdown: kramdown
+theme: minima
+plugins:
+  - jekyll-feed

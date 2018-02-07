@@ -1,0 +1,33 @@
+openapi: 3.0.0
+info:
+  title: EASY Deposit API
+  version: 0.1.0
+  description: |
+    This document specifies the EASY Deposit API.
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0
+
+servers:
+  - url: 'http://test.dans.knaw.nl'
+    description: Local test VM
+
+paths:
+  /:
+    get:
+      summary: Returns a description of the service.
+      description:
+        This is the starting place for navigating the Bag Store Service. It returns a description of the service.
+      responses:
+        200:
+          description: Description of the service
+          content:
+            text/plain:
+              schema:
+                type: string
+                description: A plain text, human readable description of the service
+                example: |
+                  EASY Deposit API is running.
+        500:
+          description: Service is unavailable.
+

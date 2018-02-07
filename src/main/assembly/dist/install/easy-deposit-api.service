@@ -1,0 +1,14 @@
+[Unit]
+Description=EASY Deposit Api Service
+
+[Service]
+ExecStart=/bin/java \
+   -Dlogback.configurationFile=/etc/opt/dans.knaw.nl/easy-deposit-api/logback-service.xml \
+   -Dapp.home=/opt/dans.knaw.nl/easy-deposit-api \
+   -jar /opt/dans.knaw.nl/easy-deposit-api/bin/easy-deposit-api.jar run-service
+
+User=easy-deposit-api
+Group=easy-deposit-api
+
+[Install]
+WantedBy=multi-user.target
