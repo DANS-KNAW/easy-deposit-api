@@ -3,7 +3,7 @@ info:
   title: Deposit API
   version: 0.1.0
   description: |
-    This document specifies
+    This document specifies the public interface for depositing a dataset in EASY
   license:
     name: Apache 2.0
     url: http://www.apache.org/licenses/LICENSE-2.0
@@ -46,46 +46,69 @@ paths:
         500:
           description: "Service is unavailable because of an error"
 
-  /user/login:
+  /user:
     post:
       tags:
       - "user"
-      summary: "Log user in"
-      description: "This is a service for user authentication"
-      operationId: "loginUser"
-      consumes:
-      - "application/json"
-      - "application/xml"
+      summary: "Create user"
+      description: "This can only be done by the logged in user."
+      operationId: "createUser"
       produces:
       - "application/xml"
       - "application/json"
-#      parameters:
-#      - name: "body"
-#        in: "body"
-#        required: true
-#        description: "The login credentials"
-#        schema:
-#          $ref: "#/definitions/Login"
       requestBody:
-        description: "User login"
+        description: "Created user object"
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/definitions/Login"
+              $ref: "#/definitions/User"
+            example:
+              id: 3
+              username: "John"
+              password: "Jpass"
           application/xml:
             schema:
-              $ref: "#/definitions/Login"
-      responces:
+              $ref: "#/definitions/User"
+            example:
+              id: 3
+              username: "John"
+              password: "Jpass"
+      responses:
+        default:
+          description: "successful operation"
+
+  /user/login:
+    get:
+      tags:
+      - "user"
+      summary: "Logs user into the system"
+      description: ""
+      operationId: "loginUser"
+      produces:
+      - "application/xml"
+      - "application/json"
+      parameters:
+      - name: "username"
+        in: "query"
+        description: "The user name for login"
+        required: true
+        type: "string"
+      - name: "password"
+        in: "query"
+        description: "The password for login in clear text"
+        required: true
+        type: "string"
+      responses:
         200:
-          description: "Login was successful"
+          description: "successful operation"
           schema:
-            $ref: "#/definitions/User"
+            type: "string"
           headers:
-            Set-Cookie:
-              type: "string"
-              description: "The session cookie"
-              default: "demo-session-id=123456789012345678901234567890"
+            X-Rate-Limit:
+              type: "integer"
+              format: "int32"
+              description: "calls per hour allowed by the user"
             X-Expires-After:
               type: "string"
               format: "date-time"
@@ -93,41 +116,105 @@ paths:
         400:
           description: "Invalid username/password supplied"
 
-  /user/{username}/logout:
-    post:
+  /user/logout:
+    get:
       tags:
       - "user"
-      summary: "Log user out"
+      summary: "Logs out current logged in user session"
       description: ""
       operationId: "logoutUser"
-      consumes:
-      - "application/json"
+      produces:
       - "application/xml"
+      - "application/json"
+      parameters: []
+      responses:
+        default:
+          description: "successful operation"
+
+  /user/{username}:
+    get:
+      tags:
+      - "user"
+      summary: "Get user by user name"
+      description: ""
+      operationId: "getUserByName"
       produces:
       - "application/xml"
       - "application/json"
       parameters:
-#        - *username
-#        - *sessionCookie
+      - name: "username"
+        in: "path"
+        description: "The name that needs to be fetched. Use user1 for testing. "
+        required: true
+        type: "string"
       responses:
-        204:
-          description: "Logout was successful"
-          headers:
-            Set-Cookie:
-              type: "string"
-              description: "Deletes the session cookie (by making expire in the past)"
-              default: "demo-session-id=deleted; Expires=Thu, 01-Jan-1970 00:00:01 GMT; Path=/"
-        401:
-          description: "You tried to log someone else out, and you're not the admin user."
+        200:
+          description: "successful operation"
+          schema:
+            $ref: "#/definitions/User"
+        400:
+          description: "Invalid username supplied"
         404:
-          description: The {username} was not found
+          description: "User not found"
+
+    put:
+      tags:
+      - "user"
+      summary: "Updated user"
+      description: "This can only be done by the logged in user."
+      operationId: "updateUser"
+      produces:
+      - "application/xml"
+      - "application/json"
+      parameters:
+      - name: "username"
+        in: "path"
+        description: "name that need to be updated"
+        required: true
+        type: "string"
+      requestBody:
+        description: "Update user"
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/definitions/User"
+          application/xml:
+            schema:
+              $ref: "#/definitions/User"
+      responses:
+        400:
+          description: "Invalid user supplied"
+        404:
+          description: "User not found"
+
+    delete:
+      tags:
+      - "user"
+      summary: "Delete user"
+      description: "This can only be done by the logged in user."
+      operationId: "deleteUser"
+      produces:
+      - "application/xml"
+      - "application/json"
+      parameters:
+      - name: "username"
+        in: "path"
+        description: "The name that needs to be deleted"
+        required: true
+        type: "string"
+      responses:
+        400:
+          description: "Invalid username supplied"
+        404:
+          description: "User not found"
 
   /deposits:
     get:
       tags:
       - "deposit"
       summary: "List all deposits"
-      description: "Shows all deposits"
+      description: "Shows all deposit of a specific user"
       operationId: "getDeposits"
       produces:
       - "application/json"
@@ -168,8 +255,7 @@ paths:
           schema:
             type: "object"
             items:
-#              TODO substitute Deposit with Metadata
-              $ref: "#/definitions/Deposit"
+              $ref: "#/definitions/Metadata"
         500:
           description: "Deposit not retrieved because its state is something else than DRAFT or REJECTED"
       security:
@@ -179,8 +265,8 @@ paths:
     get:
       tags:
       - "deposit"
-      summary: "Get deposit with state"
-      description: "Get deposit state ..."
+      summary: "Get state of deposit"
+      description: "Get state of deposit"
       operationId: "getDepositState"
       produces:
       - "application/json"
@@ -196,20 +282,16 @@ paths:
       200:
         description: "Deposit retrieved successfully"
         schema:
-          type: "object"
-          items:
-            $ref: "#/definitions/Deposit"
+          type: "string"
       400:
         description: "Invalid id supplied"
-      405:
-        description: "Validation exception"
 
   /deposit:
     post:
       tags:
       - "deposit"
-      summary: "Create deposit"
-      description: "Creates a new deposit"
+      summary: "Create an new deposit"
+      description: "Creates an empty bag and retrieves deposit's id"
       operationId: "createDeposit"
       consumes:
       - "application/json"
@@ -217,23 +299,11 @@ paths:
       produces:
       - "application/json"
       - "application/xml"
-      requestBody:
-        description: "Optional description"
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/definitions/Deposit'
-          application/xml:
-            schema:
-              $ref: '#/definitions/Deposit'
       responses:
         201:
           description: "Deposit created successfully"
           schema:
               $ref: "#/definitions/Deposit"
-
-
 
   /deposit/{id}/metadata:
     put:
@@ -255,13 +325,8 @@ paths:
         required: true
         type: "string"
         format: "uuid"
-#      - name: "metadata"
-#        in: "body"
-#        type: "string"
-#        description: "Metadata that needs to be updated in deposit"
-#        required: true
       requestBody:
-        description: "Sava metadata that needs to be updated in deposit"
+        description: "Save metadata that needs to be updated in deposit"
         required: true
         content:
           application/json:
@@ -284,9 +349,9 @@ paths:
     put:
       tags:
       - "deposit"
-      summary: "Submit deposit"
+      summary: "Update state of deposit"
       description: "Submit"
-      operationId: "submitDeposit"
+      operationId: "updateDepositState"
       consumes:
       - "application/json"
       - "application/xml"
@@ -296,22 +361,18 @@ paths:
       parameters:
       - name: "id"
         in: "path"
-        description: "id of deposit to be submitted"
+        description: "id of deposit whose state to be updated"
         required: true
         type: "string"
         format: "uuid"
-#      - name: "state"
-#        in: "body"
-#        type: "string"
-#        description: "state that needs to be saved in deposit"
-#        required: true
       requestBody:
-        description: "Submit a state"
+        description: "Update state of deposit"
         required: true
         content:
           text/plain:
-            schema:
+            state:
               type: string
+              default: "SUBMITTED"
       responses:
         200:
           description: "Deposit updated successfully"
@@ -346,6 +407,8 @@ paths:
         type: "string"
         format: "uuid"
       responses:
+        200:
+          description: "Deposit deleted successfully"
         400:
           description: "Invalid id supplied"
         404:
@@ -376,6 +439,10 @@ paths:
             type: "array"
             items:
               $ref: "#/definitions/File"
+        400:
+          description: "Invalid id supplied"
+        404:
+          description: "File not found"
       security:
       - deposit_auth:
         - "write:deposits"
@@ -415,8 +482,10 @@ paths:
           description: "file is deposited successfully"
           schema:
             $ref: "#/definitions/File"
-        400:
-          description: "Invalid input"
+        401:
+          description: "You are not authorized to use this API. Please provide a valid user name and password before trying to use an API."
+        500:
+          description: "Internal Server Error"
       security:
       - deposit_auth:
         - "write:deposits"
@@ -448,12 +517,6 @@ paths:
         required: true
         type: "string"
         format: "uuid"
-#      - in: "body"
-#        name: "body"
-#        description: "File object that needs to be updated in deposit"
-#        required: true
-#        schema:
-#          $ref: "#/definitions/File"
       requestBody:
         description: "File update"
         required: true
@@ -505,7 +568,7 @@ paths:
         400:
           description: "Invalid id supplied"
         404:
-          description: "Deposit not found"
+          description: "File not found"
 
 
 securityDefinitions:
@@ -533,31 +596,6 @@ definitions:
         type: "string"
       message:
         type: "string"
-
-  # A simple username/password combo for logging in
-  Login:
-    required: [username, password]
-    properties:
-      username:
-        type: string
-        minLength: 5
-      password:
-        type: string
-        minLength: 5
-
-  sessionCookie: &sessionCookie
-    name: Cookie
-    in: header
-    required: true
-    type: string
-    description: The session cookie
-
-  username: &username
-    name: username
-    in: path
-    required: true
-    type: string
-  description: This is the {username} path parameter
 
   User:
     type: "object"
