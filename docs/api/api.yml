@@ -54,8 +54,8 @@ paths:
       description: "This can only be done by the logged in user."
       operationId: "createUser"
       produces:
-      - "application/xml"
       - "application/json"
+      - "application/xml"
       requestBody:
         description: "Created user object"
         required: true
@@ -63,17 +63,9 @@ paths:
           application/json:
             schema:
               $ref: "#/definitions/User"
-            example:
-              id: 3
-              username: "John"
-              password: "Jpass"
           application/xml:
             schema:
               $ref: "#/definitions/User"
-            example:
-              id: 3
-              username: "John"
-              password: "Jpass"
       responses:
         default:
           description: "successful operation"
@@ -86,8 +78,8 @@ paths:
       description: ""
       operationId: "loginUser"
       produces:
-      - "application/xml"
       - "application/json"
+      - "application/xml"
       parameters:
       - name: "username"
         in: "query"
@@ -139,8 +131,8 @@ paths:
       description: ""
       operationId: "getUserByName"
       produces:
-      - "application/xml"
       - "application/json"
+      - "application/xml"
       parameters:
       - name: "username"
         in: "path"
@@ -160,7 +152,7 @@ paths:
     put:
       tags:
       - "user"
-      summary: "Updated user"
+      summary: "Update user"
       description: "This can only be done by the logged in user."
       operationId: "updateUser"
       produces:
@@ -209,7 +201,7 @@ paths:
         404:
           description: "User not found"
 
-  /deposits:
+  /deposit:
     get:
       tags:
       - "deposit"
@@ -219,20 +211,90 @@ paths:
       produces:
       - "application/json"
       - "application/xml"
-      parameters: []
       responses:
         200:
           description: "List of all deposits retrieved successfully"
-          schema:
-            type: "array"
-            items:
-              $ref: "#/definitions/Deposit"
+          content:
+            application/json:
+              schema:
+                type: "array"
+                items:
+                  $ref: "#/definitions/Deposit"
+                description: a plain text, human readable description of the service
+                example:
+
+                - id: "93674123-1699-49c5-af91-ed31db19adc9"
+                  title: "Current Dataset"
+                  status: "status 1"
+                  status_description: ""
+                  doi: "doi:10.1594/GFZ.GEOFON.gfz2009kciu"
+                  state: "DRAFT"
+                  date: "2018-01-20T10:40:52Z"
+
+                - id: "a145a1be-5463-4b10-a621-a9e511ff7f20"
+                  title: "First Dataset"
+                  status: "status 2"
+                  status_description: ""
+                  doi: "doi:10.1594/PANGAEA.726855 "
+                  state: "IN PROGRESS"
+                  date: "2017-12-01T11:10:22Z"
+
+                - id: "1d946f5b-e53b-4f71-b1f3-7481475d07db"
+                  title: "Missing file"
+                  status: "status 1"
+                  status_description: "there are some files missing"
+                  doi: "doi: 10.3207/2959859860"
+                  state: "REJECTED"
+                  date: "2018-01-12T10:40:52Z"
+
+                - id: "5befec97-1e57-4210-b7b6-57a604aaef47"
+                  title: "Old Dataset"
+                  status: "status 1"
+                  status_description: "easy-dataset:id"
+                  doi: "doi:10.1430/8105"
+                  state: "ARCHIVED"
+                  date: "2017-08-09T10:10:22Z"
       security:
       - deposit_auth:
         - "write:deposits"
         - "read:deposits"
 
-  /deposits/{id}/metadata:
+    post:
+      tags:
+      - "deposit"
+      summary: "Create new deposit"
+      description: "Creates an empty bag and retrieves deposit's id"
+      operationId: "createDeposit"
+      consumes:
+      - "application/json"
+      - "application/xml"
+      produces:
+      - "application/json"
+      - "application/xml"
+      responses:
+        201:
+          description: "Deposit created successfully"
+          content:
+            application/json:
+              schema:
+                type: "object"
+                items:
+                  $ref: "#/definitions/Deposit"
+                description: a plain text, human readable description of the service
+                example:
+                  id: "c3155868-1898-493a-8805-53adbd269878"
+                  title: "Sample Dataset"
+                  status: "status ..."
+                  status_description: ""
+                  doi: "doi:10.3972/water973.0145.db"
+                  state: "DRAFT"
+                  date: "2018-01-01T04:12:34Z"
+      security:
+      - deposit_auth:
+        - "write:deposits"
+        - "read:deposits"
+
+  /deposit/{id}/metadata:
     get:
       tags:
       - "deposit"
@@ -256,61 +318,16 @@ paths:
             type: "object"
             items:
               $ref: "#/definitions/Metadata"
-        500:
+        403:
           description: "Deposit not retrieved because its state is something else than DRAFT or REJECTED"
       security:
       - api_key: []
 
-  /deposits/{id}/state:
-    get:
-      tags:
-      - "deposit"
-      summary: "Get state of deposit"
-      description: "Get state of deposit"
-      operationId: "getDepositState"
-      produces:
-      - "application/json"
-      - "application/xml"
-    parameters:
-    - name: "id"
-      in: "path"
-      description: "id of deposit to be retrieved"
-      required: true
-      type: "string"
-      format: "uuid"
-    responses:
-      200:
-        description: "Deposit retrieved successfully"
-        schema:
-          type: "string"
-      400:
-        description: "Invalid id supplied"
-
-  /deposit:
-    post:
-      tags:
-      - "deposit"
-      summary: "Create an new deposit"
-      description: "Creates an empty bag and retrieves deposit's id"
-      operationId: "createDeposit"
-      consumes:
-      - "application/json"
-      - "application/xml"
-      produces:
-      - "application/json"
-      - "application/xml"
-      responses:
-        201:
-          description: "Deposit created successfully"
-          schema:
-              $ref: "#/definitions/Deposit"
-
-  /deposit/{id}/metadata:
     put:
       tags:
       - "deposit"
       summary: "Save draft of deposit"
-      description: "Update metadata?"
+      description: "Update metadata"
       operationId: "saveDepositDraft"
       consumes:
       - "application/json"
@@ -346,6 +363,38 @@ paths:
         - "read:deposits"
 
   /deposit/{id}/state:
+    get:
+      tags:
+      - "deposit"
+      summary: "Get state of deposit"
+      description: "Get state of deposit"
+      operationId: "getDepositState"
+      produces:
+      - "application/json"
+      - "application/xml"
+      parameters:
+      - name: "id"
+        in: "path"
+        description: "id of deposit to be retrieved"
+        required: true
+        type: "string"
+        format: "uuid"
+      responses:
+        200:
+          description: "Deposit retrieved successfully"
+          content:
+#            application/json:
+            text/plain:
+              schema:
+                type: "string"
+                description: a plain text, human readable description of the service
+                example:
+                   "SUBMITTED"
+      security:
+      - deposit_auth:
+        - "write:deposits"
+        - "read:deposits"
+
     put:
       tags:
       - "deposit"
@@ -366,24 +415,42 @@ paths:
         type: "string"
         format: "uuid"
       requestBody:
-        description: "Update state of deposit"
-        required: true
+        description: "Deposit retrieved successfully"
         content:
+#           application/json:
           text/plain:
-            state:
-              type: string
+            schema:
+              type: "string"
               default: "SUBMITTED"
+              description: a plain text, human readable description of the service
+              example:
+                  "SUBMITTED"
       responses:
         200:
           description: "Deposit updated successfully"
+          content:
+#            application/json:
+            text/plain:
+              schema:
+                type: "string"
+                description: a plain text, human readable description of the service
+                example:
+                  "SUBMITTED"
         400:
           description: "Invalid id supplied"
         405:
           description: "Validation exception"
-          schema:
-            type: "object"
-            items:
-              $ref: "#/definitions/ApiResponse"
+          content:
+            application/json:
+              schema:
+                type: "object"
+                items:
+                  $ref: "#/definitions/ApiResponse"
+                description: a plain text, human readable description of the service
+                example:
+                  code: "c3155868"
+                  type: "validation type"
+                  message: "validation message"
       security:
       - deposit_auth:
         - "write:deposits"
@@ -415,7 +482,7 @@ paths:
           description: "Deposit not found"
 
 
-  /deposits/{id}/files:
+  /deposit/{id}/files:
     get:
       tags:
       - "file"
@@ -435,10 +502,21 @@ paths:
       responses:
         200:
           description: "List of all files of deposit retrieved successfully"
-          schema:
-            type: "array"
-            items:
-              $ref: "#/definitions/File"
+          content:
+            application/json:
+              schema:
+                type: "array"
+                items:
+                  $ref: "#/definitions/File"
+                description: a plain text, human readable description of the service
+                example:
+                - path: "/tem/quarantine/cat.png"
+                  name: "cat.png"
+                  checksum: "cf23df2207d99a74fbe169e3eba035e633b65d94"
+                - path: "/tem/quarantine/dog.png"
+                  name: "dog.png"
+                  checksum: "b48cf0140bea12734db05ebcdb012f1d265bed84"
+
         400:
           description: "Invalid id supplied"
         404:
@@ -458,8 +536,8 @@ paths:
       consumes:
       - "multipart/form-data"
       produces:
-      - "application/xml"
       - "application/json"
+      - "application/xml"
       parameters:
       - name: "id"
         in: "path"
@@ -467,6 +545,12 @@ paths:
         required: true
         type: "string"
         format: "uuid"
+      - in: "formData"
+        name: "uploadFile"
+        type: "file"
+        required: true
+        allowMultiple: false
+        description: "file to upload"
       requestBody:
         description: "File upload"
         required: true
@@ -478,10 +562,19 @@ paths:
               type: string
               format: binary
       responses:
-        200:
-          description: "file is deposited successfully"
-          schema:
-            $ref: "#/definitions/File"
+        201:
+          description: "File is uploaded successfully"
+          content:
+            application/json:
+              schema:
+                type: "object"
+                items:
+                  $ref: "#/definitions/File"
+                description: a plain text, human readable description of the service
+                example:
+                  path: "/tem/quarantine/"
+                  name: "cat.png"
+                  checksum: "cf23df2207d99a74fbe169e3eba035e633b65d94"
         401:
           description: "You are not authorized to use this API. Please provide a valid user name and password before trying to use an API."
         500:
@@ -491,58 +584,7 @@ paths:
         - "write:deposits"
         - "read:deposits"
 
-  /deposit/{id}/{file_id}:
-    put:
-      tags:
-      - "file"
-      summary: "Update a file"
-      description: "Updates file in deposit"
-      operationId: "updateFile"
-      consumes:
-      - "application/json"
-      - "application/xml"
-      produces:
-      - "application/json"
-      - "application/xml"
-      parameters:
-      - name: "id"
-        in: "path"
-        description: "id of deposit to be updated"
-        required: true
-        type: "integer"
-        format: "uuid"
-      - name: "file_id"
-        in: "path"
-        description: "id of file to be updated in deposit"
-        required: true
-        type: "string"
-        format: "uuid"
-      requestBody:
-        description: "File update"
-        required: true
-        content:
-          application/octet-stream:
-          # any media type is accepted, functionally equivalent to `*/*`
-            schema:
-              # a binary file of any type
-              type: string
-              format: binary
-      responses:
-        200:
-          description: "file is updated successfully"
-          schema:
-            $ref: "#/definitions/File"
-        400:
-          description: "Invalid id supplied"
-        404:
-          description: "File not found"
-        405:
-          description: "Validation exception"
-      security:
-      - deposit_auth:
-        - "write:deposits"
-        - "read:deposits"
-
+  /deposit/{id}/file/{file_id}":
     delete:
       tags:
       - "file"
@@ -572,6 +614,7 @@ paths:
 
 
 securityDefinitions:
+
   deposit_auth:
     type: "oauth2"
     authorizationUrl: "http://test.dans.knaw.nl/oauth/dialog"
@@ -583,6 +626,7 @@ securityDefinitions:
     type: "apiKey"
     name: "api_key"
     in: "header"
+
 
 definitions:
 
@@ -607,10 +651,13 @@ definitions:
       id:
         type: "integer"
         format: "int64"
+        example: 5
       username:
         type: "string"
+        example: "John McCan"
       password:
         type: "string"
+        example: "John's password"
     xml:
       name: "User"
 
@@ -629,18 +676,14 @@ definitions:
         type: "string"
       status_description:
         type: "string"
+      doi:
+        type: "string"
+      state:
+        type: "string"
       date:
         type: "string"
         format: "date-time"
         description: "Deposit date of ..."
-# TODO : do we need the array of files here?
-#      deposit_files:
-#        type: "array"
-#        xml:
-#          name: "deposit_files"
-#          wrapped: true
-#        items:
-#          $ref: "#/definitions/File"
     xml:
       name: "Deposit"
 
@@ -650,16 +693,13 @@ definitions:
     - "id"
     - "name"
     properties:
-      id:
-        type: "integer"
-        format: "int64"
-      name:
+      path:
         type: "string"
-      status:
+      name:
         type: "string"
       checksum:
         type: "string"
-        description: "checksum got with MD5?"
+        description: "checksum calculated with SHA1"
     xml:
       name: "File"
 
@@ -669,13 +709,12 @@ definitions:
       scheme:
         type: "string"
         description: "Scheme ..."
-        enum:
-        - "Scheme 1"
-        - "Scheme 2"
-        - "Scheme 3"
+        enum: ["approved", "pending", "closed", "new"]
+        example: "approved"
       id:
         type: "integer"
         format: "int64"
+        example: 39
     xml:
       name: "SchemeAndID"
 
@@ -692,23 +731,31 @@ definitions:
           wrapped: true
         items:
           $ref: "#/definitions/SchemeAndID"
+        example:
+          - scheme: "pending"
+            id: 15
+          - scheme: "aproved"
+            id: 4
       academicTitles:
         type: "string"
+        example: "PhD, Chem.Eng."
       initials:
         type: "string"
+        example: "A"
       prefix:
         type: "string"
+        example: "van"
       surname:
         type: "string"
+        example: "der Put"
       role:
         type: "string"
-        description: "Role ..."
-        enum:
-        - "Role 1"
-        - "Role 2"
-        - "Role 3"
+        description: "Short role description"
+        enum: ["archivist", "activist", "pacifist", "colonist"]
+        example: "archivist"
       organization:
         type: "string"
+        example: "DANS"
     xml:
       name: "Creator"
 
@@ -725,23 +772,30 @@ definitions:
           wrapped: true
         items:
           $ref: "#/definitions/SchemeAndID"
+        example:
+          - scheme: "aproved"
+            id: 5
+          - scheme: "pending"
+            id: 77
       academicTitles:
         type: "string"
+        example: "MSc"
       initials:
         type: "string"
+        example: "M"
       prefix:
         type: "string"
+        example: "prexix"
       surname:
         type: "string"
+        example: "van Bergen"
       role:
         type: "string"
-        description: "Role ..."
-        enum:
-        - "Role 1"
-        - "Role 2"
-        - "Role 3"
+        enum: ["moderator", "aviator", "incubator", "inhalator"]
+        example: "inhalator"
       organization:
         type: "string"
+        example: "Radboud Universiteit"
     xml:
       name: "Contributor"
 
@@ -751,17 +805,18 @@ definitions:
       qualifier:
         type: "string"
         description: "Qualifier ..."
-        enum:
-        - "Qualifier 1"
-        - "Qualifier 2"
-        - "Qualifier 3"
+        enum: ["relative", "absolute", "unrelated", "redundant"]
+        example: "relative"
       title:
         type: "string"
+        example: "Relation Title"
       url:
         type: "string"
+        example: "Relation URL"
       emphasize_this_relation:
         type: "boolean"
         default: true
+        example: "false"
     xml:
       name: "Relation"
 
@@ -771,10 +826,8 @@ definitions:
       language:
         type: "string"
         description: "Language ..."
-        enum:
-        - "Language 1"
-        - "Language 2"
-        - "Language 3"
+        enum: ["Dutch", "English", "German", "Spanish"]
+        example: "Dutch"
     xml:
       name: "LanguageISO639"
 
@@ -784,12 +837,11 @@ definitions:
       scheme:
         type: "string"
         description: "Scheme ..."
-        enum:
-        - "Scheme 1"
-        - "Scheme 2"
-        - "Scheme 3"
+        enum: ["approved", "pending", "closed", "new"]
+        example: "closed"
       date:
         type: "string"
+        example: "1999-01-19T10:00:37.824Z"
     xml:
       name: "SchemeAndDate"
 
@@ -810,6 +862,10 @@ definitions:
           wrapped: true
         items:
           type: "string"
+        example:
+          - rightsHolder: "rights holder 1"
+          - rightsHolder: "rights holder 2"
+          - rightsHolder: "rights holder 3"
       publisher:
         type: "array"
         xml:
@@ -817,38 +873,43 @@ definitions:
           wrapped: true
         items:
           type: "string"
+        example:
+          - publisher: "publisher 1"
+          - publisher: "publisher 2"
       accessRightsOpenAccess:
         type: "boolean"
         default: true
+        example: true
       accessRightsRegisteredUsers:
         type: "boolean"
         default: false
+        example: true
       accessRightsRestrictedGroup:
         type: "boolean"
         default: false
+        example: false
       selectRestrictedGroup:
         type: "string"
         description: "Select Restricted Group ..."
-        enum:
-        - "Restricted Group 1"
-        - "Restricted Group 2"
-        - "Restricted Group 3"
+        enum: ["Restricted Group 1", "Restricted Group 2", "Restricted Group 3", "Restricted Group 4"]
+        example: "Restricted Group 4"
       accessRightsRestrictedReqPermission:
         type: "boolean"
         default: false
+        example: true
       accessRightsOtherAccess:
         type: "boolean"
         default: false
+        example: true
       license:
         type: "string"
         description: "License ..."
-        enum:
-        - "License 1"
-        - "License 2"
-        - "License 3"
+        enum: ["License 1", "License 2", "License 3", "License 4"]
+        example: "License 2"
       dateAvailable:
         type: "string"
         format: "date-time"
+        example: "2018-02-19T16:39:35.948Z"
     xml:
       name: "License"
 
@@ -858,10 +919,8 @@ definitions:
       typeDCMI:
         type: "string"
         description: "Type (DCMI resource type)"
-        enum:
-        - "Type 1"
-        - "Type 2"
-        - "Type 3"
+        enum: ["typeDCMI 1", "typeDCMI 2", "typeDCMI 3", "typeDCMI 4"]
+        example: "typeDCMI 2"
     xml:
       name: "TypeDCMI"
 
@@ -871,10 +930,8 @@ definitions:
       formatIMT:
         type: "string"
         description: "Format (internet media type)"
-        enum:
-        - "Format 1"
-        - "Format 2"
-        - "Format 3"
+        enum: ["Format 1", "Format 2", "Format 3", "Format 4"]
+        example: "Format 2"
     xml:
       name: "FormatIMT"
 
@@ -888,6 +945,10 @@ definitions:
           wrapped: true
         items:
           $ref: "#/definitions/TypeDCMI"
+        example:
+          - typeDCMI: "typeDCMI 1"
+          - typeDCMI: "typeDCMI 2"
+          - typeDCMI: "typeDCMI 3"
       type:
         type: "array"
         xml:
@@ -895,6 +956,9 @@ definitions:
           wrapped: true
         items:
           type: "string"
+        example:
+          - typeob: "type 1"
+          - typeob: "type 2"
       formatIMT:
         type: "array"
         xml:
@@ -902,6 +966,10 @@ definitions:
           wrapped: true
         items:
           $ref: "#/definitions/FormatIMT"
+        example:
+          - formatIMT: "formatIMT 1"
+          - formatIMT: "formatIMT 2"
+          - formatIMT: "formatIMT 3"
       uploadFormat:
         type: "array"
         xml:
@@ -909,6 +977,11 @@ definitions:
           wrapped: true
         items:
           type: "string"
+        example:
+          - uploadFormat: "uploadFormat 1"
+          - uploadFormat: "uploadFormat 2"
+          - uploadFormat: "uploadFormat 3"
+          - uploadFormat: "uploadFormat 4"
     xml:
       name: "UploadType"
 
@@ -916,7 +989,7 @@ definitions:
   ArchisZaakidentificatie:
     type: "object"
     properties:
-      pakbon:
+      zaakidentificatie:
         type: "array"
         xml:
           name: "archisZaakidentificatie"
@@ -932,10 +1005,8 @@ definitions:
       subjectABRcomplex:
         type: "string"
         description: "Subject ABR complex"
-        enum:
-        - "SubjectABR 1"
-        - "SubjectABR 2"
-        - "SubjectABR 3"
+        enum: ["SubjectABR 1", "SubjectABR 2", "SubjectABR 3"]
+        example: "SubjectABR 1"
     xml:
       name: "SubjectABRcomplex"
 
@@ -945,10 +1016,8 @@ definitions:
       temporalCoverage:
         type: "string"
         description: "Temporal coverage (ABR period)"
-        enum:
-        - "TemporalCoverage 1"
-        - "TemporalCoverage 2"
-        - "TemporalCoverage 3"
+        enum: ["TemporalCoverage 1", "TemporalCoverage 2", "TemporalCoverage 3"]
+        example: "TemporalCoverage 3"
     xml:
       name: "TemporalCoverage"
 
@@ -966,6 +1035,10 @@ definitions:
           wrapped: true
         items:
           $ref: "#/definitions/ArchisZaakidentificatie"
+        example:
+          - zaakidentificatie: "Archis Zaakidentificatie 1"
+          - zaakidentificatie: "Archis Zaakidentificatie 2"
+          - zaakidentificatie: "Archis Zaakidentificatie 3"
       subjectABRcomplex:
         type: "array"
         xml:
@@ -973,6 +1046,10 @@ definitions:
           wrapped: true
         items:
           $ref: "#/definitions/SubjectABRcomplex"
+        example:
+          - subjectABRcomplex: "SubjectABR 1"
+          - subjectABRcomplex: "SubjectABR 2"
+          - subjectABRcomplex: "SubjectABR 3"
       temporalCoverage:
         type: "array"
         xml:
@@ -980,6 +1057,10 @@ definitions:
           wrapped: true
         items:
           $ref: "#/definitions/TemporalCoverage"
+        example:
+          - temporalCoverage: "TemporalCoverage 1"
+          - temporalCoverage: "TemporalCoverage 2"
+          - temporalCoverage: "TemporalCoverage 33"
     xml:
       name: "ArchaeologyMetadata"
 
@@ -989,9 +1070,11 @@ definitions:
       absentCLARINmetadata:
         type: "boolean"
         default: true
+        example: false
       presentCLARINmetadata:
         type: "boolean"
         default: false
+        example: true
     xml:
       name: "LanguageAndLiteratureMetadata"
 
@@ -1002,14 +1085,14 @@ definitions:
         type: "array"
         items:
           type: "string"
-          enum:
-          - "Scheme Spatial Point 1"
-          - "Scheme Spatial Point 2"
-          - "Scheme Spatial Point 3"
+          enum: ["Scheme Spatial Point 1", "Scheme Spatial Point 2", "Scheme Spatial Point 3"]
+          example: "Scheme Spatial Point 3"
       xCoordinate:
         type: "string"
+        example: "132"
       yCoordinate:
         type: "string"
+        example: "643"
     xml:
       name: "SpatialPoint"
 
@@ -1020,18 +1103,20 @@ definitions:
         type: "array"
         items:
           type: "string"
-          enum:
-          - "Scheme Spatial Box 1"
-          - "Scheme Spatial Box 2"
-          - "Scheme Spatial Box 3"
+          enum: ["Scheme Spatial Box 1", "Scheme Spatial Box 2", "Scheme Spatial Box 3"]
+          example: "Scheme Spatial Box 3"
       north:
         type: "string"
+        example: "north 1"
       east:
         type: "string"
+        example: "east 1"
       south:
         type: "string"
+        example: "south 1"
       west:
         type: "string"
+        example: "west 1"
     xml:
       name: "SpatialBox"
 
@@ -1045,6 +1130,11 @@ definitions:
           wrapped: true
         items:
           type: "string"
+        example:
+          - temporalCoverage: "temporalCoverage 1"
+          - temporalCoverage: "temporalCoverage 2"
+          - temporalCoverage: "temporalCoverage 3"
+          - temporalCoverage: "temporalCoverage 4"
       spatialPoint:
         type: "array"
         xml:
@@ -1052,6 +1142,16 @@ definitions:
           wrapped: true
         items:
           $ref: "#/definitions/SpatialPoint"
+        example:
+          - schemeSpatialPoint: "Scheme Spatial Point 1"
+            xCoordinate: "44"
+            yCoordinate: "12"
+          - schemeSpatialPoint: "Scheme Spatial Point 2"
+            xCoordinate: "8"
+            yCoordinate: "233"
+          - schemeSpatialPoint: "Scheme Spatial Point 3"
+            xCoordinate: "9888"
+            yCoordinate: "7"
       spatialBox:
         type: "array"
         xml:
@@ -1059,6 +1159,17 @@ definitions:
           wrapped: true
         items:
           $ref: "#/definitions/SpatialBox"
+        example:
+          - schemeSpatialBox: "Scheme Spatial Box 2"
+            north: "north 44"
+            east: "east 12"
+            south: "south 44"
+            west: "west 12"
+          - schemeSpatialBox: "Scheme Spatial Box 3333"
+            north: "north 333"
+            east: "east 222"
+            south: "south 999"
+            west: "west 555"
       spatialCoverage:
         type: "array"
         xml:
@@ -1066,13 +1177,17 @@ definitions:
           wrapped: true
         items:
           type: "string"
+        example:
+          - spatialCoverage: "Spatial coverage 1"
+          - spatialCoverage: "Spatial coverage 2"
+          - spatialCoverage: "Spatial coverage 3"
     xml:
       name: "TimeAndSpacialMetadata"
 
   Metadata:
     type: "object"
     required:
-    - "id"
+    - "doi"
     - "title"
     - "creator"
     - "dateCreated"
@@ -1081,9 +1196,9 @@ definitions:
     - "privacySensitiveDataNo"
     - "license"
     properties:
-      id:
-        type: "integer"
-        format: "int64"
+      doi:
+        type: "string"
+        example: "doi:10.17632/DANS.6wg5xccnjd.1"
       title:
         type: "array"
         xml:
@@ -1091,6 +1206,9 @@ definitions:
           wrapped: true
         items:
           type: "string"
+        example:
+          - "Do Androids Dream of Electric Sheep?"
+          - "The Hitchhiker's Guide to the Galaxy"
       alternativeTitle:
         type: "array"
         xml:
@@ -1098,8 +1216,14 @@ definitions:
           wrapped: true
         items:
           type: "string"
+        example:
+          - "Do Electric Sheep Dream of Androids?"
+          - "The Hitchhiker's Guide to the Universe"
       description:
         type: "string"
+        example: "Seconds before the Earth is demolished to make way for a galactic freeway, Arthur Dent is plucked off the planet by his friend Ford Prefect, a researcher for the revised edition of The Hitchhiker's Guide to the Galaxy who, for the last fifteen years, has been posing as an out-of-work actor.
+
+                  Together this dynamic pair begin a journey through space aided by quotes from The Hitchhiker's Guide (\"A towel is about the most massively useful thing an interstellar hitchhiker can have\") and a galaxy-full of fellow travelers: Zaphod Beeblebrox—the two-headed, three-armed ex-hippie and totally out-to-lunch president of the galaxy; Trillian, Zaphod's girlfriend (formally Tricia McMillan), whom Arthur tried to pick up at a cocktail party once upon a time zone; Marvin, a paranoid, brilliant, and chronically depressed robot; Veet Voojagig, a former graduate student who is obsessed with the disappearance of all the ballpoint pens he bought over the years."
       creator:
         type: "array"
         xml:
@@ -1117,6 +1241,7 @@ definitions:
       dateCreated:
         type: "string"
         format: "date-time"
+        example: "2018-02-19T12:00:37.824Z"
       audience:
         type: "array"
         xml:
@@ -1124,6 +1249,9 @@ definitions:
           wrapped: true
         items:
           type: "string"
+        example:
+          - "small audience"
+          - "strange audience"
       subject:
         type: "array"
         xml:
@@ -1131,6 +1259,10 @@ definitions:
           wrapped: true
         items:
           type: "string"
+        example:
+          - "science fiction"
+          - "physics"
+          - "chemistry"
       identifier:
         type: "array"
         xml:
@@ -1138,6 +1270,11 @@ definitions:
           wrapped: true
         items:
           $ref: "#/definitions/SchemeAndID"
+        example:
+          - scheme: "approved"
+            id: 234
+          - scheme: "pending"
+            id: 13
 # TODO how to take "Verify" button into account?
       relation:
         type: "array"
@@ -1146,6 +1283,15 @@ definitions:
           wrapped: true
         items:
           $ref: "#/definitions/Relation"
+        example:
+          - qualifier: "absolute"
+            title: "Relation First Title"
+            url: "http://google.com/text.doc"
+            emphasize_this_relation: "true"
+          - qualifier: "relative"
+            title: "Relation Second Title"
+            url: "http://yahoo.com/document.txt"
+            emphasize_this_relation: "false"
       languageISO639:
         type: "array"
         xml:
@@ -1153,6 +1299,9 @@ definitions:
           wrapped: true
         items:
           $ref: "#/definitions/LanguageISO639"
+        example:
+          - "Dutch"
+          - "English"
       language:
         type: "array"
         xml:
@@ -1160,6 +1309,10 @@ definitions:
           wrapped: true
         items:
           type: "string"
+        example:
+          - "English"
+          - "German"
+          - "French"
       dateISO8601:
         type: "array"
         xml:
@@ -1167,6 +1320,10 @@ definitions:
           wrapped: true
         items:
           $ref: "#/definitions/SchemeAndDate"
+        example:
+          - "2010-01-19T10:00:37.824Z"
+          - "2012-02-19T12:00:37.824Z"
+          - "2016-02-19T12:00:37.824Z"
       date:
         type: "array"
         xml:
@@ -1174,16 +1331,25 @@ definitions:
           wrapped: true
         items:
           $ref: "#/definitions/SchemeAndDate"
+        example:
+          - scheme: "closed"
+            date: "1994-01-19T10:00:37.824Z"
+          - scheme: "pending"
+            date: "2224-01-19T10:00:37.824Z"
       source:
         type: "string"
+        example: "He had expressed an opinion that the true art of memory was not to be gained by technical devices, but by a philosophical apprehension of things; and the cardinal de Berulle, the founder of the Congregation of the Oratory, was so struck by the tone of the remarks as to impress upon the speaker the duty of spending his life in the examination of truth."
       remarks:
         type: "string"
+        example: "Alma's encouraging remarks to her son about his superb sandwich making skills gave him a feeling of pride in his efforts. The definition of a remark is a statement about something you noticed. An example of a remark is telling your friend that his garden is really beautiful."
       privacySensitiveDataYes:
         type: "boolean"
         default: false
+        example: true
       privacySensitiveDataNo:
         type: "boolean"
         default: false
+        example: true
       license:
         $ref: "#/definitions/License"
       uploadType:
@@ -1197,5 +1363,6 @@ definitions:
       licenseAgreement:
         type: "boolean"
         default: false
+        example: false
     xml:
       name: "Metadata"
