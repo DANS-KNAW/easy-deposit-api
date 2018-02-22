@@ -1,17 +1,17 @@
 openapi: 3.0.0
-info:
-  title: Deposit API
-  version: 0.1.0
-  description: |
-    This document specifies the public interface for depositing a dataset in EASY
-  license:
-    name: Apache 2.0
-    url: http://www.apache.org/licenses/LICENSE-2.0
 
 servers:
-  - url: 'http://test.dans.knaw.nl'
-    description: ""
-
+  - description: SwaggerHub API Auto Mocking
+    url: https://virtserver.swaggerhub.com/DANS2/Diposit/1.0.0
+info:
+  description: This document specifies the public interface for depositing a dataset in EASY
+  version: "1.0.0"
+  title: Deposit API
+  contact:
+    email: you@your-company.com
+  license:
+    name: Apache 2.0
+    url: 'http://www.apache.org/licenses/LICENSE-2.0.html'
 tags:
 - name: "default"
   description: "default"
@@ -22,10 +22,8 @@ tags:
 - name: "file"
   description: "Operations on a file"
 
-schemes:
-- "http"
-
 paths:
+
   /:
     get:
       tags:
@@ -53,75 +51,18 @@ paths:
       summary: "Create user"
       description: "This can only be done by the logged in user."
       operationId: "createUser"
-      produces:
-      - "application/json"
-      - "application/xml"
       requestBody:
         description: "Created user object"
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/definitions/User"
-          application/xml:
-            schema:
-              $ref: "#/definitions/User"
+              $ref: "#/components/schemas/User"
       responses:
         default:
           description: "successful operation"
-
-  /user/login:
-    get:
-      tags:
-      - "user"
-      summary: "Logs user into the system"
-      description: ""
-      operationId: "loginUser"
-      produces:
-      - "application/json"
-      - "application/xml"
-      parameters:
-      - name: "username"
-        in: "query"
-        description: "The user name for login"
-        required: true
-        type: "string"
-      - name: "password"
-        in: "query"
-        description: "The password for login in clear text"
-        required: true
-        type: "string"
-      responses:
-        200:
-          description: "successful operation"
-          schema:
-            type: "string"
-          headers:
-            X-Rate-Limit:
-              type: "integer"
-              format: "int32"
-              description: "calls per hour allowed by the user"
-            X-Expires-After:
-              type: "string"
-              format: "date-time"
-              description: "date in UTC when token expires"
-        400:
-          description: "Invalid username/password supplied"
-
-  /user/logout:
-    get:
-      tags:
-      - "user"
-      summary: "Logs out current logged in user session"
-      description: ""
-      operationId: "logoutUser"
-      produces:
-      - "application/xml"
-      - "application/json"
-      parameters: []
-      responses:
-        default:
-          description: "successful operation"
+      security:
+        - BasicAuth: []
 
   /user/{username}:
     get:
@@ -130,24 +71,26 @@ paths:
       summary: "Get user by user name"
       description: ""
       operationId: "getUserByName"
-      produces:
-      - "application/json"
-      - "application/xml"
       parameters:
-      - name: "username"
-        in: "path"
-        description: "The name that needs to be fetched. Use user1 for testing. "
-        required: true
-        type: "string"
-      responses:
-        200:
-          description: "successful operation"
+        - name: "username"
+          in: "path"
+          description: "The name that needs to be fetched. Use user1 for testing. "
+          required: true
           schema:
-            $ref: "#/definitions/User"
-        400:
+            type: "string"
+      responses:
+        '200':
+          description: "successful operation"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        '400':
           description: "Invalid username supplied"
-        404:
+        '404':
           description: "User not found"
+      security:
+        - BasicAuth: []
 
     put:
       tags:
@@ -155,30 +98,27 @@ paths:
       summary: "Update user"
       description: "This can only be done by the logged in user."
       operationId: "updateUser"
-      produces:
-      - "application/xml"
-      - "application/json"
       parameters:
-      - name: "username"
-        in: "path"
-        description: "name that need to be updated"
-        required: true
-        type: "string"
+        - name: "username"
+          in: "path"
+          description: "The name that needs to be fetched. Use user1 for testing. "
+          required: true
+          schema:
+            type: "string"
       requestBody:
         description: "Update user"
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/definitions/User"
-          application/xml:
-            schema:
-              $ref: "#/definitions/User"
+              $ref: "#/components/schemas/User"
       responses:
         400:
           description: "Invalid user supplied"
         404:
           description: "User not found"
+      security:
+        - BasicAuth: []
 
     delete:
       tags:
@@ -186,20 +126,20 @@ paths:
       summary: "Delete user"
       description: "This can only be done by the logged in user."
       operationId: "deleteUser"
-      produces:
-      - "application/xml"
-      - "application/json"
-      parameters:
-      - name: "username"
-        in: "path"
-        description: "The name that needs to be deleted"
+      requestBody:
+        description: "Delete user"
         required: true
-        type: "string"
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/User"
       responses:
         400:
           description: "Invalid username supplied"
         404:
           description: "User not found"
+      security:
+        - BasicAuth: []
 
   /deposit:
     get:
@@ -208,9 +148,6 @@ paths:
       summary: "List all deposits"
       description: "Shows all deposit of a specific user"
       operationId: "getDeposits"
-      produces:
-      - "application/json"
-      - "application/xml"
       responses:
         200:
           description: "List of all deposits retrieved successfully"
@@ -219,7 +156,7 @@ paths:
               schema:
                 type: "array"
                 items:
-                  $ref: "#/definitions/Deposit"
+                  $ref: "#/components/schemas/Deposit"
                 description: a plain text, human readable description of the service
                 example:
 
@@ -255,9 +192,7 @@ paths:
                   state: "ARCHIVED"
                   date: "2017-08-09T10:10:22Z"
       security:
-      - deposit_auth:
-        - "write:deposits"
-        - "read:deposits"
+        - BasicAuth: []
 
     post:
       tags:
@@ -265,12 +200,6 @@ paths:
       summary: "Create new deposit"
       description: "Creates an empty bag and retrieves deposit's id"
       operationId: "createDeposit"
-      consumes:
-      - "application/json"
-      - "application/xml"
-      produces:
-      - "application/json"
-      - "application/xml"
       responses:
         201:
           description: "Deposit created successfully"
@@ -279,7 +208,7 @@ paths:
               schema:
                 type: "object"
                 items:
-                  $ref: "#/definitions/Deposit"
+                  $ref: "#/components/schemas/Deposit"
                 description: a plain text, human readable description of the service
                 example:
                   id: "c3155868-1898-493a-8805-53adbd269878"
@@ -290,9 +219,7 @@ paths:
                   state: "DRAFT"
                   date: "2018-01-01T04:12:34Z"
       security:
-      - deposit_auth:
-        - "write:deposits"
-        - "read:deposits"
+        - BasicAuth: []
 
   /deposit/{id}/metadata:
     get:
@@ -301,27 +228,27 @@ paths:
       summary: "Load deposit"
       description: "Get deposit specified by id only with DRAFT/REJECTED status"
       operationId: "getDeposit"
-      produces:
-      - "application/json"
-      - "application/xml"
       parameters:
-      - name: "id"
-        in: "path"
-        description: "id of deposit"
-        required: true
-        type: "string"
-        format: "uuid"
+        - name: "id"
+          in: "path"
+          description: "id of deposit ti retrieve"
+          required: true
+          schema:
+            type: "string"
+            format: "uuid"
       responses:
         200:
           description: "Deposit retrieved successfully if its state is DRAFT or REJECTED"
-          schema:
-            type: "object"
-            items:
-              $ref: "#/definitions/Metadata"
+          content:
+            application/json:
+              schema:
+                type: "object"
+                items:
+                  $ref: "#/components/schemas/Metadata"
         403:
           description: "Deposit not retrieved because its state is something else than DRAFT or REJECTED"
       security:
-      - api_key: []
+        - BasicAuth: []
 
     put:
       tags:
@@ -329,38 +256,28 @@ paths:
       summary: "Save draft of deposit"
       description: "Update metadata"
       operationId: "saveDepositDraft"
-      consumes:
-      - "application/json"
-      - "application/xml"
-      produces:
-      - "application/json"
-      - "application/xml"
       parameters:
-      - name: "id"
-        in: "path"
-        description: "id of draft of deposit to be updated"
-        required: true
-        type: "string"
-        format: "uuid"
+        - name: "id"
+          in: "path"
+          description: "id of draft of deposit to be updated"
+          required: true
+          schema:
+            type: "string"
+            format: "uuid"
       requestBody:
         description: "Save metadata that needs to be updated in deposit"
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/definitions/Metadata'
-          application/xml:
-            schema:
-              $ref: '#/definitions/Metadata'
+              $ref: '#/components/schemas/Metadata'
       responses:
         400:
           description: "Invalid id supplied"
         405:
           description: "Validation exception"
       security:
-      - deposit_auth:
-        - "write:deposits"
-        - "read:deposits"
+        - BasicAuth: []
 
   /deposit/{id}/state:
     get:
@@ -369,16 +286,14 @@ paths:
       summary: "Get state of deposit"
       description: "Get state of deposit"
       operationId: "getDepositState"
-      produces:
-      - "application/json"
-      - "application/xml"
       parameters:
-      - name: "id"
-        in: "path"
-        description: "id of deposit to be retrieved"
-        required: true
-        type: "string"
-        format: "uuid"
+        - name: "id"
+          in: "path"
+          description: "id of deposit to be retrieved"
+          required: true
+          schema:
+            type: "string"
+            format: "uuid"
       responses:
         200:
           description: "Deposit retrieved successfully"
@@ -391,9 +306,7 @@ paths:
                 example:
                    "SUBMITTED"
       security:
-      - deposit_auth:
-        - "write:deposits"
-        - "read:deposits"
+        - BasicAuth: []
 
     put:
       tags:
@@ -401,19 +314,14 @@ paths:
       summary: "Update state of deposit"
       description: "Submit"
       operationId: "updateDepositState"
-      consumes:
-      - "application/json"
-      - "application/xml"
-      produces:
-      - "application/json"
-      - "application/xml"
       parameters:
-      - name: "id"
-        in: "path"
-        description: "id of deposit whose state to be updated"
-        required: true
-        type: "string"
-        format: "uuid"
+        - name: "id"
+          in: "path"
+          description: "id of deposit whose state to be updated"
+          required: true
+          schema:
+            type: "string"
+            format: "uuid"
       requestBody:
         description: "Deposit retrieved successfully"
         content:
@@ -445,16 +353,14 @@ paths:
               schema:
                 type: "object"
                 items:
-                  $ref: "#/definitions/ApiResponse"
+                  $ref: "#/components/schemas/ApiResponse"
                 description: a plain text, human readable description of the service
                 example:
                   code: "c3155868"
                   type: "validation type"
                   message: "validation message"
       security:
-      - deposit_auth:
-        - "write:deposits"
-        - "read:deposits"
+        - BasicAuth: []
 
   /deposit/{id}:
     delete:
@@ -463,16 +369,14 @@ paths:
       summary: "Delete deposit"
       description: "Delete a deposit specified by id"
       operationId: "deleteDeposit"
-      produces:
-      - "application/json"
-      - "application/xml"
       parameters:
-      - name: "id"
-        in: "path"
-        description: "id of deposit to be deleted"
-        required: true
-        type: "string"
-        format: "uuid"
+        - name: "id"
+          in: "path"
+          description: "id of deposit to be deleted"
+          required: true
+          schema:
+            type: "string"
+            format: "uuid"
       responses:
         200:
           description: "Deposit deleted successfully"
@@ -480,7 +384,8 @@ paths:
           description: "Invalid id supplied"
         404:
           description: "Deposit not found"
-
+      security:
+        - BasicAuth: []
 
   /deposit/{id}/files:
     get:
@@ -489,16 +394,14 @@ paths:
       summary: "List all files of deposit"
       description: "Show all files of deposit"
       operationId: "getFilesOfDeposit"
-      produces:
-      - "application/json"
-      - "application/xml"
       parameters:
-      - name: "id"
-        in: "path"
-        description: "id of deposit"
-        required: true
-        type: "string"
-        format: "uuid"
+        - name: "id"
+          in: "path"
+          description: "id of deposit"
+          required: true
+          schema:
+            type: "string"
+            format: "uuid"
       responses:
         200:
           description: "List of all files of deposit retrieved successfully"
@@ -507,7 +410,7 @@ paths:
               schema:
                 type: "array"
                 items:
-                  $ref: "#/definitions/File"
+                  $ref: "#/components/schemas/File"
                 description: a plain text, human readable description of the service
                 example:
                 - path: "/tem/quarantine/cat.png"
@@ -522,9 +425,7 @@ paths:
         404:
           description: "File not found"
       security:
-      - deposit_auth:
-        - "write:deposits"
-        - "read:deposits"
+        - BasicAuth: []
 
   /deposit/{id}/file:
     post:
@@ -533,24 +434,19 @@ paths:
       summary: "Upload a file"
       description: "Add a new file to deposit"
       operationId: "depositFile"
-      consumes:
-      - "multipart/form-data"
-      produces:
-      - "application/json"
-      - "application/xml"
       parameters:
-      - name: "id"
-        in: "path"
-        description: "id of deposit where file is uploaded"
-        required: true
-        type: "string"
-        format: "uuid"
-      - in: "formData"
-        name: "uploadFile"
-        type: "file"
-        required: true
-        allowMultiple: false
-        description: "file to upload"
+        - name: "id"
+          in: "path"
+          description: "id of deposit where file is uploaded"
+          required: true
+          schema:
+            type: "string"
+            format: "uuid"
+        # - name: "uploadFile"
+        #   in: "formData"
+        #   required: true
+        #   schema:
+        #     type: "file"
       requestBody:
         description: "File upload"
         required: true
@@ -569,7 +465,7 @@ paths:
               schema:
                 type: "object"
                 items:
-                  $ref: "#/definitions/File"
+                  $ref: "#/components/schemas/File"
                 description: a plain text, human readable description of the service
                 example:
                   path: "/tem/quarantine/"
@@ -580,9 +476,7 @@ paths:
         500:
           description: "Internal Server Error"
       security:
-      - deposit_auth:
-        - "write:deposits"
-        - "read:deposits"
+        - BasicAuth: []
 
   /deposit/{id}/file/{file_id}":
     delete:
@@ -591,778 +485,790 @@ paths:
       summary: "Delete a file from deposit"
       description: "Deletes a deposit specified by ID"
       operationId: "deleteFileFromDeposit"
-      produces:
-      - "application/json"
-      - "application/xml"
       parameters:
-      - in: "path"
-        description: "id of deposit"
-        required: true
-        type: "string"
-        format: "uuid"
-      - name: "file_id"
-        in: "path"
-        description: "id of file to be deleted from deposit"
-        required: true
-        type: "string"
-        format: "uuid"
+        - name: "id"
+          in: "path"
+          description: "id of deposit"
+          required: true
+          schema:
+            type: "string"
+            format: "uuid"
+        - name: "file_id"
+          in: "path"
+          description: "id of file to be deleted from deposit"
+          required: true
+          schema:
+            type: "string"
+            format: "uuid"
       responses:
         400:
           description: "Invalid id supplied"
         404:
           description: "File not found"
+      security:
+        - BasicAuth: []
 
 
-securityDefinitions:
-
-  deposit_auth:
-    type: "oauth2"
-    authorizationUrl: "http://test.dans.knaw.nl/oauth/dialog"
-    flow: "implicit"
-    scopes:
-      write:deposits: "modify deposits in your account"
-      read:deposits: "read your deposits"
-  api_key:
-    type: "apiKey"
-    name: "api_key"
-    in: "header"
 
 
-definitions:
+components:
 
-  ApiResponse:
-    type: "object"
-    properties:
-      code:
-        type: "integer"
-        format: "int32"
-      type:
-        type: "string"
-      message:
-        type: "string"
+  securitySchemes:
+    BasicAuth:
+      type: http
+      scheme: basic
+#    ApiKeyAuth:
+#      type: apiKey
+#      in: header
+#      name: X-API-Key
 
-  User:
-    type: "object"
-    required:
-    - "id"
-    - "username"
-    - "password"
-    properties:
-      id:
-        type: "integer"
-        format: "int64"
-        example: 5
-      username:
-        type: "string"
-        example: "John McCan"
-      password:
-        type: "string"
-        example: "John's password"
-    xml:
-      name: "User"
+  schemas:
 
-  Deposit:
-    type: "object"
-    required:
-    - "id"
-    - "title"
-    properties:
-      id:
-        type: "string"
-        format: "uuid"
-      title:
-        type: "string"
-      status:
-        type: "string"
-      status_description:
-        type: "string"
-      doi:
-        type: "string"
-      state:
-        type: "string"
-      date:
-        type: "string"
-        format: "date-time"
-        description: "Deposit date of ..."
-    xml:
-      name: "Deposit"
-
-  File:
-    type: "object"
-    required:
-    - "id"
-    - "name"
-    properties:
-      path:
-        type: "string"
-      name:
-        type: "string"
-      checksum:
-        type: "string"
-        description: "checksum calculated with SHA1"
-    xml:
-      name: "File"
-
-  SchemeAndID:
-    type: "object"
-    properties:
-      scheme:
-        type: "string"
-        description: "Scheme ..."
-        enum: ["approved", "pending", "closed", "new"]
-        example: "approved"
-      id:
-        type: "integer"
-        format: "int64"
-        example: 39
-    xml:
-      name: "SchemeAndID"
-
-  Creator:
-    type: "object"
-    required:
-    - "initials"
-    - "surname"
-    properties:
-      schemeAndID:
-        type: "array"
-        xml:
-          name: "schemeAndID"
-          wrapped: true
-        items:
-          $ref: "#/definitions/SchemeAndID"
-        example:
-          - scheme: "pending"
-            id: 15
-          - scheme: "aproved"
-            id: 4
-      academicTitles:
-        type: "string"
-        example: "PhD, Chem.Eng."
-      initials:
-        type: "string"
-        example: "A"
-      prefix:
-        type: "string"
-        example: "van"
-      surname:
-        type: "string"
-        example: "der Put"
-      role:
-        type: "string"
-        description: "Short role description"
-        enum: ["archivist", "activist", "pacifist", "colonist"]
-        example: "archivist"
-      organization:
-        type: "string"
-        example: "DANS"
-    xml:
-      name: "Creator"
-
-  Contributor:
-    type: "object"
-    required:
-    - "initials"
-    - "surname"
-    properties:
-      schemeAndID:
-        type: "array"
-        xml:
-          name: "schemeAndID"
-          wrapped: true
-        items:
-          $ref: "#/definitions/SchemeAndID"
-        example:
-          - scheme: "aproved"
-            id: 5
-          - scheme: "pending"
-            id: 77
-      academicTitles:
-        type: "string"
-        example: "MSc"
-      initials:
-        type: "string"
-        example: "M"
-      prefix:
-        type: "string"
-        example: "prexix"
-      surname:
-        type: "string"
-        example: "van Bergen"
-      role:
-        type: "string"
-        enum: ["moderator", "aviator", "incubator", "inhalator"]
-        example: "inhalator"
-      organization:
-        type: "string"
-        example: "Radboud Universiteit"
-    xml:
-      name: "Contributor"
-
-  Relation:
-    type: "object"
-    properties:
-      qualifier:
-        type: "string"
-        description: "Qualifier ..."
-        enum: ["relative", "absolute", "unrelated", "redundant"]
-        example: "relative"
-      title:
-        type: "string"
-        example: "Relation Title"
-      url:
-        type: "string"
-        example: "Relation URL"
-      emphasize_this_relation:
-        type: "boolean"
-        default: true
-        example: "false"
-    xml:
-      name: "Relation"
-
-  LanguageISO639:
-    type: "object"
-    properties:
-      language:
-        type: "string"
-        description: "Language ..."
-        enum: ["Dutch", "English", "German", "Spanish"]
-        example: "Dutch"
-    xml:
-      name: "LanguageISO639"
-
-  SchemeAndDate:
-    type: "object"
-    properties:
-      scheme:
-        type: "string"
-        description: "Scheme ..."
-        enum: ["approved", "pending", "closed", "new"]
-        example: "closed"
-      date:
-        type: "string"
-        example: "1999-01-19T10:00:37.824Z"
-    xml:
-      name: "SchemeAndDate"
-
-  License:
-    type: "object"
-    required:
-    - "accessRightsOpenAccess"
-    - "accessRightsRegisteredUsers"
-    - "accessRightsRestrictedGroup"
-    - "accessRightsRestrictedReqPermission"
-    - "accessRightsOtherAccess"
-    - "licence"
-    properties:
-      rightsHolder:
-        type: "array"
-        xml:
-          name: "rightsHolder"
-          wrapped: true
-        items:
+    ApiResponse:
+      type: "object"
+      properties:
+        code:
+          type: "integer"
+          format: "int32"
+        type:
           type: "string"
-        example:
-          - rightsHolder: "rights holder 1"
-          - rightsHolder: "rights holder 2"
-          - rightsHolder: "rights holder 3"
-      publisher:
-        type: "array"
-        xml:
-          name: "publisher"
-          wrapped: true
-        items:
+        message:
           type: "string"
-        example:
-          - publisher: "publisher 1"
-          - publisher: "publisher 2"
-      accessRightsOpenAccess:
-        type: "boolean"
-        default: true
-        example: true
-      accessRightsRegisteredUsers:
-        type: "boolean"
-        default: false
-        example: true
-      accessRightsRestrictedGroup:
-        type: "boolean"
-        default: false
-        example: false
-      selectRestrictedGroup:
-        type: "string"
-        description: "Select Restricted Group ..."
-        enum: ["Restricted Group 1", "Restricted Group 2", "Restricted Group 3", "Restricted Group 4"]
-        example: "Restricted Group 4"
-      accessRightsRestrictedReqPermission:
-        type: "boolean"
-        default: false
-        example: true
-      accessRightsOtherAccess:
-        type: "boolean"
-        default: false
-        example: true
-      license:
-        type: "string"
-        description: "License ..."
-        enum: ["License 1", "License 2", "License 3", "License 4"]
-        example: "License 2"
-      dateAvailable:
-        type: "string"
-        format: "date-time"
-        example: "2018-02-19T16:39:35.948Z"
-    xml:
-      name: "License"
 
-  TypeDCMI:
-    type: "object"
-    properties:
-      typeDCMI:
-        type: "string"
-        description: "Type (DCMI resource type)"
-        enum: ["typeDCMI 1", "typeDCMI 2", "typeDCMI 3", "typeDCMI 4"]
-        example: "typeDCMI 2"
-    xml:
-      name: "TypeDCMI"
-
-  FormatIMT:
-    type: "object"
-    properties:
-      formatIMT:
-        type: "string"
-        description: "Format (internet media type)"
-        enum: ["Format 1", "Format 2", "Format 3", "Format 4"]
-        example: "Format 2"
-    xml:
-      name: "FormatIMT"
-
-  UploadType:
-    type: "object"
-    properties:
-      typeDCMI:
-        type: "array"
-        xml:
-          name: "typeDCMI"
-          wrapped: true
-        items:
-          $ref: "#/definitions/TypeDCMI"
-        example:
-          - typeDCMI: "typeDCMI 1"
-          - typeDCMI: "typeDCMI 2"
-          - typeDCMI: "typeDCMI 3"
-      type:
-        type: "array"
-        xml:
-          name: "type"
-          wrapped: true
-        items:
+    User:
+      type: "object"
+      required:
+      - "id"
+      - "username"
+      - "password"
+      properties:
+        id:
+          type: "integer"
+          format: "int64"
+          example: 5
+        username:
           type: "string"
-        example:
-          - typeob: "type 1"
-          - typeob: "type 2"
-      formatIMT:
-        type: "array"
-        xml:
-          name: "formatIMT"
-          wrapped: true
-        items:
-          $ref: "#/definitions/FormatIMT"
-        example:
-          - formatIMT: "formatIMT 1"
-          - formatIMT: "formatIMT 2"
-          - formatIMT: "formatIMT 3"
-      uploadFormat:
-        type: "array"
-        xml:
-          name: "format"
-          wrapped: true
-        items:
+          example: "John McCan"
+        password:
           type: "string"
-        example:
-          - uploadFormat: "uploadFormat 1"
-          - uploadFormat: "uploadFormat 2"
-          - uploadFormat: "uploadFormat 3"
-          - uploadFormat: "uploadFormat 4"
-    xml:
-      name: "UploadType"
+          example: "John's password"
 
-
-  ArchisZaakidentificatie:
-    type: "object"
-    properties:
-      zaakidentificatie:
-        type: "array"
-        xml:
-          name: "archisZaakidentificatie"
-          wrapped: true
-        items:
+    Deposit:
+      type: "object"
+      required:
+      - "id"
+      - "title"
+      properties:
+        id:
           type: "string"
-    xml:
-      name: "ArchisZaakidentificatie"
-
-  SubjectABRcomplex:
-    type: "object"
-    properties:
-      subjectABRcomplex:
-        type: "string"
-        description: "Subject ABR complex"
-        enum: ["SubjectABR 1", "SubjectABR 2", "SubjectABR 3"]
-        example: "SubjectABR 1"
-    xml:
-      name: "SubjectABRcomplex"
-
-  TemporalCoverage:
-    type: "object"
-    properties:
-      temporalCoverage:
-        type: "string"
-        description: "Temporal coverage (ABR period)"
-        enum: ["TemporalCoverage 1", "TemporalCoverage 2", "TemporalCoverage 3"]
-        example: "TemporalCoverage 3"
-    xml:
-      name: "TemporalCoverage"
-
-  ArchaeologyMetadata:
-    type: "object"
-    properties:
-# TODO to elaborate on importPakbon if it will be decided that this functionality is needed
-# How to describe with Swagger the "Upload" button?
-#      importPakbon:
-#        type: "string"
-      archisZaakidentificatie:
-        type: "array"
-        xml:
-          name: "archisZaakidentificatie"
-          wrapped: true
-        items:
-          $ref: "#/definitions/ArchisZaakidentificatie"
-        example:
-          - zaakidentificatie: "Archis Zaakidentificatie 1"
-          - zaakidentificatie: "Archis Zaakidentificatie 2"
-          - zaakidentificatie: "Archis Zaakidentificatie 3"
-      subjectABRcomplex:
-        type: "array"
-        xml:
-          name: "subjectABRcomplex"
-          wrapped: true
-        items:
-          $ref: "#/definitions/SubjectABRcomplex"
-        example:
-          - subjectABRcomplex: "SubjectABR 1"
-          - subjectABRcomplex: "SubjectABR 2"
-          - subjectABRcomplex: "SubjectABR 3"
-      temporalCoverage:
-        type: "array"
-        xml:
-          name: "temporalCoverage"
-          wrapped: true
-        items:
-          $ref: "#/definitions/TemporalCoverage"
-        example:
-          - temporalCoverage: "TemporalCoverage 1"
-          - temporalCoverage: "TemporalCoverage 2"
-          - temporalCoverage: "TemporalCoverage 33"
-    xml:
-      name: "ArchaeologyMetadata"
-
-  LanguageAndLiteratureMetadata:
-    type: "object"
-    properties:
-      absentCLARINmetadata:
-        type: "boolean"
-        default: true
-        example: false
-      presentCLARINmetadata:
-        type: "boolean"
-        default: false
-        example: true
-    xml:
-      name: "LanguageAndLiteratureMetadata"
-
-  SpatialPoint:
-    type: "object"
-    properties:
-      schemeSpatialPoint:
-        type: "array"
-        items:
+          format: "uuid"
+        title:
           type: "string"
-          enum: ["Scheme Spatial Point 1", "Scheme Spatial Point 2", "Scheme Spatial Point 3"]
-          example: "Scheme Spatial Point 3"
-      xCoordinate:
-        type: "string"
-        example: "132"
-      yCoordinate:
-        type: "string"
-        example: "643"
-    xml:
-      name: "SpatialPoint"
+        status:
+          type: "string"
+        status_description:
+          type: "string"
+        doi:
+          type: "string"
+        state:
+          type: "string"
+        date:
+          type: "string"
+          format: "date-time"
+          description: "Deposit date of ..."
+      xml:
+        name: "Deposit"
 
-  SpatialBox:
-    type: "object"
-    properties:
-      schemeSpatialBox:
-        type: "array"
-        items:
+    File:
+      type: "object"
+      required:
+      - "id"
+      - "name"
+      properties:
+        path:
           type: "string"
-          enum: ["Scheme Spatial Box 1", "Scheme Spatial Box 2", "Scheme Spatial Box 3"]
-          example: "Scheme Spatial Box 3"
-      north:
-        type: "string"
-        example: "north 1"
-      east:
-        type: "string"
-        example: "east 1"
-      south:
-        type: "string"
-        example: "south 1"
-      west:
-        type: "string"
-        example: "west 1"
-    xml:
-      name: "SpatialBox"
+        name:
+          type: "string"
+        checksum:
+          type: "string"
+          description: "checksum calculated with SHA1"
 
-  TimeAndSpacialMetadata:
-    type: "object"
-    properties:
-      temporalCoverage:
-        type: "array"
-        xml:
-          name: "temporalCoverage"
-          wrapped: true
-        items:
+    SchemeAndID:
+      type: "object"
+      properties:
+        scheme:
           type: "string"
-        example:
-          - temporalCoverage: "temporalCoverage 1"
-          - temporalCoverage: "temporalCoverage 2"
-          - temporalCoverage: "temporalCoverage 3"
-          - temporalCoverage: "temporalCoverage 4"
-      spatialPoint:
-        type: "array"
-        xml:
-          name: "relation"
-          wrapped: true
-        items:
-          $ref: "#/definitions/SpatialPoint"
-        example:
-          - schemeSpatialPoint: "Scheme Spatial Point 1"
-            xCoordinate: "44"
-            yCoordinate: "12"
-          - schemeSpatialPoint: "Scheme Spatial Point 2"
-            xCoordinate: "8"
-            yCoordinate: "233"
-          - schemeSpatialPoint: "Scheme Spatial Point 3"
-            xCoordinate: "9888"
-            yCoordinate: "7"
-      spatialBox:
-        type: "array"
-        xml:
-          name: "relation"
-          wrapped: true
-        items:
-          $ref: "#/definitions/SpatialBox"
-        example:
-          - schemeSpatialBox: "Scheme Spatial Box 2"
-            north: "north 44"
-            east: "east 12"
-            south: "south 44"
-            west: "west 12"
-          - schemeSpatialBox: "Scheme Spatial Box 3333"
-            north: "north 333"
-            east: "east 222"
-            south: "south 999"
-            west: "west 555"
-      spatialCoverage:
-        type: "array"
-        xml:
-          name: "spatialCoverage"
-          wrapped: true
-        items:
-          type: "string"
-        example:
-          - spatialCoverage: "Spatial coverage 1"
-          - spatialCoverage: "Spatial coverage 2"
-          - spatialCoverage: "Spatial coverage 3"
-    xml:
-      name: "TimeAndSpacialMetadata"
+          description: "Scheme ..."
+          enum:
+            - "approved"
+            - "pending"
+            - "closed"
+            - "new"
+          example: "approved"
+        id:
+          type: "integer"
+          format: "int64"
+          example: 39
 
-  Metadata:
-    type: "object"
-    required:
-    - "doi"
-    - "title"
-    - "creator"
-    - "dateCreated"
-    - "audience"
-    - "privacySensitiveDataYes"
-    - "privacySensitiveDataNo"
-    - "license"
-    properties:
-      doi:
-        type: "string"
-        example: "doi:10.17632/DANS.6wg5xccnjd.1"
-      title:
-        type: "array"
-        xml:
-          name: "title"
-          wrapped: true
-        items:
+    Creator:
+      type: "object"
+      required:
+      - "initials"
+      - "surname"
+      properties:
+        schemeAndID:
+          type: "array"
+          xml:
+            name: "schemeAndID"
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/SchemeAndID"
+          example:
+            - scheme: "pending"
+              id: 15
+            - scheme: "aproved"
+              id: 4
+        academicTitles:
           type: "string"
-        example:
-          - "Do Androids Dream of Electric Sheep?"
-          - "The Hitchhiker's Guide to the Galaxy"
-      alternativeTitle:
-        type: "array"
-        xml:
-          name: "alternativeTitle"
-          wrapped: true
-        items:
+          example: "PhD, Chem.Eng."
+        initials:
           type: "string"
-        example:
-          - "Do Electric Sheep Dream of Androids?"
-          - "The Hitchhiker's Guide to the Universe"
-      description:
-        type: "string"
-        example: "Seconds before the Earth is demolished to make way for a galactic freeway, Arthur Dent is plucked off the planet by his friend Ford Prefect, a researcher for the revised edition of The Hitchhiker's Guide to the Galaxy who, for the last fifteen years, has been posing as an out-of-work actor.
+          example: "A"
+        prefix:
+          type: "string"
+          example: "van"
+        surname:
+          type: "string"
+          example: "der Put"
+        role:
+          type: "string"
+          description: "Short role description"
+          enum:
+            - "archivist"
+            - "activist"
+            - "pacifist"
+            - "colonist"
+          example: "archivist"
+        organization:
+          type: "string"
+          example: "DANS"
 
-                  Together this dynamic pair begin a journey through space aided by quotes from The Hitchhiker's Guide (\"A towel is about the most massively useful thing an interstellar hitchhiker can have\") and a galaxy-full of fellow travelers: Zaphod Beeblebrox—the two-headed, three-armed ex-hippie and totally out-to-lunch president of the galaxy; Trillian, Zaphod's girlfriend (formally Tricia McMillan), whom Arthur tried to pick up at a cocktail party once upon a time zone; Marvin, a paranoid, brilliant, and chronically depressed robot; Veet Voojagig, a former graduate student who is obsessed with the disappearance of all the ballpoint pens he bought over the years."
-      creator:
-        type: "array"
-        xml:
-          name: "creator"
-          wrapped: true
-        items:
-          $ref: "#/definitions/Creator"
-      contributor:
-        type: "array"
-        xml:
-          name: "contributor"
-          wrapped: true
-        items:
-          $ref: "#/definitions/Contributor"
-      dateCreated:
-        type: "string"
-        format: "date-time"
-        example: "2018-02-19T12:00:37.824Z"
-      audience:
-        type: "array"
-        xml:
-          name: "audience"
-          wrapped: true
-        items:
+    Contributor:
+      type: "object"
+      required:
+      - "initials"
+      - "surname"
+      properties:
+        schemeAndID:
+          type: "array"
+          xml:
+            name: "schemeAndID"
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/SchemeAndID"
+          example:
+            - scheme: "aproved"
+              id: 5
+            - scheme: "pending"
+              id: 77
+        academicTitles:
           type: "string"
-        example:
-          - "small audience"
-          - "strange audience"
-      subject:
-        type: "array"
-        xml:
-          name: "subject"
-          wrapped: true
-        items:
+          example: "MSc"
+        initials:
           type: "string"
-        example:
-          - "science fiction"
-          - "physics"
-          - "chemistry"
-      identifier:
-        type: "array"
-        xml:
-          name: "identifier"
-          wrapped: true
-        items:
-          $ref: "#/definitions/SchemeAndID"
-        example:
-          - scheme: "approved"
-            id: 234
-          - scheme: "pending"
-            id: 13
-# TODO how to take "Verify" button into account?
-      relation:
-        type: "array"
-        xml:
-          name: "relation"
-          wrapped: true
-        items:
-          $ref: "#/definitions/Relation"
-        example:
-          - qualifier: "absolute"
-            title: "Relation First Title"
-            url: "http://google.com/text.doc"
-            emphasize_this_relation: "true"
-          - qualifier: "relative"
-            title: "Relation Second Title"
-            url: "http://yahoo.com/document.txt"
-            emphasize_this_relation: "false"
-      languageISO639:
-        type: "array"
-        xml:
-          name: "language"
-          wrapped: true
-        items:
-          $ref: "#/definitions/LanguageISO639"
-        example:
-          - "Dutch"
-          - "English"
-      language:
-        type: "array"
-        xml:
-          name: "language"
-          wrapped: true
-        items:
+          example: "M"
+        prefix:
           type: "string"
-        example:
-          - "English"
-          - "German"
-          - "French"
-      dateISO8601:
-        type: "array"
-        xml:
-          name: "dateISO8601"
-          wrapped: true
-        items:
-          $ref: "#/definitions/SchemeAndDate"
-        example:
-          - "2010-01-19T10:00:37.824Z"
-          - "2012-02-19T12:00:37.824Z"
-          - "2016-02-19T12:00:37.824Z"
-      date:
-        type: "array"
-        xml:
-          name: "date"
-          wrapped: true
-        items:
-          $ref: "#/definitions/SchemeAndDate"
-        example:
-          - scheme: "closed"
-            date: "1994-01-19T10:00:37.824Z"
-          - scheme: "pending"
-            date: "2224-01-19T10:00:37.824Z"
-      source:
-        type: "string"
-        example: "He had expressed an opinion that the true art of memory was not to be gained by technical devices, but by a philosophical apprehension of things; and the cardinal de Berulle, the founder of the Congregation of the Oratory, was so struck by the tone of the remarks as to impress upon the speaker the duty of spending his life in the examination of truth."
-      remarks:
-        type: "string"
-        example: "Alma's encouraging remarks to her son about his superb sandwich making skills gave him a feeling of pride in his efforts. The definition of a remark is a statement about something you noticed. An example of a remark is telling your friend that his garden is really beautiful."
-      privacySensitiveDataYes:
-        type: "boolean"
-        default: false
-        example: true
-      privacySensitiveDataNo:
-        type: "boolean"
-        default: false
-        example: true
-      license:
-        $ref: "#/definitions/License"
-      uploadType:
-        $ref: "#/definitions/UploadType"
-      archaeologyMetadata:
-        $ref: "#/definitions/ArchaeologyMetadata"
-      languageAndLiteratureMetadata:
-        $ref: "#/definitions/LanguageAndLiteratureMetadata"
-      timeAndSpacialMetadata:
-        $ref: "#/definitions/TimeAndSpacialMetadata"
-      licenseAgreement:
-        type: "boolean"
-        default: false
-        example: false
-    xml:
-      name: "Metadata"
+          example: "prexix"
+        surname:
+          type: "string"
+          example: "van Bergen"
+        role:
+          type: "string"
+          enum:
+            - "moderator"
+            - "aviator"
+            - "incubator"
+            - "inhalator"
+          example: "inhalator"
+        organization:
+          type: "string"
+          example: "Radboud Universiteit"
+
+    Relation:
+      type: "object"
+      properties:
+        qualifier:
+          type: "string"
+          description: "Qualifier ..."
+          enum:
+            - "relative"
+            - "absolute"
+            - "unrelated"
+            - "redundant"
+          example: "relative"
+        title:
+          type: "string"
+          example: "Relation Title"
+        url:
+          type: "string"
+          example: "Relation URL"
+        emphasize_this_relation:
+          type: "boolean"
+          default: true
+          example: "false"
+
+    LanguageISO639:
+      type: "object"
+      properties:
+        language:
+          type: "string"
+          description: "Language ..."
+          enum:
+            - "Dutch"
+            - "English"
+            - "German"
+            - "Spanish"
+          example: "Dutch"
+
+    SchemeAndDate:
+      type: "object"
+      properties:
+        scheme:
+          type: "string"
+          description: "Scheme ..."
+          enum:
+            - "approved"
+            - "pending"
+            - "closed"
+            - "new"
+          example: "closed"
+        date:
+          type: "string"
+          example: "1999-01-19T10:00:37.824Z"
+
+    License:
+      type: "object"
+      required:
+      - "accessRightsOpenAccess"
+      - "accessRightsRegisteredUsers"
+      - "accessRightsRestrictedGroup"
+      - "accessRightsRestrictedReqPermission"
+      - "accessRightsOtherAccess"
+      - "licence"
+      properties:
+        rightsHolder:
+          type: "array"
+          xml:
+            name: "rightsHolder"
+            wrapped: true
+          items:
+            type: "string"
+          example:
+            - rightsHolder: "rights holder 1"
+            - rightsHolder: "rights holder 2"
+            - rightsHolder: "rights holder 3"
+        publisher:
+          type: "array"
+          xml:
+            name: "publisher"
+            wrapped: true
+          items:
+            type: "string"
+          example:
+            - publisher: "publisher 1"
+            - publisher: "publisher 2"
+        accessRightsOpenAccess:
+          type: "boolean"
+          default: true
+          example: true
+        accessRightsRegisteredUsers:
+          type: "boolean"
+          default: false
+          example: true
+        accessRightsRestrictedGroup:
+          type: "boolean"
+          default: false
+          example: false
+        selectRestrictedGroup:
+          type: "string"
+          description: "Select Restricted Group ..."
+          enum:
+            - "Restricted Group 1"
+            - "Restricted Group 2"
+            - "Restricted Group 3"
+            - "Restricted Group 4"
+          example: "Restricted Group 4"
+        accessRightsRestrictedReqPermission:
+          type: "boolean"
+          default: false
+          example: true
+        accessRightsOtherAccess:
+          type: "boolean"
+          default: false
+          example: true
+        license:
+          type: "string"
+          description: "License ..."
+          enum:
+            - "License 1"
+            - "License 2"
+            - "License 3"
+            - "License 4"
+          example: "License 2"
+        dateAvailable:
+          type: "string"
+          format: "date-time"
+          example: "2018-02-19T16:39:35.948Z"
+
+    TypeDCMI:
+      type: "object"
+      properties:
+        typeDCMI:
+          type: "string"
+          description: "Type (DCMI resource type)"
+          enum:
+            - "typeDCMI 1"
+            - "typeDCMI 2"
+            - "typeDCMI 3"
+            - "typeDCMI 4"
+          example: "typeDCMI 2"
+
+    FormatIMT:
+      type: "object"
+      properties:
+        formatIMT:
+          type: "string"
+          description: "Format (internet media type)"
+          enum:
+            - "Format 1"
+            - "Format 2"
+            - "Format 3"
+            - "Format 4"
+          example: "Format 2"
+
+    UploadType:
+      type: "object"
+      properties:
+        typeDCMI:
+          type: "array"
+          xml:
+            name: "typeDCMI"
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/TypeDCMI"
+          example:
+            - typeDCMI: "typeDCMI 1"
+            - typeDCMI: "typeDCMI 2"
+            - typeDCMI: "typeDCMI 3"
+        type:
+          type: "array"
+          xml:
+            name: "type"
+            wrapped: true
+          items:
+            type: "string"
+          example:
+            - typeob: "type 1"
+            - typeob: "type 2"
+        formatIMT:
+          type: "array"
+          xml:
+            name: "formatIMT"
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/FormatIMT"
+          example:
+            - formatIMT: "formatIMT 1"
+            - formatIMT: "formatIMT 2"
+            - formatIMT: "formatIMT 3"
+        uploadFormat:
+          type: "array"
+          xml:
+            name: "format"
+            wrapped: true
+          items:
+            type: "string"
+          example:
+            - uploadFormat: "uploadFormat 1"
+            - uploadFormat: "uploadFormat 2"
+            - uploadFormat: "uploadFormat 3"
+            - uploadFormat: "uploadFormat 4"
+
+    ArchisZaakidentificatie:
+      type: "object"
+      properties:
+        zaakidentificatie:
+          type: "array"
+          xml:
+            name: "archisZaakidentificatie"
+            wrapped: true
+          items:
+            type: "string"
+
+    SubjectABRcomplex:
+      type: "object"
+      properties:
+        subjectABRcomplex:
+          type: "string"
+          description: "Subject ABR complex"
+          enum:
+            - "SubjectABR 1"
+            - "SubjectABR 2"
+            - "SubjectABR 3"
+          example: "SubjectABR 1"
+
+    TemporalCoverage:
+      type: "object"
+      properties:
+        temporalCoverage:
+          type: "string"
+          description: "Temporal coverage (ABR period)"
+          enum:
+            - "TemporalCoverage 1"
+            - "TemporalCoverage 2"
+            - "TemporalCoverage 3"
+          example: "TemporalCoverage 3"
+
+    ArchaeologyMetadata:
+      type: "object"
+      properties:
+  # TODO to elaborate on importPakbon if it will be decided that this functionality is needed
+  # How to describe with Swagger the "Upload" button?
+  #      importPakbon:
+  #        type: "string"
+        archisZaakidentificatie:
+          type: "array"
+          xml:
+            name: "archisZaakidentificatie"
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/ArchisZaakidentificatie"
+          example:
+            - zaakidentificatie: "Archis Zaakidentificatie 1"
+            - zaakidentificatie: "Archis Zaakidentificatie 2"
+            - zaakidentificatie: "Archis Zaakidentificatie 3"
+        subjectABRcomplex:
+          type: "array"
+          xml:
+            name: "subjectABRcomplex"
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/SubjectABRcomplex"
+          example:
+            - subjectABRcomplex: "SubjectABR 1"
+            - subjectABRcomplex: "SubjectABR 2"
+            - subjectABRcomplex: "SubjectABR 3"
+        temporalCoverage:
+          type: "array"
+          xml:
+            name: "temporalCoverage"
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/TemporalCoverage"
+          example:
+            - temporalCoverage: "TemporalCoverage 1"
+            - temporalCoverage: "TemporalCoverage 2"
+            - temporalCoverage: "TemporalCoverage 33"
+      xml:
+        name: "ArchaeologyMetadata"
+
+    LanguageAndLiteratureMetadata:
+      type: "object"
+      properties:
+        absentCLARINmetadata:
+          type: "boolean"
+          default: true
+          example: false
+        presentCLARINmetadata:
+          type: "boolean"
+          default: false
+          example: true
+
+    SpatialPoint:
+      type: "object"
+      properties:
+        schemeSpatialPoint:
+          type: "array"
+          items:
+            type: "string"
+            enum:
+              - "Scheme Spatial Point 1"
+              - "Scheme Spatial Point 2"
+              - "Scheme Spatial Point 3"
+            example: "Scheme Spatial Point 3"
+        xCoordinate:
+          type: "string"
+          example: "132"
+        yCoordinate:
+          type: "string"
+          example: "643"
+
+    SpatialBox:
+      type: "object"
+      properties:
+        schemeSpatialBox:
+          type: "array"
+          items:
+            type: "string"
+            enum:
+              - "Scheme Spatial Box 1"
+              - "Scheme Spatial Box 2"
+              - "Scheme Spatial Box 3"
+            example: "Scheme Spatial Box 3"
+        north:
+          type: "string"
+          example: "north 1"
+        east:
+          type: "string"
+          example: "east 1"
+        south:
+          type: "string"
+          example: "south 1"
+        west:
+          type: "string"
+          example: "west 1"
+
+    TimeAndSpacialMetadata:
+      type: "object"
+      properties:
+        temporalCoverage:
+          type: "array"
+          xml:
+            name: "temporalCoverage"
+            wrapped: true
+          items:
+            type: "string"
+          example:
+            - temporalCoverage: "temporalCoverage 1"
+            - temporalCoverage: "temporalCoverage 2"
+            - temporalCoverage: "temporalCoverage 3"
+            - temporalCoverage: "temporalCoverage 4"
+        spatialPoint:
+          type: "array"
+          xml:
+            name: "relation"
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/SpatialPoint"
+          example:
+            - schemeSpatialPoint: "Scheme Spatial Point 1"
+              xCoordinate: "44"
+              yCoordinate: "12"
+            - schemeSpatialPoint: "Scheme Spatial Point 2"
+              xCoordinate: "8"
+              yCoordinate: "233"
+            - schemeSpatialPoint: "Scheme Spatial Point 3"
+              xCoordinate: "9888"
+              yCoordinate: "7"
+        spatialBox:
+          type: "array"
+          xml:
+            name: "relation"
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/SpatialBox"
+          example:
+            - schemeSpatialBox: "Scheme Spatial Box 2"
+              north: "north 44"
+              east: "east 12"
+              south: "south 44"
+              west: "west 12"
+            - schemeSpatialBox: "Scheme Spatial Box 3333"
+              north: "north 333"
+              east: "east 222"
+              south: "south 999"
+              west: "west 555"
+        spatialCoverage:
+          type: "array"
+          xml:
+            name: "spatialCoverage"
+            wrapped: true
+          items:
+            type: "string"
+          example:
+            - spatialCoverage: "Spatial coverage 1"
+            - spatialCoverage: "Spatial coverage 2"
+            - spatialCoverage: "Spatial coverage 3"
+
+    Metadata:
+      type: "object"
+      required:
+      - "doi"
+      - "title"
+      - "creator"
+      - "dateCreated"
+      - "audience"
+      - "privacySensitiveDataYes"
+      - "privacySensitiveDataNo"
+      - "license"
+      properties:
+        doi:
+          type: "string"
+          example: "doi:10.17632/DANS.6wg5xccnjd.1"
+        title:
+          type: "array"
+          xml:
+            name: "title"
+            wrapped: true
+          items:
+            type: "string"
+          example:
+            - "Do Androids Dream of Electric Sheep?"
+            - "The Hitchhiker's Guide to the Galaxy"
+        alternativeTitle:
+          type: "array"
+          xml:
+            name: "alternativeTitle"
+            wrapped: true
+          items:
+            type: "string"
+          example:
+            - "Do Electric Sheep Dream of Androids?"
+            - "The Hitchhiker's Guide to the Universe"
+        description:
+          type: "string"
+          example: "Seconds before the Earth is demolished to make way for a galactic freeway, Arthur Dent is plucked off the planet by his friend Ford Prefect, a researcher for the revised edition of The Hitchhiker's Guide to the Galaxy who, for the last fifteen years, has been posing as an out-of-work actor.
+
+                    Together this dynamic pair begin a journey through space aided by quotes from The Hitchhiker's Guide (\"A towel is about the most massively useful thing an interstellar hitchhiker can have\") and a galaxy-full of fellow travelers: Zaphod Beeblebrox—the two-headed, three-armed ex-hippie and totally out-to-lunch president of the galaxy; Trillian, Zaphod's girlfriend (formally Tricia McMillan), whom Arthur tried to pick up at a cocktail party once upon a time zone; Marvin, a paranoid, brilliant, and chronically depressed robot; Veet Voojagig, a former graduate student who is obsessed with the disappearance of all the ballpoint pens he bought over the years."
+        creator:
+          type: "array"
+          xml:
+            name: "creator"
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/Creator"
+        contributor:
+          type: "array"
+          xml:
+            name: "contributor"
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/Contributor"
+        dateCreated:
+          type: "string"
+          format: "date-time"
+          example: "2018-02-19T12:00:37.824Z"
+        audience:
+          type: "array"
+          xml:
+            name: "audience"
+            wrapped: true
+          items:
+            type: "string"
+          example:
+            - "small audience"
+            - "strange audience"
+        subject:
+          type: "array"
+          xml:
+            name: "subject"
+            wrapped: true
+          items:
+            type: "string"
+          example:
+            - "science fiction"
+            - "physics"
+            - "chemistry"
+        identifier:
+          type: "array"
+          xml:
+            name: "identifier"
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/SchemeAndID"
+          example:
+            - scheme: "approved"
+              id: 234
+            - scheme: "pending"
+              id: 13
+  # TODO how to take "Verify" button into account?
+        relation:
+          type: "array"
+          xml:
+            name: "relation"
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/Relation"
+          example:
+            - qualifier: "absolute"
+              title: "Relation First Title"
+              url: "http://google.com/text.doc"
+              emphasize_this_relation: "true"
+            - qualifier: "relative"
+              title: "Relation Second Title"
+              url: "http://yahoo.com/document.txt"
+              emphasize_this_relation: "false"
+        languageISO639:
+          type: "array"
+          xml:
+            name: "language"
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/LanguageISO639"
+          example:
+            - "Dutch"
+            - "English"
+        language:
+          type: "array"
+          xml:
+            name: "language"
+            wrapped: true
+          items:
+            type: "string"
+          example:
+            - "English"
+            - "German"
+            - "French"
+        dateISO8601:
+          type: "array"
+          xml:
+            name: "dateISO8601"
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/SchemeAndDate"
+          example:
+            - "2010-01-19T10:00:37.824Z"
+            - "2012-02-19T12:00:37.824Z"
+            - "2016-02-19T12:00:37.824Z"
+        date:
+          type: "array"
+          xml:
+            name: "date"
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/SchemeAndDate"
+          example:
+            - scheme: "closed"
+              date: "1994-01-19T10:00:37.824Z"
+            - scheme: "pending"
+              date: "2224-01-19T10:00:37.824Z"
+        source:
+          type: "string"
+          example: "He had expressed an opinion that the true art of memory was not to be gained by technical devices, but by a philosophical apprehension of things; and the cardinal de Berulle, the founder of the Congregation of the Oratory, was so struck by the tone of the remarks as to impress upon the speaker the duty of spending his life in the examination of truth."
+        remarks:
+          type: "string"
+          example: "Alma's encouraging remarks to her son about his superb sandwich making skills gave him a feeling of pride in his efforts. The definition of a remark is a statement about something you noticed. An example of a remark is telling your friend that his garden is really beautiful."
+        privacySensitiveDataYes:
+          type: "boolean"
+          default: false
+          example: true
+        privacySensitiveDataNo:
+          type: "boolean"
+          default: false
+          example: true
+        license:
+          $ref: "#/components/schemas/License"
+        uploadType:
+          $ref: "#/components/schemas/UploadType"
+        archaeologyMetadata:
+          $ref: "#/components/schemas/ArchaeologyMetadata"
+        languageAndLiteratureMetadata:
+          $ref: "#/components/schemas/LanguageAndLiteratureMetadata"
+        timeAndSpacialMetadata:
+          $ref: "#/components/schemas/TimeAndSpacialMetadata"
+        licenseAgreement:
+          type: "boolean"
+          default: false
+          example: false
+
