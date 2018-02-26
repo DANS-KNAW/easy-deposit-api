@@ -92,6 +92,11 @@
             <groupId>commons-daemon</groupId>
             <artifactId>commons-daemon</artifactId>
         </dependency>
+        <dependency>
+            <groupId>com.github.pathikrit</groupId>
+            <artifactId>better-files_2.12</artifactId>
+            <version>3.4.0</version>
+        </dependency>
     </dependencies>
     <repositories>
         <repository>
