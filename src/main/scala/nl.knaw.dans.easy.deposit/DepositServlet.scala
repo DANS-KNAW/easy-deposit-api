@@ -15,9 +15,17 @@
  */
 package nl.knaw.dans.easy.deposit
 
-import better.files.File
-import nl.knaw.dans.easy.deposit.components.DraftsComponent
+import nl.knaw.dans.easy.deposit.components.User
+import nl.knaw.dans.lib.logging.DebugEnhancedLogging
+import org.scalatra.{ Ok, ScalatraServlet }
 
-class EasyDepositApiApp(configuration: Configuration) extends DraftsComponent {
-  val draftRoot: File = File(configuration.properties.getString("deposits.drafts"))
+class DepositServlet(app: EasyDepositApiApp) extends ScalatraServlet with DebugEnhancedLogging {
+
+  get("/") {
+    val user = User("user001")
+    val drafts = app.listDrafts(user)
+    // convert to JSON
+    val jsonResponse = ???
+    Ok(jsonResponse)
+  }
 }

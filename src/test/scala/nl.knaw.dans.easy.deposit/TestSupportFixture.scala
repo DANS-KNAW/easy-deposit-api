@@ -16,8 +16,15 @@
 package nl.knaw.dans.easy.deposit
 
 import better.files.File
-import nl.knaw.dans.easy.deposit.components.DraftsComponent
+import better.files.File._
+import org.scalamock.scalatest.MockFactory
+import org.scalatest.{ BeforeAndAfterEach, FlatSpec, Inside, Matchers }
 
-class EasyDepositApiApp(configuration: Configuration) extends DraftsComponent {
-  val draftRoot: File = File(configuration.properties.getString("deposits.drafts"))
+trait TestSupportFixture extends FlatSpec with Matchers with Inside with BeforeAndAfterEach with MockFactory {
+
+  lazy val testDir: File = {
+    (currentWorkingDirectory / "target" / "test" / getClass.getSimpleName)
+      .delete(true)
+      .createDirectories()
+  }
 }
