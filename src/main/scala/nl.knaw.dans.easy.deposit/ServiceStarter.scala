@@ -15,8 +15,7 @@
  */
 package nl.knaw.dans.easy.deposit
 
-import java.nio.file.Paths
-
+import better.files.File
 import nl.knaw.dans.lib.error.TryExtensions
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.apache.commons.daemon.{ Daemon, DaemonContext }
@@ -27,7 +26,7 @@ class ServiceStarter extends Daemon with DebugEnhancedLogging {
 
   override def init(context: DaemonContext): Unit = {
     logger.info("Initializing service...")
-    val configuration = Configuration(Paths.get(System.getProperty("app.home")))
+    val configuration = Configuration(File(System.getProperty("app.home")))
     app = new EasyDepositApiApp(configuration)
     service = new EasyDepositApiService(configuration.properties.getInt("daemon.http.port"), app)
     logger.info("Service initialized.")

@@ -15,29 +15,27 @@
  */
 package nl.knaw.dans.easy.deposit
 
-import java.nio.file.{ Files, Path, Paths }
-
+import better.files.File
+import better.files.File._
 import org.apache.commons.configuration.PropertiesConfiguration
-import resource.managed
-
-import scala.io.Source
 
 case class Configuration(version: String, properties: PropertiesConfiguration)
 
 object Configuration {
 
-  def apply(home: Path): Configuration = {
+  def apply(home: File): Configuration = {
     val cfgPath = Seq(
-      Paths.get(s"/etc/opt/dans.knaw.nl/easy-deposit-api/"),
-      home.resolve("cfg"))
-      .find(Files.exists(_))
+      root / "etc" / "opt" / "dans.knaw.nl" / "easy-deposit-api",
+      home / "cfg"
+    )
+      .find(_.exists)
       .getOrElse { throw new IllegalStateException("No configuration directory found") }
 
     new Configuration(
-      version = managed(Source.fromFile(home.resolve("bin/version").toFile)).acquireAndGet(_.mkString),
+      version = (home / "bin" / "version").contentAsString,
       properties = new PropertiesConfiguration() {
         setDelimiterParsingDisabled(true)
-        load(cfgPath.resolve("application.properties").toFile)
+        load((cfgPath / "application.properties").toJava)
       }
     )
   }
