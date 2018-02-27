@@ -17,26 +17,14 @@ package nl.knaw.dans.easy.deposit
 
 import better.files.File
 import better.files.File._
-import org.apache.commons.configuration.PropertiesConfiguration
+import org.scalamock.scalatest.MockFactory
+import org.scalatest.{ BeforeAndAfterEach, FlatSpec, Inside, Matchers }
 
-case class Configuration(version: String, properties: PropertiesConfiguration)
+trait TestSupportFixture extends FlatSpec with Matchers with Inside with BeforeAndAfterEach with MockFactory {
 
-object Configuration {
-
-  def apply(home: File): Configuration = {
-    val cfgPath = Seq(
-      root / "etc" / "opt" / "dans.knaw.nl" / "easy-deposit-api",
-      home / "cfg"
-    )
-      .find(_.exists)
-      .getOrElse { throw new IllegalStateException("No configuration directory found") }
-
-    new Configuration(
-      version = (home / "bin" / "version").contentAsString,
-      properties = new PropertiesConfiguration() {
-        setDelimiterParsingDisabled(true)
-        load((cfgPath / "application.properties").toJava)
-      }
-    )
+  lazy val testDir: File = {
+    (currentWorkingDirectory / "target" / "test" / getClass.getSimpleName)
+      .delete(true)
+      .createDirectories()
   }
 }
