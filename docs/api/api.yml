@@ -2,7 +2,7 @@ openapi: 3.0.0
 
 servers:
   - description: SwaggerHub API Auto Mocking
-    url: https://virtserver.swaggerhub.com/DANS2/Diposit/1.0.0
+    url: https://virtserver.swaggerhub.com/DANS2/Deposit/1.0.0
 info:
   description: This document specifies the public interface for depositing a dataset in EASY
   version: "1.0.0"
@@ -15,8 +15,6 @@ info:
 tags:
 - name: "default"
   description: "default"
-- name: "user"
-  description: "Operations about user"
 - name: "deposit"
   description: "Operations on a deposit"
 - name: "file"
@@ -44,103 +42,6 @@ paths:
         500:
           description: "Service is unavailable because of an error"
 
-  /user:
-    post:
-      tags:
-      - "user"
-      summary: "Create user"
-      description: "This can only be done by the logged in user."
-      operationId: "createUser"
-      requestBody:
-        description: "Created user object"
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/User"
-      responses:
-        default:
-          description: "successful operation"
-      security:
-        - BasicAuth: []
-
-  /user/{username}:
-    get:
-      tags:
-      - "user"
-      summary: "Get user by user name"
-      description: ""
-      operationId: "getUserByName"
-      parameters:
-        - name: "username"
-          in: "path"
-          description: "The name that needs to be fetched. Use user1 for testing. "
-          required: true
-          schema:
-            type: "string"
-      responses:
-        '200':
-          description: "successful operation"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/User"
-        '400':
-          description: "Invalid username supplied"
-        '404':
-          description: "User not found"
-      security:
-        - BasicAuth: []
-
-    put:
-      tags:
-      - "user"
-      summary: "Update user"
-      description: "This can only be done by the logged in user."
-      operationId: "updateUser"
-      parameters:
-        - name: "username"
-          in: "path"
-          description: "The name that needs to be fetched. Use user1 for testing. "
-          required: true
-          schema:
-            type: "string"
-      requestBody:
-        description: "Update user"
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/User"
-      responses:
-        400:
-          description: "Invalid user supplied"
-        404:
-          description: "User not found"
-      security:
-        - BasicAuth: []
-
-    delete:
-      tags:
-      - "user"
-      summary: "Delete user"
-      description: "This can only be done by the logged in user."
-      operationId: "deleteUser"
-      requestBody:
-        description: "Delete user"
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/User"
-      responses:
-        400:
-          description: "Invalid username supplied"
-        404:
-          description: "User not found"
-      security:
-        - BasicAuth: []
-
   /deposit:
     get:
       tags:
@@ -162,7 +63,6 @@ paths:
 
                 - id: "93674123-1699-49c5-af91-ed31db19adc9"
                   title: "Current Dataset"
-                  status: "status 1"
                   status_description: ""
                   doi: "doi:10.1594/GFZ.GEOFON.gfz2009kciu"
                   state: "DRAFT"
@@ -170,7 +70,6 @@ paths:
 
                 - id: "a145a1be-5463-4b10-a621-a9e511ff7f20"
                   title: "First Dataset"
-                  status: "status 2"
                   status_description: ""
                   doi: "doi:10.1594/PANGAEA.726855 "
                   state: "IN PROGRESS"
@@ -178,7 +77,6 @@ paths:
 
                 - id: "1d946f5b-e53b-4f71-b1f3-7481475d07db"
                   title: "Missing file"
-                  status: "status 1"
                   status_description: "there are some files missing"
                   doi: "doi: 10.3207/2959859860"
                   state: "REJECTED"
@@ -186,7 +84,6 @@ paths:
 
                 - id: "5befec97-1e57-4210-b7b6-57a604aaef47"
                   title: "Old Dataset"
-                  status: "status 1"
                   status_description: "easy-dataset:id"
                   doi: "doi:10.1430/8105"
                   state: "ARCHIVED"
@@ -213,11 +110,17 @@ paths:
                 example:
                   id: "c3155868-1898-493a-8805-53adbd269878"
                   title: "Sample Dataset"
-                  status: "status ..."
                   status_description: ""
                   doi: "doi:10.3972/water973.0145.db"
                   state: "DRAFT"
                   date: "2018-01-01T04:12:34Z"
+          headers:
+            Location:
+              description: "URL of created deposit"
+              schema:
+                type: "string"
+                example:
+                  "/diposit/{id}"
       security:
         - BasicAuth: []
 
@@ -231,7 +134,7 @@ paths:
       parameters:
         - name: "id"
           in: "path"
-          description: "id of deposit ti retrieve"
+          description: "id of deposit to retrieve"
           required: true
           schema:
             type: "string"
@@ -247,6 +150,8 @@ paths:
                   $ref: "#/components/schemas/Metadata"
         403:
           description: "Deposit not retrieved because its state is something else than DRAFT or REJECTED"
+        404:
+          description: "Deposit with this id is not found"
       security:
         - BasicAuth: []
 
@@ -272,42 +177,16 @@ paths:
             schema:
               $ref: '#/components/schemas/Metadata'
       responses:
-        400:
+        204:
+          description: "Draft saved successfully"
+        404:
           description: "Invalid id supplied"
-        405:
+        400:
           description: "Validation exception"
       security:
         - BasicAuth: []
 
   /deposit/{id}/state:
-    get:
-      tags:
-      - "deposit"
-      summary: "Get state of deposit"
-      description: "Get state of deposit"
-      operationId: "getDepositState"
-      parameters:
-        - name: "id"
-          in: "path"
-          description: "id of deposit to be retrieved"
-          required: true
-          schema:
-            type: "string"
-            format: "uuid"
-      responses:
-        200:
-          description: "Deposit retrieved successfully"
-          content:
-#            application/json:
-            text/plain:
-              schema:
-                type: "string"
-                description: a plain text, human readable description of the service
-                example:
-                   "SUBMITTED"
-      security:
-        - BasicAuth: []
-
     put:
       tags:
       - "deposit"
@@ -323,30 +202,32 @@ paths:
             type: "string"
             format: "uuid"
       requestBody:
-        description: "Deposit retrieved successfully"
+        description: "Updated Deposit"
         content:
-#           application/json:
-          text/plain:
+          application/json:
             schema:
-              type: "string"
-              default: "SUBMITTED"
-              description: a plain text, human readable description of the service
+              type: "object"
+              properties:
+                state:
+                  type: "string"
+                status_description:
+                  type: "string"
               example:
-                  "SUBMITTED"
+                state: "REJECTED"
+                status_description: "Datamanager's notes"
       responses:
         200:
           description: "Deposit updated successfully"
           content:
-#            application/json:
             text/plain:
               schema:
                 type: "string"
                 description: a plain text, human readable description of the service
                 example:
                   "SUBMITTED"
-        400:
+        404:
           description: "Invalid id supplied"
-        405:
+        400:
           description: "Validation exception"
           content:
             application/json:
@@ -378,16 +259,14 @@ paths:
             type: "string"
             format: "uuid"
       responses:
-        200:
+        204:
           description: "Deposit deleted successfully"
-        400:
-          description: "Invalid id supplied"
         404:
-          description: "Deposit not found"
+          description: "Deposit with this id is not found"
       security:
         - BasicAuth: []
 
-  /deposit/{id}/files:
+  /deposit/{id}/file:
     get:
       tags:
       - "file"
@@ -427,7 +306,6 @@ paths:
       security:
         - BasicAuth: []
 
-  /deposit/{id}/file:
     post:
       tags:
       - "file"
@@ -460,17 +338,13 @@ paths:
       responses:
         201:
           description: "File is uploaded successfully"
-          content:
-            application/json:
+          headers:
+            Location:
+              description: "URL of uploaded file"
               schema:
-                type: "object"
-                items:
-                  $ref: "#/components/schemas/File"
-                description: a plain text, human readable description of the service
+                type: "string"
                 example:
-                  path: "/tem/quarantine/"
-                  name: "cat.png"
-                  checksum: "cf23df2207d99a74fbe169e3eba035e633b65d94"
+                  "/file/{id}"
         401:
           description: "You are not authorized to use this API. Please provide a valid user name and password before trying to use an API."
         500:
@@ -478,7 +352,58 @@ paths:
       security:
         - BasicAuth: []
 
-  /deposit/{id}/file/{file_id}":
+  # /deposit/{id}/file/{file_id}:
+  /deposit/{id}/{file_path}:
+    put:
+      tags:
+      - "file"
+      summary: "Upload individual file to deposit"
+      description: "Upload file specified by {file_path} to deposit given by id.
+
+        \nThe file is specified by its full path, not by its id."
+      operationId: "uploadFileToDeposit"
+      parameters:
+        - name: "id"
+          in: "path"
+          description: "id of deposit"
+          required: true
+          schema:
+            type: "string"
+            format: "uuid"
+        - name: "file_path"
+          in: "path"
+          description: "full path of file to be uploaded to deposit"
+          required: true
+          schema:
+            type: "string"
+            format: "uuid"
+      requestBody:
+        description: "File upload"
+        required: true
+        content:
+          application/octet-stream:
+          # any media type is accepted, functionally equivalent to `*/*`
+            schema:
+              # a binary file of any type
+              type: string
+              format: binary
+      responses:
+        201:
+          description: "File is uploaded successfully"
+          headers:
+            Location:
+              description: "URL of uploaded file"
+              schema:
+                type: "string"
+                example:
+                  "/file/{file_path}"
+        401:
+          description: "You are not authorized to use this API. Please provide a valid user name and password before trying to use an API."
+        500:
+          description: "Internal Server Error"
+      security:
+        - BasicAuth: []
+
     delete:
       tags:
       - "file"
@@ -493,9 +418,9 @@ paths:
           schema:
             type: "string"
             format: "uuid"
-        - name: "file_id"
+        - name: "file_path"
           in: "path"
-          description: "id of file to be deleted from deposit"
+          description: "full path of file to be deleted from deposit"
           required: true
           schema:
             type: "string"
@@ -517,10 +442,6 @@ components:
     BasicAuth:
       type: http
       scheme: basic
-#    ApiKeyAuth:
-#      type: apiKey
-#      in: header
-#      name: X-API-Key
 
   schemas:
 
@@ -534,24 +455,6 @@ components:
           type: "string"
         message:
           type: "string"
-
-    User:
-      type: "object"
-      required:
-      - "id"
-      - "username"
-      - "password"
-      properties:
-        id:
-          type: "integer"
-          format: "int64"
-          example: 5
-        username:
-          type: "string"
-          example: "John McCan"
-        password:
-          type: "string"
-          example: "John's password"
 
     Deposit:
       type: "object"
@@ -610,50 +513,7 @@ components:
           format: "int64"
           example: 39
 
-    Creator:
-      type: "object"
-      required:
-      - "initials"
-      - "surname"
-      properties:
-        schemeAndID:
-          type: "array"
-          xml:
-            name: "schemeAndID"
-            wrapped: true
-          items:
-            $ref: "#/components/schemas/SchemeAndID"
-          example:
-            - scheme: "pending"
-              id: 15
-            - scheme: "aproved"
-              id: 4
-        academicTitles:
-          type: "string"
-          example: "PhD, Chem.Eng."
-        initials:
-          type: "string"
-          example: "A"
-        prefix:
-          type: "string"
-          example: "van"
-        surname:
-          type: "string"
-          example: "der Put"
-        role:
-          type: "string"
-          description: "Short role description"
-          enum:
-            - "archivist"
-            - "activist"
-            - "pacifist"
-            - "colonist"
-          example: "archivist"
-        organization:
-          type: "string"
-          example: "DANS"
-
-    Contributor:
+    Administrator:
       type: "object"
       required:
       - "initials"
@@ -1137,14 +997,38 @@ components:
             name: "creator"
             wrapped: true
           items:
-            $ref: "#/components/schemas/Creator"
+            $ref: "#/components/schemas/Administrator"
+          example:
+            schemeAndID:
+            - scheme: "pending"
+              id: 16
+            - scheme: "aproved"
+              id: 4
+            academicTitles: "MSc"
+            initials: "M"
+            prefix: "some prefix"
+            surname: "van Bergen"
+            role: "inhalator"
+            organization: "Radboud Universiteit"
         contributor:
           type: "array"
           xml:
             name: "contributor"
             wrapped: true
           items:
-            $ref: "#/components/schemas/Contributor"
+            $ref: "#/components/schemas/Administrator"
+          example:
+            schemeAndID:
+            - scheme: "closed"
+              id: 777
+            - scheme: "pending"
+              id: 3333
+            academicTitles: "PhD"
+            initials: "A"
+            prefix: "some another prefix"
+            surname: "van Doorn"
+            role: "contributor"
+            organization: "Leiden Universiteit"
         dateCreated:
           type: "string"
           format: "date-time"
