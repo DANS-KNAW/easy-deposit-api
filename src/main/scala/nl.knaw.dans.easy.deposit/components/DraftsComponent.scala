@@ -13,11 +13,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package nl.knaw.dans.easy.deposit
+package nl.knaw.dans.easy.deposit.components
 
 import better.files.File
-import nl.knaw.dans.easy.deposit.components.DraftsComponent
 
-class EasyDepositApiApp(configuration: Configuration) extends DraftsComponent {
-  val draftRoot: File = File(configuration.properties.getString("deposits.drafts"))
+trait DraftsComponent {
+
+  val draftRoot: File
+
+  def listDrafts(user: User): Seq[DraftInformation] = {
+    val draftsFromUserPath = draftRoot / user.userId
+    val drafts = draftsFromUserPath.list
+
+    // for each draft deposit, read all the information required to make a DraftInformation object
+    // return the DraftInformation objects
+
+    ???
+  }
 }

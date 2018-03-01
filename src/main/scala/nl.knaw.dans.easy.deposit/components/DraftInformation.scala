@@ -13,11 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package nl.knaw.dans.easy.deposit
+package nl.knaw.dans.easy.deposit.components
 
-import better.files.File
-import nl.knaw.dans.easy.deposit.components.DraftsComponent
-
-class EasyDepositApiApp(configuration: Configuration) extends DraftsComponent {
-  val draftRoot: File = File(configuration.properties.getString("deposits.drafts"))
-}
+case class DraftInformation(id: String,
+                            title: String,
+                            status: String,
+                            statusDescription: String,
+                            doi: String,
+                            state: String,
+                            date: String)
