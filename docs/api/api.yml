@@ -1,31 +1,27 @@
 openapi: 3.0.0
-info:
-  title: Deposit UI API
-  version: 0.1.0
-  description: |
-    This document specifies
-  license:
-    name: Apache 2.0
-    url: http://www.apache.org/licenses/LICENSE-2.0
 
 servers:
-  - url: 'http://test.dans.knaw.nl'
-    description: ""
-
+  - description: SwaggerHub API Auto Mocking
+    url: https://virtserver.swaggerhub.com/DANS2/Deposit/1.0.0
+info:
+  description: This document specifies the public interface for depositing a dataset in EASY
+  version: "1.0.0"
+  title: Deposit API
+  contact:
+    email: you@your-company.com
+  license:
+    name: Apache 2.0
+    url: 'http://www.apache.org/licenses/LICENSE-2.0.html'
 tags:
 - name: "default"
   description: "default"
-- name: "user"
-  description: "Operations about user"
 - name: "deposit"
   description: "Operations on a deposit"
 - name: "file"
   description: "Operations on a file"
 
-schemes:
-- "http"
-
 paths:
+
   /:
     get:
       tags:
@@ -46,276 +42,206 @@ paths:
         500:
           description: "Service is unavailable because of an error"
 
-  /user/login:
-    post:
-      tags:
-      - "user"
-      summary: "Log user in"
-      description: "This is a service for user authentication"
-      operationId: "loginUser"
-      consumes:
-      - "application/json"
-      - "application/xml"
-      produces:
-      - "application/xml"
-      - "application/json"
-      parameters:
-      - name: "body"
-        in: "body"
-        required: true
-        description: "The login credentials"
-        schema:
-          $ref: "#/definitions/Login"
-      responces:
-        200:
-          description: "Login was successful"
-          schema:
-            $ref: "#/definitions/User"
-          headers:
-            Set-Cookie:
-              type: "string"
-              description: "The session cookie"
-              default: "demo-session-id=123456789012345678901234567890"
-            X-Expires-After:
-              type: "string"
-              format: "date-time"
-              description: "date in UTC when token expires"
-        400:
-          description: "Invalid username/password supplied"
-
-  /user/{username}/logout:
-    post:
-      tags:
-      - "user"
-      summary: "Log user out"
-      description: ""
-      operationId: "logoutUser"
-      consumes:
-      - "application/json"
-      - "application/xml"
-      produces:
-      - "application/xml"
-      - "application/json"
-      parameters:
-        - *username
-        - *sessionCookie
-      responses:
-        204:
-          description: "Logout was successful"
-          headers:
-            Set-Cookie:
-              type: "string"
-              description: "Deletes the session cookie (by making expire in the past)"
-              default: "demo-session-id=deleted; Expires=Thu, 01-Jan-1970 00:00:01 GMT; Path=/"
-        401:
-          description: "You tried to log someone else out, and you're not the admin user."
-        404:
-          description: The {username} was not found
-
-  /deposits:
+  /deposit:
     get:
       tags:
       - "deposit"
       summary: "List all deposits"
-      description: "Shows all deposits"
+      description: "Shows all deposit of a specific user"
       operationId: "getDeposits"
-      produces:
-      - "application/json"
-      - "application/xml"
-      parameters: []
       responses:
         200:
           description: "List of all deposits retrieved successfully"
-          schema:
-            type: "array"
-            items:
-              $ref: "#/definitions/Deposit"
-      security:
-      - deposit_auth:
-        - "write:deposits"
-        - "read:deposits"
+          content:
+            application/json:
+              schema:
+                type: "array"
+                items:
+                  $ref: "#/components/schemas/Deposit"
+                description: a plain text, human readable description of the service
+                example:
 
-  /deposits/{id}/metadata:
+                - id: "93674123-1699-49c5-af91-ed31db19adc9"
+                  title: "Current Dataset"
+                  status_description: ""
+                  doi: "doi:10.1594/GFZ.GEOFON.gfz2009kciu"
+                  state: "DRAFT"
+                  date: "2018-01-20T10:40:52Z"
+
+                - id: "a145a1be-5463-4b10-a621-a9e511ff7f20"
+                  title: "First Dataset"
+                  status_description: ""
+                  doi: "doi:10.1594/PANGAEA.726855 "
+                  state: "IN PROGRESS"
+                  date: "2017-12-01T11:10:22Z"
+
+                - id: "1d946f5b-e53b-4f71-b1f3-7481475d07db"
+                  title: "Missing file"
+                  status_description: "there are some files missing"
+                  doi: "doi: 10.3207/2959859860"
+                  state: "REJECTED"
+                  date: "2018-01-12T10:40:52Z"
+
+                - id: "5befec97-1e57-4210-b7b6-57a604aaef47"
+                  title: "Old Dataset"
+                  status_description: "easy-dataset:id"
+                  doi: "doi:10.1430/8105"
+                  state: "ARCHIVED"
+                  date: "2017-08-09T10:10:22Z"
+      security:
+        - BasicAuth: []
+
+    post:
+      tags:
+      - "deposit"
+      summary: "Create new deposit"
+      description: "Creates an empty bag and retrieves deposit's id"
+      operationId: "createDeposit"
+      responses:
+        201:
+          description: "Deposit created successfully"
+          content:
+            application/json:
+              schema:
+                type: "object"
+                items:
+                  $ref: "#/components/schemas/Deposit"
+                description: a plain text, human readable description of the service
+                example:
+                  id: "c3155868-1898-493a-8805-53adbd269878"
+                  title: "Sample Dataset"
+                  status_description: ""
+                  doi: "doi:10.3972/water973.0145.db"
+                  state: "DRAFT"
+                  date: "2018-01-01T04:12:34Z"
+          headers:
+            Location:
+              description: "URL of created deposit"
+              schema:
+                type: "string"
+                example:
+                  "/diposit/{id}"
+      security:
+        - BasicAuth: []
+
+  /deposit/{id}/metadata:
     get:
       tags:
       - "deposit"
       summary: "Load deposit"
       description: "Get deposit specified by id only with DRAFT/REJECTED status"
       operationId: "getDeposit"
-      produces:
-      - "application/json"
-      - "application/xml"
       parameters:
-      - name: "id"
-        in: "path"
-        description: "id of deposit"
-        required: true
-        type: "integer"
-        format: "int64"
-#      - name: "metadata"
-#        in: "path"
-#        description: "metadata"
-#        required: true
-#        type: "string"
-      - name: "metadata"
-        in: "query"
-        description: "Status values that need to be considered for filter"
-        required: true
-        type: "array"
-        items:
-          type: "string"
-          enum:
-          - "DRAFT"
-          - "REJECTED"
+        - name: "id"
+          in: "path"
+          description: "id of deposit to retrieve"
+          required: true
+          schema:
+            type: "string"
+            format: "uuid"
       responses:
         200:
-          description: "Deposit retrieved successfully"
-          schema:
-            type: "object"
-            items:
-              $ref: "#/definitions/Deposit"
+          description: "Deposit retrieved successfully if its state is DRAFT or REJECTED"
+          content:
+            application/json:
+              schema:
+                type: "object"
+                items:
+                  $ref: "#/components/schemas/Metadata"
+        403:
+          description: "Deposit not retrieved because its state is something else than DRAFT or REJECTED"
+        404:
+          description: "Deposit with this id is not found"
       security:
-      - api_key: []
+        - BasicAuth: []
 
-  /deposits/{id}/state:
-    get:
-      tags:
-      - "deposit"
-    summary: "Get deposit with state"
-    description: "Get deposit state ..."
-    operationId: "getDepositState"
-    produces:
-    - "application/json"
-    - "application/xml"
-    parameters:
-    - name: "id"
-      in: "path"
-      description: "id of deposit to be retrieved"
-      required: true
-      type: "integer"
-      format: "int64"
-    - name: "state"
-      in: "path"
-      type: "string"
-      description: "state of deposit"
-      required: true
-    responses:
-      200:
-        description: "Deposit retrieved successfully"
-        schema:
-          type: "object"
-          items:
-            $ref: "#/definitions/Deposit"
-      400:
-        description: "Invalid id supplied"
-      405:
-        description: "Validation exception"
-
-
-  /deposit:
-    post:
-      tags:
-      - "deposit"
-      summary: "Create deposit"
-      description: "Creates a new deposit"
-      operationId: "createDeposit"
-      consumes:
-      - "application/json"
-      - "application/xml"
-      produces:
-      - "application/xml"
-      - "application/json"
-      parameters:
-      - in: "body"
-        name: "body"
-        description: "Created deposit object"
-        required: true
-        schema:
-          $ref: "#/definitions/Deposit"
-      responces:
-        201:
-          description: "Deposit created successfully"
-        schema:
-          type: "object"
-          items:
-            $ref: "#/definitions/Deposit"
-
-
-  /deposit/{id}/metadata:
     put:
       tags:
       - "deposit"
       summary: "Save draft of deposit"
-      description: "Update metadata?"
+      description: "Update metadata"
       operationId: "saveDepositDraft"
-      consumes:
-      - "application/json"
-      - "application/xml"
-      produces:
-      - "application/json"
-      - "application/xml"
       parameters:
-      - name: "id"
-        in: "path"
-        description: "id of draft of deposit to be updated"
+        - name: "id"
+          in: "path"
+          description: "id of draft of deposit to be updated"
+          required: true
+          schema:
+            type: "string"
+            format: "uuid"
+      requestBody:
+        description: "Save metadata that needs to be updated in deposit"
         required: true
-        type: "integer"
-        format: "int64"
-      - name: "metadata"
-        in: "path" #"body" ?
-        type: "string"
-        description: "Metadata that needs to be updated in deposit"
-        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Metadata'
       responses:
-        400:
+        204:
+          description: "Draft saved successfully"
+        404:
           description: "Invalid id supplied"
-        405:
+        400:
           description: "Validation exception"
       security:
-      - deposit_auth:
-        - "write:deposits"
-        - "read:deposits"
+        - BasicAuth: []
 
   /deposit/{id}/state:
     put:
       tags:
       - "deposit"
-      summary: "Submit deposit"
+      summary: "Update state of deposit"
       description: "Submit"
-      operationId: "sabmitDeposit"
-      consumes:
-      - "application/json"
-      - "application/xml"
-      produces:
-      - "application/json"
-      - "application/xml"
+      operationId: "updateDepositState"
       parameters:
-      - name: "id"
-        in: "path"
-        description: "id of deposit to be submitted"
-        required: true
-        type: "integer"
-        format: "int64"
-      - name: "state"
-        in: "path"
-        type: "string"
-        description: "state that needs to be saved in deposit"
-        required: true
+        - name: "id"
+          in: "path"
+          description: "id of deposit whose state to be updated"
+          required: true
+          schema:
+            type: "string"
+            format: "uuid"
+      requestBody:
+        description: "Updated Deposit"
+        content:
+          application/json:
+            schema:
+              type: "object"
+              properties:
+                state:
+                  type: "string"
+                status_description:
+                  type: "string"
+              example:
+                state: "REJECTED"
+                status_description: "Datamanager's notes"
       responses:
-      200:
-        description: "Deposit updated successfully"
-        schema:
-          type: "object"
-          items:
-            $ref: "#/definitions/ApiResponse"
-        400:
+        200:
+          description: "Deposit updated successfully"
+          content:
+            text/plain:
+              schema:
+                type: "string"
+                description: a plain text, human readable description of the service
+                example:
+                  "SUBMITTED"
+        404:
           description: "Invalid id supplied"
-        405:
+        400:
           description: "Validation exception"
+          content:
+            application/json:
+              schema:
+                type: "object"
+                items:
+                  $ref: "#/components/schemas/ApiResponse"
+                description: a plain text, human readable description of the service
+                example:
+                  code: "c3155868"
+                  type: "validation type"
+                  message: "validation message"
       security:
-      - deposit_auth:
-        - "write:deposits"
-        - "read:deposits"
+        - BasicAuth: []
 
   /deposit/{id}:
     delete:
@@ -324,139 +250,159 @@ paths:
       summary: "Delete deposit"
       description: "Delete a deposit specified by id"
       operationId: "deleteDeposit"
-      produces:
-      - "application/json"
-      - "application/xml"
       parameters:
-      - name: "id"
-        in: "path"
-        description: "id of deposit to be deleted"
-        required: true
-        type: "integer"
-        format: "int64"
+        - name: "id"
+          in: "path"
+          description: "id of deposit to be deleted"
+          required: true
+          schema:
+            type: "string"
+            format: "uuid"
       responses:
-        400:
-          description: "Invalid id supplied"
+        204:
+          description: "Deposit deleted successfully"
         404:
-          description: "Deposit not found"
+          description: "Deposit with this id is not found"
+      security:
+        - BasicAuth: []
 
-
-  /deposits/{id}/files:
+  /deposit/{id}/file:
     get:
       tags:
       - "file"
       summary: "List all files of deposit"
       description: "Show all files of deposit"
       operationId: "getFilesOfDeposit"
-      produces:
-      - "application/json"
-      - "application/xml"
       parameters:
-      - name: "id"
-        in: "path"
-        description: "id of deposit"
-        required: true
-        type: "integer"
-        format: "int64"
+        - name: "id"
+          in: "path"
+          description: "id of deposit"
+          required: true
+          schema:
+            type: "string"
+            format: "uuid"
       responses:
         200:
           description: "List of all files of deposit retrieved successfully"
-          schema:
-            type: "array"
-            items:
-              $ref: "#/definitions/File"
-      security:
-      - deposit_auth:
-        - "write:deposits"
-        - "read:deposits"
+          content:
+            application/json:
+              schema:
+                type: "array"
+                items:
+                  $ref: "#/components/schemas/File"
+                description: a plain text, human readable description of the service
+                example:
+                - path: "/tem/quarantine/cat.png"
+                  name: "cat.png"
+                  checksum: "cf23df2207d99a74fbe169e3eba035e633b65d94"
+                - path: "/tem/quarantine/dog.png"
+                  name: "dog.png"
+                  checksum: "b48cf0140bea12734db05ebcdb012f1d265bed84"
 
-  /deposit/{id}/file:
+        400:
+          description: "Invalid id supplied"
+        404:
+          description: "File not found"
+      security:
+        - BasicAuth: []
+
     post:
       tags:
       - "file"
       summary: "Upload a file"
       description: "Add a new file to deposit"
       operationId: "depositFile"
-      consumes:
-      - "multipart/form-data"
-      produces:
-      - "application/xml"
-      - "application/json"
       parameters:
-      - name: "id"
-        in: "path"
-        description: "id of deposit where file is uploaded"
-        required: true
-        type: "integer"
-        format: "int64"
-      - name: "file"
-        in: "formData"
-        description: "file to upload"
-        required: false
-        type: "file"
-        requestBody:
-          content:
-            application/octet-stream:
-            # any media type is accepted, functionally equivalent to `*/*`
-              schema:
-                # a binary file of any type
-                type: string
-                format: binary
-      responses:
-        200:
-          description: "file is deposited successfully"
+        - name: "id"
+          in: "path"
+          description: "id of deposit where file is uploaded"
+          required: true
           schema:
-            $ref: "#/definitions/File"
-        400:
-          description: "Invalid input"
+            type: "string"
+            format: "uuid"
+        # - name: "uploadFile"
+        #   in: "formData"
+        #   required: true
+        #   schema:
+        #     type: "file"
+      requestBody:
+        description: "File upload"
+        required: true
+        content:
+          application/octet-stream:
+          # any media type is accepted, functionally equivalent to `*/*`
+            schema:
+              # a binary file of any type
+              type: string
+              format: binary
+      responses:
+        201:
+          description: "File is uploaded successfully"
+          headers:
+            Location:
+              description: "URL of uploaded file"
+              schema:
+                type: "string"
+                example:
+                  "/file/{id}"
+        401:
+          description: "You are not authorized to use this API. Please provide a valid user name and password before trying to use an API."
+        500:
+          description: "Internal Server Error"
       security:
-      - deposit_auth:
-        - "write:deposits"
-        - "read:deposits"
+        - BasicAuth: []
 
-  /deposit/{id}/{file_id}:
+  # /deposit/{id}/file/{file_id}:
+  /deposit/{id}/{file_path}:
     put:
       tags:
       - "file"
-      summary: "Update a file"
-      description: "Updates file in deposit"
-      operationId: "updateFile"
-      consumes:
-      - "application/json"
-      - "application/xml"
-      produces:
-      - "application/json"
-      - "application/xml"
+      summary: "Upload individual file to deposit"
+      description: "Upload file specified by {file_path} to deposit given by id.
+
+        \nThe file is specified by its full path, not by its id."
+      operationId: "uploadFileToDeposit"
       parameters:
-      - name: "id"
-        in: "path"
-        description: "id of deposit to be updated"
+        - name: "id"
+          in: "path"
+          description: "id of deposit"
+          required: true
+          schema:
+            type: "string"
+            format: "uuid"
+        - name: "file_path"
+          in: "path"
+          description: "full path of file to be uploaded to deposit"
+          required: true
+          schema:
+            type: "string"
+            format: "uuid"
+      requestBody:
+        description: "File upload"
         required: true
-        type: "integer"
-        format: "int64"
-      - name: "file_id"
-        in: "path"
-        description: "id of file to be updated in deposit"
-        required: true
-        type: "integer"
-        format: "int64"
-      - in: "body"
-        name: "body"
-        description: "File object that needs to be updated in deposit"
-        required: true
-        schema:
-          $ref: "#/definitions/File"
+        content:
+          application/octet-stream:
+          # any media type is accepted, functionally equivalent to `*/*`
+            schema:
+              # a binary file of any type
+              type: string
+              format: binary
       responses:
-        400:
-          description: "Invalid id supplied"
-        404:
-          description: "File not found"
-        405:
-          description: "Validation exception"
+        201:
+          description: "File is uploaded successfully"
+          headers:
+            Location:
+              description: "URL of uploaded file"
+              schema:
+                type: "string"
+                example:
+                  "/file/{file_path}"
+        401:
+          description: "You are not authorized to use this API. Please provide a valid user name and password before trying to use an API."
+        500:
+          description: "Internal Server Error"
       security:
-      - deposit_auth:
-        - "write:deposits"
-        - "read:deposits"
+        - BasicAuth: []
 
     delete:
       tags:
@@ -464,141 +410,749 @@ paths:
       summary: "Delete a file from deposit"
       description: "Deletes a deposit specified by ID"
       operationId: "deleteFileFromDeposit"
-      produces:
-      - "application/json"
-      - "application/xml"
       parameters:
-      - in: "path"
-        description: "id of deposit"
-        required: true
-        type: "integer"
-        format: "int64"
-      - name: "file_id"
-        in: "path"
-        description: "id of file to be deleted from deposit"
-        required: true
-        type: "integer"
-        format: "int64"
+        - name: "id"
+          in: "path"
+          description: "id of deposit"
+          required: true
+          schema:
+            type: "string"
+            format: "uuid"
+        - name: "file_path"
+          in: "path"
+          description: "full path of file to be deleted from deposit"
+          required: true
+          schema:
+            type: "string"
+            format: "uuid"
       responses:
         400:
           description: "Invalid id supplied"
         404:
-          description: "Deposit not found"
+          description: "File not found"
+      security:
+        - BasicAuth: []
 
 
-securityDefinitions:
-  deposit_auth:
-    type: "oauth2"
-    authorizationUrl: "http://test.dans.knaw.nl/oauth/dialog"
-    flow: "implicit"
-    scopes:
-      write:deposits: "modify deposits in your account"
-      read:deposits: "read your deposits"
-  api_key:
-    type: "apiKey"
-    name: "api_key"
-    in: "header"
 
-definitions:
 
-  ApiResponse:
-    type: "object"
-    properties:
-      code:
-        type: "integer"
-        format: "int32"
-      type:
-        type: "string"
-      message:
-        type: "string"
+components:
 
-  # A simple username/password combo for logging in
-  Login:
-    required: [username, password]
-    properties:
-      username:
-        type: string
-        minLength: 5
-      password:
-        type: string
-        minLength: 5
+  securitySchemes:
+    BasicAuth:
+      type: http
+      scheme: basic
 
-  sessionCookie: &sessionCookie
-    name: Cookie
-    in: header
-    required: true
-    type: string
-    description: The session cookie
+  schemas:
 
-  username: &username
-    name: username
-    in: path
-    required: true
-    type: string
-  description: This is the {username} path parameter
+    ApiResponse:
+      type: "object"
+      properties:
+        code:
+          type: "integer"
+          format: "int32"
+        type:
+          type: "string"
+        message:
+          type: "string"
 
-  User:
-    type: "object"
-    required:
-    - "id"
-    - "username"
-    - "password"
-    properties:
-      id:
-        type: "integer"
-        format: "int64"
-      username:
-        type: "string"
-      password:
-        type: "string"
-    xml:
-      name: "User"
+    Deposit:
+      type: "object"
+      required:
+      - "id"
+      - "title"
+      properties:
+        id:
+          type: "string"
+          format: "uuid"
+        title:
+          type: "string"
+        status:
+          type: "string"
+        status_description:
+          type: "string"
+        doi:
+          type: "string"
+        state:
+          type: "string"
+        date:
+          type: "string"
+          format: "date-time"
+          description: "Deposit date of ..."
+      xml:
+        name: "Deposit"
 
-  Deposit:
-    type: "object"
-    required:
-    - "id"
-    - "title"
-    properties:
-      id:
-        type: "integer"
-        format: "int64"
-      title:
-        type: "string"
-      status:
-        type: "string"
-      status_description:
-        type: "string"
-      date:
-        type: "string"
-        format: "date-time"
-        description: "Deposit date of ..."
-      deposit_files:
-        type: "array"
-        xml:
-          name: "deposit_files"
-          wrapped: true
-        items:
-          type: "File"
-    xml:
-      name: "Deposit"
+    File:
+      type: "object"
+      required:
+      - "id"
+      - "name"
+      properties:
+        path:
+          type: "string"
+        name:
+          type: "string"
+        checksum:
+          type: "string"
+          description: "checksum calculated with SHA1"
 
-  File:
-    type: "object"
-    required:
-    - "id"
-    - "name"
-    properties:
-      id:
-        type: "integer"
-        format: "int64"
-      name:
-        type: "string"
-      status:
-        type: "string"
-      date:
-        type: "string"
-        format: "date-time"
-        description: "Deposit date of ..."
-    xml:
-      name: "File"
+    SchemeAndID:
+      type: "object"
+      properties:
+        scheme:
+          type: "string"
+          description: "Scheme ..."
+          enum:
+            - "approved"
+            - "pending"
+            - "closed"
+            - "new"
+          example: "approved"
+        id:
+          type: "integer"
+          format: "int64"
+          example: 39
+
+    Administrator:
+      type: "object"
+      required:
+      - "initials"
+      - "surname"
+      properties:
+        schemeAndID:
+          type: "array"
+          xml:
+            name: "schemeAndID"
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/SchemeAndID"
+          example:
+            - scheme: "aproved"
+              id: 5
+            - scheme: "pending"
+              id: 77
+        academicTitles:
+          type: "string"
+          example: "MSc"
+        initials:
+          type: "string"
+          example: "M"
+        prefix:
+          type: "string"
+          example: "prexix"
+        surname:
+          type: "string"
+          example: "van Bergen"
+        role:
+          type: "string"
+          enum:
+            - "moderator"
+            - "aviator"
+            - "incubator"
+            - "inhalator"
+          example: "inhalator"
+        organization:
+          type: "string"
+          example: "Radboud Universiteit"
+
+    Relation:
+      type: "object"
+      properties:
+        qualifier:
+          type: "string"
+          description: "Qualifier ..."
+          enum:
+            - "relative"
+            - "absolute"
+            - "unrelated"
+            - "redundant"
+          example: "relative"
+        title:
+          type: "string"
+          example: "Relation Title"
+        url:
+          type: "string"
+          example: "Relation URL"
+        emphasize_this_relation:
+          type: "boolean"
+          default: true
+          example: "false"
+
+    LanguageISO639:
+      type: "object"
+      properties:
+        language:
+          type: "string"
+          description: "Language ..."
+          enum:
+            - "Dutch"
+            - "English"
+            - "German"
+            - "Spanish"
+          example: "Dutch"
+
+    SchemeAndDate:
+      type: "object"
+      properties:
+        scheme:
+          type: "string"
+          description: "Scheme ..."
+          enum:
+            - "approved"
+            - "pending"
+            - "closed"
+            - "new"
+          example: "closed"
+        date:
+          type: "string"
+          example: "1999-01-19T10:00:37.824Z"
+
+    License:
+      type: "object"
+      required:
+      - "accessRightsOpenAccess"
+      - "accessRightsRegisteredUsers"
+      - "accessRightsRestrictedGroup"
+      - "accessRightsRestrictedReqPermission"
+      - "accessRightsOtherAccess"
+      - "licence"
+      properties:
+        rightsHolder:
+          type: "array"
+          xml:
+            name: "rightsHolder"
+            wrapped: true
+          items:
+            type: "string"
+          example:
+            - rightsHolder: "rights holder 1"
+            - rightsHolder: "rights holder 2"
+            - rightsHolder: "rights holder 3"
+        publisher:
+          type: "array"
+          xml:
+            name: "publisher"
+            wrapped: true
+          items:
+            type: "string"
+          example:
+            - publisher: "publisher 1"
+            - publisher: "publisher 2"
+        accessRightsOpenAccess:
+          type: "boolean"
+          default: true
+          example: true
+        accessRightsRegisteredUsers:
+          type: "boolean"
+          default: false
+          example: true
+        accessRightsRestrictedGroup:
+          type: "boolean"
+          default: false
+          example: false
+        selectRestrictedGroup:
+          type: "string"
+          description: "Select Restricted Group ..."
+          enum:
+            - "Restricted Group 1"
+            - "Restricted Group 2"
+            - "Restricted Group 3"
+            - "Restricted Group 4"
+          example: "Restricted Group 4"
+        accessRightsRestrictedReqPermission:
+          type: "boolean"
+          default: false
+          example: true
+        accessRightsOtherAccess:
+          type: "boolean"
+          default: false
+          example: true
+        license:
+          type: "string"
+          description: "License ..."
+          enum:
+            - "License 1"
+            - "License 2"
+            - "License 3"
+            - "License 4"
+          example: "License 2"
+        dateAvailable:
+          type: "string"
+          format: "date-time"
+          example: "2018-02-19T16:39:35.948Z"
+
+    TypeDCMI:
+      type: "object"
+      properties:
+        typeDCMI:
+          type: "string"
+          description: "Type (DCMI resource type)"
+          enum:
+            - "typeDCMI 1"
+            - "typeDCMI 2"
+            - "typeDCMI 3"
+            - "typeDCMI 4"
+          example: "typeDCMI 2"
+
+    FormatIMT:
+      type: "object"
+      properties:
+        formatIMT:
+          type: "string"
+          description: "Format (internet media type)"
+          enum:
+            - "Format 1"
+            - "Format 2"
+            - "Format 3"
+            - "Format 4"
+          example: "Format 2"
+
+    UploadType:
+      type: "object"
+      properties:
+        typeDCMI:
+          type: "array"
+          xml:
+            name: "typeDCMI"
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/TypeDCMI"
+          example:
+            - typeDCMI: "typeDCMI 1"
+            - typeDCMI: "typeDCMI 2"
+            - typeDCMI: "typeDCMI 3"
+        type:
+          type: "array"
+          xml:
+            name: "type"
+            wrapped: true
+          items:
+            type: "string"
+          example:
+            - typeob: "type 1"
+            - typeob: "type 2"
+        formatIMT:
+          type: "array"
+          xml:
+            name: "formatIMT"
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/FormatIMT"
+          example:
+            - formatIMT: "formatIMT 1"
+            - formatIMT: "formatIMT 2"
+            - formatIMT: "formatIMT 3"
+        uploadFormat:
+          type: "array"
+          xml:
+            name: "format"
+            wrapped: true
+          items:
+            type: "string"
+          example:
+            - uploadFormat: "uploadFormat 1"
+            - uploadFormat: "uploadFormat 2"
+            - uploadFormat: "uploadFormat 3"
+            - uploadFormat: "uploadFormat 4"
+
+    ArchisZaakidentificatie:
+      type: "object"
+      properties:
+        zaakidentificatie:
+          type: "array"
+          xml:
+            name: "archisZaakidentificatie"
+            wrapped: true
+          items:
+            type: "string"
+
+    SubjectABRcomplex:
+      type: "object"
+      properties:
+        subjectABRcomplex:
+          type: "string"
+          description: "Subject ABR complex"
+          enum:
+            - "SubjectABR 1"
+            - "SubjectABR 2"
+            - "SubjectABR 3"
+          example: "SubjectABR 1"
+
+    TemporalCoverage:
+      type: "object"
+      properties:
+        temporalCoverage:
+          type: "string"
+          description: "Temporal coverage (ABR period)"
+          enum:
+            - "TemporalCoverage 1"
+            - "TemporalCoverage 2"
+            - "TemporalCoverage 3"
+          example: "TemporalCoverage 3"
+
+    ArchaeologyMetadata:
+      type: "object"
+      properties:
+  # TODO to elaborate on importPakbon if it will be decided that this functionality is needed
+  # How to describe with Swagger the "Upload" button?
+  #      importPakbon:
+  #        type: "string"
+        archisZaakidentificatie:
+          type: "array"
+          xml:
+            name: "archisZaakidentificatie"
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/ArchisZaakidentificatie"
+          example:
+            - zaakidentificatie: "Archis Zaakidentificatie 1"
+            - zaakidentificatie: "Archis Zaakidentificatie 2"
+            - zaakidentificatie: "Archis Zaakidentificatie 3"
+        subjectABRcomplex:
+          type: "array"
+          xml:
+            name: "subjectABRcomplex"
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/SubjectABRcomplex"
+          example:
+            - subjectABRcomplex: "SubjectABR 1"
+            - subjectABRcomplex: "SubjectABR 2"
+            - subjectABRcomplex: "SubjectABR 3"
+        temporalCoverage:
+          type: "array"
+          xml:
+            name: "temporalCoverage"
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/TemporalCoverage"
+          example:
+            - temporalCoverage: "TemporalCoverage 1"
+            - temporalCoverage: "TemporalCoverage 2"
+            - temporalCoverage: "TemporalCoverage 33"
+      xml:
+        name: "ArchaeologyMetadata"
+
+    LanguageAndLiteratureMetadata:
+      type: "object"
+      properties:
+        absentCLARINmetadata:
+          type: "boolean"
+          default: true
+          example: false
+        presentCLARINmetadata:
+          type: "boolean"
+          default: false
+          example: true
+
+    SpatialPoint:
+      type: "object"
+      properties:
+        schemeSpatialPoint:
+          type: "array"
+          items:
+            type: "string"
+            enum:
+              - "Scheme Spatial Point 1"
+              - "Scheme Spatial Point 2"
+              - "Scheme Spatial Point 3"
+            example: "Scheme Spatial Point 3"
+        xCoordinate:
+          type: "string"
+          example: "132"
+        yCoordinate:
+          type: "string"
+          example: "643"
+
+    SpatialBox:
+      type: "object"
+      properties:
+        schemeSpatialBox:
+          type: "array"
+          items:
+            type: "string"
+            enum:
+              - "Scheme Spatial Box 1"
+              - "Scheme Spatial Box 2"
+              - "Scheme Spatial Box 3"
+            example: "Scheme Spatial Box 3"
+        north:
+          type: "string"
+          example: "north 1"
+        east:
+          type: "string"
+          example: "east 1"
+        south:
+          type: "string"
+          example: "south 1"
+        west:
+          type: "string"
+          example: "west 1"
+
+    TimeAndSpacialMetadata:
+      type: "object"
+      properties:
+        temporalCoverage:
+          type: "array"
+          xml:
+            name: "temporalCoverage"
+            wrapped: true
+          items:
+            type: "string"
+          example:
+            - temporalCoverage: "temporalCoverage 1"
+            - temporalCoverage: "temporalCoverage 2"
+            - temporalCoverage: "temporalCoverage 3"
+            - temporalCoverage: "temporalCoverage 4"
+        spatialPoint:
+          type: "array"
+          xml:
+            name: "relation"
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/SpatialPoint"
+          example:
+            - schemeSpatialPoint: "Scheme Spatial Point 1"
+              xCoordinate: "44"
+              yCoordinate: "12"
+            - schemeSpatialPoint: "Scheme Spatial Point 2"
+              xCoordinate: "8"
+              yCoordinate: "233"
+            - schemeSpatialPoint: "Scheme Spatial Point 3"
+              xCoordinate: "9888"
+              yCoordinate: "7"
+        spatialBox:
+          type: "array"
+          xml:
+            name: "relation"
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/SpatialBox"
+          example:
+            - schemeSpatialBox: "Scheme Spatial Box 2"
+              north: "north 44"
+              east: "east 12"
+              south: "south 44"
+              west: "west 12"
+            - schemeSpatialBox: "Scheme Spatial Box 3333"
+              north: "north 333"
+              east: "east 222"
+              south: "south 999"
+              west: "west 555"
+        spatialCoverage:
+          type: "array"
+          xml:
+            name: "spatialCoverage"
+            wrapped: true
+          items:
+            type: "string"
+          example:
+            - spatialCoverage: "Spatial coverage 1"
+            - spatialCoverage: "Spatial coverage 2"
+            - spatialCoverage: "Spatial coverage 3"
+
+    Metadata:
+      type: "object"
+      required:
+      - "doi"
+      - "title"
+      - "creator"
+      - "dateCreated"
+      - "audience"
+      - "privacySensitiveDataYes"
+      - "privacySensitiveDataNo"
+      - "license"
+      properties:
+        doi:
+          type: "string"
+          example: "doi:10.17632/DANS.6wg5xccnjd.1"
+        title:
+          type: "array"
+          xml:
+            name: "title"
+            wrapped: true
+          items:
+            type: "string"
+          example:
+            - "Do Androids Dream of Electric Sheep?"
+            - "The Hitchhiker's Guide to the Galaxy"
+        alternativeTitle:
+          type: "array"
+          xml:
+            name: "alternativeTitle"
+            wrapped: true
+          items:
+            type: "string"
+          example:
+            - "Do Electric Sheep Dream of Androids?"
+            - "The Hitchhiker's Guide to the Universe"
+        description:
+          type: "string"
+          example: "Seconds before the Earth is demolished to make way for a galactic freeway, Arthur Dent is plucked off the planet by his friend Ford Prefect, a researcher for the revised edition of The Hitchhiker's Guide to the Galaxy who, for the last fifteen years, has been posing as an out-of-work actor.
+
+                    Together this dynamic pair begin a journey through space aided by quotes from The Hitchhiker's Guide (\"A towel is about the most massively useful thing an interstellar hitchhiker can have\") and a galaxy-full of fellow travelers: Zaphod Beeblebrox—the two-headed, three-armed ex-hippie and totally out-to-lunch president of the galaxy; Trillian, Zaphod's girlfriend (formally Tricia McMillan), whom Arthur tried to pick up at a cocktail party once upon a time zone; Marvin, a paranoid, brilliant, and chronically depressed robot; Veet Voojagig, a former graduate student who is obsessed with the disappearance of all the ballpoint pens he bought over the years."
+        creator:
+          type: "array"
+          xml:
+            name: "creator"
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/Administrator"
+          example:
+            schemeAndID:
+            - scheme: "pending"
+              id: 16
+            - scheme: "aproved"
+              id: 4
+            academicTitles: "MSc"
+            initials: "M"
+            prefix: "some prefix"
+            surname: "van Bergen"
+            role: "inhalator"
+            organization: "Radboud Universiteit"
+        contributor:
+          type: "array"
+          xml:
+            name: "contributor"
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/Administrator"
+          example:
+            schemeAndID:
+            - scheme: "closed"
+              id: 777
+            - scheme: "pending"
+              id: 3333
+            academicTitles: "PhD"
+            initials: "A"
+            prefix: "some another prefix"
+            surname: "van Doorn"
+            role: "contributor"
+            organization: "Leiden Universiteit"
+        dateCreated:
+          type: "string"
+          format: "date-time"
+          example: "2018-02-19T12:00:37.824Z"
+        audience:
+          type: "array"
+          xml:
+            name: "audience"
+            wrapped: true
+          items:
+            type: "string"
+          example:
+            - "small audience"
+            - "strange audience"
+        subject:
+          type: "array"
+          xml:
+            name: "subject"
+            wrapped: true
+          items:
+            type: "string"
+          example:
+            - "science fiction"
+            - "physics"
+            - "chemistry"
+        identifier:
+          type: "array"
+          xml:
+            name: "identifier"
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/SchemeAndID"
+          example:
+            - scheme: "approved"
+              id: 234
+            - scheme: "pending"
+              id: 13
+  # TODO how to take "Verify" button into account?
+        relation:
+          type: "array"
+          xml:
+            name: "relation"
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/Relation"
+          example:
+            - qualifier: "absolute"
+              title: "Relation First Title"
+              url: "http://google.com/text.doc"
+              emphasize_this_relation: "true"
+            - qualifier: "relative"
+              title: "Relation Second Title"
+              url: "http://yahoo.com/document.txt"
+              emphasize_this_relation: "false"
+        languageISO639:
+          type: "array"
+          xml:
+            name: "language"
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/LanguageISO639"
+          example:
+            - "Dutch"
+            - "English"
+        language:
+          type: "array"
+          xml:
+            name: "language"
+            wrapped: true
+          items:
+            type: "string"
+          example:
+            - "English"
+            - "German"
+            - "French"
+        dateISO8601:
+          type: "array"
+          xml:
+            name: "dateISO8601"
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/SchemeAndDate"
+          example:
+            - "2010-01-19T10:00:37.824Z"
+            - "2012-02-19T12:00:37.824Z"
+            - "2016-02-19T12:00:37.824Z"
+        date:
+          type: "array"
+          xml:
+            name: "date"
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/SchemeAndDate"
+          example:
+            - scheme: "closed"
+              date: "1994-01-19T10:00:37.824Z"
+            - scheme: "pending"
+              date: "2224-01-19T10:00:37.824Z"
+        source:
+          type: "string"
+          example: "He had expressed an opinion that the true art of memory was not to be gained by technical devices, but by a philosophical apprehension of things; and the cardinal de Berulle, the founder of the Congregation of the Oratory, was so struck by the tone of the remarks as to impress upon the speaker the duty of spending his life in the examination of truth."
+        remarks:
+          type: "string"
+          example: "Alma's encouraging remarks to her son about his superb sandwich making skills gave him a feeling of pride in his efforts. The definition of a remark is a statement about something you noticed. An example of a remark is telling your friend that his garden is really beautiful."
+        privacySensitiveDataYes:
+          type: "boolean"
+          default: false
+          example: true
+        privacySensitiveDataNo:
+          type: "boolean"
+          default: false
+          example: true
+        license:
+          $ref: "#/components/schemas/License"
+        uploadType:
+          $ref: "#/components/schemas/UploadType"
+        archaeologyMetadata:
+          $ref: "#/components/schemas/ArchaeologyMetadata"
+        languageAndLiteratureMetadata:
+          $ref: "#/components/schemas/LanguageAndLiteratureMetadata"
+        timeAndSpacialMetadata:
+          $ref: "#/components/schemas/TimeAndSpacialMetadata"
+        licenseAgreement:
+          type: "boolean"
+          default: false
+          example: false
+
