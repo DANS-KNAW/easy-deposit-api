@@ -21,8 +21,6 @@ import org.eclipse.jetty.http.HttpStatus._
 import org.scalamock.scalatest.MockFactory
 import org.scalatra.test.scalatest.ScalatraSuite
 
-import scala.util.Success
-
 class ServletsSpec extends TestSupportFixture with ServletFixture with ScalatraSuite with MockFactory {
 
   val app: EasyDepositApiApp = new EasyDepositApiApp(new Configuration("test", new PropertiesConfiguration() {
@@ -67,7 +65,7 @@ class ServletsSpec extends TestSupportFixture with ServletFixture with ScalatraS
   "post /sessions with valid credentials" should "login" in {
 
     (app.authentication.getUser(_: String, _: String)
-      ) expects("foo", "bar") returning Success(Some(User(Map.empty)))
+      ) expects("foo", "bar") returning Some(User(Map.empty))
     post(
       uri = "/sessions",
       params = Seq(("login", "foo"), ("password", "bar"))
@@ -88,7 +86,7 @@ class ServletsSpec extends TestSupportFixture with ServletFixture with ScalatraS
   "post /sessions with invalid credentials" should "redirect to /sessions/new" in {
 
     (app.authentication.getUser(_: String, _: String)
-      ) expects("someone", "invalid") returning Success(None)
+      ) expects("someone", "invalid") returning None
     post(
       uri = "/sessions",
       params = Seq(("login", "someone"), ("password", "invalid"))

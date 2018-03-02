@@ -24,6 +24,8 @@ trait AuthenticationSupport extends ScalatraBase
   with DebugEnhancedLogging {
   self: ScalatraBase =>
 
+  val realm = "easy-deposit" // TODO
+
   // TODO more than id? see also https://gist.github.com/casualjim/4400115#file-session_token_strategy-scala-L49-L50
   protected def fromSession: PartialFunction[String, User] = { case id: String => User(Map("uid" -> Seq(id))) }
 
@@ -36,7 +38,8 @@ trait AuthenticationSupport extends ScalatraBase
   }.asInstanceOf[ScentryConfiguration]
 
   protected def requireLogin(): Unit = {
-    logger.info(s"remote=${ request.getRemoteHost } local=${ request.getLocalAddr } $params ${ request.headers } ${ request.body }")
+    val addr = request.getRemoteAddr
+    logger.info(s"remote=${ addr } local=${ request.getLocalAddr } $params ${ request.headers } ${ request.body }")
     if (!isAuthenticated) {
       redirect(scentryConfig.login)
     }
@@ -48,7 +51,7 @@ trait AuthenticationSupport extends ScalatraBase
    */
   override protected def configureScentry: Unit = {
     scentry.unauthenticated {
-      scentry.strategies("UserPassword").unauthenticated()
+      scentry.strategies("UserPassword").unauthenticated() // TODO which strategy?
     }
   }
 

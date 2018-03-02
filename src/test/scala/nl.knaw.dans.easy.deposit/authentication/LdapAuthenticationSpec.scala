@@ -47,7 +47,7 @@ class LdapAuthenticationSpec extends TestSupportFixture with MockFactory {
       put("easyGroups", "abc")
     })
 
-    inside(wiring.authentication.getUser("someone", "somepassword")) {
+    inside(wiring.authentication.findUser("someone", "somepassword")) {
       case Success(Some(user)) => user.toString shouldBe "User(someone,Stream(abc, ?),true)"
     }
   }
@@ -57,25 +57,25 @@ class LdapAuthenticationSpec extends TestSupportFixture with MockFactory {
       put("dansState", "BLOCKED")
     })
 
-    wiring.authentication.getUser("someone", "somepassword") shouldBe Success(None)
+    wiring.authentication.findUser("someone", "somepassword") shouldBe Success(None)
   }
 
   it should "return none for an invalid username or password" in {
     expectLdapSearch throwing new AuthenticationException()
 
-    wiring.authentication.getUser("someone", "somepassword") shouldBe Success(None)
+    wiring.authentication.findUser("someone", "somepassword") shouldBe Success(None)
   }
 
   it should "not access ldap with a blank user" in {
 
-    inside(wiring.authentication.getUser(" ", "somepassword")) {
+    inside(wiring.authentication.findUser(" ", "somepassword")) {
       case Failure(e: IllegalArgumentException) =>
     }
   }
 
   it should "not access ldap with a blank password" in {
 
-    inside(wiring.authentication.getUser("someone", " ")) {
+    inside(wiring.authentication.findUser("someone", " ")) {
       case Failure(e: IllegalArgumentException) =>
     }
   }
@@ -83,7 +83,7 @@ class LdapAuthenticationSpec extends TestSupportFixture with MockFactory {
   it should "fail on other ldap problems" in {
     expectLdapSearch throwing new Exception("whoops")
 
-    inside(wiring.authentication.getUser("someone", "somepassword")) {
+    inside(wiring.authentication.findUser("someone", "somepassword")) {
       case Failure(t) => t.getMessage shouldBe "whoops"
     }
   }

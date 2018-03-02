@@ -15,8 +15,6 @@
  */
 package nl.knaw.dans.easy.deposit.authentication
 
-import scala.util.Try
-
 trait AuthenticationProvider {
-  def getUser(userName: String, password: String): Try[Option[User]]
+  def getUser(userName: String, password: String): Option[User]
 }

@@ -21,14 +21,10 @@ import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.scalatra.ScalatraBase
 import org.scalatra.auth.ScentryStrategy
 
-import scala.util.{ Failure, Success }
-
 class UserPasswordStrategy(protected val app: ScalatraBase, authenticationProvider: AuthenticationProvider)
                           (implicit request: HttpServletRequest, response: HttpServletResponse)
   extends ScentryStrategy[User]
     with DebugEnhancedLogging {
-
-  override def name: String = "UserPassword"
 
   private def login: String = app.params.getOrElse("login", "")
 
@@ -45,17 +41,7 @@ class UserPasswordStrategy(protected val app: ScalatraBase, authenticationProvid
   def authenticate()(implicit request: HttpServletRequest, response: HttpServletResponse): Option[User] = {
     logger.info("UserPasswordStrategy: attempting authentication")
 
-    authenticationProvider.getUser(login, password) match {
-      case Success(Some(user)) =>
-        logger.info("UserPasswordStrategy: login succeeded")
-        Some(user)
-      case Success(None) =>
-        logger.info("login failed")
-        None
-      case Failure(t) =>
-        logger.error(s"login exception: $t", t) // TODO or throw?
-        None
-    }
+    authenticationProvider.getUser(login, password)
   }
 
   /**

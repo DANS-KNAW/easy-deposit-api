@@ -20,6 +20,7 @@ import javax.naming.directory.{ Attribute, SearchControls, SearchResult }
 import javax.naming.ldap.{ InitialLdapContext, LdapContext }
 import javax.naming.{ AuthenticationException, Context }
 
+import nl.knaw.dans.lib.error.TryExtensions
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.apache.commons.lang.StringUtils
 import resource.managed
@@ -35,11 +36,18 @@ trait LdapAuthentication extends DebugEnhancedLogging {
     val ldapUserIdAttrName: String
     val ldapParentEntry: String
     val ldapProviderUrl: String
+    val ldapUserClass = "easyUser"
 
-    def getUser(userName: String, password: String): Try[Option[User]] = {
+    def getUser(userName: String, password: String): Option[User] = {
+      findUser(userName, password)
+        .doIfFailure { case t => logger.error(s"authentication of $userName failed with $t", t) }
+        .getOrElse(None)
+    }
+
+    def findUser(userName: String, password: String): Try[Option[User]] = {
       logger.debug(s"looking for user [$userName]")
 
-      val query = s"(&(objectClass=easyUser)($ldapUserIdAttrName=$userName))"
+      val query = s"(&(objectClass=$ldapUserClass)($ldapUserIdAttrName=$userName))"
       val connectionProperties = new util.Hashtable[String, String]() {
         put(Context.PROVIDER_URL, ldapProviderUrl)
         put(Context.SECURITY_AUTHENTICATION, "simple")
