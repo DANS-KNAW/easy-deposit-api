@@ -13,24 +13,41 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package nl.knaw.dans.easy.deposit
+package nl.knaw.dans.easy.deposit.authentication
 
-import nl.knaw.dans.easy.deposit.authentication.{ AuthenticationProvider, AuthenticationSupport }
+import nl.knaw.dans.easy.deposit.EasyDepositApiApp
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.scalatra._
 
-class EasyDepositApiServlet(app: EasyDepositApiApp) extends ScalatraServlet
+class AuthenticationServlet(app: EasyDepositApiApp) extends ScalatraServlet
   with AuthenticationSupport
   with DebugEnhancedLogging {
 
   override def getAuthenticationProvider: AuthenticationProvider = app.authentication
 
-  before() {
-    requireLogin()
+  get("/new") {
+    if (isAuthenticated) redirect("/deposit")
+
+    contentType = "text/html"
+    <html>
+      <body>
+        <form action="/sessions" method="post">
+          <p><label for="login">login id</label><input type="text" name="login" id="login"/></p>
+          <p><label for="password">password</label><input type="password" name="password" id="password"/></p>
+          <p><input type="submit"/></p>
+        </form>
+      </body>
+    </html>
   }
 
-  get("/") {
-    contentType = "text/plain"
-    Ok("EASY Deposit Api Service running...")
+  post("/") {
+    scentry.authenticate()
+
+    if (isAuthenticated) {
+      redirect("/deposit")
+    }
+    else {
+      redirect("/sessions/new")
+    }
   }
 }

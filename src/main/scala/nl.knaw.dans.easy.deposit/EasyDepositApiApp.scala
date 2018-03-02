@@ -16,8 +16,21 @@
 package nl.knaw.dans.easy.deposit
 
 import better.files.File
+import nl.knaw.dans.easy.deposit.authentication.LdapAuthentication
 import nl.knaw.dans.easy.deposit.components.DraftsComponent
+import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 
-class EasyDepositApiApp(configuration: Configuration) extends DraftsComponent {
+class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLogging
+  with DraftsComponent
+  with LdapAuthentication {
   val draftRoot: File = File(configuration.properties.getString("deposits.drafts"))
+
+  override val authentication: Authentication = new Authentication {
+    override val ldapUserIdAttrName: String = configuration.properties.getString("users.ldap-user-id-attr-name")
+    override val ldapParentEntry: String = configuration.properties.getString("users.ldap-parent-entry")
+    override val ldapProviderUrl: String = configuration.properties.getString("users.ldap-url")
+    logger.info(s"Authentication: ldapProviderUrl = $ldapProviderUrl")
+    logger.info(s"Authentication: ldapParentEntry = $ldapParentEntry")
+    logger.info(s"Authentication: ldapUserIdAttrName = $ldapUserIdAttrName")
+  }
 }
