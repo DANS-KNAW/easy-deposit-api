@@ -24,14 +24,23 @@ class AuthenticationServlet(app: EasyDepositApiApp) extends ScalatraServlet
   with DebugEnhancedLogging {
 
   override def getAuthenticationProvider: AuthenticationProvider = app.authentication
+  override def getCookieOptions: CookieOptions = app.cookieOptions
 
-  get("/new") {
+  before () {
+    logger.info(s"${request.getMethod} ${request.getPathInfo} remote=${ request.getRemoteAddr } params=$params headers=${ request.headers } body=${ request.body }")
+  }
+
+  after () {
+    logger.info(s"response.staus=${ response.getStatus } headers=${ response.headers }")
+  }
+
+  get("/signin") {
     if (isAuthenticated) redirect("/deposit")
 
     contentType = "text/html"
     <html>
       <body>
-        <form action="/sessions" method="post">
+        <form action="/auth" method="post">
           <p><label for="login">login id</label><input type="text" name="login" id="login"/></p>
           <p><label for="password">password</label><input type="password" name="password" id="password"/></p>
           <p><input type="submit"/></p>
@@ -40,6 +49,16 @@ class AuthenticationServlet(app: EasyDepositApiApp) extends ScalatraServlet
     </html>
   }
 
+  get("/signout") { signout }
+  put("/signout") { signout }
+  post("/signout") { signout }
+
+  private def signout = {
+    val goodByTo = user
+    scentry.store.invalidate() // TODO state is changed, but get supports an easy demo...
+    redirect("/")
+}
+
   post("/") {
     scentry.authenticate()
 
@@ -47,7 +66,7 @@ class AuthenticationServlet(app: EasyDepositApiApp) extends ScalatraServlet
       redirect("/deposit")
     }
     else {
-      redirect("/sessions/new")
+      redirect("/auth/signin")
     }
   }
 }

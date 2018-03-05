@@ -17,30 +17,42 @@ package nl.knaw.dans.easy.deposit.authentication
 
 import javax.servlet.http.{ HttpServletRequest, HttpServletResponse }
 
+import nl.knaw.dans.easy.deposit.authentication.SessionTokenStrategy._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
+import org.apache.commons.lang.StringUtils.isNotBlank
 import org.scalatra.ScalatraBase
-import org.scalatra.auth.ScentryStrategy
+import org.scalatra.auth.{ Scentry, ScentryStrategy }
 
-class BearerStrategy(protected override val app: ScalatraBase,
-                     authenticationProvider: AuthenticationProvider
-                    ) extends ScentryStrategy[User]
+class SessionTokenStrategy(protected val app: ScalatraBase) extends ScentryStrategy[User]
   with DebugEnhancedLogging {
+
+
+  override def name: String = "SessionToken"
+
+  private def getToken(implicit request: HttpServletRequest) = {
+    request.getCookies
+      .find(_.getName == Scentry.scentryAuthKey) // TODO add issued to token and filter on maxAge?
+      .map(_.getValue)
+      .orElse(Option(request.getHeader(HeaderKey)))
+      .orElse(app.params.get(ParamsKey))
+      .find(isNotBlank)
+  }
 
   /** @return true if this strategy should be run. */
   override def isValid(implicit request: HttpServletRequest): Boolean = {
-    // the boolean here and and option of authenticate don't allow for the error code granularity in rfc6750
-    AuthHeader(request).scheme match {
-      case Some("bearer") => true
-      case _ => false
-    }
+    getToken.isDefined
   }
 
-  override def authenticate()(implicit request: HttpServletRequest, response: HttpServletResponse): Option[User] = {
-    val lastProxieIp = request.getRemoteAddr // TODO what is more available (other than headers which can be spoofed?)
-    AuthHeader(request).payload.map(jwt =>
-      ???
-    ).getOrElse(None)
+  override def authenticate()
+                           (implicit request: HttpServletRequest,
+                            response: HttpServletResponse
+                           ): Option[User] = {
+    getToken.flatMap(token => Some(User.fromToken(token)))
   }
-
-  override def unauthenticated()(implicit request: HttpServletRequest, response: HttpServletResponse): Unit = ???
 }
+
+object SessionTokenStrategy {
+  val HeaderKey = "X-API-KEY"
+  val ParamsKey = "api_key"
+}
+

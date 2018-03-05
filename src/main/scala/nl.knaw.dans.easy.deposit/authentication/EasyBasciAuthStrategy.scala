@@ -27,8 +27,18 @@ class EasyBasciAuthStrategy(protected override val app: ScalatraBase,
                            ) extends BasicAuthStrategy[User](app, realm)
   with DebugEnhancedLogging {
 
-  protected def validate(userName: String, password: String)
-                        (implicit request: HttpServletRequest, response: HttpServletResponse): Option[User] = {
+  override def name: String = "EasyBasciAuth"
+
+  /** @return true if this strategy should be run. */
+  override def isValid(implicit request: HttpServletRequest): Boolean = {
+    super.isValid
+  }
+
+  protected def validate(userName: String,
+                         password: String)
+                        (implicit request: HttpServletRequest,
+                         response: HttpServletResponse
+                        ): Option[User] = {
     authenticationProvider.getUser(userName, password)
   }
 

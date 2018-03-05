@@ -24,13 +24,18 @@ class EasyDepositApiServlet(app: EasyDepositApiApp) extends ScalatraServlet
   with DebugEnhancedLogging {
 
   override def getAuthenticationProvider: AuthenticationProvider = app.authentication
+  override def getCookieOptions: CookieOptions = app.cookieOptions
 
   before() {
-    requireLogin()
+    requireLogin()// also logs the request
+  }
+
+  after () {
+    logger.info(s"response.staus=${ response.getStatus } headers=${ response.headers }")
   }
 
   get("/") {
     contentType = "text/plain"
-    Ok("EASY Deposit Api Service running...")
+    Ok(s"$user : EASY Deposit Api Service running...")
   }
 }

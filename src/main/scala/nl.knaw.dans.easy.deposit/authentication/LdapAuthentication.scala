@@ -45,7 +45,7 @@ trait LdapAuthentication extends DebugEnhancedLogging {
     }
 
     def findUser(userName: String, password: String): Try[Option[User]] = {
-      logger.debug(s"looking for user [$userName]")
+      logger.info(s"looking for user [$userName]")
 
       val query = s"(&(objectClass=$ldapUserClass)($ldapUserIdAttrName=$userName))"
       val connectionProperties = new util.Hashtable[String, String]() {

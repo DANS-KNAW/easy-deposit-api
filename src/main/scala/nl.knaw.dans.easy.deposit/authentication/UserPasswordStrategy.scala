@@ -26,29 +26,22 @@ class UserPasswordStrategy(protected val app: ScalatraBase, authenticationProvid
   extends ScentryStrategy[User]
     with DebugEnhancedLogging {
 
+  override def name: String = "UserPassword"
+
   private def login: String = app.params.getOrElse("login", "")
 
   private def password: String = app.params.getOrElse("password", "")
 
-  /**
-   * Determine whether the strategy should be run for the current request.
-   */
+  /** @return true if this strategy should be run. */
   override def isValid(implicit request: HttpServletRequest): Boolean = {
-    logger.info("UserPasswordStrategy: determining isValid: " + (login != "" && password != "").toString)
     login != "" && password != ""
   }
 
-  def authenticate()(implicit request: HttpServletRequest, response: HttpServletResponse): Option[User] = {
-    logger.info("UserPasswordStrategy: attempting authentication")
-
+  def authenticate()
+                  (implicit request: HttpServletRequest,
+                   response: HttpServletResponse
+                  ): Option[User] = {
     authenticationProvider.getUser(login, password)
-  }
-
-  /**
-   * What should happen if the user is currently not authenticated?
-   */
-  override def unauthenticated()(implicit request: HttpServletRequest, response: HttpServletResponse) {
-    app.redirect("/sessions/new")
   }
 }
 

@@ -19,6 +19,7 @@ import nl.knaw.dans.easy.deposit._
 import org.apache.commons.configuration.PropertiesConfiguration
 import org.eclipse.jetty.http.HttpStatus._
 import org.scalamock.scalatest.MockFactory
+import org.scalatra.auth.Scentry
 import org.scalatra.test.scalatest.ScalatraSuite
 
 class ServletsSpec extends TestSupportFixture with ServletFixture with ScalatraSuite with MockFactory {
@@ -30,73 +31,59 @@ class ServletsSpec extends TestSupportFixture with ServletFixture with ScalatraS
     override val authentication: Authentication = mock[Authentication]
   }
 
-  addServlet(new EasyDepositApiServlet(app), "/*")
-  addServlet(new AuthenticationServlet(app), "/sessions/*")
+  addServlet(new EasyDepositApiServlet(app), "/deposit/*")
+  addServlet(new AuthenticationServlet(app), "/auth/*")
 
-  "get /" should "redirect to /sessions/new with a JSESSIONID cookie" in {
-    (app.authentication.getUser(_: String, _: String)
-      ) expects(*, *) never()
+  "get /" should "return 404 not found" in {
+    (app.authentication.getUser(_: String, _: String)) expects(*, *) never()
     get("/") {
-      status shouldBe MOVED_TEMPORARILY_302
-      body shouldBe ""
-      header("Location") should startWith(s"$baseUrl/sessions/new;jsessionid=")
-      header("Content-Type") shouldBe "text/html;charset=UTF-8"
-      header("Set-Cookie") should include("JSESSIONID=")
-      header("Set-Cookie") should include("Path=/")
-      header("Set-Cookie") should include(";")
-      header("Expires") shouldBe "Thu, 01 Jan 1970 00:00:00 GMT"
+      status shouldBe NOT_FOUND_404
     }
   }
 
-  "get /sessions/new" should "present a login form" in {
-    (app.authentication.getUser(_: String, _: String)
-      ) expects(*, *) never()
-    get("/sessions/new") {
+  "get /deposit without credentials" should "redirect to /auth/signin" in {
+    (app.authentication.getUser(_: String, _: String)) expects(*, *) never()
+    get("/deposit") {
+      status shouldBe MOVED_TEMPORARILY_302
+      body shouldBe ""
+      header("Location") shouldBe s"$baseUrl/auth/signin"
+      header("Content-Type") shouldBe "text/html;charset=UTF-8"
+      Option(header("Set-Cookie")) shouldBe None
+    }
+  }
+
+  "get /auth/signin" should "present a login form" in {
+    (app.authentication.getUser(_: String, _: String)) expects(*, *) never()
+    get("/auth/signin") {
       status shouldBe OK_200
       body should include("""<label for="login">""")
-      header("Set-Cookie") should include("JSESSIONID=")
-      header("Set-Cookie") should include("Path=/")
-      header("Set-Cookie") should include(";")
+      Option(header("Set-Cookie")) shouldBe None
       header("Content-Type") shouldBe "text/html;charset=UTF-8"
-      header("Expires") shouldBe "Thu, 01 Jan 1970 00:00:00 GMT"
     }
   }
 
-  "post /sessions with valid credentials" should "login" in {
+  "get /deposit with valid cookie token" should "be ok" in {
 
-    (app.authentication.getUser(_: String, _: String)
-      ) expects("foo", "bar") returning Some(User(Map.empty))
-    post(
-      uri = "/sessions",
-      params = Seq(("login", "foo"), ("password", "bar"))
+    (app.authentication.getUser(_: String, _: String)) expects(*, *) never()
+    get(
+      uri = "/deposit",
+      headers = Seq(("Cookie", s"${ Scentry.scentryAuthKey }=user001"))
     ) {
-      status shouldBe MOVED_TEMPORARILY_302
-      body shouldBe ""
-      header("Location") should startWith(s"$baseUrl/;jsessionid=")
-      header("Set-Cookie") should include("JSESSIONID=")
-      header("Set-Cookie") should include("Path=/")
-      header("Set-Cookie") should include(";")
-      header("Content-Type") shouldBe "text/html;charset=UTF-8"
-      header("Expires") shouldBe "Thu, 01 Jan 1970 00:00:00 GMT"
-
-      // TODO expecting "You executed a protected action" with a manual test
+      status shouldBe OK_200
+      body shouldBe "User(user001,List(),false) : EASY Deposit Api Service running..."
     }
   }
 
-  "post /sessions with invalid credentials" should "redirect to /sessions/new" in {
+  "get /deposit with valid basic authentication" should "be ok" ignore {
 
-    (app.authentication.getUser(_: String, _: String)
-      ) expects("someone", "invalid") returning None
-    post(
-      uri = "/sessions",
-      params = Seq(("login", "someone"), ("password", "invalid"))
+    (app.authentication.getUser(_: String, _: String)) expects("foo", "bar") returning
+      Some(User("foo", isActive = true))
+    get(
+      uri = "/deposit",
+      headers = Seq(("Authorization", "Basic foo:bar"))
     ) {
-      status shouldBe MOVED_TEMPORARILY_302
-      body shouldBe ""
-      header("Location") shouldBe s"$baseUrl/sessions/new"
-      header("Content-Type") shouldBe "text/html;charset=UTF-8"
-      header("Set-Cookie") shouldBe null
-      header("Expires") shouldBe null
+      status shouldBe OK_200
+      body shouldBe "EASY Deposit Api Service running..."
     }
   }
 }

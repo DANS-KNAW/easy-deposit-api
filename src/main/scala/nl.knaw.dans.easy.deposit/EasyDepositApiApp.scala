@@ -19,11 +19,14 @@ import better.files.File
 import nl.knaw.dans.easy.deposit.authentication.LdapAuthentication
 import nl.knaw.dans.easy.deposit.components.DraftsComponent
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
+import org.scalatra.CookieOptions
 
 class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLogging
   with DraftsComponent
   with LdapAuthentication {
   val draftRoot: File = File(configuration.properties.getString("deposits.drafts"))
+
+  val cookieOptions: CookieOptions = CookieOptions(httpOnly = true, maxAge = 6000)
 
   override val authentication: Authentication = new Authentication {
     override val ldapUserIdAttrName: String = configuration.properties.getString("users.ldap-user-id-attr-name")

@@ -37,7 +37,7 @@ class EasyDepositApiService(serverPort: Int, app: EasyDepositApiApp) extends Deb
       ("anonymous", new LifeCycle {
         override def init(context: ServletContext): Unit = {
           context.mount(new EasyDepositApiServlet(app), "/deposit/*")
-          context.mount(new AuthenticationServlet(app), "/sessions/*")
+          context.mount(new AuthenticationServlet(app), "/auth/*")
         }
       })
     }

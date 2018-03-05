@@ -20,6 +20,7 @@ case class User(id: String,
                 isActive: Boolean
                 // add arguments when required for a profile page
                ) {
+  def asToken: String = id // TODO need IP and other security info
 }
 object User {
   def apply(attributes: Map[String, Seq[String]]): User = {
@@ -33,5 +34,10 @@ object User {
       attributes.getOrElse("dansState", Seq.empty)
         .contains("ACTIVE")
     )
+  }
+
+  def fromToken(uid: String): User = {
+    // assuming the user is not deactivated since sign-in
+    User(uid, isActive = true)
   }
 }
