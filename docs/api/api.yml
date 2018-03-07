@@ -69,7 +69,7 @@ paths:
 
                 - id: "a145a1be-5463-4b10-a621-a9e511ff7f20"
                   title: "First Dataset"
-                  state: "IN PROGRESS"
+                  state: "IN_PROGRESS"
                   state_description: ""
                   date: "2017-12-01T11:10:22Z"
 
