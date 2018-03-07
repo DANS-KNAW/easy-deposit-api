@@ -24,6 +24,6 @@ class EasyDepositApiServlet(app: EasyDepositApiApp) extends ScalatraServlet with
 
   get("/") {
     contentType = "text/plain"
-    Ok("EASY Deposit Api Service running...")
+    Ok("EASY Deposit API Service running...")
   }
 }

@@ -1,17 +1,19 @@
 openapi: 3.0.0
 
 servers:
-  - description: SwaggerHub API Auto Mocking
-    url: https://virtserver.swaggerhub.com/DANS2/Deposit/1.0.0
+  - description: Debug environment
+    url: http://localhost:20190/
+  - description: Local Vagrant machine
+    url: http://test.dans.knaw.nl
 info:
-  description: This document specifies the public interface for depositing a dataset in EASY
+  description: Public interface for depositing a dataset in EASY.
   version: "1.0.0"
   title: Deposit API
   contact:
-    email: you@your-company.com
+    email: "info@dans.knaw.nl"
   license:
-    name: Apache 2.0
-    url: 'http://www.apache.org/licenses/LICENSE-2.0.html'
+    name: "Apache 2.0"
+    url: "http://www.apache.org/licenses/LICENSE-2.0.html"
 tags:
 - name: "default"
   description: "default"
@@ -26,9 +28,7 @@ paths:
     get:
       tags:
       - "default"
-      summary: "Return description of the service"
-      description:
-        "This is the starting place for navigating the Depost Web UI. It returns a description of the service"
+      summary: "Returns a description of the service."
       responses:
         200:
           description: "description of the service"
@@ -37,8 +37,7 @@ paths:
               schema:
                 type: string
                 description: a plain text, human readable description of the service
-                example: |
-                  ...
+                example: "EASY Deposit API Service running..."
         500:
           description: "Service is unavailable because of an error"
 
@@ -46,12 +45,11 @@ paths:
     get:
       tags:
       - "deposit"
-      summary: "List all deposits"
-      description: "Shows all deposit of a specific user"
+      summary: "List all deposits of the authenticated user"
       operationId: "getDeposits"
       responses:
         200:
-          description: "List of all deposits retrieved successfully"
+          description: "List retrieved successfully"
           content:
             application/json:
               schema:
@@ -91,7 +89,7 @@ paths:
       tags:
       - "deposit"
       summary: "Create new deposit"
-      description: "Creates an empty bag and retrieves deposit's id"
+      description: "Creates an empty bag and returns deposit URL."
       operationId: "createDeposit"
       responses:
         201:
@@ -102,12 +100,11 @@ paths:
                 type: "object"
                 items:
                   $ref: "#/components/schemas/Deposit"
-                description: a plain text, human readable description of the service
                 example:
                   id: "c3155868-1898-493a-8805-53adbd269878"
                   title: "Sample Dataset"
                   state: "DRAFT"
-                  state_description: ""
+                  state_description: "Deposit is open for further changes."
                   date: "2018-01-01T04:12:34Z"
           headers:
             Location:
@@ -115,7 +112,7 @@ paths:
               schema:
                 type: "string"
                 example:
-                  "/diposit/{id}"
+                  "https://deposit.easy.dans.knaw.nl/deposit/c3155868-1898-493a-8805-53adbd269878"
       security:
         - BasicAuth: []
 
@@ -123,49 +120,48 @@ paths:
     get:
       tags:
       - "deposit"
-      summary: "Load deposit"
-      description: "Get deposit specified by id only with DRAFT/REJECTED status"
+      summary: "Returns the deposit metadata"
       operationId: "getDeposit"
       parameters:
         - name: "id"
           in: "path"
-          description: "id of deposit to retrieve"
+          description: "ID of deposit to retrieve"
           required: true
           schema:
             type: "string"
             format: "uuid"
       responses:
         200:
-          description: "Deposit retrieved successfully if its state is DRAFT or REJECTED"
+          description: "Deposit metadata retrieved successfully"
           content:
             application/json:
               schema:
                 type: "object"
                 items:
                   $ref: "#/components/schemas/Metadata"
-        403:
-          description: "Deposit not retrieved because its state is something else than DRAFT or REJECTED"
+        # Do we need 403 or is it OK to allow the client to read metadata of a deposit in SUBMITTED state?
         404:
-          description: "Deposit with this id is not found"
+          description: "Not found. The client may derive from this response that the containing deposit does not exist."
+        410:
+          description: "Gone. The metadata is no longer available, because the deposit has been pruned of the contained bag."
       security:
         - BasicAuth: []
 
     put:
       tags:
       - "deposit"
-      summary: "Save draft of deposit"
-      description: "Update metadata"
-      operationId: "saveDepositDraft"
+      summary: "Updates the deposit metadata"
+      operationId: "updateDepositMetadata"
       parameters:
         - name: "id"
           in: "path"
-          description: "id of draft of deposit to be updated"
+          description: "ID of deposit to be updated"
           required: true
           schema:
             type: "string"
             format: "uuid"
       requestBody:
-        description: "Save metadata that needs to be updated in deposit"
+        description: "Document containing the new metadata"
         required: true
         content:
           application/json:
@@ -173,43 +169,50 @@ paths:
               $ref: '#/components/schemas/Metadata'
       responses:
         204:
-          description: "Draft saved successfully"
+          description: "Metadata updated successfully"
         404:
-          description: "Invalid id supplied"
+          description: "Not found.  The client may derive from this response that the containing deposit does not exist."
         400:
-          description: "Validation exception"
+          description: "Bad request. The metadata document was malformed."
       security:
         - BasicAuth: []
 
   /deposit/{id}/state:
+    parameters:
+      - name: "id"
+        in: "path"
+        description: "id of the deposit whose state is to be updated"
+        required: true
+        schema:
+          type: "string"
+          format: "uuid"
+    get:
+      tags:
+      - "deposit"
+      summary: "Returns the current state of the deposit."
+      operationId: "getDepositState"
+      responses:
+        200:
+          description: "Successfully returned deposit state."
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/State'
+
     put:
       tags:
       - "deposit"
-      summary: "Update state of deposit"
-      description: "Submit"
+      summary: "Updates the state of the deposit"
+      description: "The client is only allowed to update the deposit from DRAFT to SUBMITTED or from"
+      # TODO:
       operationId: "updateDepositState"
-      parameters:
-        - name: "id"
-          in: "path"
-          description: "id of deposit whose state to be updated"
-          required: true
-          schema:
-            type: "string"
-            format: "uuid"
       requestBody:
-        description: "Updated Deposit"
+        description: "The state to set"
         content:
           application/json:
             schema:
-              type: "object"
-              properties:
-                state:
-                  type: "string"
-                state_description:
-                  type: "string"
-              example:
-                state: "REJECTED"
-                state_description: "Datamanager's notes"
+              $ref: '#/components/schemas/State'
+
       responses:
         200:
           description: "Deposit updated successfully"
@@ -242,8 +245,7 @@ paths:
     delete:
       tags:
       - "deposit"
-      summary: "Delete deposit"
-      description: "Delete a deposit specified by id"
+      summary: "Deletes the deposit"
       operationId: "deleteDeposit"
       parameters:
         - name: "id"
@@ -256,6 +258,8 @@ paths:
       responses:
         204:
           description: "Deposit deleted successfully"
+        403:
+          description: "Forbidden. The deposit cannot be deleted at this point."
         404:
           description: "Deposit with this id is not found"
       security:
@@ -427,9 +431,6 @@ paths:
           description: "File not found"
       security:
         - BasicAuth: []
-
-
-
 
 components:
 
@@ -941,6 +942,16 @@ components:
             - spatialCoverage: "Spatial coverage 1"
             - spatialCoverage: "Spatial coverage 2"
             - spatialCoverage: "Spatial coverage 3"
+
+    State:
+      type: "object"
+      properties:
+        state:
+          type: "string"
+          example: "DRAFT"
+        state_description:
+          type: "string"
+          example: "Deposit is open for further modification."
 
     Metadata:
       type: "object"
