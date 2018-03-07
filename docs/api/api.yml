@@ -15,6 +15,8 @@ info:
     name: "Apache 2.0"
     url: "http://www.apache.org/licenses/LICENSE-2.0.html"
 tags:
+- name: "authentication"
+  description: "Authentication of a user"
 - name: "default"
   description: "default"
 - name: "deposit"
@@ -196,8 +198,19 @@ paths:
           description: "Successfully returned deposit state."
           content:
             application/json:
+              # NOTE (JvM): There seems to be no way of factoring out the State schema separate from the
+              # examples, so that you can have a different example for the get and put operations.examples:
+              # That is why I am opting for copy-pasting the schema.
               schema:
-                $ref: '#/components/schemas/State'
+                type: object
+                properties:
+                  state:
+                    type: string
+                  state_description:
+                    type: string
+                example:
+                  state: "DRAFT"
+                  state_description: "Deposit is open for modifications."
 
     put:
       tags:
@@ -211,18 +224,19 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/State'
+              type: object
+              properties:
+                state:
+                  type: string
+                state_description:
+                  type: string
+              example:
+                state: "SUBMITTED"
+                state_description: "Deposit is reading for ingest processing."
 
       responses:
-        200:
-          description: "Deposit updated successfully"
-          content:
-            text/plain:
-              schema:
-                type: "string"
-                description: a plain text, human readable description of the service
-                example:
-                  "SUBMITTED"
+        204:
+          description: "Successfully updated the deposit state."
         404:
           description: "Invalid id supplied"
         400:
@@ -948,10 +962,8 @@ components:
       properties:
         state:
           type: "string"
-          example: "DRAFT"
         state_description:
           type: "string"
-          example: "Deposit is open for further modification."
 
     Metadata:
       type: "object"
