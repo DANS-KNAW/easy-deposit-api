@@ -63,30 +63,26 @@ paths:
 
                 - id: "93674123-1699-49c5-af91-ed31db19adc9"
                   title: "Current Dataset"
-                  status_description: ""
-                  doi: "doi:10.1594/GFZ.GEOFON.gfz2009kciu"
                   state: "DRAFT"
+                  state_description: ""
                   date: "2018-01-20T10:40:52Z"
 
                 - id: "a145a1be-5463-4b10-a621-a9e511ff7f20"
                   title: "First Dataset"
-                  status_description: ""
-                  doi: "doi:10.1594/PANGAEA.726855 "
                   state: "IN PROGRESS"
+                  state_description: ""
                   date: "2017-12-01T11:10:22Z"
 
                 - id: "1d946f5b-e53b-4f71-b1f3-7481475d07db"
                   title: "Missing file"
-                  status_description: "there are some files missing"
-                  doi: "doi: 10.3207/2959859860"
                   state: "REJECTED"
+                  state_description: "there are some files missing"
                   date: "2018-01-12T10:40:52Z"
 
                 - id: "5befec97-1e57-4210-b7b6-57a604aaef47"
                   title: "Old Dataset"
-                  status_description: "easy-dataset:id"
-                  doi: "doi:10.1430/8105"
                   state: "ARCHIVED"
+                  state_description: "easy-dataset:id"
                   date: "2017-08-09T10:10:22Z"
       security:
         - BasicAuth: []
@@ -110,9 +106,8 @@ paths:
                 example:
                   id: "c3155868-1898-493a-8805-53adbd269878"
                   title: "Sample Dataset"
-                  status_description: ""
-                  doi: "doi:10.3972/water973.0145.db"
                   state: "DRAFT"
+                  state_description: ""
                   date: "2018-01-01T04:12:34Z"
           headers:
             Location:
@@ -210,11 +205,11 @@ paths:
               properties:
                 state:
                   type: "string"
-                status_description:
+                state_description:
                   type: "string"
               example:
                 state: "REJECTED"
-                status_description: "Datamanager's notes"
+                state_description: "Datamanager's notes"
       responses:
         200:
           description: "Deposit updated successfully"
@@ -467,18 +462,14 @@ components:
           format: "uuid"
         title:
           type: "string"
-        status:
-          type: "string"
-        status_description:
-          type: "string"
-        doi:
-          type: "string"
         state:
+          type: "string"
+        state_description:
           type: "string"
         date:
           type: "string"
           format: "date-time"
-          description: "Deposit date of ..."
+          description: "Deposit date"
       xml:
         name: "Deposit"
 
