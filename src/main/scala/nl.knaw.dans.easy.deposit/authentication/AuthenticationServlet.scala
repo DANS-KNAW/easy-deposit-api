@@ -24,13 +24,14 @@ class AuthenticationServlet(app: EasyDepositApiApp) extends ScalatraServlet
   with DebugEnhancedLogging {
 
   override def getAuthenticationProvider: AuthenticationProvider = app.authentication
+
   override def getCookieOptions: CookieOptions = app.cookieOptions
 
-  before () {
-    logger.info(s"${request.getMethod} ${request.getPathInfo} remote=${ request.getRemoteAddr } params=$params headers=${ request.headers } body=${ request.body }")
+  before() {
+    logger.info(s"${ request.getMethod } ${ request.getPathInfo } remote=${ request.getRemoteAddr } params=$params headers=${ request.headers } body=${ request.body }")
   }
 
-  after () {
+  after() {
     logger.info(s"response.staus=${ response.getStatus } headers=${ response.headers }")
   }
 
@@ -54,10 +55,9 @@ class AuthenticationServlet(app: EasyDepositApiApp) extends ScalatraServlet
   post("/signout") { signout }
 
   private def signout = {
-    val goodByTo = user
     scentry.store.invalidate() // TODO state is changed, but get supports an easy demo...
     redirect("/")
-}
+  }
 
   post("/") {
     scentry.authenticate()

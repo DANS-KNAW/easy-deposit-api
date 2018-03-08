@@ -26,7 +26,7 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
   with LdapAuthentication {
   val draftRoot: File = File(configuration.properties.getString("deposits.drafts"))
 
-  val cookieOptions: CookieOptions = CookieOptions(httpOnly = true, maxAge = 6000)
+  val cookieOptions: CookieOptions = CookieOptions(httpOnly = true, maxAge = 6000, path = "/")
 
   override val authentication: Authentication = new Authentication {
     override val ldapUserIdAttrName: String = configuration.properties.getString("users.ldap-user-id-attr-name")

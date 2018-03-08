@@ -17,7 +17,6 @@ package nl.knaw.dans.easy.deposit.authentication
 
 import javax.servlet.http.{ HttpServletRequest, HttpServletResponse }
 
-import nl.knaw.dans.easy.deposit.authentication.SessionTokenStrategy._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.apache.commons.lang.StringUtils.isNotBlank
 import org.scalatra.ScalatraBase
@@ -26,15 +25,12 @@ import org.scalatra.auth.{ Scentry, ScentryStrategy }
 class SessionTokenStrategy(protected val app: ScalatraBase) extends ScentryStrategy[User]
   with DebugEnhancedLogging {
 
-
   override def name: String = "SessionToken"
 
   private def getToken(implicit request: HttpServletRequest) = {
     request.getCookies
       .find(_.getName == Scentry.scentryAuthKey) // TODO add issued to token and filter on maxAge?
       .map(_.getValue)
-      .orElse(Option(request.getHeader(HeaderKey)))
-      .orElse(app.params.get(ParamsKey))
       .find(isNotBlank)
   }
 
@@ -49,10 +45,5 @@ class SessionTokenStrategy(protected val app: ScalatraBase) extends ScentryStrat
                            ): Option[User] = {
     getToken.flatMap(token => Some(User.fromToken(token)))
   }
-}
-
-object SessionTokenStrategy {
-  val HeaderKey = "X-API-KEY"
-  val ParamsKey = "api_key"
 }
 

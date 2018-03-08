@@ -47,6 +47,13 @@ trait AuthenticationSupport extends ScalatraBase
 
   protected def requireLogin(): Unit = {
     logger.info(s"${ request.getMethod } ${ request.getRequestURL } remote=${ request.getRemoteAddr } params=$params headers=${ request.headers } body=${ request.body }")
+    noMultipleAuthentications()
+    if (!scentry.isAuthenticated) {
+      redirect(scentryConfig.login) // TODO don't loose form data when session timed out
+    }
+  }
+
+  private def noMultipleAuthentications(): Unit = {
     val authenticationHeaders = request.getHeaderNames.asScala.toList
       .map(_.toLowerCase)
       .filter(h => headers.contains(h))
@@ -55,9 +62,6 @@ trait AuthenticationSupport extends ScalatraBase
       logger.info(s"found authentication headers [$authenticationHeaders] and methods [${ scentry.strategies.values.withFilter(_.isValid).map(_.name) }]")
       halt(BAD_REQUEST_400, "Please provide at most one authentication method")
     }
-    else if (isAnonymous) {
-      redirect(scentryConfig.login) // TODO don't loose form data when session timed out
-    }
   }
 
   /**
@@ -65,24 +69,19 @@ trait AuthenticationSupport extends ScalatraBase
    * run the unauthenticated() method on the UserPasswordStrategy.
    */
   override protected def configureScentry {
-    implicit val authCookieOptions: CookieOptions = getCookieOptions
 
-    scentry.store = new CookieAuthStore(self)(authCookieOptions) {
+    scentry.store = new CookieAuthStore(self)(getCookieOptions) {
       override def set(value: String)(implicit request: HttpServletRequest, response: HttpServletResponse) {
-        cookies.update(Scentry.scentryAuthKey, value)(CookieOptions(maxAge = 6000, path = "/"))
-        response.setHeader("X-SCALATRA-AUTH", value)
+        cookies.update(Scentry.scentryAuthKey, value)(getCookieOptions)
       }
 
       override def get(implicit request: HttpServletRequest, response: HttpServletResponse): String = {
-        val cookie = cookies.get(Scentry.scentryAuthKey) getOrElse ""
-        if (cookie == null || cookie.trim.isEmpty) request.getHeader("X-SCALATRA-AUTH")
-        else cookie
+        cookies.get(Scentry.scentryAuthKey).getOrElse("")
       }
 
       override def invalidate()(implicit request: HttpServletRequest, response: HttpServletResponse) {
         // See also https://github.com/scalatra/scalatra-website-examples/blob/d1728bace838162e8331f9f001767a2d505f6a2a/2.6/http/scentry-auth-demo/src/main/scala/com/constructiveproof/example/auth/strategies/RememberMeStrategy.scala#L76
         cookies.delete(Scentry.scentryAuthKey)(CookieOptions(path = "/"))
-        response.setHeader("X-SCALATRA-AUTH", null)
       }
     }
     scentry.unauthenticated { scentry.strategies("UserPassword" /*TODO ???*/).unauthenticated() }
@@ -107,7 +106,6 @@ object AuthenticationSupport {
     "Authorization",
     "HTTP_AUTHORIZATION",
     "X-HTTP_AUTHORIZATION",
-    "X_HTTP_AUTHORIZATION",
-    SessionTokenStrategy.HeaderKey
+    "X_HTTP_AUTHORIZATION"
   ).map(_.toLowerCase)
 }
