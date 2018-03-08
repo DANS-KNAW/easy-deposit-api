@@ -22,10 +22,13 @@ import org.apache.commons.lang.StringUtils.isNotBlank
 import org.scalatra.ScalatraBase
 import org.scalatra.auth.{ Scentry, ScentryStrategy }
 
+object SessionTokenStrategy {
+  val name = "SessionToken"
+}
 class SessionTokenStrategy(protected val app: ScalatraBase) extends ScentryStrategy[User]
   with DebugEnhancedLogging {
 
-  override def name: String = "SessionToken"
+  override def name: String = SessionTokenStrategy.name
 
   private def getToken(implicit request: HttpServletRequest) = {
     request.getCookies

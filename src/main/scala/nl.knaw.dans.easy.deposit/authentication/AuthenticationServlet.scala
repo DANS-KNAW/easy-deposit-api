@@ -20,20 +20,11 @@ import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.scalatra._
 
 class AuthenticationServlet(app: EasyDepositApiApp) extends ScalatraServlet
-  with AuthenticationSupport
-  with DebugEnhancedLogging {
+  with AuthenticationSupport {
 
   override def getAuthenticationProvider: AuthenticationProvider = app.authentication
 
   override def getCookieOptions: CookieOptions = app.cookieOptions
-
-  before() {
-    logger.info(s"${ request.getMethod } ${ request.getPathInfo } remote=${ request.getRemoteAddr } params=$params headers=${ request.headers } body=${ request.body }")
-  }
-
-  after() {
-    logger.info(s"response.staus=${ response.getStatus } headers=${ response.headers }")
-  }
 
   get("/signin") {
     if (isAuthenticated) redirect("/deposit")
@@ -42,7 +33,7 @@ class AuthenticationServlet(app: EasyDepositApiApp) extends ScalatraServlet
     <html>
       <body>
         <form action="/auth" method="post">
-          <p><label for="login">login id</label><input type="text" name="login" id="login"/></p>
+          <p><label for="login">login id</label><input type="text" name="login" id="login" autofocus="true" /></p>
           <p><label for="password">password</label><input type="password" name="password" id="password"/></p>
           <p><input type="submit"/></p>
         </form>

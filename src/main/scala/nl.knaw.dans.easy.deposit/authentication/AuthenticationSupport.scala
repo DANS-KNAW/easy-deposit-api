@@ -15,38 +15,33 @@
  */
 package nl.knaw.dans.easy.deposit.authentication
 
-import javax.servlet.http.{ HttpServletRequest, HttpServletResponse }
-
 import nl.knaw.dans.easy.deposit.authentication.AuthenticationSupport._
-import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.eclipse.jetty.http.HttpStatus._
 import org.scalatra.auth.ScentryAuthStore.CookieAuthStore
-import org.scalatra.auth.{ Scentry, ScentryConfig, ScentrySupport }
+import org.scalatra.auth.{ ScentryConfig, ScentrySupport }
 import org.scalatra.{ CookieOptions, ScalatraBase }
 
 import scala.collection.JavaConverters._
 
 trait AuthenticationSupport extends ScalatraBase
   with ScentrySupport[User]
-  with DebugEnhancedLogging {
+  with ServletEnhancedLogging {
   self: ScalatraBase =>
 
+  // TODO see also https://gist.github.com/casualjim/4400115#file-session_token_strategy-scala-L49-L50
+  override protected def fromSession: PartialFunction[String, User] = { case id: String => User.fromToken(id) }
 
-  // TODO more than id? see also https://gist.github.com/casualjim/4400115#file-session_token_strategy-scala-L49-L50
-  protected def fromSession: PartialFunction[String, User] = { case id: String => User(Map("uid" -> Seq(id))) }
-
-  protected def toSession: PartialFunction[User, String] = { case usr: User => usr.id }
+  override protected def toSession: PartialFunction[User, String] = { case usr: User => usr.id }
 
   def getAuthenticationProvider: AuthenticationProvider
 
   def getCookieOptions: CookieOptions
 
-  protected val scentryConfig: ScentryConfiguration = new ScentryConfig {
+  override protected val scentryConfig: ScentryConfiguration = new ScentryConfig {
     override val login = "/auth/signin"
   }.asInstanceOf[ScentryConfiguration]
 
   protected def requireLogin(): Unit = {
-    logger.info(s"${ request.getMethod } ${ request.getRequestURL } remote=${ request.getRemoteAddr } params=$params headers=${ request.headers } body=${ request.body }")
     noMultipleAuthentications()
     if (!scentry.isAuthenticated) {
       redirect(scentryConfig.login) // TODO don't loose form data when session timed out
@@ -60,7 +55,7 @@ trait AuthenticationSupport extends ScalatraBase
     //noinspection ComparingLength
     if (authenticationHeaders.size > 1 || scentry.strategies.values.count(_.isValid) > 1) {
       logger.info(s"found authentication headers [$authenticationHeaders] and methods [${ scentry.strategies.values.withFilter(_.isValid).map(_.name) }]")
-      halt(BAD_REQUEST_400, "Please provide at most one authentication method")
+      halt(BAD_REQUEST_400, "Invalid authentication")
     }
   }
 
@@ -70,21 +65,10 @@ trait AuthenticationSupport extends ScalatraBase
    */
   override protected def configureScentry {
 
-    scentry.store = new CookieAuthStore(self)(getCookieOptions) {
-      override def set(value: String)(implicit request: HttpServletRequest, response: HttpServletResponse) {
-        cookies.update(Scentry.scentryAuthKey, value)(getCookieOptions)
-      }
+    scentry.store = new CookieAuthStore(self)(getCookieOptions)
 
-      override def get(implicit request: HttpServletRequest, response: HttpServletResponse): String = {
-        cookies.get(Scentry.scentryAuthKey).getOrElse("")
-      }
-
-      override def invalidate()(implicit request: HttpServletRequest, response: HttpServletResponse) {
-        // See also https://github.com/scalatra/scalatra-website-examples/blob/d1728bace838162e8331f9f001767a2d505f6a2a/2.6/http/scentry-auth-demo/src/main/scala/com/constructiveproof/example/auth/strategies/RememberMeStrategy.scala#L76
-        cookies.delete(Scentry.scentryAuthKey)(CookieOptions(path = "/"))
-      }
-    }
-    scentry.unauthenticated { scentry.strategies("UserPassword" /*TODO ???*/).unauthenticated() }
+    // TODO only overridden by EasyBasicAuthStrategy.super Default if none af the strategies applied? What about the redirect in requireLogin?
+    scentry.unauthenticated { scentry.strategies("UserPassword").unauthenticated() }
   }
 
   /**
@@ -92,9 +76,9 @@ trait AuthenticationSupport extends ScalatraBase
    * progressively use all registered strategies to log the user in, falling back if necessary.
    */
   override protected def registerAuthStrategies: Unit = {
-    scentry.register("BasicAuthentication", app => new EasyBasciAuthStrategy(app, getAuthenticationProvider, realm) {})
-    scentry.register("UserPassword", app => new UserPasswordStrategy(app, getAuthenticationProvider) {})
-    scentry.register("SessionToken", app => new SessionTokenStrategy(app) {})
+    scentry.register(EasyBasicAuthStrategy.name, app => new EasyBasicAuthStrategy(app, getAuthenticationProvider, realm))
+    scentry.register(UserPasswordStrategy.name, app => new UserPasswordStrategy(app, getAuthenticationProvider))
+    scentry.register(SessionTokenStrategy.name, app => new SessionTokenStrategy(app))
   }
 }
 object AuthenticationSupport {

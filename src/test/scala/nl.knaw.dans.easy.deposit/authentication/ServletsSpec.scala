@@ -70,7 +70,7 @@ class ServletsSpec extends TestSupportFixture with ServletFixture with ScalatraS
       headers = Seq(("Cookie", s"${ Scentry.scentryAuthKey }=user001"))
     ) {
       status shouldBe OK_200
-      body shouldBe "User(user001,List(),false) : EASY Deposit Api Service running..."
+      body shouldBe "User(user001,List(),true) : EASY Deposit Api Service running..."
     }
   }
 

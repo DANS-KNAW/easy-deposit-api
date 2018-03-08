@@ -15,16 +15,18 @@
  */
 package nl.knaw.dans.easy.deposit.authentication
 
-import nl.knaw.dans.easy.deposit.EasyDepositApiApp
-import org.scalatra.{CookieOptions, ScalatraServlet}
+import nl.knaw.dans.lib.logging.DebugEnhancedLogging
+import org.scalatra.ScalatraBase
 
-abstract class AbstractProtectedServlet(app: EasyDepositApiApp) extends ScalatraServlet
-  with AuthenticationSupport {
+trait ServletEnhancedLogging extends DebugEnhancedLogging {
 
-  override def getAuthenticationProvider: AuthenticationProvider = app.authentication
-  override def getCookieOptions: CookieOptions = app.cookieOptions
+  // TODO candidate for dans-scala-lib
+  this: ScalatraBase =>
 
   before() {
-    requireLogin()
+    logger.info(s"${ request.getMethod } ${ request.getRequestURL } remote=${ request.getRemoteAddr } params=$params headers=${ request.headers } body=${ request.body }")
+  }
+  after() {
+    logger.info(s"response.status=${ response.getStatus } headers=${ response.headers }")
   }
 }

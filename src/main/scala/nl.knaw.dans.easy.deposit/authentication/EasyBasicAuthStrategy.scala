@@ -21,17 +21,26 @@ import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.scalatra.ScalatraBase
 import org.scalatra.auth.strategy.BasicAuthStrategy
 
-class EasyBasciAuthStrategy(protected override val app: ScalatraBase,
+object EasyBasicAuthStrategy {
+  val name = "EasyBasicAuth"
+}
+class EasyBasicAuthStrategy(protected override val app: ScalatraBase,
                             authenticationProvider: AuthenticationProvider,
                             realm: String
                            ) extends BasicAuthStrategy[User](app, realm)
   with DebugEnhancedLogging {
 
-  override def name: String = "EasyBasciAuth"
+  override def name: String = EasyBasicAuthStrategy.name
 
   /** @return true if this strategy should be run. */
   override def isValid(implicit request: HttpServletRequest): Boolean = {
-    super.isValid
+    val valid = super.isValid
+    logger.info(s"$name.isValid $valid")
+    valid
+  }
+  override def authenticate()(implicit request: HttpServletRequest, response: HttpServletResponse): Option[User] = {
+    logger.info(s"$name.authenticate")
+    super.authenticate()
   }
 
   protected def validate(userName: String,
@@ -39,9 +48,13 @@ class EasyBasciAuthStrategy(protected override val app: ScalatraBase,
                         (implicit request: HttpServletRequest,
                          response: HttpServletResponse
                         ): Option[User] = {
+    logger.info(s"$name.validate: $userName, $password")// TODO don't leak
     authenticationProvider.getUser(userName, password)
   }
 
   protected def getUserId(user: User)
-                         (implicit request: HttpServletRequest, response: HttpServletResponse): String = user.id
+                         (implicit request: HttpServletRequest, response: HttpServletResponse): String = {
+    logger.info(s"$name.getUserId: $user should be run: ${super.isValid}")// TODO don't leak. Called if false, WHY???
+    user.id
+  }
 }

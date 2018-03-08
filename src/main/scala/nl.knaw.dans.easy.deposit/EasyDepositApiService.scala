@@ -31,7 +31,7 @@ class EasyDepositApiService(serverPort: Int, app: EasyDepositApiApp) extends Deb
   import logger._
 
   private val server = new Server(serverPort)
-  private val context = new ServletContextHandler(ServletContextHandler.SESSIONS)
+  private val context = new ServletContextHandler(ServletContextHandler.NO_SESSIONS & ServletContextHandler.SECURITY)
   context.addEventListener(new ScalatraListener() {
     override def probeForCycleClass(classLoader: ClassLoader): (String, LifeCycle) = {
       ("anonymous", new LifeCycle {
