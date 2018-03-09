@@ -45,4 +45,9 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
     logger.info(s"Authentication: ldapParentEntry = $ldapParentEntry")
     logger.info(s"Authentication: ldapUserIdAttrName = $ldapUserIdAttrName")
   }
+
+
+  def getVersion: String = {
+    configuration.version
+  }
 }

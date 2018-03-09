@@ -1,20 +1,24 @@
 openapi: 3.0.0
 
 servers:
-  - description: SwaggerHub API Auto Mocking
-    url: https://virtserver.swaggerhub.com/DANS2/Deposit/1.0.0
+  - description: Debug environment
+    url: http://localhost:20190/
+  - description: Local Vagrant machine
+    url: http://test.dans.knaw.nl
 info:
-  description: This document specifies the public interface for depositing a dataset in EASY
+  description: Public interface for depositing datasets in EASY.
   version: "1.0.0"
   title: Deposit API
   contact:
-    email: you@your-company.com
+    email: "info@dans.knaw.nl"
   license:
-    name: Apache 2.0
-    url: 'http://www.apache.org/licenses/LICENSE-2.0.html'
+    name: "Apache 2.0"
+    url: "http://www.apache.org/licenses/LICENSE-2.0.html"
 tags:
-- name: "default"
-  description: "default"
+- name: "authentication"
+  description: "Authentication of a user"
+- name: "service"
+  description: "Information about service status"
 - name: "deposit"
   description: "Operations on a deposit"
 - name: "file"
@@ -22,13 +26,21 @@ tags:
 
 paths:
 
+  /login:
+    post:
+      tags:
+      - "authentication"
+      summary: "Acquire a JSON web token for use in subsequent calls to the service"
+      responses:
+        200:
+          description: "JWT"
+        403:
+          description: "Forbidden. Invalid credentials."
   /:
     get:
       tags:
-      - "default"
-      summary: "Return description of the service"
-      description:
-        "This is the starting place for navigating the Depost Web UI. It returns a description of the service"
+      - "service"
+      summary: "Returns a description of the service."
       responses:
         200:
           description: "description of the service"
@@ -37,8 +49,7 @@ paths:
               schema:
                 type: string
                 description: a plain text, human readable description of the service
-                example: |
-                  ...
+                example: "EASY Deposit API Service running (v1.0.0)"
         500:
           description: "Service is unavailable because of an error"
 
@@ -46,12 +57,11 @@ paths:
     get:
       tags:
       - "deposit"
-      summary: "List all deposits"
-      description: "Shows all deposit of a specific user"
+      summary: "Lists all deposits of the authenticated user."
       operationId: "getDeposits"
       responses:
         200:
-          description: "List of all deposits retrieved successfully"
+          description: "List retrieved successfully.."
           content:
             application/json:
               schema:
@@ -63,30 +73,26 @@ paths:
 
                 - id: "93674123-1699-49c5-af91-ed31db19adc9"
                   title: "Current Dataset"
-                  status_description: ""
-                  doi: "doi:10.1594/GFZ.GEOFON.gfz2009kciu"
                   state: "DRAFT"
+                  state_description: ""
                   date: "2018-01-20T10:40:52Z"
 
                 - id: "a145a1be-5463-4b10-a621-a9e511ff7f20"
                   title: "First Dataset"
-                  status_description: ""
-                  doi: "doi:10.1594/PANGAEA.726855 "
-                  state: "IN PROGRESS"
+                  state: "IN_PROGRESS"
+                  state_description: ""
                   date: "2017-12-01T11:10:22Z"
 
                 - id: "1d946f5b-e53b-4f71-b1f3-7481475d07db"
                   title: "Missing file"
-                  status_description: "there are some files missing"
-                  doi: "doi: 10.3207/2959859860"
                   state: "REJECTED"
+                  state_description: "there are some files missing"
                   date: "2018-01-12T10:40:52Z"
 
                 - id: "5befec97-1e57-4210-b7b6-57a604aaef47"
                   title: "Old Dataset"
-                  status_description: "easy-dataset:id"
-                  doi: "doi:10.1430/8105"
                   state: "ARCHIVED"
+                  state_description: "easy-dataset:id"
                   date: "2017-08-09T10:10:22Z"
       security:
         - BasicAuth: []
@@ -94,25 +100,23 @@ paths:
     post:
       tags:
       - "deposit"
-      summary: "Create new deposit"
-      description: "Creates an empty bag and retrieves deposit's id"
+      summary: "Creates new deposit"
+      description: "Creates an empty bag and returns deposit URL."
       operationId: "createDeposit"
       responses:
         201:
-          description: "Deposit created successfully"
+          description: "Deposit created successfully."
           content:
             application/json:
               schema:
                 type: "object"
                 items:
                   $ref: "#/components/schemas/Deposit"
-                description: a plain text, human readable description of the service
                 example:
                   id: "c3155868-1898-493a-8805-53adbd269878"
                   title: "Sample Dataset"
-                  status_description: ""
-                  doi: "doi:10.3972/water973.0145.db"
                   state: "DRAFT"
+                  state_description: "Deposit is open for further changes."
                   date: "2018-01-01T04:12:34Z"
           headers:
             Location:
@@ -120,7 +124,7 @@ paths:
               schema:
                 type: "string"
                 example:
-                  "/diposit/{id}"
+                  "https://deposit.easy.dans.knaw.nl/deposit/c3155868-1898-493a-8805-53adbd269878"
       security:
         - BasicAuth: []
 
@@ -128,49 +132,48 @@ paths:
     get:
       tags:
       - "deposit"
-      summary: "Load deposit"
-      description: "Get deposit specified by id only with DRAFT/REJECTED status"
+      summary: "Returns the deposit metadata."
       operationId: "getDeposit"
       parameters:
         - name: "id"
           in: "path"
-          description: "id of deposit to retrieve"
+          description: "ID of deposit to retrieve"
           required: true
           schema:
             type: "string"
             format: "uuid"
       responses:
         200:
-          description: "Deposit retrieved successfully if its state is DRAFT or REJECTED"
+          description: "Deposit metadata retrieved successfully"
           content:
             application/json:
               schema:
                 type: "object"
                 items:
                   $ref: "#/components/schemas/Metadata"
-        403:
-          description: "Deposit not retrieved because its state is something else than DRAFT or REJECTED"
+        # Do we need 403 or is it OK to allow the client to read metadata of a deposit in SUBMITTED state?
         404:
-          description: "Deposit with this id is not found"
+          description: "Not found. The client may derive from this response that the containing deposit does not exist."
+        410:
+          description: "Gone. The metadata is no longer available, because the deposit has been pruned of the contained bag."
       security:
         - BasicAuth: []
 
     put:
       tags:
       - "deposit"
-      summary: "Save draft of deposit"
-      description: "Update metadata"
-      operationId: "saveDepositDraft"
+      summary: "Updates the deposit metadata."
+      operationId: "updateDepositMetadata"
       parameters:
         - name: "id"
           in: "path"
-          description: "id of draft of deposit to be updated"
+          description: "ID of deposit to be updated"
           required: true
           schema:
             type: "string"
             format: "uuid"
       requestBody:
-        description: "Save metadata that needs to be updated in deposit"
+        description: "Document containing the new metadata"
         required: true
         content:
           application/json:
@@ -178,68 +181,77 @@ paths:
               $ref: '#/components/schemas/Metadata'
       responses:
         204:
-          description: "Draft saved successfully"
+          description: "Metadata updated successfully"
         404:
-          description: "Invalid id supplied"
+          description: "Not found. The client may derive from this response that the containing deposit does not exist."
         400:
-          description: "Validation exception"
+          description: "Bad request. The metadata document was malformed."
       security:
         - BasicAuth: []
 
   /deposit/{id}/state:
+    parameters:
+      - name: "id"
+        in: "path"
+        description: "id of the deposit whose state is to be updated"
+        required: true
+        schema:
+          type: "string"
+          format: "uuid"
+    get:
+      tags:
+      - "deposit"
+      summary: "Returns the current state of the deposit."
+      operationId: "getDepositState"
+      responses:
+        200:
+          description: "Successfully returned deposit state."
+          content:
+            application/json:
+              # NOTE (JvM): There seems to be no way of factoring out the State schema separate from the
+              # examples, so that you can have a different example for the get and put operations.examples:
+              # That is why I am opting for copy-pasting the schema.
+              schema:
+                type: object
+                properties:
+                  state:
+                    type: string
+                  state_description:
+                    type: string
+                example:
+                  state: "DRAFT"
+                  state_description: "Deposit is open for modifications."
+
     put:
       tags:
       - "deposit"
-      summary: "Update state of deposit"
-      description: "Submit"
+      summary: "Updates the state of the deposit."
+      description: |
+        The client is only allowed to update the deposit from DRAFT to SUBMITTED or
+        from REJECTED to DRAFT. Other state transitions will be effected by back-end processes.
       operationId: "updateDepositState"
-      parameters:
-        - name: "id"
-          in: "path"
-          description: "id of deposit whose state to be updated"
-          required: true
-          schema:
-            type: "string"
-            format: "uuid"
       requestBody:
-        description: "Updated Deposit"
+        description: "the state to set"
         content:
           application/json:
             schema:
-              type: "object"
+              type: object
               properties:
                 state:
-                  type: "string"
-                status_description:
-                  type: "string"
+                  type: string
+                state_description:
+                  type: string
               example:
-                state: "REJECTED"
-                status_description: "Datamanager's notes"
+                state: "SUBMITTED"
+                state_description: "Deposit is ready for ingest processing."
+
       responses:
-        200:
-          description: "Deposit updated successfully"
-          content:
-            text/plain:
-              schema:
-                type: "string"
-                description: a plain text, human readable description of the service
-                example:
-                  "SUBMITTED"
+        204:
+          description: "Successfully updated the deposit state."
         404:
-          description: "Invalid id supplied"
+          description: "Not found. The client may derive from this response that the containing deposit does not exist."
         400:
-          description: "Validation exception"
-          content:
-            application/json:
-              schema:
-                type: "object"
-                items:
-                  $ref: "#/components/schemas/ApiResponse"
-                description: a plain text, human readable description of the service
-                example:
-                  code: "c3155868"
-                  type: "validation type"
-                  message: "validation message"
+          description: "Bad request. The state document was malformed."
       security:
         - BasicAuth: []
 
@@ -247,8 +259,7 @@ paths:
     delete:
       tags:
       - "deposit"
-      summary: "Delete deposit"
-      description: "Delete a deposit specified by id"
+      summary: "Deletes the deposit."
       operationId: "deleteDeposit"
       parameters:
         - name: "id"
@@ -260,9 +271,13 @@ paths:
             format: "uuid"
       responses:
         204:
-          description: "Deposit deleted successfully"
+          description: "Deposit deleted successfully."
+        403:
+          description: |
+            Forbidden. The deposit cannot be deleted at this point. Deletions is only permitted when
+            the deposit is in one of states: DRAFT, ARCHIVED, REJECTED.
         404:
-          description: "Deposit with this id is not found"
+          description: "Deposit with this id is not found."
       security:
         - BasicAuth: []
 
@@ -270,8 +285,7 @@ paths:
     get:
       tags:
       - "file"
-      summary: "List all files of deposit"
-      description: "Show all files of deposit"
+      summary: "Lists all files of the deposit."
       operationId: "getFilesOfDeposit"
       parameters:
         - name: "id"
@@ -289,28 +303,19 @@ paths:
               schema:
                 type: "array"
                 items:
-                  $ref: "#/components/schemas/File"
-                description: a plain text, human readable description of the service
+                  type: string
                 example:
-                - path: "/tem/quarantine/cat.png"
-                  name: "cat.png"
-                  checksum: "cf23df2207d99a74fbe169e3eba035e633b65d94"
-                - path: "/tem/quarantine/dog.png"
-                  name: "dog.png"
-                  checksum: "b48cf0140bea12734db05ebcdb012f1d265bed84"
-
-        400:
-          description: "Invalid id supplied"
+                - "/animals/fotos/cat.png"
+                - "/animals/fotos/dog.png"
         404:
-          description: "File not found"
+          description: "Not found. The client may derive from this response that the containing deposit does not exist."
       security:
         - BasicAuth: []
 
     post:
       tags:
       - "file"
-      summary: "Upload a file"
-      description: "Add a new file to deposit"
+      summary: "Adds a file to the deposit."
       operationId: "depositFile"
       parameters:
         - name: "id"
@@ -320,11 +325,6 @@ paths:
           schema:
             type: "string"
             format: "uuid"
-        # - name: "uploadFile"
-        #   in: "formData"
-        #   required: true
-        #   schema:
-        #     type: "file"
       requestBody:
         description: "File upload"
         required: true
@@ -337,14 +337,14 @@ paths:
               format: binary
       responses:
         201:
-          description: "File is uploaded successfully"
+          description: "File is uploaded successfully."
           headers:
             Location:
               description: "URL of uploaded file"
               schema:
                 type: "string"
                 example:
-                  "/file/{id}"
+                  "/file/{file_path}"
         401:
           description: "You are not authorized to use this API. Please provide a valid user name and password before trying to use an API."
         500:
@@ -352,8 +352,7 @@ paths:
       security:
         - BasicAuth: []
 
-  # /deposit/{id}/file/{file_id}:
-  /deposit/{id}/{file_path}:
+  /deposit/{id}/file/{file_path}:
     put:
       tags:
       - "file"
@@ -433,9 +432,6 @@ paths:
       security:
         - BasicAuth: []
 
-
-
-
 components:
 
   securitySchemes:
@@ -444,17 +440,6 @@ components:
       scheme: basic
 
   schemas:
-
-    ApiResponse:
-      type: "object"
-      properties:
-        code:
-          type: "integer"
-          format: "int32"
-        type:
-          type: "string"
-        message:
-          type: "string"
 
     Deposit:
       type: "object"
@@ -467,34 +452,16 @@ components:
           format: "uuid"
         title:
           type: "string"
-        status:
-          type: "string"
-        status_description:
-          type: "string"
-        doi:
-          type: "string"
         state:
+          type: "string"
+        state_description:
           type: "string"
         date:
           type: "string"
           format: "date-time"
-          description: "Deposit date of ..."
+          description: "Deposit date"
       xml:
         name: "Deposit"
-
-    File:
-      type: "object"
-      required:
-      - "id"
-      - "name"
-      properties:
-        path:
-          type: "string"
-        name:
-          type: "string"
-        checksum:
-          type: "string"
-          description: "checksum calculated with SHA1"
 
     SchemeAndID:
       type: "object"
@@ -950,6 +917,14 @@ components:
             - spatialCoverage: "Spatial coverage 1"
             - spatialCoverage: "Spatial coverage 2"
             - spatialCoverage: "Spatial coverage 3"
+
+    State:
+      type: "object"
+      properties:
+        state:
+          type: "string"
+        state_description:
+          type: "string"
 
     Metadata:
       type: "object"

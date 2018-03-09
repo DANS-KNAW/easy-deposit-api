@@ -22,10 +22,6 @@ class EasyDepositApiServlet(app: EasyDepositApiApp) extends AbstractProtectedSer
 
   get("/") {
     contentType = "text/plain"
-    Ok(s"$user : EASY Deposit Api Service running...")
-  }
-  post("/") {
-    contentType = "text/plain"
-    Ok(s"$user : EASY Deposit Api received your data")
+    Ok(s"$user EASY Deposit API Service running (${app.getVersion}")
   }
 }
