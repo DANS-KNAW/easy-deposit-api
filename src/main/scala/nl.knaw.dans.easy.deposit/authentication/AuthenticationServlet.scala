@@ -16,7 +16,6 @@
 package nl.knaw.dans.easy.deposit.authentication
 
 import nl.knaw.dans.easy.deposit.EasyDepositApiApp
-import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.scalatra._
 
 class AuthenticationServlet(app: EasyDepositApiApp) extends ScalatraServlet
@@ -24,21 +23,22 @@ class AuthenticationServlet(app: EasyDepositApiApp) extends ScalatraServlet
 
   override def getAuthenticationProvider: AuthenticationProvider = app.authentication
 
-  override def getCookieOptions: CookieOptions = app.cookieOptions
+  override def getCookieOptions: CookieOptions = app.authCookieOptions
 
   get("/signin") {
     if (isAuthenticated) redirect("/deposit")
-
-    contentType = "text/html"
-    <html>
-      <body>
-        <form action="/auth" method="post">
-          <p><label for="login">login id</label><input type="text" name="login" id="login" autofocus="true" /></p>
-          <p><label for="password">password</label><input type="password" name="password" id="password"/></p>
-          <p><input type="submit"/></p>
-        </form>
-      </body>
-    </html>
+    else {
+      contentType = "text/html"
+      <html>
+        <body>
+          <form action="/auth" method="post">
+            <p><label for="login">login id</label><input type="text" name="login" id="login" autofocus="true" /></p>
+            <p><label for="password">password</label><input type="password" name="password" id="password"/></p>
+            <p><input type="submit"/></p>
+          </form>
+        </body>
+      </html>
+    }
   }
 
   get("/signout") { signout }
@@ -46,7 +46,8 @@ class AuthenticationServlet(app: EasyDepositApiApp) extends ScalatraServlet
   post("/signout") { signout }
 
   private def signout = {
-    scentry.store.invalidate() // TODO state is changed, but get supports an easy demo...
+    // TODO state is changed, but get supports an easy demo...
+    logOut()
     redirect("/")
   }
 

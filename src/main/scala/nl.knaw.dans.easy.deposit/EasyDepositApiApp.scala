@@ -26,7 +26,16 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
   with LdapAuthentication {
   val draftRoot: File = File(configuration.properties.getString("deposits.drafts"))
 
-  val cookieOptions: CookieOptions = CookieOptions(httpOnly = true, maxAge = 6000, path = "/")
+  val authCookieOptions: CookieOptions = CookieOptions(
+    domain = "", // limit who gets the cookie, TODO configure
+    path = "/", // limit who gets the cookie, TODO configure and/or from mounts in Service class
+    maxAge = 1000 * 60 * 60, // haven't seen firefox dropping a cookie after a while, TODO configure
+    secure = false, // TODO true when service supports HTTPS to prevent browsers to send it over http
+    httpOnly = true, // JavaScript can't get the cookie
+    // version = 0 TODO obsolete? https://stackoverflow.com/questions/29124177/recommended-set-cookie-version-used-by-web-servers-0-1-or-2#29143128
+  )
+  logger.info(s"authCookieOptions: $authCookieOptions")
+
 
   override val authentication: Authentication = new Authentication {
     override val ldapUserIdAttrName: String = configuration.properties.getString("users.ldap-user-id-attr-name")

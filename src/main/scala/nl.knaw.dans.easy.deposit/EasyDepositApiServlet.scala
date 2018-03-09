@@ -24,4 +24,8 @@ class EasyDepositApiServlet(app: EasyDepositApiApp) extends AbstractProtectedSer
     contentType = "text/plain"
     Ok(s"$user : EASY Deposit Api Service running...")
   }
+  post("/") {
+    contentType = "text/plain"
+    Ok(s"$user : EASY Deposit Api received your data")
+  }
 }

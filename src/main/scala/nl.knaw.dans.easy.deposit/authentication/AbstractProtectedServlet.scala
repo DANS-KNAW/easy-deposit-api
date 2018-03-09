@@ -22,7 +22,7 @@ abstract class AbstractProtectedServlet(app: EasyDepositApiApp) extends Scalatra
   with AuthenticationSupport {
 
   override def getAuthenticationProvider: AuthenticationProvider = app.authentication
-  override def getCookieOptions: CookieOptions = app.cookieOptions
+  override def getCookieOptions: CookieOptions = app.authCookieOptions
 
   before() {
     requireLogin()

@@ -24,7 +24,7 @@ import org.scalatra.auth.strategy.BasicAuthStrategy
 object EasyBasicAuthStrategy {
   val name = "EasyBasicAuth"
 }
-class EasyBasicAuthStrategy(protected override val app: ScalatraBase,
+class EasyBasicAuthStrategy(protected override val app: ScalatraBase, // in fact: AuthenticationSupport
                             authenticationProvider: AuthenticationProvider,
                             realm: String
                            ) extends BasicAuthStrategy[User](app, realm)
@@ -48,13 +48,13 @@ class EasyBasicAuthStrategy(protected override val app: ScalatraBase,
                         (implicit request: HttpServletRequest,
                          response: HttpServletResponse
                         ): Option[User] = {
-    logger.info(s"$name.validate: $userName, $password")// TODO don't leak
+    logger.info(s"$name.validate: $userName, $password")// TODO don't leak, (doesn't get called even when isValid is true)
     authenticationProvider.getUser(userName, password)
   }
 
   protected def getUserId(user: User)
                          (implicit request: HttpServletRequest, response: HttpServletResponse): String = {
-    logger.info(s"$name.getUserId: $user should be run: ${super.isValid}")// TODO don't leak. Called if false, WHY???
+    logger.info(s"$name.getUserId: $user should be run: ${super.isValid}")
     user.id
   }
 }

@@ -25,8 +25,11 @@ import org.scalatra.auth.{ Scentry, ScentryStrategy }
 object SessionTokenStrategy {
   val name = "SessionToken"
 }
-class SessionTokenStrategy(protected val app: ScalatraBase) extends ScentryStrategy[User]
-  with DebugEnhancedLogging {
+class SessionTokenStrategy(protected override val app: ScalatraBase, // in fact: AuthenticationSupport
+                          )(implicit request: HttpServletRequest,
+                            response: HttpServletResponse)
+  extends ScentryStrategy[User]
+    with DebugEnhancedLogging {
 
   override def name: String = SessionTokenStrategy.name
 

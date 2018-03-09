@@ -24,8 +24,10 @@ import org.scalatra.auth.ScentryStrategy
 object UserPasswordStrategy {
   val name = "UserPassword"
 }
-class UserPasswordStrategy(protected val app: ScalatraBase, authenticationProvider: AuthenticationProvider)
-                          (implicit request: HttpServletRequest, response: HttpServletResponse)
+class UserPasswordStrategy(protected override val app: ScalatraBase, // in fact: AuthenticationSupport
+                           authenticationProvider: AuthenticationProvider
+                          )(implicit request: HttpServletRequest,
+                            response: HttpServletResponse)
   extends ScentryStrategy[User]
     with DebugEnhancedLogging {
 

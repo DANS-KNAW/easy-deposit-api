@@ -76,9 +76,11 @@ trait AuthenticationSupport extends ScalatraBase
    * progressively use all registered strategies to log the user in, falling back if necessary.
    */
   override protected def registerAuthStrategies: Unit = {
-    scentry.register(EasyBasicAuthStrategy.name, app => new EasyBasicAuthStrategy(app, getAuthenticationProvider, realm))
-    scentry.register(UserPasswordStrategy.name, app => new UserPasswordStrategy(app, getAuthenticationProvider))
-    scentry.register(SessionTokenStrategy.name, app => new SessionTokenStrategy(app))
+    scentry.register(UserPasswordStrategy.name, _ => new UserPasswordStrategy(self, getAuthenticationProvider))
+    scentry.register(SessionTokenStrategy.name, _ => new SessionTokenStrategy(self))
+
+    // after user/password otherwise getUserId gets called
+    scentry.register(EasyBasicAuthStrategy.name, _ => new EasyBasicAuthStrategy(self, getAuthenticationProvider, realm))
   }
 }
 object AuthenticationSupport {
