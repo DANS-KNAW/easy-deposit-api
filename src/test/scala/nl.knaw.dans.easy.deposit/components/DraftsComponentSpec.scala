@@ -34,7 +34,7 @@ class DraftsComponentSpec extends TestSupportFixture {
 
   "listDrafts" should "list all drafts of a specific user" ignore {
     drafts.listDrafts(User("user001")) shouldBe Seq(
-//      DraftInformation(...)
+      //      DraftInformation(...)
     )
   }
 

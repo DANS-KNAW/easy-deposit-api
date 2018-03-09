@@ -16,12 +16,13 @@
 package nl.knaw.dans.easy.deposit.authentication
 
 import nl.knaw.dans.easy.deposit.EasyDepositApiApp
-import org.scalatra.{CookieOptions, ScalatraServlet}
+import org.scalatra.{ CookieOptions, ScalatraServlet }
 
 abstract class AbstractProtectedServlet(app: EasyDepositApiApp) extends ScalatraServlet
   with AuthenticationSupport {
 
   override def getAuthenticationProvider: AuthenticationProvider = app.authentication
+
   override def getCookieOptions: CookieOptions = app.authCookieOptions
 
   before() {

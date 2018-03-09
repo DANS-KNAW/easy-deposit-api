@@ -18,7 +18,6 @@ package nl.knaw.dans.easy.deposit.authentication
 import nl.knaw.dans.easy.deposit._
 import org.apache.commons.configuration.PropertiesConfiguration
 import org.eclipse.jetty.http.HttpStatus._
-import org.scalamock.scalatest.MockFactory
 import org.scalatra.auth.Scentry
 import org.scalatra.test.scalatest.ScalatraSuite
 
@@ -71,7 +70,7 @@ class TypicalSessionSpec extends TestSupportFixture with ServletFixture with Sca
 
   "post /auth with proper user-name password" should "create a protected cookie" in {
     (app.authentication.getUser(_: String, _: String)) expects("foo", "bar") returning
-      Some(User("foo", isActive=true))
+      Some(User("foo", isActive = true))
     post(
       uri = "/auth",
       params = Seq(("login", "foo"), ("password", "bar"))
@@ -82,10 +81,10 @@ class TypicalSessionSpec extends TestSupportFixture with ServletFixture with Sca
       header("Content-Type") shouldBe "text/html;charset=UTF-8"
       header("Expires") shouldBe "Thu, 01 Jan 1970 00:00:00 GMT" // page cache
       val newCookie = header("Set-Cookie")
-      newCookie should startWith ("scentry.auth.default.user=foo;")
-      newCookie should include (";Path=/")
-      newCookie should include (";Expires=")
-      newCookie should include (";HttpOnly")
+      newCookie should startWith("scentry.auth.default.user=foo;")
+      newCookie should include(";Path=/")
+      newCookie should include(";Expires=")
+      newCookie should include(";HttpOnly")
     }
   }
 
@@ -105,17 +104,17 @@ class TypicalSessionSpec extends TestSupportFixture with ServletFixture with Sca
     (app.authentication.getUser(_: String, _: String)) expects(*, *) never()
     get(
       uri = "/auth/signout",
-        headers = Seq(("Cookie", s"${ Scentry.scentryAuthKey }=foo"))
+      headers = Seq(("Cookie", s"${ Scentry.scentryAuthKey }=foo"))
     ) {
       status shouldBe MOVED_TEMPORARILY_302
       header("Location") shouldBe s"$baseUrl"
       header("Content-Type") shouldBe "text/html;charset=UTF-8"
       header("Expires") shouldBe "Thu, 01 Jan 1970 00:00:00 GMT" // page cache
       val newCookie = header("Set-Cookie")
-      newCookie should startWith ("scentry.auth.default.user=;") // note the empty value
-      newCookie should include (";Path=/")
-      newCookie should include (";Expires=")
-      newCookie should include (";HttpOnly")
+      newCookie should startWith("scentry.auth.default.user=;") // note the empty value
+      newCookie should include(";Path=/")
+      newCookie should include(";Expires=")
+      newCookie should include(";HttpOnly")
     }
   }
 }

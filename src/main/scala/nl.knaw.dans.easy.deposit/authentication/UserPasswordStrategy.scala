@@ -43,9 +43,9 @@ class UserPasswordStrategy(protected override val app: ScalatraBase, // in fact:
   }
 
   override def authenticate()
-                  (implicit request: HttpServletRequest,
-                   response: HttpServletResponse
-                  ): Option[User] = {
+                           (implicit request: HttpServletRequest,
+                            response: HttpServletResponse
+                           ): Option[User] = {
     authenticationProvider.getUser(login, password)
   }
 }

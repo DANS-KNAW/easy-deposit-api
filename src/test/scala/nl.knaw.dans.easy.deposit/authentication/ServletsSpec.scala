@@ -18,7 +18,6 @@ package nl.knaw.dans.easy.deposit.authentication
 import nl.knaw.dans.easy.deposit._
 import org.apache.commons.configuration.PropertiesConfiguration
 import org.eclipse.jetty.http.HttpStatus._
-import org.scalamock.scalatest.MockFactory
 import org.scalatra.test.scalatest.ScalatraSuite
 
 class ServletsSpec extends TestSupportFixture with ServletFixture with ScalatraSuite {
