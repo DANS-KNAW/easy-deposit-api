@@ -97,7 +97,7 @@ class TypicalSessionSpec extends TestSupportFixture with ServletFixture with Sca
       headers = Seq(("Cookie", s"${ Scentry.scentryAuthKey }=foo"))
     ) {
       status shouldBe OK_200
-      body shouldBe "User(foo,List(),true) : EASY Deposit Api Service running..."
+      body shouldBe "User(foo,List(),true) : EASY Deposit API Service running (test)"
     }
   }
 
