@@ -27,7 +27,7 @@ object EasyBasicAuthStrategy {
 class EasyBasicAuthStrategy(protected override val app: ScalatraBase, // in fact: AuthenticationSupport
                             authenticationProvider: AuthenticationProvider,
                             realm: String
-                           ) extends BasicAuthStrategy[User](app, realm)
+                           ) extends BasicAuthStrategy[AuthUser](app, realm)
   with DebugEnhancedLogging {
 
   override def name: String = EasyBasicAuthStrategy.name
@@ -39,7 +39,7 @@ class EasyBasicAuthStrategy(protected override val app: ScalatraBase, // in fact
     valid
   }
 
-  override def authenticate()(implicit request: HttpServletRequest, response: HttpServletResponse): Option[User] = {
+  override def authenticate()(implicit request: HttpServletRequest, response: HttpServletResponse): Option[AuthUser] = {
     logger.info(s"$name.authenticate")
     super.authenticate()
   }
@@ -48,12 +48,12 @@ class EasyBasicAuthStrategy(protected override val app: ScalatraBase, // in fact
                          password: String)
                         (implicit request: HttpServletRequest,
                          response: HttpServletResponse
-                        ): Option[User] = {
+                        ): Option[AuthUser] = {
     logger.info(s"$name.validate: $userName, $password") // TODO don't leak, (doesn't get called even when isValid is true)
     authenticationProvider.getUser(userName, password)
   }
 
-  protected def getUserId(user: User)
+  protected def getUserId(user: AuthUser)
                          (implicit request: HttpServletRequest, response: HttpServletResponse): String = {
     logger.info(s"$name.getUserId: $user should be run: ${ super.isValid }")
     user.id

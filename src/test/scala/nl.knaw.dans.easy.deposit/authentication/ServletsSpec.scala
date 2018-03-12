@@ -37,7 +37,7 @@ class ServletsSpec extends TestSupportFixture with ServletFixture with ScalatraS
     // alternative: configure to accept some test-cookie or not
 
     (app.authentication.getUser(_: String, _: String)) expects("foo", "bar") returning
-      Some(User("foo", isActive = true))
+      Some(AuthUser("foo", isActive = true))
     get(
       uri = "/deposit",
       headers = Seq(("Authorization", "Basic foo:bar"))

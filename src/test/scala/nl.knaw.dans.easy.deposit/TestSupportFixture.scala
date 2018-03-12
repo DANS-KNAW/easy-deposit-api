@@ -17,6 +17,7 @@ package nl.knaw.dans.easy.deposit
 
 import better.files.File
 import better.files.File._
+import org.joda.time.{ DateTime, DateTimeUtils }
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{ BeforeAndAfterEach, FlatSpec, Inside, Matchers }
 
@@ -26,5 +27,10 @@ trait TestSupportFixture extends FlatSpec with Matchers with Inside with BeforeA
     (currentWorkingDirectory / "target" / "test" / getClass.getSimpleName)
       .delete(true)
       .createDirectories()
+  }
+
+  /** Causes DateTime.now() to return a predefined value. */
+  def mockDateTimeNow(value: String): Unit = {
+    DateTimeUtils.setCurrentMillisFixed(new DateTime(value).getMillis)
   }
 }

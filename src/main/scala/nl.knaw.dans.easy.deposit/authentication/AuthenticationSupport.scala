@@ -24,14 +24,14 @@ import org.scalatra.{ CookieOptions, ScalatraBase }
 import scala.collection.JavaConverters._
 
 trait AuthenticationSupport extends ScalatraBase
-  with ScentrySupport[User]
+  with ScentrySupport[AuthUser]
   with ServletEnhancedLogging {
   self: ScalatraBase =>
 
   // TODO see also https://gist.github.com/casualjim/4400115#file-session_token_strategy-scala-L49-L50
-  override protected def fromSession: PartialFunction[String, User] = { case id: String => User.fromToken(id) }
+  override protected def fromSession: PartialFunction[String, AuthUser] = { case id: String => AuthUser.fromToken(id) }
 
-  override protected def toSession: PartialFunction[User, String] = { case usr: User => usr.id }
+  override protected def toSession: PartialFunction[AuthUser, String] = { case usr: AuthUser => usr.id }
 
   def getAuthenticationProvider: AuthenticationProvider
 

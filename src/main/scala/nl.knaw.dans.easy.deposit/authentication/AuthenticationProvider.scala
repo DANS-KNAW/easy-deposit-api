@@ -16,5 +16,5 @@
 package nl.knaw.dans.easy.deposit.authentication
 
 trait AuthenticationProvider {
-  def getUser(userName: String, password: String): Option[User]
+  def getUser(userName: String, password: String): Option[AuthUser]
 }

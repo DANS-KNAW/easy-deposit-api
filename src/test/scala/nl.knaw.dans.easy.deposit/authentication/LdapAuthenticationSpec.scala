@@ -48,7 +48,7 @@ class LdapAuthenticationSpec extends TestSupportFixture with MockFactory {
     })
 
     inside(wiring.authentication.findUser("someone", "somepassword")) {
-      case Success(Some(user)) => user.toString shouldBe "User(someone,Stream(abc, ?),true)"
+      case Success(Some(user)) => user.toString shouldBe "AuthUser(someone,Stream(abc, ?),List(),true)"
     }
   }
 

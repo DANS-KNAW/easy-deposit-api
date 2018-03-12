@@ -36,7 +36,6 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
   )
   logger.info(s"authCookieOptions: $authCookieOptions")
 
-
   override val authentication: Authentication = new Authentication {
     override val ldapUserIdAttrName: String = configuration.properties.getString("users.ldap-user-id-attr-name")
     override val ldapParentEntry: String = configuration.properties.getString("users.ldap-parent-entry")
@@ -45,7 +44,6 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
     logger.info(s"Authentication: ldapParentEntry = $ldapParentEntry")
     logger.info(s"Authentication: ldapUserIdAttrName = $ldapUserIdAttrName")
   }
-
 
   def getVersion: String = {
     configuration.version

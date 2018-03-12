@@ -70,7 +70,7 @@ class TypicalSessionSpec extends TestSupportFixture with ServletFixture with Sca
 
   "post /auth with proper user-name password" should "create a protected cookie" in {
     (app.authentication.getUser(_: String, _: String)) expects("foo", "bar") returning
-      Some(User("foo", isActive = true))
+      Some(AuthUser("foo", isActive = true))
     post(
       uri = "/auth",
       params = Seq(("login", "foo"), ("password", "bar"))
@@ -96,7 +96,7 @@ class TypicalSessionSpec extends TestSupportFixture with ServletFixture with Sca
       headers = Seq(("Cookie", s"${ Scentry.scentryAuthKey }=foo"))
     ) {
       status shouldBe OK_200
-      body shouldBe "User(foo,List(),true) : EASY Deposit API Service running (test)"
+      body shouldBe "AuthUser(foo,List(),List(),true) : EASY Deposit API Service running (test)"
     }
   }
 

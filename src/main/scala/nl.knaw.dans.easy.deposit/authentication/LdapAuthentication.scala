@@ -38,13 +38,13 @@ trait LdapAuthentication extends DebugEnhancedLogging {
     val ldapProviderUrl: String
     val ldapUserClass = "easyUser"
 
-    def getUser(userName: String, password: String): Option[User] = {
+    def getUser(userName: String, password: String): Option[AuthUser] = {
       findUser(userName, password)
         .doIfFailure { case t => logger.error(s"authentication of $userName failed with $t", t) }
         .getOrElse(None)
     }
 
-    def findUser(userName: String, password: String): Try[Option[User]] = {
+    def findUser(userName: String, password: String): Try[Option[AuthUser]] = {
       logger.info(s"looking for user [$userName]")
 
       val query = s"(&(objectClass=$ldapUserClass)($ldapUserIdAttrName=$userName))"
@@ -65,7 +65,7 @@ trait LdapAuthentication extends DebugEnhancedLogging {
         .map(_
           .search(ldapParentEntry, query, searchControls)
           .asScala.toList.headOption
-          .map(searchResult => User(toMap(searchResult)))
+          .map(searchResult => AuthUser(toMap(searchResult)))
           .find(_.isActive)
         ).tried.recoverWith {
         case _: AuthenticationException => Success(None)

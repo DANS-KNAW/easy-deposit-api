@@ -28,7 +28,7 @@ class UserPasswordStrategy(protected override val app: ScalatraBase, // in fact:
                            authenticationProvider: AuthenticationProvider
                           )(implicit request: HttpServletRequest,
                             response: HttpServletResponse)
-  extends ScentryStrategy[User]
+  extends ScentryStrategy[AuthUser]
     with DebugEnhancedLogging {
 
   override def name: String = UserPasswordStrategy.name
@@ -45,7 +45,7 @@ class UserPasswordStrategy(protected override val app: ScalatraBase, // in fact:
   override def authenticate()
                            (implicit request: HttpServletRequest,
                             response: HttpServletResponse
-                           ): Option[User] = {
+                           ): Option[AuthUser] = {
     authenticationProvider.getUser(login, password)
   }
 }

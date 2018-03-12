@@ -28,7 +28,7 @@ object SessionTokenStrategy {
 class SessionTokenStrategy(protected override val app: ScalatraBase, // in fact: AuthenticationSupport
                           )(implicit request: HttpServletRequest,
                             response: HttpServletResponse)
-  extends ScentryStrategy[User]
+  extends ScentryStrategy[AuthUser]
     with DebugEnhancedLogging {
 
   override def name: String = SessionTokenStrategy.name
@@ -48,8 +48,8 @@ class SessionTokenStrategy(protected override val app: ScalatraBase, // in fact:
   override def authenticate()
                            (implicit request: HttpServletRequest,
                             response: HttpServletResponse
-                           ): Option[User] = {
-    getToken.flatMap(token => Some(User.fromToken(token)))
+                           ): Option[AuthUser] = {
+    getToken.flatMap(token => Some(AuthUser.fromToken(token)))
   }
 }
 
