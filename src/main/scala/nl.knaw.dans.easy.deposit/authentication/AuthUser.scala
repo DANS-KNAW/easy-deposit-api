@@ -43,12 +43,6 @@ object AuthUser {
     )
   }
 
-  @deprecated
-  def fromToken(uid: String): AuthUser = {
-    // assuming the user is not deactivated since sign-in
-    AuthUser(uid, isActive = true)
-  }
-
   private class ActiveAuthUser(id: String,
                                groups: Seq[String] = Seq.empty,
                                roles: Seq[String] = Seq.empty

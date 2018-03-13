@@ -15,18 +15,18 @@
  */
 package nl.knaw.dans.easy.deposit
 
-import nl.knaw.dans.easy.deposit.authentication.{ AuthenticationProvider, AuthenticationSupport, TokenSupport }
+import nl.knaw.dans.easy.deposit.authentication.TokenSupport.TokenConfig
+import nl.knaw.dans.easy.deposit.authentication.{ AuthenticationProvider, AuthenticationSupport }
 import org.joda.time.DateTime
 import org.scalatra._
 
-class AuthenticationServlet(app: EasyDepositApiApp) extends ScalatraServlet
-  with AuthenticationSupport {
+class AuthenticationServlet(app: EasyDepositApiApp) extends AuthenticationSupport {
 
   override def getAuthenticationProvider: AuthenticationProvider = app.authentication
 
   override def getCookieOptions: CookieOptions = app.authCookieOptions
 
-  override def getTokenConfig: TokenSupport.TokenConfig = app.tokenConfig
+  override def getTokenConfig: TokenConfig = app.tokenConfig
 
   get("/signin") {
     if (isAuthenticated)

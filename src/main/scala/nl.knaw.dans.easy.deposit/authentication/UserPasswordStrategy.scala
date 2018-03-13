@@ -45,6 +45,7 @@ class UserPasswordStrategy(protected override val app: AuthenticationSupport,
                            (implicit request: HttpServletRequest,
                             response: HttpServletResponse
                            ): Option[AuthUser] = {
+    trace("")
     authenticationProvider.getUser(login, password)
   }
 }

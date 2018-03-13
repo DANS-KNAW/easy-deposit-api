@@ -16,6 +16,7 @@
 package nl.knaw.dans.easy.deposit.authentication
 
 import nl.knaw.dans.easy.deposit.authentication.TokenSupport._
+import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.json4s.native.JsonMethods.parse
 import org.json4s.{ DefaultFormats, Formats }
 import pdi.jwt.JwtAlgorithm.HS256
@@ -24,7 +25,7 @@ import pdi.jwt.{ Jwt, JwtClaim, JwtOptions }
 
 import scala.util.{ Failure, Try }
 
-trait TokenSupport {
+trait TokenSupport extends DebugEnhancedLogging {
   def getTokenConfig: TokenConfig
 
   def encode(user: AuthUser): String = {
@@ -36,6 +37,7 @@ trait TokenSupport {
   }
 
   def toUser(token: String): Try[AuthUser] = {
+    trace("")
     for {
       decoded <- Jwt.decode(token, getTokenConfig.secretKey, Seq(getTokenConfig.algorithm))
       parsed <- fromJson(decoded)
@@ -44,11 +46,13 @@ trait TokenSupport {
   }
 
   def isValid(token: String): Boolean = {
+    trace("")
     Jwt.isValid(token, getTokenConfig.secretKey, Seq(getTokenConfig.algorithm))
     // TODO check expiration / refresh ?
   }
 
   def validate(token: String): Try[Unit] = Try {
+    trace("")
     Jwt.validate(token, getTokenConfig.secretKey, Seq(getTokenConfig.algorithm))
     // TODO check expiration / refresh ?
   }

@@ -77,8 +77,8 @@ trait AuthenticationSupport extends ScalatraServlet
    * progressively use all registered strategies to log the user in, falling back if necessary.
    */
   override protected def registerAuthStrategies: Unit = {
-    scentry.register(UserPasswordStrategy.name, _ => new UserPasswordStrategy(self, getAuthenticationProvider))
     scentry.register(SessionTokenStrategy.name, _ => new SessionTokenStrategy(self))
+    scentry.register(UserPasswordStrategy.name, _ => new UserPasswordStrategy(self, getAuthenticationProvider))
 
     // after user/password otherwise getUserId gets called
     scentry.register(EasyBasicAuthStrategy.name, _ => new EasyBasicAuthStrategy(self, getAuthenticationProvider, realm))

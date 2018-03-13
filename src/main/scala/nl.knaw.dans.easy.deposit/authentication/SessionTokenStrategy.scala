@@ -18,8 +18,11 @@ package nl.knaw.dans.easy.deposit.authentication
 import javax.servlet.http.{ HttpServletRequest, HttpServletResponse }
 
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
+import nl.knaw.dans.lib.error._
 import org.apache.commons.lang.StringUtils.isNotBlank
 import org.scalatra.auth.{ Scentry, ScentryStrategy }
+
+import scala.util.{ Failure, Success }
 
 object SessionTokenStrategy {
   val name = "SessionToken"
@@ -48,7 +51,15 @@ class SessionTokenStrategy(protected override val app: AuthenticationSupport,
                            (implicit request: HttpServletRequest,
                             response: HttpServletResponse
                            ): Option[AuthUser] = {
-    getToken.flatMap(token => Some(app.toUser(token).get)) // TODO unsafe, is valid/expired
+    // TODO doesn't get called, causing stacktrace at AuthenticationSupport$$anonfun$fromSession
+    getToken.flatMap(toMaybeAuthUser)
+  }
+
+  private def toMaybeAuthUser(token: String) = {
+    app.toUser(token)
+      .doIfFailure{case e => logger.info(s"invalid token [$token]: $e")}
+      .map(Option(_))
+      .getOrElse(None)
   }
 }
 

@@ -41,11 +41,11 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
 
   val draftRoot: File = File(properties.getString("deposits.drafts"))
 
-  private val expiresIn: Int = properties.getInt("auth.jwt.expiresIn", 60 * 60) // default one hour
+  //60 * 60) // default one hour
 
   val tokenConfig = TokenConfig(
     secretKey = properties.getString("auth.jwt.seceret.key", "test"), // TODO Change type to SecretKey? Really in application.properties?
-    expiresIn = expiresIn,
+    expiresIn = properties.getInt("auth.jwt.expiresIn", 10), // seconds
     algorithm = toHmacAlgorithm(properties.getString("auth.jwt.hmac.algorithm", "HS256")),
     options = JwtOptions.DEFAULT // among others: leeway (client and server clock might be ot of sync)
   )
@@ -54,7 +54,7 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
   val authCookieOptions: CookieOptions = CookieOptions(
     domain = "", // limit who gets the cookie, TODO configure
     path = "/", // limit who gets the cookie, TODO configure and/or from mounts in Service class
-    maxAge = expiresIn,
+    maxAge = properties.getInt("auth.cookie.expiresIn", 20), // seconds; a cookie living longer than the jwt token currently might cause a stack trace
     secure = false, // TODO true when service supports HTTPS to prevent browsers to send it over http
     httpOnly = true, // JavaScript can't get the cookie
     // version = 0 TODO obsolete? https://stackoverflow.com/questions/29124177/recommended-set-cookie-version-used-by-web-servers-0-1-or-2#29143128
