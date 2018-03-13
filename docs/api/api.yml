@@ -27,8 +27,13 @@ tags:
     for directories, but the allowed methods are **not** the same.
 - name: "directory"
   description: |
-    Operations on a directory. Note that the form of the routes is the same as
-    for regular files, but the allowed methods are **not** the same.
+    Operations on a directory.
+
+    * **Note 1:** the form of the routes is the same as for regular files, but the allowed methods are
+    **not** the same.
+
+    * **Note 2:** Swagger insists that `dir_path` cannot be optional. However, the directory operations
+    are also valid for the root directory of the deposit, i.e. with `dir_path` empty.
 
 paths:
 
@@ -290,37 +295,6 @@ paths:
       security:
         - BasicAuth: []
 
-  /deposit/{id}/file:
-    get:
-      tags:
-      - "file"
-      summary: "Lists all files of the deposit."
-      operationId: "getFilesOfDeposit"
-      parameters:
-        - name: "id"
-          in: "path"
-          description: "id of deposit"
-          required: true
-          schema:
-            type: "string"
-            format: "uuid"
-      responses:
-        200:
-          description: "List of all files of deposit retrieved successfully"
-          content:
-            application/json:
-              schema:
-                type: "array"
-                items:
-                  type: string
-                example:
-                - "/animals/fotos/cat.png"
-                - "/animals/fotos/dog.png"
-        404:
-          description: "Not found. The client may derive from this response that the containing deposit does not exist."
-      security:
-        - BasicAuth: []
-
     post:
       tags:
       - "file"
@@ -384,6 +358,7 @@ paths:
       responses:
         200:
           description: "list of file infos for the directory"
+          # TODO: Add examples
         404:
           description: "dir_path does not exist in this deposit"
     post:
