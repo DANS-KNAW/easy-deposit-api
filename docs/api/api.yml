@@ -356,6 +356,25 @@ paths:
         - BasicAuth: []
 
   /deposit/{id}/file/{file_path}:
+    parameters:
+    - name: "id"
+      in: "path"
+      description: "id of deposit"
+      required: true
+      schema:
+        type: "string"
+        format: "uuid"
+    - name: "file_path"
+      in: "path"
+      description: "full path of file to be uploaded to deposit"
+      required: true
+      schema:
+        type: "string"
+        format: "uuid"
+    # get:
+    #   tags:
+    #   - "file"
+    #   summary: "Retrieves file info about one file"
     put:
       tags:
       - "file"
@@ -364,21 +383,6 @@ paths:
 
         \nThe file is specified by its full path, not by its id."
       operationId: "uploadFileToDeposit"
-      parameters:
-        - name: "id"
-          in: "path"
-          description: "id of deposit"
-          required: true
-          schema:
-            type: "string"
-            format: "uuid"
-        - name: "file_path"
-          in: "path"
-          description: "full path of file to be uploaded to deposit"
-          required: true
-          schema:
-            type: "string"
-            format: "uuid"
       requestBody:
         description: "File upload"
         required: true
