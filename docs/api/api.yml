@@ -284,14 +284,11 @@ paths:
       security:
         - BasicAuth: []
 
-  /deposit/{id}/file/{dir_path}:
+  /deposit/{id}/file:
     get:
       tags:
       - "file"
-      summary: "Lists all files in this directory, recursively."
-      description: This operation lists the files in all subdirectories of dir_path. Note that the URL
-        has the same form as a regular file URL. The supported operations are, however, different. For
-        the supported operations on a regular file, see `/deposit/{id}/file/{file_path}`.
+      summary: "Lists all files of the deposit."
       operationId: "getFilesOfDeposit"
       parameters:
         - name: "id"
@@ -301,12 +298,6 @@ paths:
           schema:
             type: "string"
             format: "uuid"
-        - name: "dir_path"
-          in: path
-          description: "the path of the directory"
-          required: true
-          schema:
-            type: string
       responses:
         200:
           description: "List of all files of deposit retrieved successfully"
@@ -315,21 +306,10 @@ paths:
               schema:
                 type: "array"
                 items:
-                  schema: object
-                  properties:
-                    url:
-                      type: string
-                    filename:
-                      type: string
-                    path:
-                      type: string
+                  type: string
                 example:
-                  - url: "http://deposit.easy.dans.knaw.nl/deposit/file/path/to/file1.txt"
-                    filename: "file1.txt"
-                    path: "/path/to"
-                  - url: "http://deposit.easy.dans.knaw.nl/deposit/file/path/to/file2.txt"
-                    filename: "file2.txt"
-                    path: "/path/to"
+                - "/animals/fotos/cat.png"
+                - "/animals/fotos/dog.png"
         404:
           description: "Not found. The client may derive from this response that the containing deposit does not exist."
       security:
@@ -338,21 +318,16 @@ paths:
     post:
       tags:
       - "file"
-      summary: "Adds a file to the directory."
+      summary: "Adds a file to the deposit."
       operationId: "depositFile"
       parameters:
         - name: "id"
           in: "path"
-          description: "id of the deposit"
+          description: "id of deposit where file is uploaded"
           required: true
           schema:
             type: "string"
             format: "uuid"
-        - name: "content-disposition; filename"
-          in: "header"
-          required: true
-          schema:
-            type: "string"
       requestBody:
         description: "File upload"
         required: true
@@ -372,7 +347,7 @@ paths:
               schema:
                 type: "string"
                 example:
-                  "http://deposit.dans.knaw.nl/deposit/file/path/to/new/file.txt"
+                  "/file/{file_path}"
         401:
           description: "You are not authorized to use this API. Please provide a valid user name and password before trying to use an API."
         500:
@@ -384,9 +359,10 @@ paths:
     put:
       tags:
       - "file"
-      summary: "Upload a file to a specific location within the deposit"
-      description:
+      summary: "Upload individual file to deposit"
+      description: "Upload file specified by {file_path} to deposit given by id.
 
+        \nThe file is specified by its full path, not by its id."
       operationId: "uploadFileToDeposit"
       parameters:
         - name: "id"
