@@ -295,46 +295,6 @@ paths:
       security:
         - BasicAuth: []
 
-    post:
-      tags:
-      - "file"
-      summary: "Adds a file to the deposit."
-      operationId: "depositFile"
-      parameters:
-        - name: "id"
-          in: "path"
-          description: "id of deposit where file is uploaded"
-          required: true
-          schema:
-            type: "string"
-            format: "uuid"
-      requestBody:
-        description: "File upload"
-        required: true
-        content:
-          application/octet-stream:
-          # any media type is accepted, functionally equivalent to `*/*`
-            schema:
-              # a binary file of any type
-              type: string
-              format: binary
-      responses:
-        201:
-          description: "File is uploaded successfully."
-          headers:
-            Location:
-              description: "URL of uploaded file"
-              schema:
-                type: "string"
-                example:
-                  "/file/{file_path}"
-        401:
-          description: "You are not authorized to use this API. Please provide a valid user name and password before trying to use an API."
-        500:
-          description: "Internal Server Error"
-      security:
-        - BasicAuth: []
-
   /deposit/{id}/file/{dir_path}:
     parameters:
     - name: "id"
@@ -421,23 +381,20 @@ paths:
     get:
       tags:
       - "file"
-      summary: "Retrieves file info about one file"
+      summary: "Retrieves information about one file in the deposit."
       responses:
         200:
           description: "file info"
     put:
       tags:
       - "file"
-      summary: "Upload individual file to deposit"
-      description: "Upload file specified by {file_path} to deposit given by id.
-
-        \nThe file is specified by its full path, not by its id."
+      summary: "Adds or overwrites the specified file in the deposit."
       operationId: "uploadFileToDeposit"
       requestBody:
         description: "File upload"
         required: true
         content:
-          application/octet-stream:
+          '*/*':
           # any media type is accepted, functionally equivalent to `*/*`
             schema:
               # a binary file of any type
