@@ -19,13 +19,12 @@ import javax.servlet.http.{ HttpServletRequest, HttpServletResponse }
 
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.apache.commons.lang.StringUtils.isNotBlank
-import org.scalatra.ScalatraBase
 import org.scalatra.auth.{ Scentry, ScentryStrategy }
 
 object SessionTokenStrategy {
   val name = "SessionToken"
 }
-class SessionTokenStrategy(protected override val app: ScalatraBase, // in fact: AuthenticationSupport
+class SessionTokenStrategy(protected override val app: AuthenticationSupport,
                           )(implicit request: HttpServletRequest,
                             response: HttpServletResponse)
   extends ScentryStrategy[AuthUser]
@@ -33,7 +32,7 @@ class SessionTokenStrategy(protected override val app: ScalatraBase, // in fact:
 
   override def name: String = SessionTokenStrategy.name
 
-  private def getToken(implicit request: HttpServletRequest) = {
+  private def getToken(implicit request: HttpServletRequest): Option[String] = {
     request.getCookies
       .find(_.getName == Scentry.scentryAuthKey) // TODO add issued to token and filter on maxAge?
       .map(_.getValue)
@@ -49,7 +48,7 @@ class SessionTokenStrategy(protected override val app: ScalatraBase, // in fact:
                            (implicit request: HttpServletRequest,
                             response: HttpServletResponse
                            ): Option[AuthUser] = {
-    getToken.flatMap(token => Some(AuthUser.fromToken(token)))
+    getToken.flatMap(token => Some(app.toUser(token).get)) // TODO unsafe, is valid/expired
   }
 }
 

@@ -18,13 +18,12 @@ package nl.knaw.dans.easy.deposit.authentication
 import javax.servlet.http.{ HttpServletRequest, HttpServletResponse }
 
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
-import org.scalatra.ScalatraBase
 import org.scalatra.auth.strategy.BasicAuthStrategy
 
 object EasyBasicAuthStrategy {
   val name = "EasyBasicAuth"
 }
-class EasyBasicAuthStrategy(protected override val app: ScalatraBase, // in fact: AuthenticationSupport
+class EasyBasicAuthStrategy(protected override val app: AuthenticationSupport,
                             authenticationProvider: AuthenticationProvider,
                             realm: String
                            ) extends BasicAuthStrategy[AuthUser](app, realm)
@@ -35,12 +34,12 @@ class EasyBasicAuthStrategy(protected override val app: ScalatraBase, // in fact
   /** @return true if this strategy should be run. */
   override def isValid(implicit request: HttpServletRequest): Boolean = {
     val valid = super.isValid
-    logger.info(s"$name.isValid $valid")
+    //logger.info(s"$name.isValid $valid")
     valid
   }
 
   override def authenticate()(implicit request: HttpServletRequest, response: HttpServletResponse): Option[AuthUser] = {
-    logger.info(s"$name.authenticate")
+    //logger.info(s"$name.authenticate")
     super.authenticate()
   }
 
@@ -49,13 +48,13 @@ class EasyBasicAuthStrategy(protected override val app: ScalatraBase, // in fact
                         (implicit request: HttpServletRequest,
                          response: HttpServletResponse
                         ): Option[AuthUser] = {
-    logger.info(s"$name.validate: $userName, $password") // TODO don't leak, (doesn't get called even when isValid is true)
+    //logger.info(s"$name.validate: $userName, $password") // TODO don't leak, (doesn't get called even when isValid is true)
     authenticationProvider.getUser(userName, password)
   }
 
   protected def getUserId(user: AuthUser)
                          (implicit request: HttpServletRequest, response: HttpServletResponse): String = {
-    logger.info(s"$name.getUserId: $user should be run: ${ super.isValid }")
+    //logger.info(s"$name.getUserId: $user should be run: ${ super.isValid }")
     user.id
   }
 }

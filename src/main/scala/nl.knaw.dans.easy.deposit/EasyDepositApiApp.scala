@@ -17,19 +17,44 @@ package nl.knaw.dans.easy.deposit
 
 import better.files.File
 import nl.knaw.dans.easy.deposit.authentication.LdapAuthentication
+import nl.knaw.dans.easy.deposit.authentication.TokenSupport.TokenConfig
 import nl.knaw.dans.easy.deposit.components.DraftsComponent
+import nl.knaw.dans.lib.error._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
+import org.apache.commons.configuration.PropertiesConfiguration
 import org.scalatra.CookieOptions
+import pdi.jwt.algorithms.JwtHmacAlgorithm
+import pdi.jwt.{ JwtAlgorithm, JwtOptions }
+
+import scala.util.Try
 
 class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLogging
   with DraftsComponent
   with LdapAuthentication {
-  val draftRoot: File = File(configuration.properties.getString("deposits.drafts"))
+  private val properties: PropertiesConfiguration = configuration.properties
+
+  private def toHmacAlgorithm(value: String): JwtHmacAlgorithm = {
+    Try {
+      JwtAlgorithm.fromString(value).asInstanceOf[JwtHmacAlgorithm]
+    }.getOrRecover { t => throw new Exception(s"asymmetrical or unknown JwtHmacAlgorithm configured [$value]: $t") }
+  }
+
+  val draftRoot: File = File(properties.getString("deposits.drafts"))
+
+  private val expiresIn: Int = properties.getInt("auth.jwt.expiresIn", 60 * 60) // default one hour
+
+  val tokenConfig = TokenConfig(
+    secretKey = properties.getString("auth.jwt.seceret.key", "test"), // TODO Change type to SecretKey? Really in application.properties?
+    expiresIn = expiresIn,
+    algorithm = toHmacAlgorithm(properties.getString("auth.jwt.hmac.algorithm", "HS256")),
+    options = JwtOptions.DEFAULT // among others: leeway (client and server clock might be ot of sync)
+  )
+  logger.info(s"tokenConfig: $tokenConfig")
 
   val authCookieOptions: CookieOptions = CookieOptions(
     domain = "", // limit who gets the cookie, TODO configure
     path = "/", // limit who gets the cookie, TODO configure and/or from mounts in Service class
-    maxAge = 1000 * 60 * 60, // haven't seen firefox dropping a cookie after a while, TODO configure
+    maxAge = expiresIn,
     secure = false, // TODO true when service supports HTTPS to prevent browsers to send it over http
     httpOnly = true, // JavaScript can't get the cookie
     // version = 0 TODO obsolete? https://stackoverflow.com/questions/29124177/recommended-set-cookie-version-used-by-web-servers-0-1-or-2#29143128
@@ -37,9 +62,9 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
   logger.info(s"authCookieOptions: $authCookieOptions")
 
   override val authentication: Authentication = new Authentication {
-    override val ldapUserIdAttrName: String = configuration.properties.getString("users.ldap-user-id-attr-name")
-    override val ldapParentEntry: String = configuration.properties.getString("users.ldap-parent-entry")
-    override val ldapProviderUrl: String = configuration.properties.getString("users.ldap-url")
+    override val ldapUserIdAttrName: String = properties.getString("users.ldap-user-id-attr-name")
+    override val ldapParentEntry: String = properties.getString("users.ldap-parent-entry")
+    override val ldapProviderUrl: String = properties.getString("users.ldap-url")
     logger.info(s"Authentication: ldapProviderUrl = $ldapProviderUrl")
     logger.info(s"Authentication: ldapParentEntry = $ldapParentEntry")
     logger.info(s"Authentication: ldapUserIdAttrName = $ldapUserIdAttrName")

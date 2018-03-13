@@ -16,25 +16,31 @@
 package nl.knaw.dans.easy.deposit.authentication
 
 import nl.knaw.dans.easy.deposit._
+import nl.knaw.dans.easy.deposit.authentication.TokenSupport.TokenConfig
 import org.apache.commons.configuration.PropertiesConfiguration
 import org.eclipse.jetty.http.HttpStatus._
+import org.joda.time.format.DateTimeFormat
 import org.scalatra.auth.Scentry
 import org.scalatra.test.scalatest.ScalatraSuite
 
 class TypicalSessionSpec extends TestSupportFixture with ServletFixture with ScalatraSuite {
 
-  val app: EasyDepositApiApp = new EasyDepositApiApp(new Configuration("test", new PropertiesConfiguration() {
+  val depositApp: EasyDepositApiApp = new EasyDepositApiApp(new Configuration("test", new PropertiesConfiguration() {
     addProperty("users.ldap-url", "ldap://hostDoesNotExist")
     addProperty("deposits.drafts", s"$testDir/drafts")
   })) {
     override val authentication: Authentication = mock[Authentication]
   }
 
-  addServlet(new EasyDepositApiServlet(app), "/deposit/*")
-  addServlet(new AuthenticationServlet(app), "/auth/*")
+  private val receivedToken = new TokenSupport() {
+    override def getTokenConfig: TokenConfig = TokenConfig()
+  }.encode(AuthUser("foo", isActive = true))
+
+  addServlet(new EasyDepositApiServlet(depositApp), "/deposit/*")
+  addServlet(new AuthenticationServlet(depositApp), "/auth/*")
 
   "get /deposit without credentials" should "redirect to /auth/signin" in {
-    (app.authentication.getUser(_: String, _: String)) expects(*, *) never()
+    (depositApp.authentication.getUser(_: String, _: String)) expects(*, *) never()
     get("/deposit") {
       status shouldBe MOVED_TEMPORARILY_302
       body shouldBe ""
@@ -45,7 +51,7 @@ class TypicalSessionSpec extends TestSupportFixture with ServletFixture with Sca
   }
 
   "get /auth/signin" should "present a login form" in {
-    (app.authentication.getUser(_: String, _: String)) expects(*, *) never()
+    (depositApp.authentication.getUser(_: String, _: String)) expects(*, *) never()
     get("/auth/signin") {
       status shouldBe OK_200
       body should include("""<label for="login">""")
@@ -55,7 +61,7 @@ class TypicalSessionSpec extends TestSupportFixture with ServletFixture with Sca
   }
 
   "post /auth with invalid credentials" should "redirect to /auth/signin (again)" in {
-    (app.authentication.getUser(_: String, _: String)) expects("foo", "bar") returning None
+    (depositApp.authentication.getUser(_: String, _: String)) expects("foo", "bar") returning None
     post(
       uri = "/auth",
       params = Seq(("login", "foo"), ("password", "bar"))
@@ -69,7 +75,7 @@ class TypicalSessionSpec extends TestSupportFixture with ServletFixture with Sca
   }
 
   "post /auth with proper user-name password" should "create a protected cookie" in {
-    (app.authentication.getUser(_: String, _: String)) expects("foo", "bar") returning
+    (depositApp.authentication.getUser(_: String, _: String)) expects("foo", "bar") returning
       Some(AuthUser("foo", isActive = true))
     post(
       uri = "/auth",
@@ -81,19 +87,32 @@ class TypicalSessionSpec extends TestSupportFixture with ServletFixture with Sca
       header("Content-Type") shouldBe "text/html;charset=UTF-8"
       header("Expires") shouldBe "Thu, 01 Jan 1970 00:00:00 GMT" // page cache
       val newCookie = header("Set-Cookie")
-      newCookie should startWith("scentry.auth.default.user=foo;")
+      newCookie should startWith("scentry.auth.default.user=")
       newCookie should include(";Path=/")
-      newCookie should include(";Expires=")
       newCookie should include(";HttpOnly")
+
+      // check cookie expiration
+      val expiresString = newCookie
+        .replaceAll(".*Expires=", "")
+        .replaceAll(";.*", "")
+      val expiresLong = DateTimeFormat
+        .forPattern("EEE, dd-MMM-yyyy HH:mm:ss zzz")
+        .parseDateTime(expiresString)
+        .getMillis
+      val cookieAge = expiresLong -
+        (depositApp.authCookieOptions.maxAge * 1000) -
+        System.currentTimeMillis
+      cookieAge should be < 1000L
     }
   }
 
   "get /deposit with valid cookie token" should "be ok" in {
 
-    (app.authentication.getUser(_: String, _: String)) expects(*, *) never()
+    (depositApp.authentication.getUser(_: String, _: String)) expects(*, *) never()
+
     get(
       uri = "/deposit",
-      headers = Seq(("Cookie", s"${ Scentry.scentryAuthKey }=foo"))
+      headers = Seq(("Cookie", s"${ Scentry.scentryAuthKey }=$receivedToken"))
     ) {
       status shouldBe OK_200
       body shouldBe "AuthUser(foo,List(),List(),true) : EASY Deposit API Service running (test)"
@@ -101,10 +120,11 @@ class TypicalSessionSpec extends TestSupportFixture with ServletFixture with Sca
   }
 
   "get /auth/signout" should "clear the cookie" in {
-    (app.authentication.getUser(_: String, _: String)) expects(*, *) never()
+    (depositApp.authentication.getUser(_: String, _: String)) expects(*, *) never()
+
     get(
       uri = "/auth/signout",
-      headers = Seq(("Cookie", s"${ Scentry.scentryAuthKey }=foo"))
+      headers = Seq(("Cookie", s"${ Scentry.scentryAuthKey }=$receivedToken"))
     ) {
       status shouldBe MOVED_TEMPORARILY_302
       header("Location") shouldBe s"$baseUrl"

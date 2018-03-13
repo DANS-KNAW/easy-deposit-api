@@ -25,6 +25,8 @@ class AuthenticationServlet(app: EasyDepositApiApp) extends ScalatraServlet
 
   override def getCookieOptions: CookieOptions = app.authCookieOptions
 
+  override def getTokenConfig: TokenSupport.TokenConfig = app.tokenConfig
+
   get("/signin") {
     if (isAuthenticated) redirect("/deposit")
     else {

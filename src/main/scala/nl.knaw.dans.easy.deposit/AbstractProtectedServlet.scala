@@ -13,17 +13,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package nl.knaw.dans.easy.deposit.authentication
+package nl.knaw.dans.easy.deposit
 
-import nl.knaw.dans.easy.deposit.EasyDepositApiApp
-import org.scalatra.{ CookieOptions, ScalatraServlet }
+import nl.knaw.dans.easy.deposit.authentication.TokenSupport.TokenConfig
+import nl.knaw.dans.easy.deposit.authentication.{ AuthenticationProvider, AuthenticationSupport }
+import org.scalatra.CookieOptions
 
-abstract class AbstractProtectedServlet(app: EasyDepositApiApp) extends ScalatraServlet
-  with AuthenticationSupport {
+abstract class AbstractProtectedServlet(app: EasyDepositApiApp) extends AuthenticationSupport {
 
   override def getAuthenticationProvider: AuthenticationProvider = app.authentication
 
   override def getCookieOptions: CookieOptions = app.authCookieOptions
+
+  override def getTokenConfig: TokenConfig = app.tokenConfig
 
   before() {
     requireLogin()

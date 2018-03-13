@@ -15,7 +15,6 @@
  */
 package nl.knaw.dans.easy.deposit
 
-import nl.knaw.dans.easy.deposit.authentication.AbstractProtectedServlet
 import org.scalatra._
 
 class EasyDepositApiServlet(app: EasyDepositApiApp) extends AbstractProtectedServlet(app) {

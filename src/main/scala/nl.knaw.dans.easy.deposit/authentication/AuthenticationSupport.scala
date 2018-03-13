@@ -19,19 +19,22 @@ import nl.knaw.dans.easy.deposit.authentication.AuthenticationSupport._
 import org.eclipse.jetty.http.HttpStatus._
 import org.scalatra.auth.ScentryAuthStore.CookieAuthStore
 import org.scalatra.auth.{ ScentryConfig, ScentrySupport }
-import org.scalatra.{ CookieOptions, ScalatraBase }
+import org.scalatra.{ CookieOptions, ScalatraBase, ScalatraServlet }
 
 import scala.collection.JavaConverters._
 
-trait AuthenticationSupport extends ScalatraBase
+trait AuthenticationSupport extends ScalatraServlet
+  with ScalatraBase
   with ScentrySupport[AuthUser]
-  with ServletEnhancedLogging {
+  with ServletEnhancedLogging
+  with TokenSupport {
   self: ScalatraBase =>
 
-  // TODO see also https://gist.github.com/casualjim/4400115#file-session_token_strategy-scala-L49-L50
-  override protected def fromSession: PartialFunction[String, AuthUser] = { case id: String => AuthUser.fromToken(id) }
+  /** read name as: fromCookie, see scentryStore in configureScentry */
+  override protected def fromSession: PartialFunction[String, AuthUser] = { case token: String => toUser(token).get } // TODO unsafe
 
-  override protected def toSession: PartialFunction[AuthUser, String] = { case usr: AuthUser => usr.id }
+  /** read name as: toCookie, see scentryStore in configureScentry */
+  override protected def toSession: PartialFunction[AuthUser, String] = { case user: AuthUser => encode(user) }
 
   def getAuthenticationProvider: AuthenticationProvider
 
