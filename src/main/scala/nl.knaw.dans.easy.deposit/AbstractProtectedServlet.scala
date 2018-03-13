@@ -28,6 +28,8 @@ abstract class AbstractProtectedServlet(app: EasyDepositApiApp) extends Authenti
   override def getTokenConfig: TokenConfig = app.tokenConfig
 
   before() {
-    requireLogin()
+    if (!isAuthenticated) {
+      redirect(scentryConfig.login) // TODO don't loose form data when session timed out
+    }
   }
 }

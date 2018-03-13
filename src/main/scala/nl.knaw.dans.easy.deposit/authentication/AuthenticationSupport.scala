@@ -44,11 +44,9 @@ trait AuthenticationSupport extends ScalatraServlet
     override val login = "/auth/signin"
   }.asInstanceOf[ScentryConfiguration]
 
-  protected def requireLogin(): Unit = {
+  protected def isAuthenticated: Boolean = {
     noMultipleAuthentications()
-    if (!scentry.isAuthenticated) {
-      redirect(scentryConfig.login) // TODO don't loose form data when session timed out
-    }
+    scentry.isAuthenticated
   }
 
   private def noMultipleAuthentications(): Unit = {
@@ -70,7 +68,7 @@ trait AuthenticationSupport extends ScalatraServlet
 
     scentry.store = new CookieAuthStore(self)(getCookieOptions)
 
-    // TODO only overridden by EasyBasicAuthStrategy.super Default if none af the strategies applied? What about the redirect in requireLogin?
+    // TODO overridden by EasyBasicAuthStrategy.super Default if none of the strategies applied?
     scentry.unauthenticated { scentry.strategies("UserPassword").unauthenticated() }
   }
 

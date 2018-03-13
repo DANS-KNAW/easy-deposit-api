@@ -13,9 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package nl.knaw.dans.easy.deposit.authentication
+package nl.knaw.dans.easy.deposit
 
-import nl.knaw.dans.easy.deposit.EasyDepositApiApp
+import nl.knaw.dans.easy.deposit.authentication.{ AuthenticationProvider, AuthenticationSupport, TokenSupport }
 import org.scalatra._
 
 class AuthenticationServlet(app: EasyDepositApiApp) extends ScalatraServlet
