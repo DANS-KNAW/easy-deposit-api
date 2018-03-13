@@ -22,7 +22,7 @@ tags:
 - name: "deposit"
   description: "Operations on a deposit"
 - name: "file"
-  description: "Operations on a file"
+  description: "Operations on a file or a directory"
 
 paths:
 
@@ -355,6 +355,30 @@ paths:
       security:
         - BasicAuth: []
 
+  /deposit/{id}/file/{dir_path}:
+    parameters:
+    - name: "id"
+      in: "path"
+      description: "id of deposit"
+      required: true
+      schema:
+        type: "string"
+        format: "uuid"
+    - name: "dir_path"
+      in: "path"
+      description: "full path of file to be uploaded to deposit"
+      required: true
+      schema:
+        type: "string"
+        format: "uuid"
+    get:
+      tags:
+      - "file"
+      summary: "Retrieves the file info list for this directory"
+      responses:
+        200:
+          description: "list of file infos for the directory"
+
   /deposit/{id}/file/{file_path}:
     parameters:
     - name: "id"
@@ -371,10 +395,13 @@ paths:
       schema:
         type: "string"
         format: "uuid"
-    # get:
-    #   tags:
-    #   - "file"
-    #   summary: "Retrieves file info about one file"
+    get:
+      tags:
+      - "file"
+      summary: "Retrieves file info about one file"
+      responses:
+        200:
+          description: "file info"
     put:
       tags:
       - "file"
