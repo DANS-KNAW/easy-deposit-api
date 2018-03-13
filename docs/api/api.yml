@@ -386,7 +386,36 @@ paths:
           description: "list of file infos for the directory"
         404:
           description: "dir_path does not exist in this deposit"
-
+    post:
+      tags:
+      - "directory"
+      summary: "Adds a file or a subdirectory"
+      description: |
+        By default the file in the request body is saved in `dir_path` under the file name provided
+        in the `Content-Disposition` header. However, if the request body is sent as a ZIP file, it
+        is extracted in `dir_path` and `Content-Disposition` is ignored.
+      parameters:
+      - name: "Content-Disposition; filename"
+        in: "header"
+        description: "the name to use for the new file in the deposit"
+        required: true
+        schema:
+          type: "string"
+      requestBody:
+        required: true
+        content:
+          application/octet-stream:
+            schema:
+              # a binary file of any type
+              type: string
+              format: binary
+          application/zip:
+            schema:
+              type: string
+              format: binary
+      responses:
+        201:
+          description: "file or subdirectory added"
 
   /deposit/{id}/file/{file_path}:
     parameters:
