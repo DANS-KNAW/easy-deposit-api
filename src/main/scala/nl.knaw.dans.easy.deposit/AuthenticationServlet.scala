@@ -16,6 +16,7 @@
 package nl.knaw.dans.easy.deposit
 
 import nl.knaw.dans.easy.deposit.authentication.{ AuthenticationProvider, AuthenticationSupport, TokenSupport }
+import org.joda.time.DateTime
 import org.scalatra._
 
 class AuthenticationServlet(app: EasyDepositApiApp) extends ScalatraServlet
@@ -28,7 +29,8 @@ class AuthenticationServlet(app: EasyDepositApiApp) extends ScalatraServlet
   override def getTokenConfig: TokenSupport.TokenConfig = app.tokenConfig
 
   get("/signin") {
-    if (isAuthenticated) redirect("/deposit")
+    if (isAuthenticated)
+      Ok(s"$user signed in, ${ new DateTime() }")
     else {
       contentType = "text/html"
       <html>
@@ -43,24 +45,24 @@ class AuthenticationServlet(app: EasyDepositApiApp) extends ScalatraServlet
     }
   }
 
+  // TODO state is changed, but get supports an easy demo...
   get("/signout") { signout }
   put("/signout") { signout }
   post("/signout") { signout }
 
   private def signout = {
-    // TODO state is changed, but get supports an easy demo...
     logOut()
-    redirect("/")
+    Ok("you are signed out")
   }
 
   post("/") {
     scentry.authenticate()
 
     if (isAuthenticated) {
-      redirect("/deposit")
+      Ok(s"signed in")
     }
     else {
-      redirect("/auth/signin")
+      Forbidden("invalid credentials")
     }
   }
 }

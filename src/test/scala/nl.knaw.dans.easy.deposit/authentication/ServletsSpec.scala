@@ -33,8 +33,8 @@ class ServletsSpec extends TestSupportFixture with ServletFixture with ScalatraS
   addServlet(new AuthenticationServlet(app), "/auth/*")
 
   "get /deposit with valid basic authentication" should "be ok" ignore {
-    // allows testing without curl without having to bake a (JWT) cookie
-    // alternative: configure to accept some test-cookie or not
+    // allows testing with curl without having to bake a (JWT) cookie
+    // alternative: configure to accept some test-cookie or one of the test users
 
     (app.authentication.getUser(_: String, _: String)) expects("foo", "bar") returning
       Some(AuthUser("foo", isActive = true))

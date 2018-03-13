@@ -15,12 +15,13 @@
  */
 package nl.knaw.dans.easy.deposit
 
+import org.joda.time.DateTime
 import org.scalatra._
 
 class EasyDepositApiServlet(app: EasyDepositApiApp) extends AbstractProtectedServlet(app) {
 
   get("/") {
     contentType = "text/plain"
-    Ok(s"$user : EASY Deposit API Service running (${ app.getVersion })")
+    Ok(s"$user ${ new DateTime() }: EASY Deposit API Service running (${ app.getVersion })")
   }
 }

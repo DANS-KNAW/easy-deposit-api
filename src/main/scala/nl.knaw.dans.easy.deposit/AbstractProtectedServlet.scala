@@ -17,6 +17,7 @@ package nl.knaw.dans.easy.deposit
 
 import nl.knaw.dans.easy.deposit.authentication.TokenSupport.TokenConfig
 import nl.knaw.dans.easy.deposit.authentication.{ AuthenticationProvider, AuthenticationSupport }
+import org.eclipse.jetty.http.HttpStatus
 import org.scalatra.CookieOptions
 
 abstract class AbstractProtectedServlet(app: EasyDepositApiApp) extends AuthenticationSupport {
@@ -29,7 +30,7 @@ abstract class AbstractProtectedServlet(app: EasyDepositApiApp) extends Authenti
 
   before() {
     if (!isAuthenticated) {
-      redirect(scentryConfig.login) // TODO don't loose form data when session timed out
+      halt(HttpStatus.FORBIDDEN_403, "missing, invalid or expired credentials")
     }
   }
 }

@@ -42,10 +42,9 @@ class TypicalSessionSpec extends TestSupportFixture with ServletFixture with Sca
   "get /deposit without credentials" should "redirect to /auth/signin" in {
     (depositApp.authentication.getUser(_: String, _: String)) expects(*, *) never()
     get("/deposit") {
-      status shouldBe MOVED_TEMPORARILY_302
-      body shouldBe ""
-      header("Location") shouldBe s"$baseUrl/auth/signin"
-      header("Content-Type") shouldBe "text/html;charset=UTF-8"
+      status shouldBe FORBIDDEN_403
+      body shouldBe "missing, invalid or expired credentials"
+      header("Content-Type") shouldBe "text/plain;charset=UTF-8"
       Option(header("Set-Cookie")) shouldBe None
     }
   }
@@ -66,10 +65,9 @@ class TypicalSessionSpec extends TestSupportFixture with ServletFixture with Sca
       uri = "/auth",
       params = Seq(("login", "foo"), ("password", "bar"))
     ) {
-      status shouldBe MOVED_TEMPORARILY_302
-      body shouldBe ""
-      header("Location") shouldBe s"$baseUrl/auth/signin"
-      header("Content-Type") shouldBe "text/html;charset=UTF-8"
+      status shouldBe FORBIDDEN_403
+      body shouldBe "invalid credentials"
+      header("Content-Type") shouldBe "text/plain;charset=UTF-8"
       Option(header("Set-Cookie")) shouldBe None
     }
   }
@@ -81,10 +79,10 @@ class TypicalSessionSpec extends TestSupportFixture with ServletFixture with Sca
       uri = "/auth",
       params = Seq(("login", "foo"), ("password", "bar"))
     ) {
-      status shouldBe MOVED_TEMPORARILY_302
-      header("Location") shouldBe s"$baseUrl/deposit"
+      status shouldBe OK_200
+      body shouldBe "signed in"
       header("REMOTE_USER") shouldBe "foo"
-      header("Content-Type") shouldBe "text/html;charset=UTF-8"
+      header("Content-Type") shouldBe "text/plain;charset=UTF-8"
       header("Expires") shouldBe "Thu, 01 Jan 1970 00:00:00 GMT" // page cache
       val newCookie = header("Set-Cookie")
       newCookie should startWith("scentry.auth.default.user=")
@@ -115,7 +113,8 @@ class TypicalSessionSpec extends TestSupportFixture with ServletFixture with Sca
       headers = Seq(("Cookie", s"${ Scentry.scentryAuthKey }=$receivedToken"))
     ) {
       status shouldBe OK_200
-      body shouldBe "AuthUser(foo,List(),List(),true) : EASY Deposit API Service running (test)"
+      body should startWith("AuthUser(foo,List(),List(),true) ")
+      body should endWith(" EASY Deposit API Service running (test)")
     }
   }
 
@@ -126,9 +125,8 @@ class TypicalSessionSpec extends TestSupportFixture with ServletFixture with Sca
       uri = "/auth/signout",
       headers = Seq(("Cookie", s"${ Scentry.scentryAuthKey }=$receivedToken"))
     ) {
-      status shouldBe MOVED_TEMPORARILY_302
-      header("Location") shouldBe s"$baseUrl"
-      header("Content-Type") shouldBe "text/html;charset=UTF-8"
+      status shouldBe OK_200
+      header("Content-Type") shouldBe "text/plain;charset=UTF-8"
       header("Expires") shouldBe "Thu, 01 Jan 1970 00:00:00 GMT" // page cache
       val newCookie = header("Set-Cookie")
       newCookie should startWith("scentry.auth.default.user=;") // note the empty value
