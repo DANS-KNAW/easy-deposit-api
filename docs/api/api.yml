@@ -22,7 +22,13 @@ tags:
 - name: "deposit"
   description: "Operations on a deposit"
 - name: "file"
-  description: "Operations on a file or a directory"
+  description: |
+    Operations on a regular file. Note that the form of the routes is the same as
+    for directories, but the allowed methods are **not** the same.
+- name: "directory"
+  description: |
+    Operations on a directory. Note that the form of the routes is the same as
+    for regular files, but the allowed methods are **not** the same.
 
 paths:
 
@@ -373,11 +379,14 @@ paths:
         format: "uuid"
     get:
       tags:
-      - "file"
+      - "directory"
       summary: "Retrieves the file info list for this directory"
       responses:
         200:
           description: "list of file infos for the directory"
+        404:
+          description: "dir_path does not exist in this deposit"
+
 
   /deposit/{id}/file/{file_path}:
     parameters:
