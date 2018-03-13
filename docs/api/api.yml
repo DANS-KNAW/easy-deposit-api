@@ -393,7 +393,8 @@ paths:
       description: |
         By default the file in the request body is saved in `dir_path` under the file name provided
         in the `Content-Disposition` header. However, if the request body is sent as a ZIP file, it
-        is extracted in `dir_path` and `Content-Disposition` is ignored.
+        is extracted in `dir_path` and `Content-Disposition` is ignored. If `dir_path`, or any of its
+        parents do not exist yet, they are first created.
       parameters:
       - name: "Content-Disposition; filename"
         in: "header"
@@ -416,6 +417,15 @@ paths:
       responses:
         201:
           description: "file or subdirectory added"
+    delete:
+      tags:
+      - "directory"
+      summary: "Removes the directory and all files in it, recursively"
+      responses:
+        204:
+          description: "directory deleted"
+        404:
+          description: "no file or directory exists at `dir_path`"
 
   /deposit/{id}/file/{file_path}:
     parameters:
