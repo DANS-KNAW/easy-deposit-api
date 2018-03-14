@@ -425,6 +425,7 @@ paths:
       tags:
       - file
       summary: Adds or overwrites the specified file in the deposit.
+      description: If any of `file_path`'s parent do not yet exist, they are first created.
       operationId: writeFile
       requestBody:
         description: file data
@@ -507,15 +508,6 @@ components:
       required: true
       schema:
         type: string
-
-    # TODO: check if this name is correct for the cookie
-    AuthorizationBearerCookie:
-      name: Authorization
-      description: JWT
-      in: cookie
-      schema:
-        type: string
-        format: JWT
 
     DepositId:
       name: id
