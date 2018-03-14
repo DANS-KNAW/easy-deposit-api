@@ -323,8 +323,10 @@ paths:
                 example:
                   - filename: myfile.txt
                     dirpath: path/to/parent/dir
+                    sha1sum: ab3aa0555f31a8d7809fae4b03a95195edb01f5c
                   - filename: myfile2.txt
                     dirpath: path/to/parent/dir
+                    sha1sum: ab3aa0555f31a8d7809fae4b03a95195edb01f5d
 
         401:
           $ref: "#/components/responses/Unauthorized"
@@ -629,9 +631,12 @@ components:
           type: string
         dirpath:
           type: string
+        sha1sum:
+          type: string
       example:
         filename: file.txt
         dirpath: path/to/containing/dir
+        sha1sum: ab3aa0555f31a8d7809fae4b03a95195edb01f5c
 
     Author:
       type: object
