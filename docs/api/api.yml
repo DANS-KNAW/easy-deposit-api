@@ -78,6 +78,22 @@ paths:
       security:
       - BasicAuth: []
 
+  /logout:
+    post:
+      tags:
+      - authentication
+      summary: Removes the JSON web token cookie from the client.
+      responses:
+        204:
+          description: No content.
+          headers:
+            Set-Cookie:
+              description: a cookie called `scentry.auth.default.user` set to the empty string
+              schema:
+                type: string
+      security:
+      - BearerAuth: []
+
   /deposit:
     get:
       tags:
