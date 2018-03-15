@@ -53,14 +53,14 @@ trait AuthenticationSupport extends ScalatraServlet
     override val login = "/auth/signin"
   }.asInstanceOf[ScentryConfiguration]
 
-  protected def isAuthenticated: Boolean = {
-    noMultipleAuthentications()
+  def isAuthenticated: Boolean = {
+    noMultipleAuthentications() // may come after calling ldap
     scentry.isAuthenticated
   }
 
-  protected def authenticate(): Seq[String] => Option[AuthUser] = {
-    //noMultipleAuthentications()
-    scentry.authenticate
+  def authenticate(): Option[AuthUser] = {
+    noMultipleAuthentications() // comes before calling ldap
+    scentry.authenticate()
   }
 
   private def noMultipleAuthentications(): Unit = {
@@ -105,10 +105,10 @@ trait AuthenticationSupport extends ScalatraServlet
    * progressively use all registered strategies to log the user in, falling back if necessary.
    */
   override protected def registerAuthStrategies: Unit = {
-    //scentry.register(SessionTokenStrategy.name, _ => new SessionTokenStrategy(self))
+    // don't need a token strategy: AuthenticationSupport$$anonfun$fromSession can return null
     scentry.register(UserPasswordStrategy.name, _ => new UserPasswordStrategy(self, getAuthenticationProvider))
 
-    // after user/password otherwise getUserId gets called
+    // after user/password otherwise getUserId gets called even if isValid is false
     scentry.register(EasyBasicAuthStrategy.name, _ => new EasyBasicAuthStrategy(self, getAuthenticationProvider, realm))
   }
 }

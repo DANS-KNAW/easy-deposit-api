@@ -29,6 +29,7 @@ class AuthenticationServlet(app: EasyDepositApiApp) extends AuthenticationSuppor
   override def getTokenConfig: TokenConfig = app.tokenConfig
 
   get("/signin") {
+    // for manual tests with a browser without a user interface
     if (isAuthenticated)
       Ok(s"$user is signed in, ${ new DateTime() }")
     else {
@@ -51,7 +52,7 @@ class AuthenticationServlet(app: EasyDepositApiApp) extends AuthenticationSuppor
   post("/signout") { signout }
 
   private def signout = {
-    logOut()
+    logOut() // destroys the scentry cookie
     Ok("you are signed out")
   }
 
