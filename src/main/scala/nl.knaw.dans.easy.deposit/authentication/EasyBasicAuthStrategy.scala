@@ -33,14 +33,15 @@ class EasyBasicAuthStrategy(protected override val app: AuthenticationSupport,
 
   /** @return true if this strategy should be run. */
   override def isValid(implicit request: HttpServletRequest): Boolean = {
-    val valid = super.isValid
-    //logger.info(s"$name.isValid $valid")
-    valid
+    val shouldExecute = super.isValid
+    trace(shouldExecute, name)
+    shouldExecute
   }
 
   override def authenticate()(implicit request: HttpServletRequest, response: HttpServletResponse): Option[AuthUser] = {
-    //logger.info(s"$name.authenticate")
-    super.authenticate()
+    val maybeUser = super.authenticate()
+    trace(maybeUser)
+    maybeUser
   }
 
   protected def validate(userName: String,
@@ -48,13 +49,13 @@ class EasyBasicAuthStrategy(protected override val app: AuthenticationSupport,
                         (implicit request: HttpServletRequest,
                          response: HttpServletResponse
                         ): Option[AuthUser] = {
-    //logger.info(s"$name.validate: $userName, $password") // TODO don't leak, (doesn't get called even when isValid is true)
+    trace(userName) // TODO doesn't get called even when isValid is true
     authenticationProvider.getUser(userName, password)
   }
 
   protected def getUserId(user: AuthUser)
                          (implicit request: HttpServletRequest, response: HttpServletResponse): String = {
-    //logger.info(s"$name.getUserId: $user should be run: ${ super.isValid }")
+    trace(user, super.isValid)
     user.id
   }
 }

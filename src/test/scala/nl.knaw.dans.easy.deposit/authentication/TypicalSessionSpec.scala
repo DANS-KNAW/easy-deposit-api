@@ -32,7 +32,7 @@ class TypicalSessionSpec extends TestSupportFixture with ServletFixture with Sca
     override val authentication: Authentication = mock[Authentication]
   }
 
-  private val receivedToken = new TokenSupport() {
+  private def receivedToken = new TokenSupport() {
     override def getTokenConfig: TokenConfig = TokenConfig()
   }.encode(AuthUser("foo", isActive = true))
 

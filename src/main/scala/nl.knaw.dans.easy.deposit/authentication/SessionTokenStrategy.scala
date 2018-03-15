@@ -17,12 +17,10 @@ package nl.knaw.dans.easy.deposit.authentication
 
 import javax.servlet.http.{ HttpServletRequest, HttpServletResponse }
 
-import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import nl.knaw.dans.lib.error._
+import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.apache.commons.lang.StringUtils.isNotBlank
 import org.scalatra.auth.{ Scentry, ScentryStrategy }
-
-import scala.util.{ Failure, Success }
 
 object SessionTokenStrategy {
   val name = "SessionToken"
@@ -44,20 +42,23 @@ class SessionTokenStrategy(protected override val app: AuthenticationSupport,
 
   /** @return true if this strategy should be run. */
   override def isValid(implicit request: HttpServletRequest): Boolean = {
-    getToken.isDefined
+    val shouldExecuteTokenStrategy = getToken.isDefined
+    trace(shouldExecuteTokenStrategy)
+    shouldExecuteTokenStrategy
   }
 
   override def authenticate()
                            (implicit request: HttpServletRequest,
                             response: HttpServletResponse
                            ): Option[AuthUser] = {
-    // TODO doesn't get called, causing stacktrace at AuthenticationSupport$$anonfun$fromSession
+    trace(getToken)
+    // doesn't get called, AuthenticationSupport$$anonfun$fromSession should return null if not authenticated
     getToken.flatMap(toMaybeAuthUser)
   }
 
   private def toMaybeAuthUser(token: String) = {
     app.toUser(token)
-      .doIfFailure{case e => logger.info(s"invalid token [$token]: $e")}
+      .doIfFailure { case e => logger.info(s"invalid token [$token]: $e") }
       .map(Option(_))
       .getOrElse(None)
   }

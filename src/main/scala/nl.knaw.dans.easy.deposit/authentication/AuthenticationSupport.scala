@@ -16,9 +16,10 @@
 package nl.knaw.dans.easy.deposit.authentication
 
 import nl.knaw.dans.easy.deposit.authentication.AuthenticationSupport._
+import nl.knaw.dans.lib.error._
 import org.eclipse.jetty.http.HttpStatus._
 import org.scalatra.auth.ScentryAuthStore.CookieAuthStore
-import org.scalatra.auth.{ ScentryConfig, ScentrySupport }
+import org.scalatra.auth.{ Scentry, ScentryConfig, ScentrySupport }
 import org.scalatra.{ CookieOptions, ScalatraBase, ScalatraServlet }
 
 import scala.collection.JavaConverters._
@@ -30,11 +31,19 @@ trait AuthenticationSupport extends ScalatraServlet
   with TokenSupport {
   self: ScalatraBase =>
 
-  /** read name as: fromCookie, see scentryStore in configureScentry */
-  override protected def fromSession: PartialFunction[String, AuthUser] = { case token: String => toUser(token).get } // TODO unsafe
+  /** read method name as: fromCookie, see scentryStore in configureScentry */
+  override protected def fromSession: PartialFunction[String, AuthUser] = {
+    case token: String =>
+      trace(token)
+      toUser(token)
+        .doIfFailure { case t => logger.info(s"invalid authentication: ${ t.getClass } ${ t.getMessage }") }
+        .getOrElse(null)
+  }
 
-  /** read name as: toCookie, see scentryStore in configureScentry */
-  override protected def toSession: PartialFunction[AuthUser, String] = { case user: AuthUser => encode(user) }
+  /** read method name as: toCookie, see scentryStore in configureScentry */
+  override protected def toSession: PartialFunction[AuthUser, String] = {
+    case user: AuthUser => encode(user)
+  }
 
   def getAuthenticationProvider: AuthenticationProvider
 
@@ -50,14 +59,19 @@ trait AuthenticationSupport extends ScalatraServlet
   }
 
   private def noMultipleAuthentications(): Unit = {
-    val authenticationHeaders = request.getHeaderNames.asScala.toList
+    val authenticationHeaders = request
+      .getHeaderNames.asScala.toList
       .map(_.toLowerCase)
       .filter(h => headers.contains(h))
-    //noinspection ComparingLength
-    if (authenticationHeaders.size > 1 || scentry.strategies.values.count(_.isValid) > 1) {
-      logger.info(s"found authentication headers [$authenticationHeaders] and methods [${ scentry.strategies.values.withFilter(_.isValid).map(_.name) }]")
+    val nrOfAuthHeaders = authenticationHeaders.size // >=1 means EasyBasicAuthStrategy is valid
+    trace(authenticationHeaders)
+    val validStrategies = scentry.strategies.values.filter(_.isValid)
+    val nrOfStrategies = validStrategies.size
+    if (nrOfStrategies > 1 || nrOfAuthHeaders > 1) {
+      logger.info(s"found authentication headers [$authenticationHeaders] and/or methods [${ validStrategies.map(_.name) }]")
       halt(BAD_REQUEST_400, "Invalid authentication")
     }
+    trace( authenticationHeaders, validStrategies)
   }
 
   /**

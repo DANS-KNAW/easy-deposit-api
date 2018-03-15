@@ -37,24 +37,11 @@ trait TokenSupport extends DebugEnhancedLogging {
   }
 
   def toUser(token: String): Try[AuthUser] = {
-    trace("")
     for {
       decoded <- Jwt.decode(token, getTokenConfig.secretKey, Seq(getTokenConfig.algorithm))
       parsed <- fromJson(decoded)
     } yield AuthUser(parsed.uid, isActive = true)
     // TODO user status might have changed since sign-up, retrieve status from ldap
-  }
-
-  def isValid(token: String): Boolean = {
-    trace("")
-    Jwt.isValid(token, getTokenConfig.secretKey, Seq(getTokenConfig.algorithm))
-    // TODO check expiration / refresh ?
-  }
-
-  def validate(token: String): Try[Unit] = Try {
-    trace("")
-    Jwt.validate(token, getTokenConfig.secretKey, Seq(getTokenConfig.algorithm))
-    // TODO check expiration / refresh ?
   }
 }
 object TokenSupport {

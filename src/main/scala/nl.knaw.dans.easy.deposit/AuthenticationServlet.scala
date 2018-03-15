@@ -30,7 +30,7 @@ class AuthenticationServlet(app: EasyDepositApiApp) extends AuthenticationSuppor
 
   get("/signin") {
     if (isAuthenticated)
-      Ok(s"$user signed in, ${ new DateTime() }")
+      Ok(s"$user is signed in, ${ new DateTime() }")
     else {
       contentType = "text/html"
       <html>

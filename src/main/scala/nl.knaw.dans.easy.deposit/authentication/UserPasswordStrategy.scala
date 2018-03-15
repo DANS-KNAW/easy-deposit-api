@@ -38,14 +38,16 @@ class UserPasswordStrategy(protected override val app: AuthenticationSupport,
 
   /** @return true if this strategy should be run. */
   override def isValid(implicit request: HttpServletRequest): Boolean = {
-    login != "" && password != ""
+    val shouldExecute = login != "" && password != ""
+    trace(shouldExecute, name)
+    shouldExecute
   }
 
   override def authenticate()
                            (implicit request: HttpServletRequest,
                             response: HttpServletResponse
                            ): Option[AuthUser] = {
-    trace("")
+    trace(login)
     authenticationProvider.getUser(login, password)
   }
 }
