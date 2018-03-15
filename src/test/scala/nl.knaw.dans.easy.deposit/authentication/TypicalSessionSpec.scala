@@ -39,7 +39,7 @@ class TypicalSessionSpec extends TestSupportFixture with ServletFixture with Sca
   addServlet(new EasyDepositApiServlet(depositApp), "/deposit/*")
   addServlet(new AuthenticationServlet(depositApp), "/auth/*")
 
-  "get /deposit without credentials" should "redirect to /auth/signin" in {
+  "get /deposit without credentials" should "return 403 (forbidden)" in {
     (depositApp.authentication.getUser(_: String, _: String)) expects(*, *) never()
     get("/deposit") {
       status shouldBe FORBIDDEN_403
@@ -59,7 +59,7 @@ class TypicalSessionSpec extends TestSupportFixture with ServletFixture with Sca
     }
   }
 
-  "post /auth with invalid credentials" should "redirect to /auth/signin (again)" in {
+  "post /auth with invalid credentials" should "return 403 (forbidden)" in {
     (depositApp.authentication.getUser(_: String, _: String)) expects("foo", "bar") returning None
     post(
       uri = "/auth",

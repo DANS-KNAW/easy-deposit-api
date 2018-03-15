@@ -58,20 +58,34 @@ trait AuthenticationSupport extends ScalatraServlet
     scentry.isAuthenticated
   }
 
+  protected def authenticate(): Seq[String] => Option[AuthUser] = {
+    //noMultipleAuthentications()
+    scentry.authenticate
+  }
+
   private def noMultipleAuthentications(): Unit = {
+
+    // size >=1 means EasyBasicAuthStrategy is valid
     val authenticationHeaders = request
       .getHeaderNames.asScala.toList
       .map(_.toLowerCase)
       .filter(h => headers.contains(h))
-    val nrOfAuthHeaders = authenticationHeaders.size // >=1 means EasyBasicAuthStrategy is valid
-    trace(authenticationHeaders)
+
+    val hasAuthCookie = request.getCookies.exists(_.getName == Scentry.scentryAuthKey)
+    trace(hasAuthCookie, authenticationHeaders)
     val validStrategies = scentry.strategies.values.filter(_.isValid)
-    val nrOfStrategies = validStrategies.size
-    if (nrOfStrategies > 1 || nrOfAuthHeaders > 1) {
-      logger.info(s"found authentication headers [$authenticationHeaders] and/or methods [${ validStrategies.map(_.name) }]")
+    if ((hasAuthCookie, validStrategies.size, authenticationHeaders.size) match {
+      case (false, 0, 0) => false
+      case (true, 0, 0) => false
+      case (true, 1, _) => true
+      case (true, _, 1) => true
+      case (_, nrOfStrategies, nrOfHeaders) if nrOfStrategies > 1 || nrOfHeaders > 1 => true
+      case _ => false
+    }) {
+      logger.info(s"hasAuthCookie=$hasAuthCookie and/or authentication headers [$authenticationHeaders] and/or methods [${ validStrategies.map(_.name) }]")
       halt(BAD_REQUEST_400, "Invalid authentication")
     }
-    trace( authenticationHeaders, validStrategies)
+    trace(hasAuthCookie, authenticationHeaders, validStrategies.map(_.name))
   }
 
   /**
@@ -91,7 +105,7 @@ trait AuthenticationSupport extends ScalatraServlet
    * progressively use all registered strategies to log the user in, falling back if necessary.
    */
   override protected def registerAuthStrategies: Unit = {
-    scentry.register(SessionTokenStrategy.name, _ => new SessionTokenStrategy(self))
+    //scentry.register(SessionTokenStrategy.name, _ => new SessionTokenStrategy(self))
     scentry.register(UserPasswordStrategy.name, _ => new UserPasswordStrategy(self, getAuthenticationProvider))
 
     // after user/password otherwise getUserId gets called

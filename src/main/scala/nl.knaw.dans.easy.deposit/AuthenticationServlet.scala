@@ -56,8 +56,7 @@ class AuthenticationServlet(app: EasyDepositApiApp) extends AuthenticationSuppor
   }
 
   post("/") {
-    scentry.authenticate()
-
+    authenticate()
     if (isAuthenticated) {
       Ok(s"signed in")
     }
