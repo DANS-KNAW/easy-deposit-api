@@ -28,7 +28,7 @@ class AuthenticationServlet(app: EasyDepositApiApp) extends AuthenticationSuppor
 
   override def getTokenConfig: TokenConfig = app.tokenConfig
 
-  get("/signin") {
+  get("/login") {
     // to manually test the UserPasswordStrategy with a browser but no user interface
     if (isAuthenticated)
       Ok(s"$user is signed in, ${ new DateTime() }")
@@ -36,7 +36,7 @@ class AuthenticationServlet(app: EasyDepositApiApp) extends AuthenticationSuppor
       contentType = "text/html"
       <html>
         <body>
-          <form action="/auth/signin" method="post">
+          <form action="/auth/login" method="post">
             <p><label for="login">login id</label><input type="text" name="login" id="login" autofocus="true" /></p>
             <p><label for="password">password</label><input type="password" name="password" id="password"/></p>
             <p><input type="submit"/></p>
@@ -47,16 +47,16 @@ class AuthenticationServlet(app: EasyDepositApiApp) extends AuthenticationSuppor
   }
 
   // TODO state is changed, but get supports an easy demo...
-  get("/signout") { signout }
-  put("/signout") { signout }
-  post("/signout") { signout }
+  get("/logout") { logout }
+  put("/logout") { logout }
+  post("/logout") { logout }
 
-  private def signout = {
+  private def logout = {
     logOut() // destroys the scentry cookie
     Ok("you are signed out")
   }
 
-  post("/signin") {
+  post("/login") {
     authenticate()
     if (isAuthenticated) {
       Ok(s"signed in")

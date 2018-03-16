@@ -49,9 +49,9 @@ class TypicalSessionSpec extends TestSupportFixture with ServletFixture with Sca
     }
   }
 
-  "get /auth/signin" should "present a login form" in {
+  "get /auth/login" should "present a login form" in {
     (depositApp.authentication.getUser(_: String, _: String)) expects(*, *) never()
-    get("/auth/signin") {
+    get("/auth/login") {
       status shouldBe OK_200
       body should include("""<label for="login">""")
       Option(header("Set-Cookie")) shouldBe None
@@ -59,10 +59,10 @@ class TypicalSessionSpec extends TestSupportFixture with ServletFixture with Sca
     }
   }
 
-  "post /auth/signin with invalid credentials" should "return 403 (forbidden)" in {
+  "post /auth/login with invalid credentials" should "return 403 (forbidden)" in {
     (depositApp.authentication.getUser(_: String, _: String)) expects("foo", "bar") returning None
     post(
-      uri = "/auth/signin",
+      uri = "/auth/login",
       params = Seq(("login", "foo"), ("password", "bar"))
     ) {
       body shouldBe "invalid credentials"
@@ -72,11 +72,11 @@ class TypicalSessionSpec extends TestSupportFixture with ServletFixture with Sca
     }
   }
 
-  "post /auth/signin with proper user-name password" should "create a protected cookie" in {
+  "post /auth/login with proper user-name password" should "create a protected cookie" in {
     (depositApp.authentication.getUser(_: String, _: String)) expects("foo", "bar") returning
       Some(AuthUser("foo", isActive = true))
     post(
-      uri = "/auth/signin",
+      uri = "/auth/login",
       params = Seq(("login", "foo"), ("password", "bar"))
     ) {
       status shouldBe OK_200
@@ -103,14 +103,14 @@ class TypicalSessionSpec extends TestSupportFixture with ServletFixture with Sca
     }
   }
 
-  "post /auth/signin with valid basic authentication" should "create a cookie" in {
+  "post /auth/login with valid basic authentication" should "create a cookie" in {
     // allows testing with curl without having to bake a (JWT) cookie
     // alternative: configure to accept some test-cookie or one of the test users
 
     (depositApp.authentication.getUser(_: String, _: String)) expects("foo", "bar") returning
       Some(AuthUser("foo", isActive = true))
     post(
-      uri = "/auth/signin",
+      uri = "/auth/login",
       headers = Seq(("Authorization", fooBarBasicAuthHeader))
     ) {
       body shouldBe "signed in"
@@ -151,11 +151,11 @@ class TypicalSessionSpec extends TestSupportFixture with ServletFixture with Sca
     }
   }
 
-  "get /auth/signout" should "clear the cookie" in {
+  "get /auth/logout" should "clear the cookie" in {
     (depositApp.authentication.getUser(_: String, _: String)) expects(*, *) never()
 
     get(
-      uri = "/auth/signout",
+      uri = "/auth/logout",
       headers = Seq(("Cookie", s"${ Scentry.scentryAuthKey }=$receivedToken"))
     ) {
       status shouldBe OK_200
