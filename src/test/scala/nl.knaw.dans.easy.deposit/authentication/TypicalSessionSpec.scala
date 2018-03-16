@@ -31,6 +31,7 @@ class TypicalSessionSpec extends TestSupportFixture with ServletFixture with Sca
   })) {
     override val authentication: Authentication = mock[Authentication]
   }
+  private val auth = depositApp.authentication
 
   private def receivedToken = new TokenSupport() {
     override def getTokenConfig: TokenConfig = testTokenConfig
@@ -40,7 +41,7 @@ class TypicalSessionSpec extends TestSupportFixture with ServletFixture with Sca
   addServlet(new AuthenticationServlet(depositApp), "/auth/*")
 
   "get /deposit without credentials" should "return 403 (forbidden)" in {
-    (depositApp.authentication.getUser(_: String, _: String)) expects(*, *) never()
+    (auth.getUser(_: String, _: String)) expects(*, *) never()
     get("/deposit") {
       status shouldBe FORBIDDEN_403
       body shouldBe "missing, invalid or expired credentials"
@@ -50,7 +51,7 @@ class TypicalSessionSpec extends TestSupportFixture with ServletFixture with Sca
   }
 
   "get /auth/login" should "present a login form" in {
-    (depositApp.authentication.getUser(_: String, _: String)) expects(*, *) never()
+    (auth.getUser(_: String, _: String)) expects(*, *) never()
     get("/auth/login") {
       status shouldBe OK_200
       body should include("""<label for="login">""")
@@ -60,7 +61,7 @@ class TypicalSessionSpec extends TestSupportFixture with ServletFixture with Sca
   }
 
   "post /auth/login with invalid credentials" should "return 403 (forbidden)" in {
-    (depositApp.authentication.getUser(_: String, _: String)) expects("foo", "bar") returning None
+    (auth.getUser(_: String, _: String)) expects("foo", "bar") returning None
     post(
       uri = "/auth/login",
       params = Seq(("login", "foo"), ("password", "bar"))
@@ -73,7 +74,7 @@ class TypicalSessionSpec extends TestSupportFixture with ServletFixture with Sca
   }
 
   "post /auth/login with proper user-name password" should "create a protected cookie" in {
-    (depositApp.authentication.getUser(_: String, _: String)) expects("foo", "bar") returning
+    (auth.getUser(_: String, _: String)) expects("foo", "bar") returning
       Some(AuthUser("foo", isActive = true))
     post(
       uri = "/auth/login",
@@ -107,7 +108,7 @@ class TypicalSessionSpec extends TestSupportFixture with ServletFixture with Sca
     // allows testing with curl without having to bake a (JWT) cookie
     // alternative: configure to accept some test-cookie or one of the test users
 
-    (depositApp.authentication.getUser(_: String, _: String)) expects("foo", "bar") returning
+    (auth.getUser(_: String, _: String)) expects("foo", "bar") returning
       Some(AuthUser("foo", isActive = true))
     post(
       uri = "/auth/login",
@@ -139,7 +140,7 @@ class TypicalSessionSpec extends TestSupportFixture with ServletFixture with Sca
 
   "get /deposit with valid cookie token" should "be ok" in {
 
-    (depositApp.authentication.getUser(_: String, _: String)) expects(*, *) never()
+    (auth.getUser(_: String, _: String)) expects(*, *) never()
 
     get(
       uri = "/deposit",
@@ -152,7 +153,7 @@ class TypicalSessionSpec extends TestSupportFixture with ServletFixture with Sca
   }
 
   "get /auth/logout" should "clear the cookie" in {
-    (depositApp.authentication.getUser(_: String, _: String)) expects(*, *) never()
+    (auth.getUser(_: String, _: String)) expects(*, *) never()
 
     get(
       uri = "/auth/logout",

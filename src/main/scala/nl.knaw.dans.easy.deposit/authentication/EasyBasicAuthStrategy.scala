@@ -48,7 +48,7 @@ class EasyBasicAuthStrategy(protected override val app: AuthenticationSupport,
                         (implicit request: HttpServletRequest,
                          response: HttpServletResponse
                         ): Option[AuthUser] = {
-    trace(userName) // TODO doesn't get called even when isValid is true
+    trace(userName)
     authenticationProvider.getUser(userName, password)
   }
 
