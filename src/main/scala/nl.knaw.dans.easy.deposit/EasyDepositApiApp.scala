@@ -20,4 +20,9 @@ import nl.knaw.dans.easy.deposit.components.DraftsComponent
 
 class EasyDepositApiApp(configuration: Configuration) extends DraftsComponent {
   val draftRoot: File = File(configuration.properties.getString("deposits.drafts"))
+
+
+  def getVersion: String = {
+    configuration.version
+  }
 }
