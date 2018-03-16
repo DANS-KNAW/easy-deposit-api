@@ -15,25 +15,13 @@
  */
 package nl.knaw.dans.easy.deposit
 
-import java.util.UUID
-
-import org.joda.time.DateTime
-
 /**
- * Basic services for deposit handling.
+ * Services for handling dataset metadata.
  */
-package object deposit {
+package object datasetmetadata {
 
-  object State extends Enumeration {
-    type State = Value
-    val DRAFT, SUBMITTED, IN_PROGRESS, REJECTED, ARCHIVED = Value
-  }
-  import State._
+  // TODO: extend with all the metadata fields defined in the API's model
+  case class DatasetMetadata()
 
-  /**
-   * Summary information about a deposit.
-   */
-  case class DepositInfo(id: UUID, title: String, state: State, stateDescription: String, timestamp: DateTime)
 
-  case class StateInfo(state: State, stateDescription: String)
 }

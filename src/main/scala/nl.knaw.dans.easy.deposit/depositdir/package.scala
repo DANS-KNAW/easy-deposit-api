@@ -13,14 +13,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package nl.knaw.dans.easy.deposit.files
+package nl.knaw.dans.easy.deposit
 
-trait FilesComponent {
+import java.util.UUID
 
-  val files: Files
+import org.joda.time.DateTime
 
-  trait Files {
+/**
+ * Basic services for deposit directory handling.
+ */
+package object depositdir {
 
-
+  object State extends Enumeration {
+    type State = Value
+    val DRAFT, SUBMITTED, IN_PROGRESS, REJECTED, ARCHIVED = Value
   }
+  import State._
+
+  /**
+   * Summary information about a deposit.
+   */
+  case class DepositInfo(id: UUID, title: String, state: State, stateDescription: String, timestamp: DateTime)
+
+  case class StateInfo(state: State, stateDescription: String)
 }
