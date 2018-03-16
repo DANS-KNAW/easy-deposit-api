@@ -36,7 +36,7 @@ class AuthenticationServlet(app: EasyDepositApiApp) extends AuthenticationSuppor
       contentType = "text/html"
       <html>
         <body>
-          <form action="/auth" method="post">
+          <form action="/auth/signin" method="post">
             <p><label for="login">login id</label><input type="text" name="login" id="login" autofocus="true" /></p>
             <p><label for="password">password</label><input type="password" name="password" id="password"/></p>
             <p><input type="submit"/></p>
@@ -56,7 +56,7 @@ class AuthenticationServlet(app: EasyDepositApiApp) extends AuthenticationSuppor
     Ok("you are signed out")
   }
 
-  post("/") {
+  post("/signin") {
     authenticate()
     if (isAuthenticated) {
       Ok(s"signed in")

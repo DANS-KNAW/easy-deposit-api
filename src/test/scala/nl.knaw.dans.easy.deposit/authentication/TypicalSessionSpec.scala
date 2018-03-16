@@ -59,10 +59,10 @@ class TypicalSessionSpec extends TestSupportFixture with ServletFixture with Sca
     }
   }
 
-  "post /auth with invalid credentials" should "return 403 (forbidden)" in {
+  "post /auth/signin with invalid credentials" should "return 403 (forbidden)" in {
     (depositApp.authentication.getUser(_: String, _: String)) expects("foo", "bar") returning None
     post(
-      uri = "/auth",
+      uri = "/auth/signin",
       params = Seq(("login", "foo"), ("password", "bar"))
     ) {
       body shouldBe "invalid credentials"
@@ -72,11 +72,11 @@ class TypicalSessionSpec extends TestSupportFixture with ServletFixture with Sca
     }
   }
 
-  "post /auth with proper user-name password" should "create a protected cookie" in {
+  "post /auth/signin with proper user-name password" should "create a protected cookie" in {
     (depositApp.authentication.getUser(_: String, _: String)) expects("foo", "bar") returning
       Some(AuthUser("foo", isActive = true))
     post(
-      uri = "/auth",
+      uri = "/auth/signin",
       params = Seq(("login", "foo"), ("password", "bar"))
     ) {
       status shouldBe OK_200
@@ -103,14 +103,14 @@ class TypicalSessionSpec extends TestSupportFixture with ServletFixture with Sca
     }
   }
 
-  "post /auth with valid basic authentication" should "create a cookie" in {
+  "post /auth/signin with valid basic authentication" should "create a cookie" in {
     // allows testing with curl without having to bake a (JWT) cookie
     // alternative: configure to accept some test-cookie or one of the test users
 
     (depositApp.authentication.getUser(_: String, _: String)) expects("foo", "bar") returning
       Some(AuthUser("foo", isActive = true))
     post(
-      uri = "/auth",
+      uri = "/auth/signin",
       headers = Seq(("Authorization", fooBarBasicAuthHeader))
     ) {
       body shouldBe "signed in"
