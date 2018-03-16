@@ -33,7 +33,7 @@ class TypicalSessionSpec extends TestSupportFixture with ServletFixture with Sca
   }
 
   private def receivedToken = new TokenSupport() {
-    override def getTokenConfig: TokenConfig = TokenConfig()
+    override def getTokenConfig: TokenConfig = testTokenConfig
   }.encode(AuthUser("foo", isActive = true))
 
   addServlet(new EasyDepositApiServlet(depositApp), "/deposit/*")

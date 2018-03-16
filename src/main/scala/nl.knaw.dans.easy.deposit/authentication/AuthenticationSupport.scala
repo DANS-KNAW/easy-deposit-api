@@ -31,27 +31,53 @@ trait AuthenticationSupport extends ScalatraServlet
   with TokenSupport {
   self: ScalatraBase =>
 
-  /** read method name as: fromCookie, see scentryStore in configureScentry */
-  override protected def fromSession: PartialFunction[String, AuthUser] = {
-    case token: String =>
-      trace(token)
-      toUser(token)
-        .doIfFailure { case t => logger.info(s"invalid authentication: ${ t.getClass } ${ t.getMessage }") }
-        .getOrElse(null)
-  }
-
-  /** read method name as: toCookie, see scentryStore in configureScentry */
-  override protected def toSession: PartialFunction[AuthUser, String] = {
-    case user: AuthUser => encode(user)
-  }
-
   def getAuthenticationProvider: AuthenticationProvider
 
   def getCookieOptions: CookieOptions
 
-  override protected val scentryConfig: ScentryConfiguration = new ScentryConfig {
-    override val login = "/auth/signin"
-  }.asInstanceOf[ScentryConfiguration]
+  /** read method name as: fromCookie, see configured scentry.store */
+  override protected def fromSession: PartialFunction[String, AuthUser] = {
+    case token: String =>
+      trace(token)
+      decode(token)
+        .doIfSuccess { user => scentry.store.set(encode(user)) } // refresh cookie
+        .doIfFailure { case t => logger.info(s"invalid authentication: ${ t.getClass } ${ t.getMessage }") }
+        .getOrElse(null)
+  }
+
+  /** read method name as: toCookie, see configured scentry.store */
+  override protected def toSession: PartialFunction[AuthUser, String] = {
+    case user: AuthUser => encode(user)
+  }
+
+  override protected val scentryConfig: ScentryConfiguration =
+    new ScentryConfig {}.asInstanceOf[ScentryConfiguration]
+
+  /**
+   * If an unauthenticated user attempts to access a route which is protected by Scentry,
+   * run the unauthenticated() method on the UserPasswordStrategy.
+   */
+  override protected def configureScentry {
+
+    scentry.store = new CookieAuthStore(self)(getCookieOptions)
+
+    // TODO overridden by EasyBasicAuthStrategy.super Default if none of the strategies applied?
+    scentry.unauthenticated { scentry.strategies("UserPassword").unauthenticated() }
+  }
+
+  /**
+   * Register auth strategies with Scentry. Any controller with this trait mixed in will attempt to
+   * progressively use all registered strategies to log the user in, falling back if necessary.
+   */
+  override protected def registerAuthStrategies: Unit = {
+    scentry.register(UserPasswordStrategy.name, _ => new UserPasswordStrategy(self, getAuthenticationProvider))
+
+    // don't need a token/cookie strategy:
+    // scentry uses the configured scentry.store and the implementation of from/to-Session methods
+
+    // after user/password otherwise getUserId gets called even if isValid is false
+    scentry.register(EasyBasicAuthStrategy.name, _ => new EasyBasicAuthStrategy(self, getAuthenticationProvider, realm))
+  }
 
   def isAuthenticated: Boolean = {
     noMultipleAuthentications() // may come after calling ldap
@@ -86,30 +112,6 @@ trait AuthenticationSupport extends ScalatraServlet
       halt(BAD_REQUEST_400, "Invalid authentication")
     }
     trace(hasAuthCookie, authenticationHeaders, validStrategies.map(_.name))
-  }
-
-  /**
-   * If an unauthenticated user attempts to access a route which is protected by Scentry,
-   * run the unauthenticated() method on the UserPasswordStrategy.
-   */
-  override protected def configureScentry {
-
-    scentry.store = new CookieAuthStore(self)(getCookieOptions)
-
-    // TODO overridden by EasyBasicAuthStrategy.super Default if none of the strategies applied?
-    scentry.unauthenticated { scentry.strategies("UserPassword").unauthenticated() }
-  }
-
-  /**
-   * Register auth strategies with Scentry. Any controller with this trait mixed in will attempt to
-   * progressively use all registered strategies to log the user in, falling back if necessary.
-   */
-  override protected def registerAuthStrategies: Unit = {
-    // don't need a token strategy: AuthenticationSupport$$anonfun$fromSession can return null
-    scentry.register(UserPasswordStrategy.name, _ => new UserPasswordStrategy(self, getAuthenticationProvider))
-
-    // after user/password otherwise getUserId gets called even if isValid is false
-    scentry.register(EasyBasicAuthStrategy.name, _ => new EasyBasicAuthStrategy(self, getAuthenticationProvider, realm))
   }
 }
 object AuthenticationSupport {

@@ -17,9 +17,12 @@ package nl.knaw.dans.easy.deposit
 
 import better.files.File
 import better.files.File._
+import nl.knaw.dans.easy.deposit.authentication.TokenSupport
 import org.joda.time.{ DateTime, DateTimeUtils }
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{ BeforeAndAfterEach, FlatSpec, Inside, Matchers }
+import pdi.jwt.JwtAlgorithm.HS256
+import pdi.jwt.JwtOptions
 
 trait TestSupportFixture extends FlatSpec with Matchers with Inside with BeforeAndAfterEach with MockFactory {
 
@@ -33,4 +36,12 @@ trait TestSupportFixture extends FlatSpec with Matchers with Inside with BeforeA
   def mockDateTimeNow(value: String): Unit = {
     DateTimeUtils.setCurrentMillisFixed(new DateTime(value).getMillis)
   }
+
+  val testTokenConfig = TokenSupport.TokenConfig(
+    secretKey = "test",
+    expiresIn = 1,
+    algorithm = HS256,
+    options = JwtOptions.DEFAULT
+  )
+
 }

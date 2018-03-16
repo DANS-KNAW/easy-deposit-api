@@ -52,9 +52,9 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
   logger.info(s"tokenConfig: $tokenConfig")
 
   val authCookieOptions: CookieOptions = CookieOptions(
-    domain = "", // limit who gets the cookie, TODO configure
-    path = "/", // limit who gets the cookie, TODO configure and/or from mounts in Service class
-    maxAge = properties.getInt("auth.cookie.expiresIn", 20), // seconds; a cookie living longer than the jwt token currently might cause a stack trace
+    domain = "", // limit which server get the cookie, TODO configure
+    path = "/", // limit service gets the cookie, TODO configure and/or from mounts in Service class
+    maxAge = properties.getInt("auth.cookie.expiresIn", 20), // seconds; TODO reuse tokenExpiresIn and leeway instead?
     secure = false, // TODO true when service supports HTTPS to prevent browsers to send it over http
     httpOnly = true, // JavaScript can't get the cookie
     // version = 0 TODO obsolete? https://stackoverflow.com/questions/29124177/recommended-set-cookie-version-used-by-web-servers-0-1-or-2#29143128

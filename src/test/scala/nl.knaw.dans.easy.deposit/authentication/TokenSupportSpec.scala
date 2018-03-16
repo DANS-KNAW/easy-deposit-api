@@ -16,15 +16,16 @@
 package nl.knaw.dans.easy.deposit.authentication
 
 import nl.knaw.dans.easy.deposit.TestSupportFixture
+import nl.knaw.dans.easy.deposit.authentication.TokenSupport.TokenConfig
 
 import scala.util.Success
 
 class TokenSupportSpec extends TestSupportFixture with TokenSupport {
 
-  val getTokenConfig = TokenSupport.TokenConfig()
+  val getTokenConfig: TokenConfig = testTokenConfig
 
   "toUser" should "return encoded value" in {
     val user = AuthUser("foo", isActive = true)
-    toUser(encode(user)) shouldBe Success(user)
+    decode(encode(user)) shouldBe Success(user)
   }
 }

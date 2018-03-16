@@ -29,19 +29,20 @@ trait TokenSupport extends DebugEnhancedLogging {
   def getTokenConfig: TokenConfig
 
   def encode(user: AuthUser): String = {
-    // TODO Add audience, remote ip?
+    // TODO Add other user properties, audience=?=remote-ip?
+    // Claim.content can only have primitive members, not even lists
     val claim = JwtClaim(s"""{"uid":"${ user.id }"}""")
       .issuedNow
       .expiresIn(getTokenConfig.expiresIn)
     Jwt.encode(claim, getTokenConfig.secretKey, getTokenConfig.algorithm)
   }
 
-  def toUser(token: String): Try[AuthUser] = {
+  def decode(token: String): Try[AuthUser] = {
     for {
       decoded <- Jwt.decode(token, getTokenConfig.secretKey, Seq(getTokenConfig.algorithm))
       parsed <- fromJson(decoded)
     } yield AuthUser(parsed.uid, isActive = true)
-    // TODO user status might have changed since sign-up, retrieve status from ldap
+    // TODO user status might have changed since sign-up, retrieve and check status from ldap
   }
 }
 object TokenSupport {
