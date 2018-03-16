@@ -13,6 +13,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package nl.knaw.dans.easy.deposit.components
+package nl.knaw.dans.easy.deposit
 
-case class User(userId: String)
+import java.util.UUID
+
+import org.joda.time.DateTime
+
+/**
+ * Basic services for deposit handling.
+ */
+package object deposit {
+
+  object State extends Enumeration {
+    type State = Value
+    val DRAFT, SUBMITTED, IN_PROGRESS, REJECTED, ARCHIVED = Value
+  }
+  import State._
+
+  /**
+   * Summary information about a deposit.
+   */
+  case class DepositInfo(id: UUID, title: String, state: State, stateDescription: String, timestamp: DateTime)
+
+  case class StateInfo(state: State, stateDescription: String)
+}

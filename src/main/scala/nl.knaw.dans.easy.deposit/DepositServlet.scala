@@ -15,17 +15,10 @@
  */
 package nl.knaw.dans.easy.deposit
 
-import nl.knaw.dans.easy.deposit.components.User
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.scalatra.{ Ok, ScalatraServlet }
 
 class DepositServlet(app: EasyDepositApiApp) extends ScalatraServlet with DebugEnhancedLogging {
 
-  get("/") {
-    val user = User("user001")
-    val drafts = app.listDrafts(user)
-    // convert to JSON
-    val jsonResponse = ???
-    Ok(jsonResponse)
-  }
+
 }

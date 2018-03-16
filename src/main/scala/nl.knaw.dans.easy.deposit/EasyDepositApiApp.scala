@@ -16,9 +16,9 @@
 package nl.knaw.dans.easy.deposit
 
 import better.files.File
-import nl.knaw.dans.easy.deposit.components.DraftsComponent
 
-class EasyDepositApiApp(configuration: Configuration) extends DraftsComponent {
+
+class EasyDepositApiApp(configuration: Configuration)  {
   val draftRoot: File = File(configuration.properties.getString("deposits.drafts"))
 
 
