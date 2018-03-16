@@ -76,7 +76,7 @@ trait AuthenticationSupport extends ScalatraServlet
     // scentry uses the configured scentry.store and the implementation of from/to-Session methods
 
     // after user/password otherwise getUserId gets called even if isValid is false
-    scentry.register(EasyBasicAuthStrategy.name, _ => new EasyBasicAuthStrategy(self, getAuthenticationProvider, realm))
+    //scentry.register(EasyBasicAuthStrategy.name, _ => new EasyBasicAuthStrategy(self, getAuthenticationProvider, realm))
   }
 
   def isAuthenticated: Boolean = {

@@ -22,31 +22,31 @@ import org.scalatra.test.scalatest.ScalatraSuite
 
 class ServletsSpec extends TestSupportFixture with ServletFixture with ScalatraSuite {
 
-  val app: EasyDepositApiApp = new EasyDepositApiApp(new Configuration("test", new PropertiesConfiguration() {
+  val depositApp: EasyDepositApiApp = new EasyDepositApiApp(new Configuration("test", new PropertiesConfiguration() {
     addProperty("users.ldap-url", "ldap://hostDoesNotExist")
     addProperty("deposits.drafts", s"$testDir/drafts")
   })) {
     override val authentication: Authentication = mock[Authentication]
   }
 
-  addServlet(new EasyDepositApiServlet(app), "/deposit/*")
-  addServlet(new AuthenticationServlet(app), "/auth/*")
+  addServlet(new EasyDepositApiServlet(depositApp), "/deposit/*")
+  addServlet(new AuthenticationServlet(depositApp), "/auth/*")
 
   "get /deposit with valid basic authentication" should "be ok" ignore {
     // allows testing with curl without having to bake a (JWT) cookie
     // alternative: configure to accept some test-cookie or one of the test users
 
-    (app.authentication.getUser(_: String, _: String)) expects("foo", "bar") returning
+    (depositApp.authentication.getUser(_: String, _: String)) expects("foo", "bar") returning
       Some(AuthUser("foo", isActive = true))
     get(
       uri = "/deposit",
-      headers = Seq(("Authorization", "Basic foo:bar"))
+      headers = Seq(("Authorization", "Basic Zm9vOmJhcg=="))
     ) {
       // EasyBasicAuthStrategy.isValid logs true but stumbles in Scentry library class on:
       //    private[this] def _user(implicit request: HttpServletRequest): UserType =
       //      request.get(scentryAuthKey).orNull.asInstanceOf[UserType]
-      status shouldBe OK_200
       body shouldBe "EASY Deposit Api Service running..."
+      status shouldBe OK_200
     }
   }
 }

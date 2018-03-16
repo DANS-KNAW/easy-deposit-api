@@ -81,7 +81,40 @@ class TypicalSessionSpec extends TestSupportFixture with ServletFixture with Sca
     ) {
       status shouldBe OK_200
       body shouldBe "signed in"
-      header("REMOTE_USER") shouldBe "foo"
+      header("Content-Type") shouldBe "text/plain;charset=UTF-8"
+      header("Expires") shouldBe "Thu, 01 Jan 1970 00:00:00 GMT" // page cache
+      val newCookie = header("Set-Cookie")
+      newCookie should startWith("scentry.auth.default.user=")
+      newCookie should include(";Path=/")
+      newCookie should include(";HttpOnly")
+
+      // check cookie expiration
+      val expiresString = newCookie
+        .replaceAll(".*Expires=", "")
+        .replaceAll(";.*", "")
+      val expiresLong = DateTimeFormat
+        .forPattern("EEE, dd-MMM-yyyy HH:mm:ss zzz")
+        .parseDateTime(expiresString)
+        .getMillis
+      val cookieAge = expiresLong -
+        (depositApp.authCookieOptions.maxAge * 1000) -
+        System.currentTimeMillis
+      cookieAge should be < 1000L
+    }
+  }
+
+  "post /auth with valid basic authentication" should "create a cookie" in {
+    // allows testing with curl without having to bake a (JWT) cookie
+    // alternative: configure to accept some test-cookie or one of the test users
+
+    (depositApp.authentication.getUser(_: String, _: String)) expects("foo", "bar") returning
+      Some(AuthUser("foo", isActive = true))
+    post(
+      uri = "/auth",
+      headers = Seq(("Authorization", "Basic Zm9vOmJhcg=="))
+    ) {
+      body shouldBe "signed in"
+      status shouldBe OK_200
       header("Content-Type") shouldBe "text/plain;charset=UTF-8"
       header("Expires") shouldBe "Thu, 01 Jan 1970 00:00:00 GMT" // page cache
       val newCookie = header("Set-Cookie")
