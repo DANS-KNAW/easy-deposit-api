@@ -32,7 +32,7 @@ class ServletsSpec extends TestSupportFixture with ServletFixture with ScalatraS
   addServlet(new EasyDepositApiServlet(depositApp), "/deposit/*")
   addServlet(new AuthenticationServlet(depositApp), "/auth/*")
 
-  "get /deposit with valid basic authentication" should "be ok" ignore {
+  "get /deposit with valid basic authentication" should "be ok" in {
     // allows testing with curl without having to bake a (JWT) cookie
     // alternative: configure to accept some test-cookie or one of the test users
 
@@ -42,10 +42,8 @@ class ServletsSpec extends TestSupportFixture with ServletFixture with ScalatraS
       uri = "/deposit",
       headers = Seq(("Authorization", fooBarBasicAuthHeader))
     ) {
-      // EasyBasicAuthStrategy.isValid logs true but stumbles in Scentry library class on:
-      //    private[this] def _user(implicit request: HttpServletRequest): UserType =
-      //      request.get(scentryAuthKey).orNull.asInstanceOf[UserType]
-      body shouldBe "EASY Deposit Api Service running..."
+      body should startWith("AuthUser(foo,List(),List(),true) ")
+      body should endWith(" EASY Deposit API Service running (test)")
       status shouldBe OK_200
     }
   }

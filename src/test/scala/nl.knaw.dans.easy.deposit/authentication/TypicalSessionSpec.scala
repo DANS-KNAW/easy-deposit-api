@@ -107,7 +107,7 @@ class TypicalSessionSpec extends TestSupportFixture with ServletFixture with Sca
     // allows testing with curl without having to bake a (JWT) cookie
     // alternative: configure to accept some test-cookie or one of the test users
 
-    (depositApp.authentication.getUser(_: String, _: String)) expects("foo", "bar") twice() returning
+    (depositApp.authentication.getUser(_: String, _: String)) expects("foo", "bar") returning
       Some(AuthUser("foo", isActive = true))
     post(
       uri = "/auth",

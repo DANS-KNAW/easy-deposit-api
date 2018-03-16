@@ -19,7 +19,6 @@ import javax.servlet.http.{ HttpServletRequest, HttpServletResponse }
 
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.scalatra.auth.ScentryStrategy
-import org.scalatra.auth.strategy.BasicAuthStrategy.BasicAuthRequest
 
 object UserPasswordStrategy {}
 
@@ -38,9 +37,8 @@ class UserPasswordStrategy(protected override val app: AuthenticationSupport,
 
   /** @return true if this strategy should be run. */
   override def isValid(implicit request: HttpServletRequest): Boolean = {
-    val r = new BasicAuthRequest(request)
-    val shouldExecute = (formFieldLogin != "" && formFieldPassword != "") || (r.isBasicAuth && r.credentials.isDefined)
-    trace(name, shouldExecute, r)
+    val shouldExecute = formFieldLogin != "" && formFieldPassword != ""
+    trace(name, shouldExecute, request)
     shouldExecute
   }
 
@@ -48,12 +46,8 @@ class UserPasswordStrategy(protected override val app: AuthenticationSupport,
                            (implicit request: HttpServletRequest,
                             response: HttpServletResponse
                            ): Option[AuthUser] = {
-    val r = new BasicAuthRequest(request)
     trace(name, formFieldLogin)
-    if (r.isBasicAuth && r.credentials.isDefined)
-      authenticationProvider.getUser(r.username, r.password)
-    else
-      authenticationProvider.getUser(formFieldLogin, formFieldPassword)
+    authenticationProvider.getUser(formFieldLogin, formFieldPassword)
   }
 }
 

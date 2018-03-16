@@ -29,6 +29,7 @@ abstract class AbstractProtectedServlet(app: EasyDepositApiApp) extends Authenti
   override def getTokenConfig: TokenConfig = app.tokenConfig
 
   before() {
+    authenticate()
     if (!isAuthenticated) {
       halt(HttpStatus.FORBIDDEN_403, "missing, invalid or expired credentials")
     }

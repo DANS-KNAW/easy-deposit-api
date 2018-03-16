@@ -29,7 +29,7 @@ class AuthenticationServlet(app: EasyDepositApiApp) extends AuthenticationSuppor
   override def getTokenConfig: TokenConfig = app.tokenConfig
 
   get("/signin") {
-    // for manual tests with a browser without a user interface
+    // to manually test the UserPasswordStrategy with a browser but no user interface
     if (isAuthenticated)
       Ok(s"$user is signed in, ${ new DateTime() }")
     else {

@@ -63,7 +63,7 @@ trait AuthenticationSupport extends ScalatraServlet
 
     scentry.store = new CookieAuthStore(self)(getCookieOptions)
 
-    // TODO overridden by EasyBasicAuthStrategy.super Default if none of the strategies applied?
+    // TODO Default if none of the strategies applied? Overridden by EasyBasicAuthStrategy.super
     scentry.unauthenticated { scentry.strategies(UserPasswordStrategy.getClass.getSimpleName).unauthenticated() }
   }
 
@@ -73,12 +73,10 @@ trait AuthenticationSupport extends ScalatraServlet
    */
   override protected def registerAuthStrategies: Unit = {
     scentry.register(UserPasswordStrategy.getClass.getSimpleName, _ => new UserPasswordStrategy(self, getAuthenticationProvider))
+    scentry.register(EasyBasicAuthStrategy.getClass.getSimpleName, _ => new EasyBasicAuthStrategy(self, getAuthenticationProvider, realm))
 
     // don't need a token/cookie strategy:
     // scentry uses the configured scentry.store and the implementation of from/to-Session methods
-
-    // after user/password otherwise getUserId gets called even if isValid is false
-    scentry.register(EasyBasicAuthStrategy.getClass.getSimpleName, _ => new EasyBasicAuthStrategy(self, getAuthenticationProvider, realm))
   }
 
   override protected def isAuthenticated(implicit request: HttpServletRequest): Boolean = {
@@ -86,7 +84,7 @@ trait AuthenticationSupport extends ScalatraServlet
     scentry.isAuthenticated
   }
 
-  // ScentrySupport is following an anti-pattern: without this override I would get inconsistent behavior
+  // ScentrySupport is following an anti-pattern: without this override we would get inconsistent behavior
   override protected def isAnonymous(implicit request: HttpServletRequest): Boolean = !isAuthenticated
 
   override protected def authenticate()(implicit request: HttpServletRequest, response: HttpServletResponse): Option[AuthUser] = {
@@ -107,7 +105,6 @@ trait AuthenticationSupport extends ScalatraServlet
     val validStrategies = scentry.strategies.values.filter(_.isValid)
     if ((hasAuthCookie, validStrategies.size, authenticationHeaders.size) match {
       case (false, 0, 0) => false
-      case (false, 2, 1) => false // basic auth makes both strategies valid
       case (true, 0, 0) => false
       case (true, 1, _) => true
       case (true, _, 1) => true
