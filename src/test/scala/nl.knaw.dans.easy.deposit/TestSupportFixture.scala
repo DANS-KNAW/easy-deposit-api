@@ -37,6 +37,9 @@ trait TestSupportFixture extends FlatSpec with Matchers with Inside with BeforeA
     DateTimeUtils.setCurrentMillisFixed(new DateTime(value).getMillis)
   }
 
+  /** Base64 encoded foo:bar */
+  val fooBarBasicAuthHeader = "Basic Zm9vOmJhcg=="
+
   val testTokenConfig = TokenSupport.TokenConfig(
     secretKey = "test",
     expiresIn = 1,

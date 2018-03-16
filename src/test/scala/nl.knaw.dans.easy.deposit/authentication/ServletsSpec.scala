@@ -40,7 +40,7 @@ class ServletsSpec extends TestSupportFixture with ServletFixture with ScalatraS
       Some(AuthUser("foo", isActive = true))
     get(
       uri = "/deposit",
-      headers = Seq(("Authorization", "Basic Zm9vOmJhcg=="))
+      headers = Seq(("Authorization", fooBarBasicAuthHeader))
     ) {
       // EasyBasicAuthStrategy.isValid logs true but stumbles in Scentry library class on:
       //    private[this] def _user(implicit request: HttpServletRequest): UserType =

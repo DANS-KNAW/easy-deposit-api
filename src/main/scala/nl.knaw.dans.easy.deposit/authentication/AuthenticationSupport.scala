@@ -15,6 +15,8 @@
  */
 package nl.knaw.dans.easy.deposit.authentication
 
+import javax.servlet.http.{ HttpServletRequest, HttpServletResponse }
+
 import nl.knaw.dans.easy.deposit.authentication.AuthenticationSupport._
 import nl.knaw.dans.lib.error._
 import org.eclipse.jetty.http.HttpStatus._
@@ -62,7 +64,7 @@ trait AuthenticationSupport extends ScalatraServlet
     scentry.store = new CookieAuthStore(self)(getCookieOptions)
 
     // TODO overridden by EasyBasicAuthStrategy.super Default if none of the strategies applied?
-    scentry.unauthenticated { scentry.strategies("UserPassword").unauthenticated() }
+    scentry.unauthenticated { scentry.strategies(UserPasswordStrategy.getClass.getSimpleName).unauthenticated() }
   }
 
   /**
@@ -70,21 +72,24 @@ trait AuthenticationSupport extends ScalatraServlet
    * progressively use all registered strategies to log the user in, falling back if necessary.
    */
   override protected def registerAuthStrategies: Unit = {
-    scentry.register(UserPasswordStrategy.name, _ => new UserPasswordStrategy(self, getAuthenticationProvider))
+    scentry.register(UserPasswordStrategy.getClass.getSimpleName, _ => new UserPasswordStrategy(self, getAuthenticationProvider))
 
     // don't need a token/cookie strategy:
     // scentry uses the configured scentry.store and the implementation of from/to-Session methods
 
     // after user/password otherwise getUserId gets called even if isValid is false
-    //scentry.register(EasyBasicAuthStrategy.name, _ => new EasyBasicAuthStrategy(self, getAuthenticationProvider, realm))
+    scentry.register(EasyBasicAuthStrategy.getClass.getSimpleName, _ => new EasyBasicAuthStrategy(self, getAuthenticationProvider, realm))
   }
 
-  def isAuthenticated: Boolean = {
+  override protected def isAuthenticated(implicit request: HttpServletRequest): Boolean = {
     noMultipleAuthentications() // may come after calling ldap
     scentry.isAuthenticated
   }
 
-  def authenticate(): Option[AuthUser] = {
+  // ScentrySupport is following an anti-pattern: without this override I would get inconsistent behavior
+  override protected def isAnonymous(implicit request: HttpServletRequest): Boolean = !isAuthenticated
+
+  override protected def authenticate()(implicit request: HttpServletRequest, response: HttpServletResponse): Option[AuthUser] = {
     noMultipleAuthentications() // comes before calling ldap
     scentry.authenticate()
   }
@@ -102,13 +107,14 @@ trait AuthenticationSupport extends ScalatraServlet
     val validStrategies = scentry.strategies.values.filter(_.isValid)
     if ((hasAuthCookie, validStrategies.size, authenticationHeaders.size) match {
       case (false, 0, 0) => false
+      case (false, 2, 1) => false // basic auth makes both strategies valid
       case (true, 0, 0) => false
       case (true, 1, _) => true
       case (true, _, 1) => true
       case (_, nrOfStrategies, nrOfHeaders) if nrOfStrategies > 1 || nrOfHeaders > 1 => true
       case _ => false
     }) {
-      logger.info(s"hasAuthCookie=$hasAuthCookie and/or authentication headers [$authenticationHeaders] and/or methods [${ validStrategies.map(_.name) }]")
+      logger.info(s"Client specified multiple authentications: hasAuthCookie=$hasAuthCookie, authentication headers [$authenticationHeaders], strategies [${ validStrategies.map(_.name) }]")
       halt(BAD_REQUEST_400, "Invalid authentication")
     }
     trace(hasAuthCookie, authenticationHeaders, validStrategies.map(_.name))

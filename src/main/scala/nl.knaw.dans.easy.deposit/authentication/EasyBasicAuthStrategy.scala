@@ -20,27 +20,26 @@ import javax.servlet.http.{ HttpServletRequest, HttpServletResponse }
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.scalatra.auth.strategy.BasicAuthStrategy
 
-object EasyBasicAuthStrategy {
-  val name = "EasyBasicAuth"
-}
+object EasyBasicAuthStrategy {}
+
 class EasyBasicAuthStrategy(protected override val app: AuthenticationSupport,
                             authenticationProvider: AuthenticationProvider,
                             realm: String
                            ) extends BasicAuthStrategy[AuthUser](app, realm)
   with DebugEnhancedLogging {
 
-  override def name: String = EasyBasicAuthStrategy.name
+  override def name: String = getClass.getSimpleName
 
   /** @return true if this strategy should be run. */
   override def isValid(implicit request: HttpServletRequest): Boolean = {
     val shouldExecute = super.isValid
-    trace(shouldExecute, name)
+    trace(name, shouldExecute)
     shouldExecute
   }
 
   override def authenticate()(implicit request: HttpServletRequest, response: HttpServletResponse): Option[AuthUser] = {
     val maybeUser = super.authenticate()
-    trace(maybeUser)
+    trace(name, maybeUser)
     maybeUser
   }
 

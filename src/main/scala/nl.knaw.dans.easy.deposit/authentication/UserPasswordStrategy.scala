@@ -21,9 +21,8 @@ import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.scalatra.auth.ScentryStrategy
 import org.scalatra.auth.strategy.BasicAuthStrategy.BasicAuthRequest
 
-object UserPasswordStrategy {
-  val name = "UserPassword"
-}
+object UserPasswordStrategy {}
+
 class UserPasswordStrategy(protected override val app: AuthenticationSupport,
                            authenticationProvider: AuthenticationProvider
                           )(implicit request: HttpServletRequest,
@@ -31,7 +30,7 @@ class UserPasswordStrategy(protected override val app: AuthenticationSupport,
   extends ScentryStrategy[AuthUser]
     with DebugEnhancedLogging {
 
-  override def name: String = UserPasswordStrategy.name
+  override def name: String = getClass.getSimpleName
 
   private def formFieldLogin: String = app.params.getOrElse("login", "")
 
@@ -41,7 +40,7 @@ class UserPasswordStrategy(protected override val app: AuthenticationSupport,
   override def isValid(implicit request: HttpServletRequest): Boolean = {
     val r = new BasicAuthRequest(request)
     val shouldExecute = (formFieldLogin != "" && formFieldPassword != "") || (r.isBasicAuth && r.credentials.isDefined)
-    trace(shouldExecute, name, r)
+    trace(name, shouldExecute, r)
     shouldExecute
   }
 

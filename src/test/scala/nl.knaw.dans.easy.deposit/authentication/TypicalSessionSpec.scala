@@ -65,8 +65,8 @@ class TypicalSessionSpec extends TestSupportFixture with ServletFixture with Sca
       uri = "/auth",
       params = Seq(("login", "foo"), ("password", "bar"))
     ) {
-      status shouldBe FORBIDDEN_403
       body shouldBe "invalid credentials"
+      status shouldBe FORBIDDEN_403
       header("Content-Type") shouldBe "text/plain;charset=UTF-8"
       Option(header("Set-Cookie")) shouldBe None
     }
@@ -107,11 +107,11 @@ class TypicalSessionSpec extends TestSupportFixture with ServletFixture with Sca
     // allows testing with curl without having to bake a (JWT) cookie
     // alternative: configure to accept some test-cookie or one of the test users
 
-    (depositApp.authentication.getUser(_: String, _: String)) expects("foo", "bar") returning
+    (depositApp.authentication.getUser(_: String, _: String)) expects("foo", "bar") twice() returning
       Some(AuthUser("foo", isActive = true))
     post(
       uri = "/auth",
-      headers = Seq(("Authorization", "Basic Zm9vOmJhcg=="))
+      headers = Seq(("Authorization", fooBarBasicAuthHeader))
     ) {
       body shouldBe "signed in"
       status shouldBe OK_200

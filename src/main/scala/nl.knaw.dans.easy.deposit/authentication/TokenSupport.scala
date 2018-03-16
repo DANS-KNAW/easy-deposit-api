@@ -46,7 +46,7 @@ trait TokenSupport extends DebugEnhancedLogging {
   }
 }
 object TokenSupport {
-  case class TokenConfig(secretKey: String = "test", // TODO change type to SecretKey?
+  case class TokenConfig(secretKey: String, // TODO change type to SecretKey?
                          expiresIn: Int = 60 * 60, // one hour
                          algorithm: JwtHmacAlgorithm = HS256,
                          options: JwtOptions = JwtOptions.DEFAULT
