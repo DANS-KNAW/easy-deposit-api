@@ -34,6 +34,7 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
   private val properties: PropertiesConfiguration = configuration.properties
 
   private def toHmacAlgorithm(value: String): JwtHmacAlgorithm = {
+    // TODO confine use of the library to TokenSupport for easy replacement in case of trouble with the library
     Try {
       JwtAlgorithm.fromString(value).asInstanceOf[JwtHmacAlgorithm]
     }.getOrRecover { t => throw new Exception(s"asymmetrical or unknown JwtHmacAlgorithm configured [$value]: $t") }
@@ -41,23 +42,23 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
 
   val draftRoot: File = File(properties.getString("deposits.drafts"))
 
-  //60 * 60) // default one hour
+  private val expiresIn: Int = properties.getInt("auth.cookie.expiresIn", 10)
 
   val tokenConfig = TokenConfig(
-    secretKey = properties.getString("auth.jwt.seceret.key", "test"), // TODO Change type to SecretKey? Really in application.properties?
-    expiresIn = properties.getInt("auth.jwt.expiresIn", 10), // seconds
+    secretKey = properties.getString("auth.jwt.secret.key", "test"), // TODO Change type to SecretKey? Really in application.properties?
+    expiresIn = expiresIn, // seconds
     algorithm = toHmacAlgorithm(properties.getString("auth.jwt.hmac.algorithm", "HS256")),
-    options = JwtOptions.DEFAULT // among others: leeway (client and server clock might be ot of sync)
+    options = JwtOptions(leeway = 10 ) // JWT lives 10 seconds longer than cookie
   )
   logger.info(s"tokenConfig: $tokenConfig")
 
   val authCookieOptions: CookieOptions = CookieOptions(
-    domain = "", // limit which server get the cookie, TODO configure
-    path = "/", // limit service gets the cookie, TODO configure and/or from mounts in Service class
-    maxAge = properties.getInt("auth.cookie.expiresIn", 20), // seconds; TODO reuse tokenExpiresIn and leeway instead?
+    domain = "", // limits which server get the cookie // TODO by default the host who sent it?
+    path = "/", // limits which route gets the cookie, TODO configure and/or from mounts in Service class
+    maxAge = expiresIn, // seconds
     secure = false, // TODO true when service supports HTTPS to prevent browsers to send it over http
     httpOnly = true, // JavaScript can't get the cookie
-    // version = 0 TODO obsolete? https://stackoverflow.com/questions/29124177/recommended-set-cookie-version-used-by-web-servers-0-1-or-2#29143128
+    // version = 0 // obsolete? https://stackoverflow.com/questions/29124177/recommended-set-cookie-version-used-by-web-servers-0-1-or-2#29143128
   )
   logger.info(s"authCookieOptions: $authCookieOptions")
 
