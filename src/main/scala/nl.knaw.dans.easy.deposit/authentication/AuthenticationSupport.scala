@@ -37,12 +37,10 @@ trait AuthenticationSupport extends ScalatraServlet
 
   /** read method name as: fromCookie, see configured scentry.store */
   override protected def fromSession: PartialFunction[String, AuthUser] = {
-    case token: String =>
-      trace(token)
-      decodeJWT(token)
-        .doIfSuccess { user => scentry.store.set(encodeJWT(user)) } // refresh cookie
-        .doIfFailure { case t => logger.info(s"invalid authentication: ${ t.getClass } ${ t.getMessage }") }
-        .getOrElse(null)
+    case token: String => decodeJWT(token)
+      .doIfSuccess { user => scentry.store.set(encodeJWT(user)) } // refresh cookie
+      .doIfFailure { case t => logger.info(s"invalid authentication: ${ t.getClass } ${ t.getMessage }") }
+      .getOrElse(null)
   }
 
   /** read method name as: toCookie, see configured scentry.store */
@@ -98,7 +96,6 @@ trait AuthenticationSupport extends ScalatraServlet
       .filter(h => headers.contains(h))
 
     val hasAuthCookie = request.getCookies.exists(_.getName == Scentry.scentryAuthKey)
-    trace(hasAuthCookie, authenticationHeaders)
     val validStrategies = scentry.strategies.values.filter(_.isValid)
     if ((hasAuthCookie, validStrategies.size, authenticationHeaders.size) match {
       case (false, 0, 0) => false
@@ -111,7 +108,6 @@ trait AuthenticationSupport extends ScalatraServlet
       logger.info(s"Client specified multiple authentications: hasAuthCookie=$hasAuthCookie, authentication headers [$authenticationHeaders], strategies [${ validStrategies.map(_.name) }]")
       halt(BAD_REQUEST_400, "Invalid authentication")
     }
-    trace(super.getClass.getSimpleName, hasAuthCookie, authenticationHeaders, validStrategies.map(_.name))
   }
 }
 object AuthenticationSupport {

@@ -48,7 +48,7 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
     secretKey = properties.getString("auth.jwt.secret.key", "test"), // TODO Change type to SecretKey? Really in application.properties?
     expiresIn = expiresIn, // seconds
     algorithm = toHmacAlgorithm(properties.getString("auth.jwt.hmac.algorithm", "HS256")),
-    options = JwtOptions(leeway = 10 ) // JWT lives 10 seconds longer than cookie
+    options = JwtOptions(leeway = 10) // JWT lives 10 seconds longer than cookie
   )
   logger.info(s"tokenConfig: $tokenConfig")
 

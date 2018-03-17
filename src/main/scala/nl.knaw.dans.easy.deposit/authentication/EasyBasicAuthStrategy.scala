@@ -30,31 +30,16 @@ class EasyBasicAuthStrategy(protected override val app: AuthenticationSupport,
 
   override def name: String = getClass.getSimpleName
 
-  /** @return true if this strategy should be run. */
-  override def isValid(implicit request: HttpServletRequest): Boolean = {
-    val shouldExecute = super.isValid
-    trace(name, shouldExecute)
-    shouldExecute
-  }
-
-  override def authenticate()(implicit request: HttpServletRequest, response: HttpServletResponse): Option[AuthUser] = {
-    val maybeUser = super.authenticate()
-    trace(name, maybeUser)
-    maybeUser
-  }
-
   protected def validate(userName: String,
                          password: String)
                         (implicit request: HttpServletRequest,
                          response: HttpServletResponse
                         ): Option[AuthUser] = {
-    trace(userName)
     authenticationProvider.getUser(userName, password)
   }
 
   protected def getUserId(user: AuthUser)
                          (implicit request: HttpServletRequest, response: HttpServletResponse): String = {
-    trace(user, super.isValid)
     user.id
   }
 }

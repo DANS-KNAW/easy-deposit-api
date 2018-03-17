@@ -37,16 +37,13 @@ class UserPasswordStrategy(protected override val app: AuthenticationSupport,
 
   /** @return true if this strategy should be run. */
   override def isValid(implicit request: HttpServletRequest): Boolean = {
-    val shouldExecute = formFieldLogin != "" && formFieldPassword != ""
-    trace(name, shouldExecute, request)
-    shouldExecute
+    formFieldLogin != "" && formFieldPassword != ""
   }
 
   override def authenticate()
                            (implicit request: HttpServletRequest,
                             response: HttpServletResponse
                            ): Option[AuthUser] = {
-    trace(name, formFieldLogin)
     authenticationProvider.getUser(formFieldLogin, formFieldPassword)
   }
 }
