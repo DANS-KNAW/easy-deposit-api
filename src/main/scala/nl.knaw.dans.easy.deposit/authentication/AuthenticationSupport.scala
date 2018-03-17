@@ -15,8 +15,6 @@
  */
 package nl.knaw.dans.easy.deposit.authentication
 
-import javax.servlet.http.{ HttpServletRequest, HttpServletResponse }
-
 import nl.knaw.dans.easy.deposit.authentication.AuthenticationSupport._
 import nl.knaw.dans.lib.error._
 import org.eclipse.jetty.http.HttpStatus._
@@ -41,15 +39,15 @@ trait AuthenticationSupport extends ScalatraServlet
   override protected def fromSession: PartialFunction[String, AuthUser] = {
     case token: String =>
       trace(token)
-      decode(token)
-        .doIfSuccess { user => scentry.store.set(encode(user)) } // refresh cookie
+      decodeJWT(token)
+        .doIfSuccess { user => scentry.store.set(encodeJWT(user)) } // refresh cookie
         .doIfFailure { case t => logger.info(s"invalid authentication: ${ t.getClass } ${ t.getMessage }") }
         .getOrElse(null)
   }
 
   /** read method name as: toCookie, see configured scentry.store */
   override protected def toSession: PartialFunction[AuthUser, String] = {
-    case user: AuthUser => encode(user)
+    case user: AuthUser => encodeJWT(user)
   }
 
   override protected val scentryConfig: ScentryConfiguration =
@@ -75,23 +73,22 @@ trait AuthenticationSupport extends ScalatraServlet
     scentry.register(UserPasswordStrategy.getClass.getSimpleName, _ => new UserPasswordStrategy(self, getAuthenticationProvider))
     scentry.register(EasyBasicAuthStrategy.getClass.getSimpleName, _ => new EasyBasicAuthStrategy(self, getAuthenticationProvider, realm))
 
-    // don't need a token/cookie strategy:
+    // don't need a cookie-with-token strategy:
     // scentry uses the configured scentry.store and the implementation of from/to-Session methods
   }
 
-  override protected def isAuthenticated(implicit request: HttpServletRequest): Boolean = {
-    noMultipleAuthentications() // may come after calling ldap
-    scentry.isAuthenticated
+  before() {
+    noMultipleAuthentications()
+
+    // a decent client would not provide credentials to logout
+    // so no pointless ldap access
+    authenticate()
   }
 
-  // ScentrySupport is following an anti-pattern: without this override we would get inconsistent behavior
-  override protected def isAnonymous(implicit request: HttpServletRequest): Boolean = !isAuthenticated
-
-  override protected def authenticate()(implicit request: HttpServletRequest, response: HttpServletResponse): Option[AuthUser] = {
-    noMultipleAuthentications() // comes before calling ldap
-    scentry.authenticate()
-  }
-
+  /**
+   * Whether a route needs protection or not
+   * a client providing multiple authentications should not be trusted
+   */
   private def noMultipleAuthentications(): Unit = {
 
     // size >=1 means EasyBasicAuthStrategy is valid
@@ -114,7 +111,7 @@ trait AuthenticationSupport extends ScalatraServlet
       logger.info(s"Client specified multiple authentications: hasAuthCookie=$hasAuthCookie, authentication headers [$authenticationHeaders], strategies [${ validStrategies.map(_.name) }]")
       halt(BAD_REQUEST_400, "Invalid authentication")
     }
-    trace(hasAuthCookie, authenticationHeaders, validStrategies.map(_.name))
+    trace(super.getClass.getSimpleName, hasAuthCookie, authenticationHeaders, validStrategies.map(_.name))
   }
 }
 object AuthenticationSupport {

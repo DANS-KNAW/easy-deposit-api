@@ -33,9 +33,6 @@ class ServletsSpec extends TestSupportFixture with ServletFixture with ScalatraS
   addServlet(new AuthenticationServlet(depositApp), "/auth/*")
 
   "get /deposit with valid basic authentication" should "be ok" in {
-    // allows testing with curl without having to bake a (JWT) cookie
-    // alternative: configure to accept some test-cookie or one of the test users
-
     (depositApp.authentication.getUser(_: String, _: String)) expects("foo", "bar") returning
       Some(AuthUser("foo", isActive = true))
     get(
@@ -44,6 +41,23 @@ class ServletsSpec extends TestSupportFixture with ServletFixture with ScalatraS
     ) {
       body should startWith("AuthUser(foo,List(),List(),true) ")
       body should endWith(" EASY Deposit API Service running (test)")
+      header("REMOTE_USER") shouldBe "foo"
+      header("Set-Cookie") should startWith("scentry.auth.default.user=")
+      header("Set-Cookie") shouldNot startWith("scentry.auth.default.user=;") // note the empty value
+      status shouldBe OK_200
+    }
+  }
+
+  "get /auth/logout with valid basic authentication" should "clear and not create a cookie" in {
+    (depositApp.authentication.getUser(_: String, _: String)) expects("foo", "bar") returning
+      Some(AuthUser("foo", isActive = true))
+    get(
+      uri = "/auth/logout",
+      headers = Seq(("Authorization", fooBarBasicAuthHeader))
+    ) {
+      body shouldBe "you are signed out"
+      header("REMOTE_USER") shouldBe ""
+      header("Set-Cookie") should startWith("scentry.auth.default.user=;")
       status shouldBe OK_200
     }
   }

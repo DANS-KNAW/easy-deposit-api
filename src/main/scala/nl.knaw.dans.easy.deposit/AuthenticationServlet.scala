@@ -57,7 +57,6 @@ class AuthenticationServlet(app: EasyDepositApiApp) extends AuthenticationSuppor
   }
 
   post("/login") {
-    authenticate()
     if (isAuthenticated) {
       Ok(s"signed in")
     }

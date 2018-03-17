@@ -26,6 +26,6 @@ class TokenSupportSpec extends TestSupportFixture with TokenSupport {
 
   "toUser" should "return encoded value" in {
     val user = AuthUser("foo", isActive = true)
-    decode(encode(user)) shouldBe Success(user)
+    decodeJWT(encodeJWT(user)) shouldBe Success(user)
   }
 }

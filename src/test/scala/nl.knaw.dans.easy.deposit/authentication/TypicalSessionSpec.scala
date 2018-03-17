@@ -35,7 +35,7 @@ class TypicalSessionSpec extends TestSupportFixture with ServletFixture with Sca
 
   private def receivedToken = new TokenSupport() {
     override def getTokenConfig: TokenConfig = testTokenConfig
-  }.encode(AuthUser("foo", isActive = true))
+  }.encodeJWT(AuthUser("foo", isActive = true))
 
   addServlet(new EasyDepositApiServlet(depositApp), "/deposit/*")
   addServlet(new AuthenticationServlet(depositApp), "/auth/*")
@@ -84,6 +84,7 @@ class TypicalSessionSpec extends TestSupportFixture with ServletFixture with Sca
       body shouldBe "signed in"
       header("Content-Type") shouldBe "text/plain;charset=UTF-8"
       header("Expires") shouldBe "Thu, 01 Jan 1970 00:00:00 GMT" // page cache
+      header("REMOTE_USER") shouldBe "foo"
       val newCookie = header("Set-Cookie")
       newCookie should startWith("scentry.auth.default.user=")
       newCookie should include(";Path=/")
@@ -118,6 +119,7 @@ class TypicalSessionSpec extends TestSupportFixture with ServletFixture with Sca
       status shouldBe OK_200
       header("Content-Type") shouldBe "text/plain;charset=UTF-8"
       header("Expires") shouldBe "Thu, 01 Jan 1970 00:00:00 GMT" // page cache
+      header("REMOTE_USER") shouldBe "foo"
       val newCookie = header("Set-Cookie")
       newCookie should startWith("scentry.auth.default.user=")
       newCookie should include(";Path=/")
@@ -147,6 +149,7 @@ class TypicalSessionSpec extends TestSupportFixture with ServletFixture with Sca
       headers = Seq(("Cookie", s"${ Scentry.scentryAuthKey }=$receivedToken"))
     ) {
       status shouldBe OK_200
+      Option(header("REMOTE_USER")) shouldBe None
       body should startWith("AuthUser(foo,List(),List(),true) ")
       body should endWith(" EASY Deposit API Service running (test)")
     }
@@ -162,6 +165,7 @@ class TypicalSessionSpec extends TestSupportFixture with ServletFixture with Sca
       status shouldBe OK_200
       header("Content-Type") shouldBe "text/plain;charset=UTF-8"
       header("Expires") shouldBe "Thu, 01 Jan 1970 00:00:00 GMT" // page cache
+      header("REMOTE_USER") shouldBe ""
       val newCookie = header("Set-Cookie")
       newCookie should startWith("scentry.auth.default.user=;") // note the empty value
       newCookie should include(";Path=/")

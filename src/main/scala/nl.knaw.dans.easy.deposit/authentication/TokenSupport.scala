@@ -28,7 +28,7 @@ import scala.util.{ Failure, Try }
 trait TokenSupport extends DebugEnhancedLogging {
   def getTokenConfig: TokenConfig
 
-  def encode(user: AuthUser): String = {
+  def encodeJWT(user: AuthUser): String = {
     // TODO Add other user properties, audience=?=remote-ip?
     // Claim.content can only have primitive members, not even lists
     val claim = JwtClaim(s"""{"uid":"${ user.id }"}""")
@@ -37,7 +37,7 @@ trait TokenSupport extends DebugEnhancedLogging {
     Jwt.encode(claim, getTokenConfig.secretKey, getTokenConfig.algorithm)
   }
 
-  def decode(token: String): Try[AuthUser] = {
+  def decodeJWT(token: String): Try[AuthUser] = {
     for {
       decoded <- Jwt.decode(token, getTokenConfig.secretKey, Seq(getTokenConfig.algorithm))
       parsed <- fromJson(decoded)
