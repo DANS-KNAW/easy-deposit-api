@@ -6,6 +6,6 @@ github_username: DANS-KNAW
 
 # Build settings
 markdown: kramdown
-theme: jekyll-theme-minimal
+theme: jekyll-theme-tactile
 plugins:
   - jekyll-feed
