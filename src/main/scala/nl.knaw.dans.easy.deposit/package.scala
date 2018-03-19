@@ -47,9 +47,6 @@ package object deposit {
 
   case class StateInfo(state: State, stateDescription: String)
 
-  // TODO: extend with all the metadata fields defined in the API's model
-  case class DatasetMetadata()
-
   /**
    * Information about a file in the deposit
    *

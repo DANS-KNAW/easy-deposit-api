@@ -15,20 +15,7 @@
  */
 package nl.knaw.dans.easy.deposit
 
-import better.files._
-import scala.util.Success
-
-class DepositDirSpec extends TestSupportFixture {
-  private val draftsDir = testDir / "drafts"
-  draftsDir.createDirectory
-
-  "create" should "create a new directory with deposit.properties and an empty bag" ignore  {
-    val dd = DepositDir.create(draftsDir, "user001")
-    dd shouldBe a[Success[_]]
-    inside(dd) {
-      case Success(d) =>
-        (draftsDir / d.id.toString).toJava should exist
-    }
-  }
+// TODO: extend with all the metadata fields defined in the API's model
+case class DatasetMetadata() {
 
 }

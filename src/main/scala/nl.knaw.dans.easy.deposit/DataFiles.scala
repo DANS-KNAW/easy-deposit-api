@@ -56,4 +56,9 @@ class DataFiles (dataFilesBase: File, filesMetaData: File) {
    * @param path the relative path of the file or directory to delete
    */
   def delete(path: Path): Try[Unit] = ???
+
+  /**
+   * Write `files.xml`
+   */
+  def writeFileMetadata(): Try[Unit] = ???
 }
