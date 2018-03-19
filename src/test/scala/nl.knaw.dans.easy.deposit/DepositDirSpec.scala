@@ -15,20 +15,22 @@
  */
 package nl.knaw.dans.easy.deposit
 
-import java.nio.file.Path
+import better.files._
+import scala.util.Success
 
-/**
- * Services for manipulating data files and folders in a deposit. By data files are meant the content
- * files that the user uploads. The deposits into which the files are uploaded must already exist.
- */
-package object datasetfiles {
+class DepositDirSpec extends TestSupportFixture {
+  private val draftsDir = testDir / "drafts"
 
-  /**
-   * Information about a file in the deposit
-   *
-   * @param fileName the simple filename of the file
-   * @param dirPath path of the containing directory, relative to the content base directory
-   * @param sha1sum the SHA-1 checksum of the file data
-   */
-  case class FileInfo(fileName: String, dirPath: Path, sha1sum: String)
+   //"create"
+  ignore should "create a new directory with deposit.properties and an empty bag" in {
+    val dd = DepositDir.create(draftsDir, "user001")
+    dd shouldBe a[Success[_]]
+    inside(dd) {
+      case Success(d) =>
+        (draftsDir / d.id.toString).toJava should exist
+
+    }
+  }
+
+
 }

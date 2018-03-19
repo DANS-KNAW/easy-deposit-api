@@ -15,9 +15,11 @@
  */
 package nl.knaw.dans.easy
 
+import java.nio.file.Path
 import java.util.UUID
 
-import nl.knaw.dans.easy.deposit.depositdir.State.State
+import nl.knaw.dans.easy.deposit.State.State
+import org.joda.time.DateTime
 
 package object deposit {
 
@@ -28,5 +30,33 @@ package object deposit {
 
   case class IllegalStateTransitionException(user: String, id: UUID, oldState: State, newState: State)
     extends DepositException(s"Cannot transition from $oldState to $newState (deposit id: $id, user: $user)", null)
+
+  case class ConfigurationException(msg: String) extends IllegalArgumentException(s"Configuration error: $msg")
+
+  object State extends Enumeration {
+    type State = Value
+    val DRAFT, SUBMITTED, IN_PROGRESS, REJECTED, ARCHIVED = Value
+  }
+
+  import State._
+
+  /**
+   * Summary information about a deposit.
+   */
+  case class DepositInfo(id: UUID, title: String, state: State, stateDescription: String, timestamp: DateTime)
+
+  case class StateInfo(state: State, stateDescription: String)
+
+  // TODO: extend with all the metadata fields defined in the API's model
+  case class DatasetMetadata()
+
+  /**
+   * Information about a file in the deposit
+   *
+   * @param fileName the simple filename of the file
+   * @param dirPath  path of the containing directory, relative to the content base directory
+   * @param sha1sum  the SHA-1 checksum of the file data
+   */
+  case class FileInfo(fileName: String, dirPath: Path, sha1sum: String)
 
 }

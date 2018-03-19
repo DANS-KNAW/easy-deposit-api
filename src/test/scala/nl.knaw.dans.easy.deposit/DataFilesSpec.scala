@@ -15,13 +15,6 @@
  */
 package nl.knaw.dans.easy.deposit
 
-/**
- * Services for handling dataset metadata.
- */
-package object datasetmetadata {
-
-  // TODO: extend with all the metadata fields defined in the API's model
-  case class DatasetMetadata()
-
+class DataFilesSpec extends TestSupportFixture {
 
 }

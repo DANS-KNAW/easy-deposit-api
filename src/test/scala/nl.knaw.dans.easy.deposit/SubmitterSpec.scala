@@ -15,25 +15,6 @@
  */
 package nl.knaw.dans.easy.deposit
 
-import java.util.UUID
+class SubmitterSpec extends TestSupportFixture {
 
-import org.joda.time.DateTime
-
-/**
- * Basic services for deposit directory handling.
- */
-package object depositdir {
-
-  object State extends Enumeration {
-    type State = Value
-    val DRAFT, SUBMITTED, IN_PROGRESS, REJECTED, ARCHIVED = Value
-  }
-  import State._
-
-  /**
-   * Summary information about a deposit.
-   */
-  case class DepositInfo(id: UUID, title: String, state: State, stateDescription: String, timestamp: DateTime)
-
-  case class StateInfo(state: State, stateDescription: String)
 }

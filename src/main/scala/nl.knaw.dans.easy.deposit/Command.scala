@@ -30,11 +30,11 @@ object Command extends App with DebugEnhancedLogging {
   val commandLine: CommandLineOptions = new CommandLineOptions(args, configuration) {
     verify()
   }
-  val app = new EasyDepositApiApp(configuration)
-  runSubcommand(app)
-    .doIfSuccess(msg => println(s"OK: $msg"))
+  Try { new EasyDepositApiApp(configuration) }
+    .map(runSubcommand)
+    .doIfSuccess(msg => Console.err.println(s"OK: $msg"))
     .doIfFailure { case e => logger.error(e.getMessage, e) }
-    .doIfFailure { case NonFatal(e) => println(s"FAILED: ${ e.getMessage }") }
+    .doIfFailure { case NonFatal(e) => Console.err.println(s"FAILED: ${ e.getMessage }") }
 
   private def runSubcommand(app: EasyDepositApiApp): Try[FeedBackMessage] = {
     commandLine.subcommand
