@@ -52,6 +52,8 @@ service scripts to the appropiate locations yourself.
 BUILDING FROM SOURCE
 --------------------
 
+Source code in the project [easy-deposit-api](https://github.com/DANS-KNAW/easy-deposit-api).
+
 Prerequisites:
 
 * Java 8 or higher
