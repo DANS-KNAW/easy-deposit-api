@@ -19,7 +19,7 @@ import nl.knaw.dans.easy.deposit.authentication.AuthenticationSupport._
 import nl.knaw.dans.lib.error._
 import org.eclipse.jetty.http.HttpStatus._
 import org.scalatra.auth.ScentryAuthStore.CookieAuthStore
-import org.scalatra.auth.{ Scentry, ScentryConfig, ScentrySupport }
+import org.scalatra.auth.{ Scentry, ScentryConfig, ScentryStrategy, ScentrySupport }
 import org.scalatra.{ CookieOptions, ScalatraBase, ScalatraServlet }
 
 import scala.collection.JavaConverters._
@@ -76,7 +76,7 @@ trait AuthenticationSupport extends ScalatraServlet
   }
 
   before() {
-    noMultipleAuthentications()
+    haltOnMultipleAuthentications()
 
     // a decent client would not provide credentials to logout
     // so no pointless ldap access
@@ -87,7 +87,7 @@ trait AuthenticationSupport extends ScalatraServlet
    * Whether a route needs protection or not
    * a client providing multiple authentications should not be trusted
    */
-  private def noMultipleAuthentications(): Unit = {
+  private def haltOnMultipleAuthentications(): Unit = {
 
     // size >=1 means EasyBasicAuthStrategy is valid
     val authenticationHeaders = request
@@ -97,16 +97,28 @@ trait AuthenticationSupport extends ScalatraServlet
 
     val hasAuthCookie = request.getCookies.exists(_.getName == Scentry.scentryAuthKey)
     val validStrategies = scentry.strategies.values.filter(_.isValid)
-    if ((hasAuthCookie, validStrategies.size, authenticationHeaders.size) match {
-      case (false, 0, 0) => false
-      case (true, 0, 0) => false
-      case (true, 1, _) => true
-      case (true, _, 1) => true
-      case (_, nrOfStrategies, nrOfHeaders) if nrOfStrategies > 1 || nrOfHeaders > 1 => true
-      case _ => false
-    }) {
+
+    if (hasMultipleAuthentications(authenticationHeaders, hasAuthCookie, validStrategies)) {
       logger.info(s"Client specified multiple authentications: hasAuthCookie=$hasAuthCookie, authentication headers [$authenticationHeaders], strategies [${ validStrategies.map(_.name) }]")
       halt(BAD_REQUEST_400, "Invalid authentication")
+    }
+  }
+
+  private def hasMultipleAuthentications(authenticationHeaders: List[String], hasAuthCookie: Boolean, validStrategies: Iterable[ScentryStrategy[AuthUser]]) = {
+    (hasAuthCookie, validStrategies.size, authenticationHeaders.size) match {
+
+      // a client providing a JWT cookie and meeting the needs of a strategy should not be trusted
+      case (true, 1, _) => true
+
+      // a client providing a JWT a cookie and an authentication header should not be trusted
+      // would not be covered with the case above when we have no basic authentication strategy registered
+      case (true, _, 1) => true
+
+      // a client providing multiple authentication headers and/or satisfying multiple strategies should not be trustet
+      case (_, nrOfStrategies, nrOfHeaders) if nrOfStrategies > 1 || nrOfHeaders > 1 => true
+
+      // did not detect multiple authentication methods in the request
+      case _ => false
     }
   }
 }
