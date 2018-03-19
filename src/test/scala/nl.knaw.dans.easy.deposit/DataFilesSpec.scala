@@ -13,21 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package nl.knaw.dans.easy.deposit.components
+package nl.knaw.dans.easy.deposit
 
-import better.files.File
+class DataFilesSpec extends TestSupportFixture {
 
-trait DraftsComponent {
-
-  val draftRoot: File
-
-  def listDrafts(user: User): Seq[DraftInformation] = {
-    val draftsFromUserPath = draftRoot / user.userId
-    val drafts = draftsFromUserPath.list
-
-    // for each draft deposit, read all the information required to make a DraftInformation object
-    // return the DraftInformation objects
-
-    ???
-  }
 }

@@ -15,14 +15,185 @@
  */
 package nl.knaw.dans.easy.deposit
 
+import java.io.InputStream
+import java.nio.file.{ Path, Paths }
+import java.util.UUID
+
 import better.files.File
-import nl.knaw.dans.easy.deposit.components.DraftsComponent
+import nl.knaw.dans.lib.error._
 
-class EasyDepositApiApp(configuration: Configuration) extends DraftsComponent {
-  val draftRoot: File = File(configuration.properties.getString("deposits.drafts"))
+import scala.util.Try
 
-
+class EasyDepositApiApp(configuration: Configuration) {
   def getVersion: String = {
     configuration.version
   }
+
+  private val draftsDir = getConfiguredDirectory("deposits.drafts")
+  private val submitter = new Submitter(
+    stagingBaseDir = getConfiguredDirectory("deposits.stage"),
+    submitToBaseDir = getConfiguredDirectory("deposits.submit-to"))
+
+  private def getConfiguredDirectory(key: String): File = {
+    val dir = File(configuration.properties.getString("deposits.drafts"))
+
+    if (!dir.exists) throw ConfigurationException(s"Configured directory '$key' does not exist: $dir")
+    if (!dir.isDirectory) throw ConfigurationException(s"Configured directory '$key' is a regular file: $dir")
+    if (!dir.isReadable) throw ConfigurationException(s"Configured directory '$key' is not readable: $dir")
+
+    dir
+  }
+
+  /**
+   * Creates a new, empty deposit, containing an empty bag in the user's draft area. If the user
+   * has no draft area yet, it is first created.
+   *
+   * @param user the user ID
+   * @return the new deposit's ID
+   */
+  def createDeposit(user: String): Try[UUID] = {
+    DepositDir.create(draftsDir, user).map(_.id)
+  }
+
+  /**
+   * Returns the list of `DepositInfo` objects for the deposits in the user's draft area.
+   *
+   * @param user the user ID
+   * @return a list of [[DepositInfo]] objects
+   */
+  def getDeposits(user: String): Try[Seq[DepositInfo]] = {
+    for {
+      deposits <- DepositDir.list(draftsDir, user)
+      infos <- deposits.map(_.getDepositInfo).collectResults
+    }
+      yield infos
+  }
+
+  /**
+   * Returns the current state of the deposit.
+   *
+   * @param user ID
+   * @param id   the deposit ID
+   * @return
+   */
+  def getDepositState(user: String, id: UUID): Try[StateInfo] = {
+    for {
+      deposit <- DepositDir.get(draftsDir, user, id)
+      state <- deposit.getStateInfo
+    } yield state
+  }
+
+  /**
+   * Sets the deposit state. The only legal transitions are:
+   *
+   * - from [[State.DRAFT]] to [[State.SUBMITTED]]
+   * - from [[State.REJECTED]] to [[State.DRAFT]]
+   *
+   * Any attempt at another transition will result in an [[nl.knaw.dans.easy.deposit.IllegalStateTransitionException]].
+   *
+   * When transitioning to [[State.SUBMITTED]] the following steps will be executed:
+   *
+   * 1. The `files.xml` of the bag will be written.
+   * 2. The SHA-1 payload manifest will be calculated and written.
+   * 3. The deposit directory will be copied to the staging area.
+   * 4. The copy will be moved to the deposit area.
+   *
+   * @param user  the user ID
+   * @param id    the deposit ID
+   * @param state the state to transition to
+   * @return
+   */
+  // TODO: do post processing described above in a worker thread so that submit can return fast for large deposits.
+  def setDepositState(user: String, id: UUID, state: StateInfo): Try[Unit] = for {
+    deposit <- DepositDir.get(draftsDir, user, id)
+    _ <- if (state.state == State.SUBMITTED) submitter.submit(deposit)
+         else deposit.setStateInfo(state)
+  } yield ()
+
+  /**
+   * Deletes the deposit from the user's draft area.
+   *
+   * @param user the user ID
+   * @param id   the deposit ID
+   * @return
+   */
+  def deleteDeposit(user: String, id: UUID): Try[Unit] = for {
+    deposit <- DepositDir.get(draftsDir, user, id)
+    _ <- deposit.delete()
+  } yield ()
+
+  /**
+   * Returns the dataset metadata from `dataset.xml`.
+   *
+   * @param user the user ID
+   * @param id   the deposit ID
+   * @return
+   */
+  def getDatasetMetadataForDeposit(user: String, id: UUID): Try[DatasetMetadata] = for {
+    deposit <- DepositDir.get(draftsDir, user, id)
+    md <- deposit.getDatasetMetadata
+  } yield md
+
+  /**
+   * Writes the provided [[DatasetMetadata]] object as `dataset.xml` to the deposit directory. Any
+   * existing `dataset.xml` is overwritten, so it is important that the object contains the complete
+   * current metadata.
+   *
+   * @param user the user ID
+   * @param id   the deposit ID
+   * @param dm   the dataset metadata
+   * @return
+   */
+  def writeDataMetadataToDeposit(user: String, id: UUID, dm: DatasetMetadata): Try[Unit] = for {
+    deposit <- DepositDir.get(draftsDir, user, id)
+    _ <- deposit.setDatasetMetadata(dm)
+  } yield ()
+
+  /**
+   * Returns the list of [[FileInfo]] objects for the dataset files in this deposit.
+   *
+   * @param user the user ID
+   * @param id   the deposit ID
+   * @return
+   */
+  def getDepositFiles(user: String, id: UUID, path: Path = Paths.get("")): Try[Seq[FileInfo]] = for {
+    deposit <- DepositDir.get(draftsDir, user, id)
+    dataFiles <- deposit.getDataFiles
+    fileInfos <- dataFiles.list(path)
+  } yield fileInfos
+
+  /**
+   * Writes the given input stream to a location in the deposit's content directory. The specified `path`
+   * must be relative to the content directory. The function first ensures that the parent directory
+   * exists and creates it, if it doesn't.
+   *
+   * If a new file is created the function returns `true`, otherwise an existing file was overwritten.
+   * (We hope the reader will forgive us this minor violation of the Command-Query separation principle.)
+   *
+   * @param user the user ID
+   * @param id   the deposit ID
+   * @param path the path of the file to (over)write, relative to the content base directory
+   * @param is   the input stream to write from
+   * @return `true` if a new file was created, `false` otherwise
+   */
+  def writeDepositFile(user: String, id: UUID, path: Path, is: => InputStream): Try[Boolean] = for {
+    deposit <- DepositDir.get(draftsDir, user, id)
+    dataFiles <- deposit.getDataFiles
+    created <- dataFiles.write(is, path)
+  } yield created
+
+  /**
+   * Deletes the given regular file or directory. The specified `path` must be relative to the content directory.
+   * If the file is a directory, it is deleted including all the files and directories in it.
+   *
+   * @param user the user ID
+   * @param id   the deposit ID
+   * @param path the path of the file to delete, relative to the content base directory
+   * @return
+   */
+  def deleteDepositFile(user: String, id: UUID, path: Path): Try[Unit] = for {
+    deposit <- DepositDir.get(draftsDir, user, id)
+    dataFiles <- deposit.getDataFiles
+    _ <- dataFiles.delete(path)
+  } yield ()
 }

@@ -97,6 +97,10 @@
             <artifactId>better-files_2.12</artifactId>
             <version>3.4.0</version>
         </dependency>
+        <dependency>
+            <groupId>joda-time</groupId>
+            <artifactId>joda-time</artifactId>
+        </dependency>
     </dependencies>
     <repositories>
         <repository>

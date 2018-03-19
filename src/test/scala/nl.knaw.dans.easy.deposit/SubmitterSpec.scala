@@ -15,10 +15,6 @@
  */
 package nl.knaw.dans.easy.deposit
 
-import nl.knaw.dans.lib.logging.DebugEnhancedLogging
-import org.scalatra.{ Ok, ScalatraServlet }
-
-class DepositServlet(app: EasyDepositApiApp) extends ScalatraServlet with DebugEnhancedLogging {
-
+class SubmitterSpec extends TestSupportFixture {
 
 }

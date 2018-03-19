@@ -18,9 +18,9 @@ package nl.knaw.dans.easy.deposit
 import better.files.File
 import better.files.File._
 import org.scalamock.scalatest.MockFactory
-import org.scalatest.{ BeforeAndAfterEach, FlatSpec, Inside, Matchers }
+import org.scalatest._
 
-trait TestSupportFixture extends FlatSpec with Matchers with Inside with BeforeAndAfterEach with MockFactory {
+trait TestSupportFixture extends FlatSpec with Matchers with Inside with OneInstancePerTest {
 
   lazy val testDir: File = {
     (currentWorkingDirectory / "target" / "test" / getClass.getSimpleName)
