@@ -79,19 +79,7 @@ class TypicalSessionSpec extends TestSupportFixture with ServletFixture with Sca
       newCookie should startWith("scentry.auth.default.user=")
       newCookie should include(";Path=/")
       newCookie should include(";HttpOnly")
-
-      // check cookie expiration
-      val expiresString = newCookie
-        .replaceAll(".*Expires=", "")
-        .replaceAll(";.*", "")
-      val expiresLong = DateTimeFormat
-        .forPattern("EEE, dd-MMM-yyyy HH:mm:ss zzz")
-        .parseDateTime(expiresString)
-        .getMillis
-      val cookieAge = expiresLong -
-        (testCookieOptions.maxAge * 1000) -
-        System.currentTimeMillis
-      cookieAge should be < 1000L
+      cookieAge(newCookie) should be < 1000L
     }
   }
 
@@ -114,19 +102,7 @@ class TypicalSessionSpec extends TestSupportFixture with ServletFixture with Sca
       newCookie should startWith("scentry.auth.default.user=")
       newCookie should include(";Path=/")
       newCookie should include(";HttpOnly")
-
-      // check cookie expiration
-      val expiresString = newCookie
-        .replaceAll(".*Expires=", "")
-        .replaceAll(";.*", "")
-      val expiresLong = DateTimeFormat
-        .forPattern("EEE, dd-MMM-yyyy HH:mm:ss zzz")
-        .parseDateTime(expiresString)
-        .getMillis
-      val cookieAge = expiresLong -
-        (testCookieOptions.maxAge * 1000) -
-        System.currentTimeMillis
-      cookieAge should be < 1000L
+      cookieAge(newCookie) should be < 1000L
     }
   }
 
@@ -162,5 +138,18 @@ class TypicalSessionSpec extends TestSupportFixture with ServletFixture with Sca
       newCookie should include(";Expires=")
       newCookie should include(";HttpOnly")
     }
+  }
+
+  def cookieAge(cookie: String): Long = {
+    val expiresString = cookie
+      .replaceAll(".*Expires=", "")
+      .replaceAll(";.*", "")
+    val expiresLong = DateTimeFormat
+      .forPattern("EEE, dd-MMM-yyyy HH:mm:ss zzz")
+      .parseDateTime(expiresString)
+      .getMillis
+    expiresLong -
+      (testCookieOptions.maxAge * 1000) -
+      System.currentTimeMillis
   }
 }
