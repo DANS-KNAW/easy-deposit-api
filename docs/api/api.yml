@@ -652,6 +652,12 @@ components:
         dirpath: path/to/containing/dir
         sha1sum: ab3aa0555f31a8d7809fae4b03a95195edb01f5c
 
+    SchemedValue:
+      type: object
+      properties:
+        scheme: { type: string }
+        value: { type: string }
+
     Author:
       type: object
       properties:
@@ -660,13 +666,16 @@ components:
         insertions: { type: string }
         surname: { type: string }
         role: { type: string }
-        dai: { type: string }
+        id:
+          $ref: "#/components/schemas/SchemedValue"
         organization: { type: string }
       example:
         titles: Prof Dr
         initials: A
         insertions:
         surname: Einstein
+        id:
+
 
     SpatialPoint:
       type: object
@@ -674,9 +683,9 @@ components:
         scheme:
           type: string
         x:
-          type: string
+          type: number
         y:
-          type: string
+          type: number
 
     SpatialBox:
       type: object
@@ -684,13 +693,13 @@ components:
         scheme:
           type: string
         north:
-          type: string
+          type: number
         east:
-          type: string
+          type: number
         south:
-          type: string
+          type: number
         west:
-          type: string
+          type: number
 
     # Note: it is not possible to provide examples in combination with a reference to this
     # schema. If you need examples, you'll have to spell out the complete type.
@@ -699,13 +708,30 @@ components:
       items:
         type: string
 
-    DatasetMetadata:
+    Relation:
       type: object
       properties:
+        qualifier:
+          type: string
+        url:
+          type: string
+        title:
+          type: string
+
+    DatasetMetadata:
+      required:
+      - titles
+      - languageOfDescription
+      - creators
+      - created
+      - audiences
+      type: object
+      properties:
+        # Basic information
         doi:
           type: string
           example: "doi:10.17632/DANS.6wg5xccnjd.1"
-        urn:
+        languageOfDescription:
           type: string
         titles:
           type: array
@@ -715,6 +741,8 @@ components:
             - "Title 1"
             - "Title 2"
         alternativeTitles:
+          $ref: "#/components/schemas/StringArray"
+        descriptions:
           $ref: "#/components/schemas/StringArray"
         creators:
           type: array
@@ -726,19 +754,43 @@ components:
             $ref: "#/components/schemas/Author"
         created:
           type: string
-        descriptions:
-          type: array
-          items:
-            type: string
-          example:
-            - "Description 1"
         audiences:
           $ref: "#/components/schemas/StringArray"
+        subjects:
+          $ref: "#/components/schemas/StringArray"
+        identifiers:
+          type: array
+          items:
+            $ref: "#/components/schemas/SchemedValue"
+        relations:
+          type: array
+          items:
+            $ref: "#/components/schemas/Relation"
+        languagesOfFilesIso639:
+          $ref: "#/components/schemas/StringArray"
+        languagesOfFiles:
+          $ref: "#/components/schemas/StringArray"
+        datesIso8601:
+          type: array
+          items:
+            $ref: "#/components/schemas/SchemedValue"
+        dates:
+          type: array
+          items:
+            $ref: "#/components/schemas/SchemedValue"
+        sources:
+          $ref: "#/components/schemas/StringArray"
+        instructionsForReuse:
+          $ref: "#/components/schemas/StringArray"
+
+        # Licence and access
+
+
+
+
         archisNrs:
           $ref: "#/components/schemas/StringArray"
         subjectsAbrComplex:
-          $ref: "#/components/schemas/StringArray"
-        subjects:
           $ref: "#/components/schemas/StringArray"
         temporalCoveragesAbr:
           $ref: "#/components/schemas/StringArray"
@@ -754,26 +806,10 @@ components:
             $ref: "#/components/schemas/SpatialBox"
         spatialCoverages:
           $ref: "#/components/schemas/StringArray"
-        identifiers:
+        spatialCoverageIso3166:
           type: array
           items:
-            type: object
-            properties:
-              scheme:
-                type: string
-              identifier:
-                type: string
-        relations:
-          type: array
-          items:
-            type: object
-            properties:
-              qualifier:
-                type: string
-              url:
-                type: string
-              title:
-                type: string
+            $ref: "#/components/schemas/SchemedValue"
         typesDcmi:
           $ref: "#/components/schemas/StringArray"
         types:
@@ -786,28 +822,6 @@ components:
           $ref: "#/components/schemas/StringArray"
         languages:
           $ref: "#/components/schemas/StringArray"
-        sources:
-          $ref: "#/components/schemas/StringArray"
-        datesIso8601:
-          type: array
-          items:
-            type: object
-            properties:
-              scheme:
-                type: string
-              date:
-                type: string
-        dates:
-          type: array
-          items:
-            type: object
-            properties:
-              scheme:
-                type: string
-              date:
-                type: string
-        remarks:
-          type: string
         rightsHolders:
           $ref: "#/components/schemas/StringArray"
         publishers:
