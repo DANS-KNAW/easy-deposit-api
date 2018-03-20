@@ -723,6 +723,16 @@ components:
         title:
           type: string
 
+    AccessRights:
+      type: object
+      required:
+      - category
+      properties:
+        category:
+          type: string
+        group:
+          type: string
+
     DatasetMetadata:
       required:
       - titles
@@ -798,7 +808,7 @@ components:
         publishers:
           $ref: "#/components/schemas/StringArray"
         accessRights:
-          type: string
+          $ref: "#/components/schemas/AccessRights"
         license:
           type: string
           format: url
