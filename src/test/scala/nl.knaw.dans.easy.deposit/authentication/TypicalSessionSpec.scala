@@ -17,25 +17,21 @@ package nl.knaw.dans.easy.deposit.authentication
 
 import nl.knaw.dans.easy.deposit._
 import nl.knaw.dans.easy.deposit.authentication.TokenSupport.TokenConfig
+import org.apache.commons.configuration.PropertiesConfiguration
 import org.eclipse.jetty.http.HttpStatus._
 import org.joda.time.format.DateTimeFormat
 import org.scalamock.scalatest.MockFactory
-import org.scalatra.CookieOptions
 import org.scalatra.auth.Scentry
 import org.scalatra.test.scalatest.ScalatraSuite
 
-class TypicalSessionSpec extends TestSupportFixture with ServletFixture with ScalatraSuite with MockFactory{
+class TypicalSessionSpec extends TestSupportFixture with ServletFixture with ScalatraSuite with MockFactory {
 
   private val mockedAuth = mock[AuthenticationProvider]
-  private val testCookieOptions: CookieOptions = CookieOptions(
-    domain = "",
-    path = "/",
-    maxAge = 10, // seconds
-    secure = false,
-    httpOnly = true, // JavaScript can't get the cookie
-  )
-  addServlet(new AuthTestServlet(mockedAuth, testCookieOptions, testTokenConfig), "/auth/*")
-  addServlet(new TestServlet(mockedAuth, testCookieOptions, testTokenConfig), "/deposit/*")
+  private val props = new PropertiesConfiguration() {
+    addProperty("auth.cookie.expiresIn", "20")
+  }
+  addServlet(new TestServlet(mockedAuth, props, testTokenConfig), "/deposit/*")
+  addServlet(new AuthTestServlet(mockedAuth, props, testTokenConfig), "/auth/*")
 
   private def receivedToken = new TokenSupport() {
     override def getTokenConfig: TokenConfig = testTokenConfig
@@ -150,7 +146,7 @@ class TypicalSessionSpec extends TestSupportFixture with ServletFixture with Sca
       .parseDateTime(expiresString)
       .getMillis
     expiresLong -
-      (testCookieOptions.maxAge * 1000) -
+      (props.getInt("auth.cookie.expiresIn") * 1000) -
       System.currentTimeMillis
   }
 }

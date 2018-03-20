@@ -1,17 +1,17 @@
 package nl.knaw.dans.easy.deposit.authentication
 
 import nl.knaw.dans.easy.deposit.authentication.TokenSupport.TokenConfig
-import org.scalatra.{ CookieOptions, Forbidden, Ok }
+import org.apache.commons.configuration.PropertiesConfiguration
+import org.scalatra.{ Forbidden, Ok }
 
 class AuthTestServlet(authProvider: AuthenticationProvider,
-                      cookieOptions: CookieOptions,
+                      properties: PropertiesConfiguration,
                       tokenConfig: TokenConfig
                      ) extends AuthenticationSupport {
 
-  // TODO apply `application.properies` here ?
   override def getAuthenticationProvider: AuthenticationProvider = authProvider
 
-  override def getCookieOptions: CookieOptions = cookieOptions
+  override def getProperties: PropertiesConfiguration = properties
 
   override def getTokenConfig: TokenConfig = tokenConfig
 

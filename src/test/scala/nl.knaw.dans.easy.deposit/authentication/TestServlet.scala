@@ -1,18 +1,19 @@
 package nl.knaw.dans.easy.deposit.authentication
 
 import nl.knaw.dans.easy.deposit.authentication.TokenSupport.TokenConfig
+import org.apache.commons.configuration.PropertiesConfiguration
 import org.eclipse.jetty.http.HttpStatus
 import org.joda.time.DateTime
-import org.scalatra.{ CookieOptions, Ok }
+import org.scalatra.Ok
 
 class TestServlet(authProvider: AuthenticationProvider,
-                  cookieOptions: CookieOptions,
+                  properties: PropertiesConfiguration,
                   tokenConfig: TokenConfig
-                     ) extends AuthenticationSupport {
+                 ) extends AuthenticationSupport {
 
   override def getAuthenticationProvider: AuthenticationProvider = authProvider
 
-  override def getCookieOptions: CookieOptions = cookieOptions
+  override def getProperties: PropertiesConfiguration = properties
 
   override def getTokenConfig: TokenConfig = tokenConfig
 

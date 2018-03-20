@@ -17,6 +17,7 @@ package nl.knaw.dans.easy.deposit.authentication
 
 import nl.knaw.dans.easy.deposit.authentication.AuthenticationSupport._
 import nl.knaw.dans.lib.error._
+import org.apache.commons.configuration.PropertiesConfiguration
 import org.eclipse.jetty.http.HttpStatus._
 import org.scalatra.auth.ScentryAuthStore.CookieAuthStore
 import org.scalatra.auth.{ Scentry, ScentryConfig, ScentryStrategy, ScentrySupport }
@@ -33,8 +34,7 @@ trait AuthenticationSupport extends ScalatraServlet
 
   def getAuthenticationProvider: AuthenticationProvider
 
-  // TODO https://github.com/DANS-KNAW/easy-deposit-api/pull/9/files/7fa7b2e6c81387f24538493377ddd249dbb0c268#r175452990
-  def getCookieOptions: CookieOptions
+  def getProperties: PropertiesConfiguration
 
   /** read method name as: fromCookie, see configured scentry.store */
   override protected def fromSession: PartialFunction[String, AuthUser] = {
@@ -58,7 +58,16 @@ trait AuthenticationSupport extends ScalatraServlet
    */
   override protected def configureScentry {
 
-    scentry.store = new CookieAuthStore(self)(getCookieOptions)
+    val cookieOptions = CookieOptions(
+      domain = "", // limits which server get the cookie // TODO by default the host who sent it?
+      path = "/", // limits which route gets the cookie, TODO configure and/or from mounts in Service class
+      maxAge = getProperties.getInt("auth.cookie.expiresIn", 10), // seconds
+      secure = false, // TODO true when service supports HTTPS to prevent browsers to send it over http
+      httpOnly = true // JavaScript can't get the cookie
+      // version = 0 // obsolete? https://stackoverflow.com/questions/29124177/recommended-set-cookie-version-used-by-web-servers-0-1-or-2#29143128
+    )
+    logger.info(s"authCookieOptions: $cookieOptions")
+    scentry.store = new CookieAuthStore(self)(cookieOptions)
 
     // TODO Default if none of the strategies applied? Overridden by EasyBasicAuthStrategy.super
     scentry.unauthenticated { scentry.strategies(UserPasswordStrategy.getClass.getSimpleName).unauthenticated() }

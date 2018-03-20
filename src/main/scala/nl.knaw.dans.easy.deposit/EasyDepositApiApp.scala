@@ -25,14 +25,14 @@ import nl.knaw.dans.easy.deposit.authentication.TokenSupport.TokenConfig
 import nl.knaw.dans.lib.error._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.apache.commons.configuration.PropertiesConfiguration
-import org.scalatra.CookieOptions
-import pdi.jwt.{ JwtAlgorithm, JwtOptions }
 import pdi.jwt.algorithms.JwtHmacAlgorithm
+import pdi.jwt.{ JwtAlgorithm, JwtOptions }
 
 import scala.util.Try
+
 class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLogging
   with LdapAuthentication {
-  private val properties: PropertiesConfiguration = configuration.properties
+  val properties: PropertiesConfiguration = configuration.properties
 
   private def toHmacAlgorithm(value: String): JwtHmacAlgorithm = {
     // TODO confine use of the library to TokenSupport for easy replacement in case of trouble with the library
@@ -40,25 +40,14 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
       JwtAlgorithm.fromString(value).asInstanceOf[JwtHmacAlgorithm]
     }.getOrRecover { t => throw new Exception(s"asymmetrical or unknown JwtHmacAlgorithm configured [$value]: $t") }
   }
-  private val expiresIn: Int = properties.getInt("auth.cookie.expiresIn", 10)
 
   val tokenConfig = TokenConfig(
     secretKey = properties.getString("auth.jwt.secret.key", "test"), // TODO Change type to SecretKey? Really in application.properties?
-    expiresIn = expiresIn, // seconds
+    expiresIn = properties.getInt("auth.cookie.expiresIn", 10), // seconds
     algorithm = toHmacAlgorithm(properties.getString("auth.jwt.hmac.algorithm", "HS256")),
     options = JwtOptions(leeway = 10) // JWT lives 10 seconds longer than cookie
   )
   logger.info(s"tokenConfig: $tokenConfig")
-
-  val authCookieOptions: CookieOptions = CookieOptions(
-    domain = "", // limits which server get the cookie // TODO by default the host who sent it?
-    path = "/", // limits which route gets the cookie, TODO configure and/or from mounts in Service class
-    maxAge = expiresIn, // seconds
-    secure = false, // TODO true when service supports HTTPS to prevent browsers to send it over http
-    httpOnly = true, // JavaScript can't get the cookie
-    // version = 0 // obsolete? https://stackoverflow.com/questions/29124177/recommended-set-cookie-version-used-by-web-servers-0-1-or-2#29143128
-  )
-  logger.info(s"authCookieOptions: $authCookieOptions")
 
   override val authentication: Authentication = new Authentication {
     override val ldapUserIdAttrName: String = properties.getString("users.ldap-user-id-attr-name")
