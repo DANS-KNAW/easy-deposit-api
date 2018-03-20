@@ -15,10 +15,92 @@
  */
 package nl.knaw.dans.easy.deposit
 
+import java.io.InputStream
+import java.nio.file.{ Path, Paths }
+import java.util.UUID
+
+import nl.knaw.dans.lib.error._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
-import org.scalatra.{ Ok, ScalatraServlet }
+import org.json4s.native.JsonMethods
+import org.json4s.{ DefaultFormats, Formats }
+import org.scalatra._
+
+import scala.util.{ Failure, Success, Try }
 
 class DepositServlet(app: EasyDepositApiApp) extends ScalatraServlet with DebugEnhancedLogging {
 
+  val userId: String = "user001" // TODO see TestServlet in PR #9
+  before() {
+    // TODO see TestServlet in PR #9
+  }
 
+  get("/") { respond(app.getDeposits(userId)) }
+  post("/") { respond(app.createDeposit(userId)) }
+  get("/:id/metadata") { forId(app.getDatasetMetadataForDeposit) }
+  put("/:id/metadata") { getDatasetMetadata.map(m => forId(app.writeDataMetadataToDeposit(m))).getOrRecover(badBody) }
+  get("/:id/state") { forId(app.getDepositState) }
+  put("/:id/state") { getStateInfo.map(s => forId(app.setDepositState(s))).getOrRecover(badBody) }
+  delete("/:id") { forId(app.deleteDeposit) }
+  get("/:id/file/*") { forPath(app.getDepositFiles) } //dir and file
+  post("/:id/file/*") { getInputStream.map(is => forPath(app.writeDepositFile(is))).getOrRecover(badBody) } //dir
+  put("/:id/file/*") { getInputStream.map(is => forPath(app.writeDepositFile(is))).getOrRecover(badBody) } //file
+  delete("/:id/file/*") { forPath(app.deleteDepositFile) } //dir and file
+
+  private def forId[T](callback: (String, UUID) => Try[T]): ActionResult = {
+    getUUID match {
+      case Failure(t) => badId(t)
+      case Success(uuid) => respond(callback(userId, uuid))
+    }
+  }
+
+  private def forPath[Result](callback: (String, UUID, Path) => Try[Result]): ActionResult = {
+    (getUUID, getPath) match {
+      case (Failure(t), _) => badId(t)
+      case (_, Failure(t)) => BadRequest(s"Invalid path: ${ t.getClass.getName } ${ t.getMessage }")
+      case (Success(uuid), Success(path)) => respond(callback(userId, uuid, path))
+    }
+  }
+
+  private def respond[Result](result: Try[Result]): ActionResult = {
+    result match {
+      case Success(Unit) => Ok()
+      case Success(None) => Ok()
+      case Success(_) => ???
+      // TODO case Failure(t: ???) =>
+      case Failure(t) =>
+        logger.error(t.getMessage, t)
+        InternalServerError("not expected exception")
+    }
+  }
+
+  private def getUUID = Try {
+    UUID.fromString(params("uuid"))
+  }
+
+  private def getPath = Try {
+    Paths.get(multiParams("splat").find(!_.trim.isEmpty).getOrElse(""))
+  }
+
+  private def badId(t: Throwable) = {
+    BadRequest(s"Invalid deposit id: ${ t.getClass.getName } ${ t.getMessage }")
+  }
+
+  private def getInputStream: Try[InputStream] = ???
+
+  private implicit val jsonFormats: Formats = new DefaultFormats {}
+
+  private def getStateInfo = Try {
+    // TODO verify mime type?
+    JsonMethods.parse(request.body).extract[StateInfo]
+    // TODO error recovery into something understandable
+  }
+
+  private def getDatasetMetadata = Try {
+    // TODO as getStateInfo
+    JsonMethods.parse(request.body).extract[DatasetMetadata]
+  }
+
+  private def badBody(t: Throwable) = {
+    BadRequest(s"${ t.getClass.getName } ${ t.getMessage }")
+  }
 }
