@@ -31,7 +31,7 @@ import scala.util.Try
  * @param user    the user ID of the deposit's owner
  * @param id      the ID of the deposit
  */
-case class DepositDir private(baseDir: File, user: String, val id: UUID) {
+case class DepositDir private(baseDir: File, user: String, id: UUID) {
 
   /**
    * @return an information object about the current state of the desposit.
@@ -120,7 +120,7 @@ object DepositDir {
     props.addProperty("depositor.userId", user)
     props.save((dir / "deposit.properties").toJava)
 
-    new DepositDir(baseDir, user, uuid)
+    DepositDir(baseDir, user, uuid)
   }
 }
 
