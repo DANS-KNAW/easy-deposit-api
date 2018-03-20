@@ -37,13 +37,13 @@ class DepositServlet(app: EasyDepositApiApp) extends ScalatraServlet with DebugE
   get("/") { respond(app.getDeposits(userId)) }
   post("/") { respond(app.createDeposit(userId)) }
   get("/:id/metadata") { forId(app.getDatasetMetadataForDeposit) }
-  put("/:id/metadata") { getDatasetMetadata.map(m => forId(app.writeDataMetadataToDeposit(m))).getOrRecover(badBody) }
+  put("/:id/metadata") { getDatasetMetadata.map(m => forId(app.writeDataMetadataToDeposit(m))).getOrRecover(badDoc) }
   get("/:id/state") { forId(app.getDepositState) }
-  put("/:id/state") { getStateInfo.map(s => forId(app.setDepositState(s))).getOrRecover(badBody) }
+  put("/:id/state") { getStateInfo.map(s => forId(app.setDepositState(s))).getOrRecover(badDoc) }
   delete("/:id") { forId(app.deleteDeposit) }
   get("/:id/file/*") { forPath(app.getDepositFiles) } //dir and file
-  post("/:id/file/*") { getInputStream.map(is => forPath(app.writeDepositFile(is))).getOrRecover(badBody) } //dir
-  put("/:id/file/*") { getInputStream.map(is => forPath(app.writeDepositFile(is))).getOrRecover(badBody) } //file
+  post("/:id/file/*") { getInputStream.map(is => forPath(app.writeDepositFile(is))).getOrRecover(badInputStream) } //dir
+  put("/:id/file/*") { getInputStream.map(is => forPath(app.writeDepositFile(is))).getOrRecover(badInputStream) } //file
   delete("/:id/file/*") { forPath(app.deleteDepositFile) } //dir and file
 
   private def forId[T](callback: (String, UUID) => Try[T]): ActionResult = {
@@ -72,42 +72,52 @@ class DepositServlet(app: EasyDepositApiApp) extends ScalatraServlet with DebugE
       case Success(uuid: UUID) => Ok(uuid.toString)
       case Success(x) =>
         logger.error(s"not expected result type: ${ x.getClass.getName }")
-        InternalServerError("not expected exception")
+        InternalServerError("Internal Server Error")
       // TODO case Failure(t: ???) =>
       case Failure(t) =>
         logger.error(t.getMessage, t)
-        InternalServerError("not expected exception")
+        InternalServerError("Internal Server Error")
     }
   }
 
   private def getUUID: Try[UUID] = Try {
     UUID.fromString(params("uuid"))
-  }.recoverWith{case t: Throwable =>
-    Failure(new Exception(s"Invalid deposit id: ${ t.getClass.getName } ${ t.getMessage }"))
+  }.recoverWith { case t: Throwable =>
+    Failure(new Exception(s"Bad Request. Invalid deposit id: ${ t.getClass.getName } ${ t.getMessage }"))
   }
 
   private def getPath: Try[Path] = Try {
     Paths.get(multiParams("splat").find(!_.trim.isEmpty).getOrElse(""))
-  }.recoverWith{case t: Throwable =>
-    Failure(new Exception(s"Invalid path: ${ t.getClass.getName } ${ t.getMessage }"))
+  }.recoverWith { case t: Throwable =>
+    Failure(new Exception(s"Bad Request. Invalid path: ${ t.getClass.getName } ${ t.getMessage }"))
   }
 
   private def getInputStream: Try[InputStream] = ???
+
+  private def badInputStream(t: Throwable): ActionResult = {
+    logger.error(s"badInputStream: ${ t.getMessage }", t)
+    BadRequest(s"Bad Request. ${ t.getClass.getName } ${ t.getMessage }")
+  }
 
   private implicit val jsonFormats: Formats = new DefaultFormats {}
 
   private def getStateInfo: Try[StateInfo] = Try {
     // TODO verify mime type?
     JsonMethods.parse(request.body).extract[StateInfo]
-    // TODO error recovery into something understandable
+  }.recoverWith { case t: Throwable =>
+    logger.error(s"bad StateInfo:${ t.getClass.getName } ${ t.getMessage }")
+    Failure(new Exception(s"Bad Request. The state document is malformed."))
   }
 
   private def getDatasetMetadata: Try[DatasetMetadata] = Try {
-    // TODO as getStateInfo
+    // TODO verify mime type?
     JsonMethods.parse(request.body).extract[DatasetMetadata]
+  }.recoverWith { case t: Throwable =>
+    logger.error(s"bad DatasetMetadata:${ t.getClass.getName } ${ t.getMessage }")
+    Failure(new Exception(s"Bad Request. The metadata document is malformed."))
   }
 
-  private def badBody(t: Throwable): ActionResult = {
-    BadRequest(s"${ t.getClass.getName } ${ t.getMessage }")
+  private def badDoc(t: Throwable): ActionResult = {
+    BadRequest(t.getMessage)
   }
 }
