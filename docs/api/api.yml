@@ -603,17 +603,6 @@ components:
 
   schemas:
 
-    State:
-      type: object
-      properties:
-        state:
-          type: string
-        state_description:
-          type: string
-      example:
-        state: DRAFT
-        state_description: Deposit is open for modifications.
-
     # TODO: add links to state, metadata, files?
     DepositInfo:
       type: object
@@ -638,6 +627,17 @@ components:
           state_description: Deposit is open for modification.
           date: "2018-01-12T10:40:52Z"
 
+    State:
+      type: object
+      properties:
+        state:
+          type: string
+        state_description:
+          type: string
+      example:
+        state: DRAFT
+        state_description: Deposit is open for modifications.
+
     FileInfo:
       type: object
       properties:
@@ -651,87 +651,6 @@ components:
         filename: file.txt
         dirpath: path/to/containing/dir
         sha1sum: ab3aa0555f31a8d7809fae4b03a95195edb01f5c
-
-    SchemedValue:
-      type: object
-      properties:
-        scheme: { type: string }
-        value: { type: string }
-
-    Author:
-      type: object
-      properties:
-        titles: { type: string }
-        initials: { type: string }
-        insertions: { type: string }
-        surname: { type: string }
-        role: { type: string }
-        ids:
-          type: array
-          items:
-            $ref: "#/components/schemas/SchemedValue"
-        organization: { type: string }
-      example:
-        titles: Prof Dr
-        initials: A
-        insertions:
-        surname: Einstein
-        ids:
-          - scheme: DOI
-            value: "1234/5678"
-          - scheme: ISNI
-            value: "ISNI|000000012281955X"
-        organization: University of Zurich
-    SpatialPoint:
-      type: object
-      properties:
-        scheme:
-          type: string
-        x:
-          type: number
-        y:
-          type: number
-
-    SpatialBox:
-      type: object
-      properties:
-        scheme:
-          type: string
-        north:
-          type: number
-        east:
-          type: number
-        south:
-          type: number
-        west:
-          type: number
-
-    # Note: it is not possible to provide examples in combination with a reference to this
-    # schema. If you need examples, you'll have to spell out the complete type.
-    StringArray:
-      type: array
-      items:
-        type: string
-
-    Relation:
-      type: object
-      properties:
-        qualifier:
-          type: string
-        url:
-          type: string
-        title:
-          type: string
-
-    AccessRights:
-      type: object
-      required:
-      - category
-      properties:
-        category:
-          type: string
-        group:
-          type: string
 
     DatasetMetadata:
       required:
@@ -862,3 +781,87 @@ components:
           type: boolean
         acceptLicenseAgreement:
           type: boolean
+
+    # Components of DatasetMetadata below
+
+    AccessRights:
+      type: object
+      required:
+      - category
+      properties:
+        category:
+          type: string
+        group:
+          type: string
+
+    Author:
+      type: object
+      properties:
+        titles: { type: string }
+        initials: { type: string }
+        insertions: { type: string }
+        surname: { type: string }
+        role: { type: string }
+        ids:
+          type: array
+          items:
+            $ref: "#/components/schemas/SchemedValue"
+        organization: { type: string }
+      example:
+        titles: Prof Dr
+        initials: A
+        insertions:
+        surname: Einstein
+        ids:
+          - scheme: DOI
+            value: "1234/5678"
+          - scheme: ISNI
+            value: "ISNI|000000012281955X"
+        organization: University of Zurich
+
+    Relation:
+      type: object
+      properties:
+        qualifier:
+          type: string
+        url:
+          type: string
+        title:
+          type: string
+
+    SchemedValue:
+      type: object
+      properties:
+        scheme: { type: string }
+        value: { type: string }
+
+    SpatialBox:
+      type: object
+      properties:
+        scheme:
+          type: string
+        north:
+          type: number
+        east:
+          type: number
+        south:
+          type: number
+        west:
+          type: number
+
+    SpatialPoint:
+      type: object
+      properties:
+        scheme:
+          type: string
+        x:
+          type: number
+        y:
+          type: number
+
+    # Note: it is not possible to provide examples in combination with a reference to this
+    # schema. If you need examples, you'll have to spell out the complete type.
+    StringArray:
+      type: array
+      items:
+        type: string
