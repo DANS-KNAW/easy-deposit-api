@@ -83,20 +83,21 @@ class DepositServlet(app: EasyDepositApiApp) extends ScalatraServlet with DebugE
   private def getUUID: Try[UUID] = Try {
     UUID.fromString(params("uuid"))
   }.recoverWith { case t: Throwable =>
-    Failure(new Exception(s"Bad Request. Invalid deposit id: ${ t.getClass.getName } ${ t.getMessage }"))
+    Failure(new Exception(s"Bad Request. Invalid deposit id: ${ t.getMessage }"))
   }
 
   private def getPath: Try[Path] = Try {
     Paths.get(multiParams("splat").find(!_.trim.isEmpty).getOrElse(""))
   }.recoverWith { case t: Throwable =>
-    Failure(new Exception(s"Bad Request. Invalid path: ${ t.getClass.getName } ${ t.getMessage }"))
+    logger.error(s"bad path:${ t.getClass.getName } ${ t.getMessage }")
+    Failure(new Exception(s"Bad Request. Invalid path."))
   }
 
   private def getInputStream: Try[InputStream] = ???
 
   private def badInputStream(t: Throwable): ActionResult = {
     logger.error(s"badInputStream: ${ t.getMessage }", t)
-    BadRequest(s"Bad Request. ${ t.getClass.getName } ${ t.getMessage }")
+    BadRequest(s"Bad Request.")
   }
 
   private implicit val jsonFormats: Formats = new DefaultFormats {}
