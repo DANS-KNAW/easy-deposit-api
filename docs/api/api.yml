@@ -784,8 +784,19 @@ components:
           $ref: "#/components/schemas/StringArray"
 
         # Licence and access
+        rightsHolders:
+          $ref: "#/components/schemas/StringArray"
+        publishers:
+          $ref: "#/components/schemas/StringArray"
+        accessRights:
+          type: string
+        license:
+          type: string
+          format: url
+        dateAvailable:
+          type: string
 
-
+        # Upload type
 
 
         archisNrs:
@@ -822,9 +833,3 @@ components:
           $ref: "#/components/schemas/StringArray"
         languages:
           $ref: "#/components/schemas/StringArray"
-        rightsHolders:
-          $ref: "#/components/schemas/StringArray"
-        publishers:
-          $ref: "#/components/schemas/StringArray"
-        dateAvailable:
-          type: string
