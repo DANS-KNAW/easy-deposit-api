@@ -13,6 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package nl.knaw.dans.easy.deposit.components
+package nl.knaw.dans.easy.deposit
 
-case class User(userId: String)
+// TODO: extend with all the metadata fields defined in the API's model
+case class DatasetMetadata() {
+
+}

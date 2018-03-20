@@ -13,12 +13,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package nl.knaw.dans.easy.deposit.components
+package nl.knaw.dans.easy.deposit
 
-case class DraftInformation(id: String,
-                            title: String,
-                            status: String,
-                            statusDescription: String,
-                            doi: String,
-                            state: String,
-                            date: String)
+import better.files._
+import scala.util.Success
+
+class DepositDirSpec extends TestSupportFixture {
+  private val draftsDir = testDir / "drafts"
+  draftsDir.createDirectory
+
+  "create" should "create a new directory with deposit.properties and an empty bag" ignore  {
+    val dd = DepositDir.create(draftsDir, "user001")
+    dd shouldBe a[Success[_]]
+    inside(dd) {
+      case Success(d) =>
+        (draftsDir / d.id.toString).toJava should exist
+    }
+  }
+
+}

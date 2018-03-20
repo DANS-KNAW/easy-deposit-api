@@ -19,12 +19,12 @@ import better.files.File
 import better.files.File._
 import nl.knaw.dans.easy.deposit.authentication.TokenSupport
 import org.joda.time.{ DateTime, DateTimeUtils }
-import org.scalamock.scalatest.MockFactory
-import org.scalatest.{ BeforeAndAfterEach, FlatSpec, Inside, Matchers }
+import org.scalatest.{ FlatSpec, Inside, Matchers }
 import pdi.jwt.JwtAlgorithm.HS256
 import pdi.jwt.JwtOptions
+import org.scalatest._
 
-trait TestSupportFixture extends FlatSpec with Matchers with Inside with BeforeAndAfterEach with MockFactory {
+trait TestSupportFixture extends FlatSpec with Matchers with Inside with OneInstancePerTest {
 
   lazy val testDir: File = {
     (currentWorkingDirectory / "target" / "test" / getClass.getSimpleName)
