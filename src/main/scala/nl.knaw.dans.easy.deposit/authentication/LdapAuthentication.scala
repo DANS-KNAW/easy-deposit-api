@@ -22,6 +22,7 @@ import javax.naming.{ AuthenticationException, Context }
 
 import nl.knaw.dans.lib.error.TryExtensions
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
+import nl.knaw.dans.lib.string._
 import org.apache.commons.lang.StringUtils
 import resource.managed
 
@@ -59,7 +60,7 @@ trait LdapAuthentication extends DebugEnhancedLogging {
         setSearchScope(SearchControls.SUBTREE_SCOPE)
       }
 
-      if (StringUtils.isBlank(userName) || StringUtils.isBlank(password))
+      if (userName.isBlank || password.isBlank)
         Failure(new IllegalArgumentException("user-name nor password should be blank"))
       else managed(getContext(connectionProperties))
         .map(_
