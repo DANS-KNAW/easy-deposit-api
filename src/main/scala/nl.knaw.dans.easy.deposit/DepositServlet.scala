@@ -48,16 +48,16 @@ class DepositServlet(app: EasyDepositApiApp) extends ScalatraServlet with DebugE
 
   private def forId[T](callback: (String, UUID) => Try[T]): ActionResult = {
     getUUID match {
-      case Failure(t) => BadRequest(badId(t))
+      case Failure(t) => BadRequest(t.getMessage)
       case Success(uuid) => respond(callback(userId, uuid))
     }
   }
 
   private def forPath[Result](callback: (String, UUID, Path) => Try[Result]): ActionResult = {
     (getUUID, getPath) match {
-      case (Failure(tId), Failure(tPath)) => BadRequest(s"${ badId(tId) }. ${ badPath(tPath) }.")
-      case (Failure(tId), _) => BadRequest(badId(tId))
-      case (_, Failure(t)) => BadRequest(badPath(t))
+      case (Failure(tId), Failure(tPath)) => BadRequest(s"${ tId.getMessage }. ${ tPath.getMessage }.")
+      case (Failure(t), _) => BadRequest(t.getMessage)
+      case (_, Failure(t)) => BadRequest(t.getMessage)
       case (Success(uuid), Success(path)) => respond(callback(userId, uuid, path))
     }
   }
@@ -82,18 +82,14 @@ class DepositServlet(app: EasyDepositApiApp) extends ScalatraServlet with DebugE
 
   private def getUUID: Try[UUID] = Try {
     UUID.fromString(params("uuid"))
+  }.recoverWith{case t: Throwable =>
+    Failure(new Exception(s"Invalid deposit id: ${ t.getClass.getName } ${ t.getMessage }"))
   }
 
   private def getPath: Try[Path] = Try {
     Paths.get(multiParams("splat").find(!_.trim.isEmpty).getOrElse(""))
-  }
-
-  private def badId(t: Throwable): String = {
-    s"Invalid deposit id: ${ t.getClass.getName } ${ t.getMessage }"
-  }
-
-  private def badPath[Result](t: Throwable) = {
-    s"Invalid path: ${ t.getClass.getName } ${ t.getMessage }"
+  }.recoverWith{case t: Throwable =>
+    Failure(new Exception(s"Invalid path: ${ t.getClass.getName } ${ t.getMessage }"))
   }
 
   private def getInputStream: Try[InputStream] = ???
