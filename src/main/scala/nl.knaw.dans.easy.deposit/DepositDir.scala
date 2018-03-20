@@ -116,7 +116,7 @@ object DepositDir {
     val props = new PropertiesConfiguration()
     props.addProperty("creation.timestamp", DateTime.now(DateTimeZone.UTC).toString(dateTimeFormatter))
     props.addProperty("state.label", "DRAFT")
-    props.addProperty("state.description", "some test description") // TODO what's the real value here?
+    props.addProperty("state.description", "Deposit is open for changes.")
     props.addProperty("depositor.userId", user)
     props.save((dir / "deposit.properties").toJava)
 

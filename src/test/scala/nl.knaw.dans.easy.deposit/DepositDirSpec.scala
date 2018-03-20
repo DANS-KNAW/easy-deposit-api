@@ -21,12 +21,13 @@ class DepositDirSpec extends TestSupportFixture {
   private val draftsDir = testDir / "drafts"
   draftsDir.createDirectory
 
-  "create" should "create a new directory with deposit.properties and an empty bag" in  {
+  "create" should "create a new directory with deposit.properties" in  {
     val dd = DepositDir.create(draftsDir, "user001")
     dd shouldBe a[Success[_]]
     inside(dd) {
       case Success(d) =>
         (draftsDir / "user001" / d.id.toString).toJava should exist
+        (draftsDir / "user001" / d.id.toString / "deposit.properties").toJava should exist
     }
   }
 

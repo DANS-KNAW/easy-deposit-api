@@ -104,7 +104,7 @@ class EasyDepositApiApp(configuration: Configuration) {
    * @return
    */
   // TODO: do post processing described above in a worker thread so that submit can return fast for large deposits.
-  def setDepositState(user: String, id: UUID, state: StateInfo): Try[Unit] = for {
+  def setDepositState(state: StateInfo)(user: String, id: UUID): Try[Unit] = for {
     deposit <- DepositDir.get(draftsDir, user, id)
     _ <- if (state.state == State.SUBMITTED) submitter.submit(deposit)
          else deposit.setStateInfo(state)
@@ -144,7 +144,7 @@ class EasyDepositApiApp(configuration: Configuration) {
    * @param dm   the dataset metadata
    * @return
    */
-  def writeDataMetadataToDeposit(user: String, id: UUID, dm: DatasetMetadata): Try[Unit] = for {
+  def writeDataMetadataToDeposit(dm: DatasetMetadata)(user: String, id: UUID): Try[Unit] = for {
     deposit <- DepositDir.get(draftsDir, user, id)
     _ <- deposit.setDatasetMetadata(dm)
   } yield ()
@@ -176,7 +176,7 @@ class EasyDepositApiApp(configuration: Configuration) {
    * @param is   the input stream to write from
    * @return `true` if a new file was created, `false` otherwise
    */
-  def writeDepositFile(user: String, id: UUID, path: Path, is: => InputStream): Try[Boolean] = for {
+  def writeDepositFile(is: => InputStream)(user: String, id: UUID, path: Path): Try[Boolean] = for {
     deposit <- DepositDir.get(draftsDir, user, id)
     dataFiles <- deposit.getDataFiles
     created <- dataFiles.write(is, path)
