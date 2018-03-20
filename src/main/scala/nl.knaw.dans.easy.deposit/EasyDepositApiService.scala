@@ -35,8 +35,8 @@ class EasyDepositApiService(serverPort: Int, app: EasyDepositApiApp) extends Deb
     override def probeForCycleClass(classLoader: ClassLoader): (String, LifeCycle) = {
       ("anonymous", new LifeCycle {
         override def init(context: ServletContext): Unit = {
-          context.mount(new EasyDepositApiServlet(app), "/deposit/*")
-          context.mount(new AuthenticationServlet(app), "/auth/*")
+          context.mount(new EasyDepositApiServlet(app), "/*")
+          context.mount(new DepositServlet(app), "/deposit/*")
         }
       })
     }

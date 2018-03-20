@@ -15,23 +15,13 @@
  */
 package nl.knaw.dans.easy.deposit
 
-import org.joda.time.DateTime
+import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.scalatra._
 
-class EasyDepositApiServlet(app: EasyDepositApiApp) extends AbstractProtectedServlet(app) {
+class EasyDepositApiServlet(app: EasyDepositApiApp) extends ScalatraServlet with DebugEnhancedLogging {
 
   get("/") {
     contentType = "text/plain"
-    Ok(s"$user ${ new DateTime() }: EASY Deposit API Service running (${ app.getVersion })")
-  }
-
-  post("/") {
-    contentType = "text/plain"
-    Ok(s"$user ${ new DateTime() }: EASY Deposit API Service received post (${ app.getVersion })")
-  }
-
-  put("/") {
-    contentType = "text/plain"
-    Ok(s"$user ${ new DateTime() }: EASY Deposit API Service received put (${ app.getVersion })")
+    Ok(s"EASY Deposit API Service running (${ app.getVersion })")
   }
 }

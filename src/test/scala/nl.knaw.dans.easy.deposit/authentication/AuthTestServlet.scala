@@ -6,8 +6,9 @@ import org.scalatra.{ CookieOptions, Forbidden, Ok }
 class AuthTestServlet(authProvider: AuthenticationProvider,
                       cookieOptions: CookieOptions,
                       tokenConfig: TokenConfig
-                          ) extends AuthenticationSupport {
+                     ) extends AuthenticationSupport {
 
+  // TODO apply `application.properies` here ?
   override def getAuthenticationProvider: AuthenticationProvider = authProvider
 
   override def getCookieOptions: CookieOptions = cookieOptions
@@ -23,9 +24,7 @@ class AuthTestServlet(authProvider: AuthenticationProvider,
     }
   }
 
-  put("/logout") { logout }
-
-  private def logout = {
+  put("/logout") {
     logOut() // destroys the scentry cookie
     Ok("you are signed out")
   }

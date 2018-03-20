@@ -16,31 +16,33 @@
 package nl.knaw.dans.easy.deposit.authentication
 
 import nl.knaw.dans.easy.deposit._
-import org.apache.commons.configuration.PropertiesConfiguration
 import org.eclipse.jetty.http.HttpStatus._
+import org.scalatra.CookieOptions
 import org.scalatra.test.scalatest.ScalatraSuite
 
 class ServletsSpec extends TestSupportFixture with ServletFixture with ScalatraSuite {
 
-  val depositApp: EasyDepositApiApp = new EasyDepositApiApp(new Configuration("test", new PropertiesConfiguration() {
-    addProperty("users.ldap-url", "ldap://hostDoesNotExist")
-    addProperty("deposits.drafts", s"$testDir/drafts")
-  })) {
-    override val authentication: Authentication = mock[Authentication]
-  }
+  private val mockedAuth = mock[AuthenticationProvider]
+  private val testCookieOptions: CookieOptions = CookieOptions(
+    domain = "",
+    path = "/",
+    maxAge = 10, // seconds
+    secure = false,
+    httpOnly = true, // JavaScript can't get the cookie
+  )
 
-  addServlet(new EasyDepositApiServlet(depositApp), "/deposit/*")
-  addServlet(new AuthenticationServlet(depositApp), "/auth/*")
+  addServlet(new TestServlet(mockedAuth, testCookieOptions, testTokenConfig), "/deposit/*")
+  addServlet(new AuthTestServlet(mockedAuth, testCookieOptions, testTokenConfig), "/auth/*")
 
   "get /deposit with valid basic authentication" should "be ok" in {
-    (depositApp.authentication.getUser(_: String, _: String)) expects("foo", "bar") returning
+    (mockedAuth.getUser(_: String, _: String)) expects("foo", "bar") returning
       Some(AuthUser("foo", isActive = true))
     get(
       uri = "/deposit",
       headers = Seq(("Authorization", fooBarBasicAuthHeader))
     ) {
       body should startWith("AuthUser(foo,List(),List(),true) ")
-      body should endWith(" EASY Deposit API Service running (test)")
+      body should endWith(" EASY Deposit API Service running")
       header("REMOTE_USER") shouldBe "foo"
       header("Set-Cookie") should startWith("scentry.auth.default.user=")
       header("Set-Cookie") shouldNot startWith("scentry.auth.default.user=;") // note the empty value
@@ -48,10 +50,10 @@ class ServletsSpec extends TestSupportFixture with ServletFixture with ScalatraS
     }
   }
 
-  "get /auth/logout with valid basic authentication" should "clear and not create a cookie" in {
-    (depositApp.authentication.getUser(_: String, _: String)) expects("foo", "bar") returning
+  "put /auth/logout with valid basic authentication" should "clear and not create a cookie" in {
+    (mockedAuth.getUser(_: String, _: String)) expects("foo", "bar") returning
       Some(AuthUser("foo", isActive = true))
-    get(
+    put(
       uri = "/auth/logout",
       headers = Seq(("Authorization", fooBarBasicAuthHeader))
     ) {

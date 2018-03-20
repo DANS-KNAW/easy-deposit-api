@@ -33,6 +33,7 @@ trait AuthenticationSupport extends ScalatraServlet
 
   def getAuthenticationProvider: AuthenticationProvider
 
+  // TODO https://github.com/DANS-KNAW/easy-deposit-api/pull/9/files/7fa7b2e6c81387f24538493377ddd249dbb0c268#r175452990
   def getCookieOptions: CookieOptions
 
   /** read method name as: fromCookie, see configured scentry.store */
@@ -114,6 +115,7 @@ trait AuthenticationSupport extends ScalatraServlet
       // would not be covered with the case above when we have no basic authentication strategy registered
       case (true, _, 1) => true
 
+      // TODO case (x, y) | (a, b) => ...
       // a client providing multiple authentication headers and/or satisfying multiple strategies should not be trustet
       case (_, nrOfStrategies, nrOfHeaders) if nrOfStrategies > 1 || nrOfHeaders > 1 => true
 
