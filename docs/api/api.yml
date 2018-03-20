@@ -723,8 +723,12 @@ components:
       - titles
       - languageOfDescription
       - creators
-      - created
+      - dateCreated
       - audiences
+      - accessRights
+      - license
+      - privacySensitiveDataPresent
+      - acceptLicenseAgreement
       type: object
       properties:
         # Basic information
@@ -752,7 +756,7 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/Author"
-        created:
+        dateCreated:
           type: string
         audiences:
           $ref: "#/components/schemas/StringArray"
@@ -840,4 +844,6 @@ components:
         messageForDataManager:
           type: string
         privacySensitiveDataPresent:
+          type: boolean
+        acceptLicenseAgreement:
           type: boolean
