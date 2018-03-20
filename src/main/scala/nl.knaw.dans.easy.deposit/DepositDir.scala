@@ -17,7 +17,10 @@ package nl.knaw.dans.easy.deposit
 
 import java.util.UUID
 
-import better.files.File
+import better.files._
+import org.apache.commons.configuration.PropertiesConfiguration
+import org.joda.time.format.{ DateTimeFormatter, ISODateTimeFormat }
+import org.joda.time.{ DateTime, DateTimeZone }
 
 import scala.util.Try
 
@@ -28,7 +31,7 @@ import scala.util.Try
  * @param user    the user ID of the deposit's owner
  * @param id      the ID of the deposit
  */
-class DepositDir private(baseDir: File, user: String, val id: UUID) {
+case class DepositDir private(baseDir: File, user: String, val id: UUID) {
 
   /**
    * @return an information object about the current state of the desposit.
@@ -103,7 +106,22 @@ object DepositDir {
    * @param user    the user name
    * @return the newly created [[DepositDir]]
    */
-  def create(baseDir: File, user: String): Try[DepositDir] = ???
+  def create(baseDir: File, user: String): Try[DepositDir] = Try {
+
+    val uuid = UUID.randomUUID()
+    val dir: File = (baseDir / user / uuid.toString)
+      .createIfNotExists(asDirectory = true, createParents = true)
+
+    val dateTimeFormatter: DateTimeFormatter = ISODateTimeFormat.dateTime()
+    val props = new PropertiesConfiguration()
+    props.addProperty("creation.timestamp", DateTime.now(DateTimeZone.UTC).toString(dateTimeFormatter))
+    props.addProperty("state.label", "DRAFT")
+    props.addProperty("state.description", "some test description") // TODO what's the real value here?
+    props.addProperty("depositor.userId", user)
+    props.save((dir / "deposit.properties").toJava)
+
+    new DepositDir(baseDir, user, uuid)
+  }
 }
 
 

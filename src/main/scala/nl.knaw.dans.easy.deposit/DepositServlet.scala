@@ -15,10 +15,35 @@
  */
 package nl.knaw.dans.easy.deposit
 
+import better.files._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
-import org.scalatra.{ Ok, ScalatraServlet }
+import org.json4s.{ DefaultFormats, Formats }
+import org.scalatra.ScalatraServlet
+import org.scalatra.json._
 
-class DepositServlet(app: EasyDepositApiApp) extends ScalatraServlet with DebugEnhancedLogging {
+import scala.language.existentials
 
 
+class DepositServlet(app: EasyDepositApiApp) extends ScalatraServlet
+  with JacksonJsonSupport
+  with DebugEnhancedLogging {
+
+  // Sets up automatic case class to JSON output serialization
+  protected implicit lazy val jsonFormats: Formats = DefaultFormats ++ org.json4s.ext.JodaTimeSerializers.all ++
+    org.json4s.ext.JavaTypesSerializers.all
+
+  // Before every action runs, set the content type to be in JSON format.
+  before() {
+    contentType = formats("json")
+  }
+
+  post("/") {
+
+    val dir: File = "./data/deposit_test"
+      .toFile
+      .createIfNotExists(asDirectory = true, createParents = true)
+
+    println(DepositDir.create(dir, "user007"))
+
+  }
 }
