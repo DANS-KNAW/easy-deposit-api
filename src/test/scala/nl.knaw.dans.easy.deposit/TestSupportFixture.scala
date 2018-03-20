@@ -24,7 +24,7 @@ import pdi.jwt.JwtAlgorithm.HS256
 import pdi.jwt.JwtOptions
 import org.scalatest._
 
-trait TestSupportFixture extends FlatSpec with Matchers with Inside with OneInstancePerTest {
+trait TestSupportFixture extends FlatSpec with Matchers with Inside {
 
   lazy val testDir: File = {
     (currentWorkingDirectory / "target" / "test" / getClass.getSimpleName)

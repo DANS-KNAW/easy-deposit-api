@@ -19,11 +19,12 @@ import nl.knaw.dans.easy.deposit._
 import nl.knaw.dans.easy.deposit.authentication.TokenSupport.TokenConfig
 import org.eclipse.jetty.http.HttpStatus._
 import org.joda.time.format.DateTimeFormat
+import org.scalamock.scalatest.MockFactory
 import org.scalatra.CookieOptions
 import org.scalatra.auth.Scentry
 import org.scalatra.test.scalatest.ScalatraSuite
 
-class TypicalSessionSpec extends TestSupportFixture with ServletFixture with ScalatraSuite {
+class TypicalSessionSpec extends TestSupportFixture with ServletFixture with ScalatraSuite with MockFactory{
 
   private val mockedAuth = mock[AuthenticationProvider]
   private val testCookieOptions: CookieOptions = CookieOptions(

@@ -42,7 +42,6 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
   }
   private val expiresIn: Int = properties.getInt("auth.cookie.expiresIn", 10)
 
-class EasyDepositApiApp(configuration: Configuration) {
   val tokenConfig = TokenConfig(
     secretKey = properties.getString("auth.jwt.secret.key", "test"), // TODO Change type to SecretKey? Really in application.properties?
     expiresIn = expiresIn, // seconds

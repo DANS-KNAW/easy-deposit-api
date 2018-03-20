@@ -17,10 +17,11 @@ package nl.knaw.dans.easy.deposit.authentication
 
 import nl.knaw.dans.easy.deposit._
 import org.eclipse.jetty.http.HttpStatus._
+import org.scalamock.scalatest.MockFactory
 import org.scalatra.CookieOptions
 import org.scalatra.test.scalatest.ScalatraSuite
 
-class ServletsSpec extends TestSupportFixture with ServletFixture with ScalatraSuite {
+class ServletsSpec extends TestSupportFixture with ServletFixture with ScalatraSuite with MockFactory {
 
   private val mockedAuth = mock[AuthenticationProvider]
   private val testCookieOptions: CookieOptions = CookieOptions(
