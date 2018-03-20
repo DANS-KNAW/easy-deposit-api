@@ -797,14 +797,28 @@ components:
           type: string
 
         # Upload type
+        typesDcmi:
+          $ref: "#/components/schemas/StringArray"
+        types:
+          $ref: "#/components/schemas/StringArray"
+        formatsMediaType:
+          $ref: "#/components/schemas/StringArray"
+        formats:
+          $ref: "#/components/schemas/StringArray"
 
-
+        # Archaeology specific metadata
         archisNrs:
           $ref: "#/components/schemas/StringArray"
         subjectsAbrComplex:
           $ref: "#/components/schemas/StringArray"
         temporalCoveragesAbr:
           $ref: "#/components/schemas/StringArray"
+
+        # Language and literature specific metadata
+        extraClarinMetadataPresent:
+          type: boolean
+
+        # Temporal and spatial coverage
         temporalCoverages:
           $ref: "#/components/schemas/StringArray"
         spatialPoints:
@@ -815,21 +829,15 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/SpatialBox"
-        spatialCoverages:
-          $ref: "#/components/schemas/StringArray"
         spatialCoverageIso3166:
           type: array
           items:
             $ref: "#/components/schemas/SchemedValue"
-        typesDcmi:
+        spatialCoverages:
           $ref: "#/components/schemas/StringArray"
-        types:
-          $ref: "#/components/schemas/StringArray"
-        formatsMediaType:
-          $ref: "#/components/schemas/StringArray"
-        formats:
-          $ref: "#/components/schemas/StringArray"
-        languagesIso639:
-          $ref: "#/components/schemas/StringArray"
-        languages:
-          $ref: "#/components/schemas/StringArray"
+
+        # For the data manager
+        messageForDataManager:
+          type: string
+        privacySensitiveDataPresent:
+          type: boolean
