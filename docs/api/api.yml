@@ -666,17 +666,22 @@ components:
         insertions: { type: string }
         surname: { type: string }
         role: { type: string }
-        id:
-          $ref: "#/components/schemas/SchemedValue"
+        ids:
+          type: array
+          items:
+            $ref: "#/components/schemas/SchemedValue"
         organization: { type: string }
       example:
         titles: Prof Dr
         initials: A
         insertions:
         surname: Einstein
-        id:
-
-
+        ids:
+          - scheme: DOI
+            value: "1234/5678"
+          - scheme: ISNI
+            value: "ISNI|000000012281955X"
+        organization: University of Zurich
     SpatialPoint:
       type: object
       properties:
