@@ -28,6 +28,13 @@ class DepositDirSpec extends TestSupportFixture {
       case Success(d) =>
         (draftsDir / "user001" / d.id.toString).toJava should exist
         (draftsDir / "user001" / d.id.toString / "deposit.properties").toJava should exist
+        (draftsDir / "user001" / d.id.toString / "bag").toJava should exist
+        (draftsDir / "user001" / d.id.toString / "bag/bag-info.txt").toJava should exist
+        (draftsDir / "user001" / d.id.toString / "bag/bagit.txt").toJava should exist
+        (draftsDir / "user001" / d.id.toString / "bag/manifest-sha1.txt").toJava should exist
+        (draftsDir / "user001" / d.id.toString / "bag/tagmanifest-sha1.txt").toJava should exist
+        (draftsDir / "user001" / d.id.toString / "bag/data").toJava should exist
+        (draftsDir / "user001" / d.id.toString / "bag/metadata").toJava should exist
     }
   }
 

@@ -23,6 +23,12 @@ import org.joda.time.format.{ DateTimeFormatter, ISODateTimeFormat }
 import org.joda.time.{ DateTime, DateTimeZone }
 
 import scala.util.Try
+import gov.loc.repository.bagit.creator.BagCreator
+import gov.loc.repository.bagit.domain.{ Metadata => BagitMetadata }
+import gov.loc.repository.bagit.hash.StandardSupportedAlgorithms
+import org.joda.time.format.ISODateTimeFormat
+import java.nio.file.{ Files, Path, Paths }
+import java.util.{ Locale, Arrays => JArrays }
 
 /**
  * Represents an existing deposit directory.
@@ -113,8 +119,18 @@ object DepositDir {
       .createIfNotExists(asDirectory = true, createParents = true)
 
     val dateTimeFormatter: DateTimeFormatter = ISODateTimeFormat.dateTime()
+    val timeNow = DateTime.now(DateTimeZone.UTC).toString(dateTimeFormatter)
+    val metadata = new BagitMetadata {
+      add("Created", timeNow)
+      add("Bag-Size", "0 KB")
+    }
+    val bagDir: File = dir / "bag"
+    BagCreator.bagInPlace(bagDir.path, JArrays.asList(StandardSupportedAlgorithms.SHA1), true, metadata)
+    (bagDir / "metadata")
+      .createIfNotExists(asDirectory = true)
+
     val props = new PropertiesConfiguration()
-    props.addProperty("creation.timestamp", DateTime.now(DateTimeZone.UTC).toString(dateTimeFormatter))
+    props.addProperty("creation.timestamp", timeNow)
     props.addProperty("state.label", "DRAFT")
     props.addProperty("state.description", "Deposit is open for changes.")
     props.addProperty("depositor.userId", user)
