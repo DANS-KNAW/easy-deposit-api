@@ -16,19 +16,18 @@
 package nl.knaw.dans.easy.deposit.authentication
 
 import nl.knaw.dans.easy.deposit._
+import nl.knaw.dans.easy.deposit.authentication.AuthenticationMocker._
 import org.eclipse.jetty.http.HttpStatus._
 import org.scalamock.scalatest.MockFactory
 import org.scalatra.test.scalatest.ScalatraSuite
 
 class ServletsSpec extends TestSupportFixture with ServletFixture with ScalatraSuite with MockFactory {
 
-  private val mockedAuth = mock[AuthenticationProvider]
-  addServlet(new TestServlet(mockedAuth), "/deposit/*")
-  addServlet(new AuthTestServlet(mockedAuth), "/auth/*")
+  addServlet(new TestServlet(mockedAuthenticationProvider), "/deposit/*")
+  addServlet(new AuthTestServlet(mockedAuthenticationProvider), "/auth/*")
 
   "get /deposit with valid basic authentication" should "be ok" in {
-    (mockedAuth.getUser(_: String, _: String)) expects("foo", "bar") returning
-      Some(AuthUser("foo", isActive = true))
+    expectsUserFooBar
     get(
       uri = "/deposit",
       headers = Seq(("Authorization", fooBarBasicAuthHeader))
@@ -43,8 +42,7 @@ class ServletsSpec extends TestSupportFixture with ServletFixture with ScalatraS
   }
 
   "put /auth/logout with valid basic authentication" should "clear and not create a cookie" in {
-    (mockedAuth.getUser(_: String, _: String)) expects("foo", "bar") returning
-      Some(AuthUser("foo", isActive = true))
+    expectsUserFooBar
     put(
       uri = "/auth/logout",
       headers = Seq(("Authorization", fooBarBasicAuthHeader))

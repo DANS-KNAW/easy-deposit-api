@@ -13,17 +13,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package nl.knaw.dans.easy.deposit.authentication
+package nl.knaw.dans.easy.deposit
 
-import org.apache.commons.configuration.PropertiesConfiguration
+import org.scalatra.Ok
 
-trait AuthConfig {
+class AuthServlet(app: EasyDepositApiApp) extends AbstractAuthServlet(app) {
 
-  /** default life time for a JWT and the scentry cookie it is stored in. */
-  val defaultExpiresIn: Int = 10 // TODO using it broke tests
+  post("/login") {
+    login()
+    Ok(s"signed in") // TODO return user info?
+  }
 
-  def getAuthenticationProvider: AuthenticationProvider
-
-  def getProperties: PropertiesConfiguration
+  put("/logout") {
+    logOut() // destroys the scentry cookie
+    Ok("you are signed out")
+  }
 
 }

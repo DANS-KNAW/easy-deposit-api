@@ -30,8 +30,8 @@ import scala.util.Try
 class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLogging
   with LdapAuthentication {
 
+  val properties: PropertiesConfiguration = configuration.properties
   override val authentication: Authentication = new Authentication {
-    val properties: PropertiesConfiguration = configuration.properties
     override val ldapUserIdAttrName: String = properties.getString("users.ldap-user-id-attr-name")
     override val ldapParentEntry: String = properties.getString("users.ldap-parent-entry")
     override val ldapProviderUrl: String = properties.getString("users.ldap-url")

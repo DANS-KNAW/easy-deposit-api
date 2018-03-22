@@ -37,6 +37,7 @@ class EasyDepositApiService(serverPort: Int, app: EasyDepositApiApp) extends Deb
         override def init(context: ServletContext): Unit = {
           context.mount(new EasyDepositApiServlet(app), "/*")
           context.mount(new DepositServlet(app), "/deposit/*")
+          context.mount(new AuthServlet(app), "/auth/*") // TODO update swagger: /logXXX -> /auth/logXXX
         }
       })
     }

@@ -20,22 +20,23 @@ import java.nio.file.{ Path, Paths }
 import java.util.UUID
 
 import nl.knaw.dans.lib.error._
-import nl.knaw.dans.lib.logging.DebugEnhancedLogging
+import org.eclipse.jetty.http.HttpStatus
 import org.json4s.native.JsonMethods
 import org.json4s.{ DefaultFormats, Formats }
 import org.scalatra._
 
 import scala.util.{ Failure, Success, Try }
 
-class DepositServlet(app: EasyDepositApiApp) extends ScalatraServlet with DebugEnhancedLogging {
+class DepositServlet(app: EasyDepositApiApp) extends AbstractAuthServlet(app) {
 
-  val userId: String = "user001" // TODO see TestServlet in PR #9
   before() {
-    // TODO see TestServlet in PR #9
+    if (!isAuthenticated) {
+      halt(HttpStatus.FORBIDDEN_403, "missing, invalid or expired credentials")
+    }
   }
 
-  get("/") { respond(app.getDeposits(userId)) }
-  post("/") { respond(app.createDeposit(userId)) }
+  get("/") { respond(app.getDeposits(user.id)) }
+  post("/") { respond(app.createDeposit(user.id)) }
   get("/:id/metadata") { forId(app.getDatasetMetadataForDeposit) }
   put("/:id/metadata") { getDatasetMetadata.map(m => forId(app.writeDataMetadataToDeposit(m))).getOrRecover(badDoc) }
   get("/:id/state") { forId(app.getDepositState) }
@@ -49,7 +50,7 @@ class DepositServlet(app: EasyDepositApiApp) extends ScalatraServlet with DebugE
   private def forId[T](callback: (String, UUID) => Try[T]): ActionResult = {
     getUUID match {
       case Failure(t) => BadRequest(t.getMessage)
-      case Success(uuid) => respond(callback(userId, uuid))
+      case Success(uuid) => respond(callback(user.id, uuid))
     }
   }
 
@@ -58,7 +59,7 @@ class DepositServlet(app: EasyDepositApiApp) extends ScalatraServlet with DebugE
       case (Failure(tId), Failure(tPath)) => BadRequest(s"${ tId.getMessage }. ${ tPath.getMessage }.")
       case (Failure(t), _) => BadRequest(t.getMessage)
       case (_, Failure(t)) => BadRequest(t.getMessage)
-      case (Success(uuid), Success(path)) => respond(callback(userId, uuid, path))
+      case (Success(uuid), Success(path)) => respond(callback(user.id, uuid, path))
     }
   }
 

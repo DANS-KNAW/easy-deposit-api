@@ -16,6 +16,7 @@
 package nl.knaw.dans.easy.deposit.authentication
 
 import nl.knaw.dans.easy.deposit._
+import nl.knaw.dans.easy.deposit.authentication.AuthenticationMocker._
 import org.apache.commons.configuration.PropertiesConfiguration
 import org.eclipse.jetty.http.HttpStatus._
 import org.joda.time.format.DateTimeFormat
@@ -25,20 +26,21 @@ import org.scalatra.test.scalatest.ScalatraSuite
 
 class TypicalSessionSpec extends TestSupportFixture with ServletFixture with ScalatraSuite with MockFactory {
 
-  private val mockedAuth = mock[AuthenticationProvider]
-  addServlet(new TestServlet(mockedAuth), "/deposit/*")
-  addServlet(new AuthTestServlet(mockedAuth), "/auth/*")
+  addServlet(new TestServlet(mockedAuthenticationProvider), "/deposit/*")
+  addServlet(new AuthTestServlet(mockedAuthenticationProvider), "/auth/*")
 
   private class TokenSupportImpl() extends TokenSupport with AuthConfig {
 
-    def getAuthenticationProvider: AuthenticationProvider = mockedAuth
+    def getAuthenticationProvider: AuthenticationProvider = mockedAuthenticationProvider
 
     def getProperties: PropertiesConfiguration = new PropertiesConfiguration()
   }
   private val tokenSupport = new TokenSupportImpl()
 
+
+
   "get /deposit without credentials" should "return 403 (forbidden)" in {
-    (mockedAuth.getUser(_: String, _: String)) expects(*, *) never()
+    expectsNoUser
     get("/deposit") {
       status shouldBe FORBIDDEN_403
       body shouldBe "missing, invalid or expired credentials"
@@ -48,7 +50,7 @@ class TypicalSessionSpec extends TestSupportFixture with ServletFixture with Sca
   }
 
   "post /auth/login with invalid credentials" should "return 403 (forbidden)" in {
-    (mockedAuth.getUser(_: String, _: String)) expects("foo", "bar") returning None
+    expectsInvalidUser
     post(
       uri = "/auth/login",
       params = Seq(("login", "foo"), ("password", "bar"))
@@ -61,8 +63,7 @@ class TypicalSessionSpec extends TestSupportFixture with ServletFixture with Sca
   }
 
   "post /auth/login with proper user-name password" should "create a protected cookie" in {
-    (mockedAuth.getUser(_: String, _: String)) expects("foo", "bar") returning
-      Some(AuthUser("foo", isActive = true))
+    expectsUserFooBar
     post(
       uri = "/auth/login",
       params = Seq(("login", "foo"), ("password", "bar"))
@@ -81,11 +82,7 @@ class TypicalSessionSpec extends TestSupportFixture with ServletFixture with Sca
   }
 
   "post /auth/login with valid basic authentication" should "create a cookie" in {
-    // allows testing with curl without having to bake a (JWT) cookie
-    // alternative: configure to accept some test-cookie or one of the test users
-
-    (mockedAuth.getUser(_: String, _: String)) expects("foo", "bar") returning
-      Some(AuthUser("foo", isActive = true))
+    expectsUserFooBar
     post(
       uri = "/auth/login",
       headers = Seq(("Authorization", fooBarBasicAuthHeader))
@@ -103,9 +100,8 @@ class TypicalSessionSpec extends TestSupportFixture with ServletFixture with Sca
     }
   }
 
-
   "get /deposit with valid cookie token" should "be ok" in {
-    (mockedAuth.getUser(_: String, _: String)) expects(*, *) never()
+    expectsNoUser
     val jwtCookie = tokenSupport.encodeJWT(AuthUser("foo", isActive = true))
 
     get(
@@ -120,7 +116,7 @@ class TypicalSessionSpec extends TestSupportFixture with ServletFixture with Sca
   }
 
   "put /auth/logout" should "clear the cookie" in {
-    (mockedAuth.getUser(_: String, _: String)) expects(*, *) never()
+    expectsNoUser
     val jwtCookie = tokenSupport.encodeJWT(AuthUser("foo", isActive = true))
 
     put(
