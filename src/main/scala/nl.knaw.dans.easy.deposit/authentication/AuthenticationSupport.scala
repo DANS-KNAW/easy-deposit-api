@@ -18,18 +18,14 @@ package nl.knaw.dans.easy.deposit.authentication
 import nl.knaw.dans.easy.deposit.authentication.AuthenticationSupport._
 import nl.knaw.dans.lib.error._
 import org.eclipse.jetty.http.HttpStatus._
+import org.scalatra._
 import org.scalatra.auth.ScentryAuthStore.CookieAuthStore
 import org.scalatra.auth.{ Scentry, ScentryConfig, ScentryStrategy, ScentrySupport }
-import org.scalatra.{ CookieOptions, ScalatraBase, ScalatraServlet }
 
 import scala.collection.JavaConverters._
 
-trait AuthenticationSupport extends ScalatraServlet
-  with ScalatraBase
-  with ScentrySupport[AuthUser]
-  with ServletEnhancedLogging
-  with TokenSupport {
-  self: AuthConfig =>
+trait AuthenticationSupport extends ScentrySupport[AuthUser] {
+  self: ScalatraBase with TokenSupport with AuthConfig =>
 
   /** read method name as: fromCookie, see configured scentry.store */
   override protected def fromSession: PartialFunction[String, AuthUser] = {
@@ -50,7 +46,8 @@ trait AuthenticationSupport extends ScalatraServlet
   /** Successful authentications will result in a cookie. */
   override protected def configureScentry {
 
-    val cookieOptions = CookieOptions(
+    // avoid name clash with implicit def cookieOptions
+    val cookieConfig = CookieOptions(
       domain = "", // limits which server get the cookie // TODO by default the host who sent it?
       path = "/", // limits which route gets the cookie, TODO configure and/or from mounts in Service class
       maxAge = getProperties.getInt("auth.cookie.expiresIn", 10), // seconds, MUST be same default as in TokenSupport
@@ -58,8 +55,8 @@ trait AuthenticationSupport extends ScalatraServlet
       httpOnly = true // JavaScript can't get the cookie
       // version = 0 // obsolete? https://stackoverflow.com/questions/29124177/recommended-set-cookie-version-used-by-web-servers-0-1-or-2#29143128
     )
-    logger.info(s"authCookieOptions: $cookieOptions")
-    scentry.store = new CookieAuthStore(self)(cookieOptions)
+    logger.info(s"authCookieOptions: $cookieConfig")
+    scentry.store = new CookieAuthStore(self)(cookieConfig)
   }
 
   /**
@@ -82,6 +79,15 @@ trait AuthenticationSupport extends ScalatraServlet
     authenticate()
   }
 
+  /** Halts request processing in case of trouble. */
+  def login() {
+    if (hasAuthCookie)
+      halt(BAD_REQUEST_400) // don't trust a client that logs in while having an authentication cookie
+    else if (!isAuthenticated) {
+      halt(FORBIDDEN_403, "invalid credentials")
+    }
+  }
+
   /**
    * Whether a route needs protection or not
    * a client providing multiple authentications should not be trusted
@@ -94,26 +100,25 @@ trait AuthenticationSupport extends ScalatraServlet
       .map(_.toLowerCase)
       .filter(h => headers.contains(h))
 
-    val hasAuthCookie = request.getCookies.exists(_.getName == Scentry.scentryAuthKey)
     val validStrategies = scentry.strategies.values.filter(_.isValid)
 
-    if (hasMultipleAuthentications(authenticationHeaders, hasAuthCookie, validStrategies)) {
+    if (hasMultipleAuthentications(hasAuthCookie, validStrategies, authenticationHeaders)) {
       logger.info(s"Client specified multiple authentications: hasAuthCookie=$hasAuthCookie, authentication headers [$authenticationHeaders], strategies [${ validStrategies.map(_.name) }]")
-      halt(BAD_REQUEST_400, "Invalid authentication")
+      halt(BAD_REQUEST_400)
     }
   }
 
-  private def hasMultipleAuthentications(authenticationHeaders: List[String], hasAuthCookie: Boolean, validStrategies: Iterable[ScentryStrategy[AuthUser]]) = {
+  def hasAuthCookie: Boolean = {
+    request.getCookies.exists(_.getName == Scentry.scentryAuthKey)
+  }
+
+  private def hasMultipleAuthentications(hasAuthCookie: Boolean, validStrategies: Iterable[ScentryStrategy[AuthUser]], authenticationHeaders: List[String]) = {
     (hasAuthCookie, validStrategies.size, authenticationHeaders.size) match {
 
       // a client providing a JWT cookie and meeting the needs of a strategy should not be trusted
-      case (true, 1, _) => true
+      // in case basic authentication was not registered we need to check for that header too
+      case (true, 1, _) | (true, _, 1) => true
 
-      // a client providing a JWT a cookie and an authentication header should not be trusted
-      // would not be covered with the case above when we have no basic authentication strategy registered
-      case (true, _, 1) => true
-
-      // TODO case (x, y) | (a, b) => ...
       // a client providing multiple authentication headers and/or satisfying multiple strategies should not be trustet
       case (_, nrOfStrategies, nrOfHeaders) if nrOfStrategies > 1 || nrOfHeaders > 1 => true
 

@@ -16,11 +16,16 @@
 package nl.knaw.dans.easy.deposit.authentication
 
 import org.apache.commons.configuration.PropertiesConfiguration
+import org.scalatra.ScalatraServlet
 
-trait AuthConfig {
+class AbstractTestServlet(authProvider: AuthenticationProvider
+                         ) extends ScalatraServlet
+  with ServletEnhancedLogging
+  with AuthenticationSupport
+  with TokenSupport
+  with AuthConfig {
 
-  def getAuthenticationProvider: AuthenticationProvider
+  override def getAuthenticationProvider: AuthenticationProvider = authProvider
 
-  def getProperties: PropertiesConfiguration
-
+  override def getProperties: PropertiesConfiguration = new PropertiesConfiguration()
 }

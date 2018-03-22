@@ -18,11 +18,12 @@ package nl.knaw.dans.easy.deposit.authentication
 import javax.servlet.http.{ HttpServletRequest, HttpServletResponse }
 
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
+import org.scalatra.ScalatraBase
 import org.scalatra.auth.strategy.BasicAuthStrategy
 
 object EasyBasicAuthStrategy {}
 
-class EasyBasicAuthStrategy(protected override val app: AuthenticationSupport,
+class EasyBasicAuthStrategy(protected override val app: ScalatraBase,
                             authenticationProvider: AuthenticationProvider,
                             realm: String
                            ) extends BasicAuthStrategy[AuthUser](app, realm)
