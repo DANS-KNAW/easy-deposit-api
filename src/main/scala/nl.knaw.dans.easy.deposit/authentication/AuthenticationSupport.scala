@@ -30,7 +30,7 @@ trait AuthenticationSupport extends ScalatraServlet
   with ScentrySupport[AuthUser]
   with ServletEnhancedLogging
   with TokenSupport {
-  self: ScalatraBase =>
+  self =>
 
   def getAuthenticationProvider: AuthenticationProvider
 
@@ -52,10 +52,7 @@ trait AuthenticationSupport extends ScalatraServlet
   override protected val scentryConfig: ScentryConfiguration =
     new ScentryConfig {}.asInstanceOf[ScentryConfiguration]
 
-  /**
-   * If an unauthenticated user attempts to access a route which is protected by Scentry,
-   * run the unauthenticated() method on the UserPasswordStrategy.
-   */
+  /** Successful authentications will result in a cookie. */
   override protected def configureScentry {
 
     val cookieOptions = CookieOptions(
@@ -68,9 +65,6 @@ trait AuthenticationSupport extends ScalatraServlet
     )
     logger.info(s"authCookieOptions: $cookieOptions")
     scentry.store = new CookieAuthStore(self)(cookieOptions)
-
-    // TODO Default if none of the strategies applied? Overridden by EasyBasicAuthStrategy.super
-    scentry.unauthenticated { scentry.strategies(UserPasswordStrategy.getClass.getSimpleName).unauthenticated() }
   }
 
   /**
