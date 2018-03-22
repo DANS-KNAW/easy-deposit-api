@@ -35,6 +35,15 @@
         name: dans.knaw.nl-easy-deposit-api
         state: latest
 
+    - name: deposit/ingest directories
+      file:
+        path: "{{ item }}"
+        state: directory
+      with_items:
+        - "{{ dans_config_base }}/tmp/easy-deposit/drafts"
+        - "{{ dans_config_base }}/tmp/easy-deposit/stage"
+        - "{{ dans_config_base }}/tmp/easy-ingest-flow-inbox"
+
     - name: Install Ldap
       include_role:
         name: "dans.easy-ldap-dir"
