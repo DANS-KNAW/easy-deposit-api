@@ -67,7 +67,7 @@ class HappyRoutesSpec extends TestSupportFixture with ServletFixture with Scalat
       headers = Seq(("Authorization", fooBarBasicAuthHeader))
     ) {
       status shouldBe OK_200
-      body should (fullyMatch regex "[a-z0-9-]+" and have length 36)
+      body should (fullyMatch regex "[a-z0-9-]+" and have length 36) // a UUID
       (drafts / "foo" / body / "deposit.properties").contentAsString should include ("depositor.userId = foo")
     }
   }
