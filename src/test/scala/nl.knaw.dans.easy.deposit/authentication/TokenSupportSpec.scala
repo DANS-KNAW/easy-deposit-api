@@ -16,16 +16,18 @@
 package nl.knaw.dans.easy.deposit.authentication
 
 import nl.knaw.dans.easy.deposit.TestSupportFixture
-import nl.knaw.dans.easy.deposit.authentication.TokenSupport.TokenConfig
+import org.apache.commons.configuration.PropertiesConfiguration
 
 import scala.util.Success
 
-class TokenSupportSpec extends TestSupportFixture with TokenSupport {
-
-  val getTokenConfig: TokenConfig = testTokenConfig
+class TokenSupportSpec extends TestSupportFixture with TokenSupport with AuthConfig {
 
   "toUser" should "return encoded value" in {
     val user = AuthUser("foo", isActive = true)
     decodeJWT(encodeJWT(user)) shouldBe Success(user)
   }
+
+  override def getAuthenticationProvider: AuthenticationProvider = ???
+
+  override def getProperties: PropertiesConfiguration = new PropertiesConfiguration()
 }

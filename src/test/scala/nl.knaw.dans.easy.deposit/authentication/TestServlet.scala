@@ -1,21 +1,16 @@
 package nl.knaw.dans.easy.deposit.authentication
 
-import nl.knaw.dans.easy.deposit.authentication.TokenSupport.TokenConfig
 import org.apache.commons.configuration.PropertiesConfiguration
 import org.eclipse.jetty.http.HttpStatus
 import org.joda.time.DateTime
 import org.scalatra.Ok
 
-class TestServlet(authProvider: AuthenticationProvider,
-                  properties: PropertiesConfiguration,
-                  tokenConfig: TokenConfig
-                 ) extends AuthenticationSupport {
+class TestServlet(authProvider: AuthenticationProvider
+                 ) extends AuthenticationSupport with AuthConfig {
 
   override def getAuthenticationProvider: AuthenticationProvider = authProvider
 
-  override def getProperties: PropertiesConfiguration = properties
-
-  override def getTokenConfig: TokenConfig = tokenConfig
+  override def getProperties: PropertiesConfiguration = new PropertiesConfiguration()
 
   before() {
     if (!isAuthenticated) {

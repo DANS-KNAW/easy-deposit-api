@@ -16,7 +16,6 @@
 package nl.knaw.dans.easy.deposit.authentication
 
 import nl.knaw.dans.easy.deposit._
-import org.apache.commons.configuration.PropertiesConfiguration
 import org.eclipse.jetty.http.HttpStatus._
 import org.scalamock.scalatest.MockFactory
 import org.scalatra.test.scalatest.ScalatraSuite
@@ -24,9 +23,8 @@ import org.scalatra.test.scalatest.ScalatraSuite
 class ServletsSpec extends TestSupportFixture with ServletFixture with ScalatraSuite with MockFactory {
 
   private val mockedAuth = mock[AuthenticationProvider]
-  val props = new PropertiesConfiguration()
-  addServlet(new TestServlet(mockedAuth, props, testTokenConfig), "/deposit/*")
-  addServlet(new AuthTestServlet(mockedAuth, props, testTokenConfig), "/auth/*")
+  addServlet(new TestServlet(mockedAuth), "/deposit/*")
+  addServlet(new AuthTestServlet(mockedAuth), "/auth/*")
 
   "get /deposit with valid basic authentication" should "be ok" in {
     (mockedAuth.getUser(_: String, _: String)) expects("foo", "bar") returning

@@ -21,35 +21,17 @@ import java.util.UUID
 
 import better.files.File
 import nl.knaw.dans.easy.deposit.authentication.LdapAuthentication
-import nl.knaw.dans.easy.deposit.authentication.TokenSupport.TokenConfig
 import nl.knaw.dans.lib.error._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.apache.commons.configuration.PropertiesConfiguration
-import pdi.jwt.algorithms.JwtHmacAlgorithm
-import pdi.jwt.{ JwtAlgorithm, JwtOptions }
 
 import scala.util.Try
 
 class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLogging
   with LdapAuthentication {
-  val properties: PropertiesConfiguration = configuration.properties
-
-  private def toHmacAlgorithm(value: String): JwtHmacAlgorithm = {
-    // TODO confine use of the library to TokenSupport for easy replacement in case of trouble with the library
-    Try {
-      JwtAlgorithm.fromString(value).asInstanceOf[JwtHmacAlgorithm]
-    }.getOrRecover { t => throw new Exception(s"asymmetrical or unknown JwtHmacAlgorithm configured [$value]: $t") }
-  }
-
-  val tokenConfig = TokenConfig(
-    secretKey = properties.getString("auth.jwt.secret.key", "test"), // TODO Change type to SecretKey? Really in application.properties?
-    expiresIn = properties.getInt("auth.cookie.expiresIn", 10), // seconds
-    algorithm = toHmacAlgorithm(properties.getString("auth.jwt.hmac.algorithm", "HS256")),
-    options = JwtOptions(leeway = 10) // JWT lives 10 seconds longer than cookie
-  )
-  logger.info(s"tokenConfig: $tokenConfig")
 
   override val authentication: Authentication = new Authentication {
+    val properties: PropertiesConfiguration = configuration.properties
     override val ldapUserIdAttrName: String = properties.getString("users.ldap-user-id-attr-name")
     override val ldapParentEntry: String = properties.getString("users.ldap-parent-entry")
     override val ldapProviderUrl: String = properties.getString("users.ldap-url")

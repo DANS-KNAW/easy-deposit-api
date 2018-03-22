@@ -17,12 +17,8 @@ package nl.knaw.dans.easy.deposit
 
 import better.files.File
 import better.files.File._
-import nl.knaw.dans.easy.deposit.authentication.TokenSupport
 import org.joda.time.{ DateTime, DateTimeUtils }
 import org.scalatest.{ FlatSpec, Inside, Matchers }
-import pdi.jwt.JwtAlgorithm.HS256
-import pdi.jwt.JwtOptions
-import org.scalatest._
 
 trait TestSupportFixture extends FlatSpec with Matchers with Inside {
 
@@ -39,12 +35,4 @@ trait TestSupportFixture extends FlatSpec with Matchers with Inside {
 
   /** Base64 encoded foo:bar */
   val fooBarBasicAuthHeader = "Basic Zm9vOmJhcg=="
-
-  val testTokenConfig = TokenSupport.TokenConfig(
-    secretKey = "test",
-    expiresIn = 1,
-    algorithm = HS256,
-    options = JwtOptions.DEFAULT
-  )
-
 }

@@ -17,7 +17,6 @@ package nl.knaw.dans.easy.deposit.authentication
 
 import nl.knaw.dans.easy.deposit.authentication.AuthenticationSupport._
 import nl.knaw.dans.lib.error._
-import org.apache.commons.configuration.PropertiesConfiguration
 import org.eclipse.jetty.http.HttpStatus._
 import org.scalatra.auth.ScentryAuthStore.CookieAuthStore
 import org.scalatra.auth.{ Scentry, ScentryConfig, ScentryStrategy, ScentrySupport }
@@ -30,11 +29,7 @@ trait AuthenticationSupport extends ScalatraServlet
   with ScentrySupport[AuthUser]
   with ServletEnhancedLogging
   with TokenSupport {
-  self =>
-
-  def getAuthenticationProvider: AuthenticationProvider
-
-  def getProperties: PropertiesConfiguration
+  self: AuthConfig =>
 
   /** read method name as: fromCookie, see configured scentry.store */
   override protected def fromSession: PartialFunction[String, AuthUser] = {
@@ -58,7 +53,7 @@ trait AuthenticationSupport extends ScalatraServlet
     val cookieOptions = CookieOptions(
       domain = "", // limits which server get the cookie // TODO by default the host who sent it?
       path = "/", // limits which route gets the cookie, TODO configure and/or from mounts in Service class
-      maxAge = getProperties.getInt("auth.cookie.expiresIn", 10), // seconds
+      maxAge = getProperties.getInt("auth.cookie.expiresIn", 10), // seconds, MUST be same default as in TokenSupport
       secure = false, // TODO true when service supports HTTPS to prevent browsers to send it over http
       httpOnly = true // JavaScript can't get the cookie
       // version = 0 // obsolete? https://stackoverflow.com/questions/29124177/recommended-set-cookie-version-used-by-web-servers-0-1-or-2#29143128

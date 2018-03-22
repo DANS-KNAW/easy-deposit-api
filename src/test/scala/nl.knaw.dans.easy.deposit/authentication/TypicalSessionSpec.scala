@@ -16,7 +16,6 @@
 package nl.knaw.dans.easy.deposit.authentication
 
 import nl.knaw.dans.easy.deposit._
-import nl.knaw.dans.easy.deposit.authentication.TokenSupport.TokenConfig
 import org.apache.commons.configuration.PropertiesConfiguration
 import org.eclipse.jetty.http.HttpStatus._
 import org.joda.time.format.DateTimeFormat
@@ -27,15 +26,16 @@ import org.scalatra.test.scalatest.ScalatraSuite
 class TypicalSessionSpec extends TestSupportFixture with ServletFixture with ScalatraSuite with MockFactory {
 
   private val mockedAuth = mock[AuthenticationProvider]
-  private val props = new PropertiesConfiguration() {
-    addProperty("auth.cookie.expiresIn", "20")
-  }
-  addServlet(new TestServlet(mockedAuth, props, testTokenConfig), "/deposit/*")
-  addServlet(new AuthTestServlet(mockedAuth, props, testTokenConfig), "/auth/*")
+  addServlet(new TestServlet(mockedAuth), "/deposit/*")
+  addServlet(new AuthTestServlet(mockedAuth), "/auth/*")
 
-  private def receivedToken = new TokenSupport() {
-    override def getTokenConfig: TokenConfig = testTokenConfig
-  }.encodeJWT(AuthUser("foo", isActive = true))
+  private class TokenSupportImpl() extends TokenSupport with AuthConfig {
+
+    def getAuthenticationProvider: AuthenticationProvider = mockedAuth
+
+    def getProperties: PropertiesConfiguration = new PropertiesConfiguration()
+  }
+  private val tokenSupport = new TokenSupportImpl()
 
   "get /deposit without credentials" should "return 403 (forbidden)" in {
     (mockedAuth.getUser(_: String, _: String)) expects(*, *) never()
@@ -103,13 +103,14 @@ class TypicalSessionSpec extends TestSupportFixture with ServletFixture with Sca
     }
   }
 
-  "get /deposit with valid cookie token" should "be ok" in {
 
+  "get /deposit with valid cookie token" should "be ok" in {
     (mockedAuth.getUser(_: String, _: String)) expects(*, *) never()
+    val jwtCookie = tokenSupport.encodeJWT(AuthUser("foo", isActive = true))
 
     get(
       uri = "/deposit",
-      headers = Seq(("Cookie", s"${ Scentry.scentryAuthKey }=$receivedToken"))
+      headers = Seq(("Cookie", s"${ Scentry.scentryAuthKey }=$jwtCookie"))
     ) {
       status shouldBe OK_200
       Option(header("REMOTE_USER")) shouldBe None
@@ -120,10 +121,11 @@ class TypicalSessionSpec extends TestSupportFixture with ServletFixture with Sca
 
   "put /auth/logout" should "clear the cookie" in {
     (mockedAuth.getUser(_: String, _: String)) expects(*, *) never()
+    val jwtCookie = tokenSupport.encodeJWT(AuthUser("foo", isActive = true))
 
     put(
       uri = "/auth/logout",
-      headers = Seq(("Cookie", s"${ Scentry.scentryAuthKey }=$receivedToken"))
+      headers = Seq(("Cookie", s"${ Scentry.scentryAuthKey }=$jwtCookie"))
     ) {
       status shouldBe OK_200
       header("Content-Type") shouldBe "text/plain;charset=UTF-8"
@@ -146,7 +148,7 @@ class TypicalSessionSpec extends TestSupportFixture with ServletFixture with Sca
       .parseDateTime(expiresString)
       .getMillis
     expiresLong -
-      (props.getInt("auth.cookie.expiresIn") * 1000) -
+      (tokenSupport.tokenConfig.expiresIn * 1000) -
       System.currentTimeMillis
   }
 }
