@@ -20,11 +20,26 @@ import java.nio.file.{ Path, Paths }
 import java.util.UUID
 
 import better.files.File
+import nl.knaw.dans.easy.deposit.authentication.LdapAuthentication
 import nl.knaw.dans.lib.error._
+import nl.knaw.dans.lib.logging.DebugEnhancedLogging
+import org.apache.commons.configuration.PropertiesConfiguration
 
 import scala.util.Try
 
-class EasyDepositApiApp(configuration: Configuration) {
+class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLogging
+  with LdapAuthentication {
+
+  val properties: PropertiesConfiguration = configuration.properties
+  override val authentication: Authentication = new Authentication {
+    override val ldapUserIdAttrName: String = properties.getString("users.ldap-user-id-attr-name")
+    override val ldapParentEntry: String = properties.getString("users.ldap-parent-entry")
+    override val ldapProviderUrl: String = properties.getString("users.ldap-url")
+    logger.info(s"Authentication: ldapProviderUrl = $ldapProviderUrl")
+    logger.info(s"Authentication: ldapParentEntry = $ldapParentEntry")
+    logger.info(s"Authentication: ldapUserIdAttrName = $ldapUserIdAttrName")
+  }
+
   def getVersion: String = {
     configuration.version
   }

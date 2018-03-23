@@ -13,15 +13,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package nl.knaw.dans.easy.deposit
+package nl.knaw.dans.easy.deposit.authentication
 
-import nl.knaw.dans.lib.logging.DebugEnhancedLogging
-import org.scalatra._
+import org.apache.commons.configuration.PropertiesConfiguration
 
-class EasyDepositApiServlet(app: EasyDepositApiApp) extends ScalatraServlet with DebugEnhancedLogging {
+trait AuthConfig {
 
-  get("/") {
-    contentType = "text/plain"
-    Ok(s"EASY Deposit API Service running (${ app.getVersion })")
-  }
+  /** default life time for a JWT and the scentry cookie it is stored in. */
+  val defaultExpiresIn: Int = 10 // TODO using it broke tests
+
+  def getAuthenticationProvider: AuthenticationProvider
+
+  def getProperties: PropertiesConfiguration
+
 }

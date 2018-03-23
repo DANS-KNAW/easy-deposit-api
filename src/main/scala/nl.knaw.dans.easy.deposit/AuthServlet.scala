@@ -15,24 +15,18 @@
  */
 package nl.knaw.dans.easy.deposit
 
-import better.files.File
-import better.files.File._
-import org.joda.time.{ DateTime, DateTimeUtils }
-import org.scalatest.{ FlatSpec, Inside, Matchers }
+import org.scalatra.Ok
 
-trait TestSupportFixture extends FlatSpec with Matchers with Inside {
+class AuthServlet(app: EasyDepositApiApp) extends AbstractAuthServlet(app) {
 
-  lazy val testDir: File = {
-    (currentWorkingDirectory / "target" / "test" / getClass.getSimpleName)
-      .delete(true)
-      .createDirectories()
+  post("/login") {
+    login()
+    Ok(s"signed in") // TODO return user info?
   }
 
-  /** Causes DateTime.now() to return a predefined value. */
-  def mockDateTimeNow(value: String): Unit = {
-    DateTimeUtils.setCurrentMillisFixed(new DateTime(value).getMillis)
+  put("/logout") {
+    logOut() // destroys the scentry cookie
+    Ok("you are signed out")
   }
 
-  /** Base64 encoded foo:bar */
-  val fooBarBasicAuthHeader = "Basic Zm9vOmJhcg=="
 }

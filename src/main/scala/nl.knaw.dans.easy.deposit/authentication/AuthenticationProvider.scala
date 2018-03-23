@@ -13,15 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package nl.knaw.dans.easy.deposit
+package nl.knaw.dans.easy.deposit.authentication
 
-import nl.knaw.dans.lib.logging.DebugEnhancedLogging
-import org.scalatra._
-
-class EasyDepositApiServlet(app: EasyDepositApiApp) extends ScalatraServlet with DebugEnhancedLogging {
-
-  get("/") {
-    contentType = "text/plain"
-    Ok(s"EASY Deposit API Service running (${ app.getVersion })")
-  }
+trait AuthenticationProvider {
+  def getUser(userName: String, password: String): Option[AuthUser]
 }

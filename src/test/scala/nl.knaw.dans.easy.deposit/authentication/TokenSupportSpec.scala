@@ -13,15 +13,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package nl.knaw.dans.easy.deposit
+package nl.knaw.dans.easy.deposit.authentication
 
-import nl.knaw.dans.lib.logging.DebugEnhancedLogging
-import org.scalatra._
+import nl.knaw.dans.easy.deposit.TestSupportFixture
+import org.apache.commons.configuration.PropertiesConfiguration
 
-class EasyDepositApiServlet(app: EasyDepositApiApp) extends ScalatraServlet with DebugEnhancedLogging {
+import scala.util.Success
 
-  get("/") {
-    contentType = "text/plain"
-    Ok(s"EASY Deposit API Service running (${ app.getVersion })")
+class TokenSupportSpec extends TestSupportFixture with TokenSupport with AuthConfig {
+
+  "toUser" should "return encoded value" in {
+    val user = AuthUser("foo", isActive = true)
+    decodeJWT(encodeJWT(user)) shouldBe Success(user)
   }
+
+  override def getAuthenticationProvider: AuthenticationProvider = ???
+
+  override def getProperties: PropertiesConfiguration = new PropertiesConfiguration()
 }

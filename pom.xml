@@ -86,7 +86,11 @@
         </dependency>
         <dependency>
             <groupId>org.scalatra</groupId>
-            <artifactId>scalatra-scalate_2.12</artifactId>
+            <artifactId>scalatra-scalatest_2.12</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.scalatra</groupId>
+            <artifactId>scalatra-auth_2.12</artifactId>
         </dependency>
         <dependency>
             <groupId>commons-daemon</groupId>
@@ -96,6 +100,11 @@
             <groupId>com.github.pathikrit</groupId>
             <artifactId>better-files_2.12</artifactId>
             <version>3.4.0</version>
+        </dependency>
+        <dependency>
+            <groupId>com.pauldijou</groupId>
+            <artifactId>jwt-core_2.12</artifactId>
+            <version>0.16.0</version>
         </dependency>
         <dependency>
             <groupId>joda-time</groupId>

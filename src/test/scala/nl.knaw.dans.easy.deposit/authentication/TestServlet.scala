@@ -13,15 +13,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package nl.knaw.dans.easy.deposit
+package nl.knaw.dans.easy.deposit.authentication
 
-import nl.knaw.dans.lib.logging.DebugEnhancedLogging
-import org.scalatra._
+import org.eclipse.jetty.http.HttpStatus
+import org.joda.time.DateTime
+import org.scalatra.Ok
 
-class EasyDepositApiServlet(app: EasyDepositApiApp) extends ScalatraServlet with DebugEnhancedLogging {
+class TestServlet(authProvider: AuthenticationProvider) extends AbstractTestServlet(authProvider) {
+
+  before() {
+    if (!isAuthenticated) {
+      halt(HttpStatus.FORBIDDEN_403, "missing, invalid or expired credentials")
+    }
+  }
 
   get("/") {
     contentType = "text/plain"
-    Ok(s"EASY Deposit API Service running (${ app.getVersion })")
+    Ok(s"$user ${ new DateTime() }: EASY Deposit API Service running")
   }
 }
