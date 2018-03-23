@@ -35,36 +35,46 @@ class DepositServlet(app: EasyDepositApiApp) extends AbstractAuthServlet(app) {
     }
   }
 
-  get("/") { respond(app.getDeposits(user.id)) }
-  post("/") { respond(app.createDeposit(user.id)) }
-  get("/:id/metadata") { forId(app.getDatasetMetadataForDeposit) }
-  put("/:id/metadata") { getDatasetMetadata.map(m => forId(app.writeDataMetadataToDeposit(m))).getOrRecover(badDoc) }
-  get("/:id/state") { forId(app.getDepositState) }
-  put("/:id/state") { getStateInfo.map(s => forId(app.setDepositState(s))).getOrRecover(badDoc) }
-  delete("/:id") { forId(app.deleteDeposit) }
-  get("/:id/file/*") { forPath(app.getDepositFiles) } //dir and file
-  post("/:id/file/*") { getInputStream.map(is => forPath(app.writeDepositFile(is))).getOrRecover(badInputStream) } //dir
-  put("/:id/file/*") { getInputStream.map(is => forPath(app.writeDepositFile(is))).getOrRecover(badInputStream) } //file
-  delete("/:id/file/*") { forPath(app.deleteDepositFile) } //dir and file
+  get("/") { forUser(app.getDeposits) }
+  post("/") { forUser(app.createDeposit) }
+  get("/:id/metadata") { forDeposit(app.getDatasetMetadataForDeposit) }
+  put("/:id/metadata") { getDatasetMetadata.map(m => forDeposit(app.writeDataMetadataToDeposit(m))).getOrRecover(badDoc) }
+  get("/:id/state") { forDeposit(app.getDepositState) }
+  put("/:id/state") { getStateInfo.map(s => forDeposit(app.setDepositState(s))).getOrRecover(badDoc) }
+  delete("/:id") { forDeposit(app.deleteDeposit) }
+  get("/:id/file/*") { forFile(app.getDepositFiles) } //dir and file
+  post("/:id/file/*") { getInputStream.map(is => forFile(app.writeDepositFile(is))).getOrRecover(badInputStream) } //dir
+  put("/:id/file/*") { getInputStream.map(is => forFile(app.writeDepositFile(is))).getOrRecover(badInputStream) } //file
+  delete("/:id/file/*") { forFile(app.deleteDepositFile) } //dir and file
 
-  private def forId[T](callback: (String, UUID) => Try[T]): ActionResult = {
+  private def forUser[T](callback: (String) => Try[T]): ActionResult = {
+    respond(Try(
+      callback(user.id)
+    ).flatten) // catch throws that slipped through
+  }
+
+  private def forDeposit[T](callback: (String, UUID) => Try[T]): ActionResult = {
     getUUID match {
       case Failure(t) => BadRequest(t.getMessage)
-      case Success(uuid) => respond(callback(user.id, uuid))
+      case Success(uuid) => respond(Try(
+        callback(user.id, uuid)
+      ).flatten) // catch throws that slipped through
     }
   }
 
-  private def forPath[Result](callback: (String, UUID, Path) => Try[Result]): ActionResult = {
+  private def forFile[Result](callback: (String, UUID, Path) => Try[Result]): ActionResult = {
     (getUUID, getPath) match {
       case (Failure(tId), Failure(tPath)) => BadRequest(s"${ tId.getMessage }. ${ tPath.getMessage }.")
       case (Failure(t), _) => BadRequest(t.getMessage)
       case (_, Failure(t)) => BadRequest(t.getMessage)
-      case (Success(uuid), Success(path)) => respond(callback(user.id, uuid, path))
+      case (Success(uuid), Success(path)) => respond(Try(
+        callback(user.id, uuid, path)
+      ).flatten) // catch throws that slipped through
     }
   }
 
-  private def respond[Result](result: Try[Result]): ActionResult = {
-    result match {
+  private def respond[Result](appResult: Try[Result]): ActionResult = {
+    val actionResult = appResult match {
       case Success(Unit) => Ok()
       case Success(seq: Seq[_]) if seq.isInstanceOf[DepositInfo] => Ok(???)
       case Success(datasetMetadata: DatasetMetadata) => Ok(???)
@@ -72,13 +82,17 @@ class DepositServlet(app: EasyDepositApiApp) extends AbstractAuthServlet(app) {
       case Success(result: Boolean) => Ok(result.toString) // writeDepositFile
       case Success(uuid: UUID) => Ok(uuid.toString)
       case Success(x) =>
-        logger.error(s"not expected result type: ${ x.getClass.getName }")
+        logger.error(s"Not expected result type: ${ x.getClass.getName }")
         InternalServerError("Internal Server Error")
       // TODO case Failure(t: ???) =>
       case Failure(t) =>
-        logger.error(t.getMessage, t)
+        logger.error(s"Not expected exception: ${ t.getMessage }", t)
         InternalServerError("Internal Server Error")
     }
+    // TODO remove this workaround when ServiceEnhancedLogging.after is fixed
+    // the body in the log might be too much
+    logger.info(s"returned status=${ actionResult.status } headers=${ actionResult.headers }")
+    actionResult
   }
 
   private def getUUID: Try[UUID] = Try {

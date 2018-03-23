@@ -18,8 +18,9 @@ package nl.knaw.dans.easy.deposit
 import scala.util.Success
 
 class DepositDirSpec extends TestSupportFixture {
-  private val draftsDir = testDir / "drafts"
-  draftsDir.createDirectory
+  private val draftsDir = (testDir / "drafts")
+    .delete(true)
+    .createIfNotExists(asDirectory = true, createParents = true)
 
   "create" should "create a new directory with deposit.properties" in  {
     val dd = DepositDir.create(draftsDir, "user001")

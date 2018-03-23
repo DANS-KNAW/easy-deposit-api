@@ -15,21 +15,15 @@
  */
 package nl.knaw.dans.easy.deposit
 
-import better.files.File
+import nl.knaw.dans.easy.deposit.authentication.AuthenticationMocker._
+import nl.knaw.dans.easy.deposit.authentication.AuthenticationProvider
 import org.eclipse.jetty.http.HttpStatus._
-import nl.knaw.dans.easy.deposit.authentication.{ AuthUser, AuthenticationProvider }
-import org.apache.commons.configuration.PropertiesConfiguration
 import org.scalamock.scalatest.MockFactory
 import org.scalatra.test.scalatest.ScalatraSuite
-import nl.knaw.dans.easy.deposit.authentication.AuthenticationMocker._
 
 class HappyRoutesSpec extends TestSupportFixture with ServletFixture with ScalatraSuite with MockFactory {
 
-  private val drafts: File = (testDir / "drafts").createDirectories()
-  private val props: PropertiesConfiguration = new PropertiesConfiguration() {
-    addProperty("deposits.drafts", drafts.toString())
-  }
-  private val app = new EasyDepositApiApp(new Configuration("", props))
+  private val app = new EasyDepositApiApp(minimalAppConfig)
   private val depositServlet: DepositServlet = new DepositServlet(app) {
     override def getAuthenticationProvider: AuthenticationProvider = mockedAuthenticationProvider
   }
@@ -68,7 +62,7 @@ class HappyRoutesSpec extends TestSupportFixture with ServletFixture with Scalat
     ) {
       status shouldBe OK_200
       body should (fullyMatch regex "[a-z0-9-]+" and have length 36) // a UUID
-      (drafts / "foo" / body / "deposit.properties").contentAsString should include ("depositor.userId = foo")
+      (testDir / "drafts" / "foo" / body / "deposit.properties").contentAsString should include("depositor.userId = foo")
     }
   }
 }

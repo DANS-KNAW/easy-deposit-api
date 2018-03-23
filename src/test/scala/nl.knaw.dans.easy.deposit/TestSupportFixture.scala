@@ -17,6 +17,7 @@ package nl.knaw.dans.easy.deposit
 
 import better.files.File
 import better.files.File._
+import org.apache.commons.configuration.PropertiesConfiguration
 import org.joda.time.{ DateTime, DateTimeUtils }
 import org.scalatest.{ FlatSpec, Inside, Matchers }
 
@@ -25,7 +26,7 @@ trait TestSupportFixture extends FlatSpec with Matchers with Inside {
   lazy val testDir: File = {
     (currentWorkingDirectory / "target" / "test" / getClass.getSimpleName)
       .delete(true)
-      .createDirectories()
+      .createIfNotExists(asDirectory = true, createParents = true)
   }
 
   /** Causes DateTime.now() to return a predefined value. */
@@ -35,4 +36,14 @@ trait TestSupportFixture extends FlatSpec with Matchers with Inside {
 
   /** Base64 encoded foo:bar */
   val fooBarBasicAuthHeader = "Basic Zm9vOmJhcg=="
+
+  def minimalAppConfig: Configuration = {
+    new Configuration("", new PropertiesConfiguration() {
+      addProperty("deposits.drafts", (testDir / "drafts")
+        .delete(true)
+        .createIfNotExists(asDirectory = true, createParents = true)
+        .toString()
+      )
+    })
+  }
 }

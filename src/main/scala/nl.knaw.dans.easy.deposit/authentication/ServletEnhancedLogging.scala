@@ -27,6 +27,9 @@ trait ServletEnhancedLogging extends DebugEnhancedLogging {
     logger.info(s"${ request.getMethod } ${ request.getRequestURL } remote=${ request.getRemoteAddr } params=$params headers=${ request.headers } body=${ request.body }")
   }
   after() {
-    logger.info(s"response.status=${ response.getStatus } headers=${ response.headers }")
+    //logger.info(s"response.status=${ response.getStatus } headers=${ response.headers }")
+    // TODO would ignore the ActionResult of the servlets respond method, always causing a 200
+    // see this fork (2011): https://github.com/erikrozendaal/scalatra#filters
+    // it also got called before executing a servlet route with response == null
   }
 }
