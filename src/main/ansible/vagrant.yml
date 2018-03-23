@@ -39,10 +39,13 @@
       file:
         path: "{{ item }}"
         state: directory
+        owner: "easy-deposit-api"
+        group: "easy-deposit-api"
+        mode: "0775"
       with_items:
-        - "{{ dans_config_base }}/tmp/easy-deposit/drafts"
-        - "{{ dans_config_base }}/tmp/easy-deposit/stage"
-        - "{{ dans_config_base }}/tmp/easy-ingest-flow-inbox"
+        - "/var/opt/dans.knaw.nl/tmp/easy-deposit/drafts"
+        - "/var/opt/dans.knaw.nl/tmp/easy-deposit/stage"
+        - "/var/opt/dans.knaw.nl/tmp/easy-ingest-flow-inbox"
 
     - name: Install Ldap
       include_role:
