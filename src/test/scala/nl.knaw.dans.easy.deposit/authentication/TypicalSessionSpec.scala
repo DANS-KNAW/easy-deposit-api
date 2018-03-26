@@ -45,7 +45,7 @@ class TypicalSessionSpec extends TestSupportFixture with ServletFixture with Sca
       status shouldBe FORBIDDEN_403
       body shouldBe "missing, invalid or expired credentials"
       header("Content-Type") shouldBe "text/plain;charset=UTF-8"
-      Option(header("Set-Cookie")) shouldBe None
+      response.headers should not contain key("Set-Cookie")
     }
   }
 
@@ -58,7 +58,7 @@ class TypicalSessionSpec extends TestSupportFixture with ServletFixture with Sca
       body shouldBe "invalid credentials"
       status shouldBe FORBIDDEN_403
       header("Content-Type") shouldBe "text/plain;charset=UTF-8"
-      Option(header("Set-Cookie")) shouldBe None
+      response.headers should not contain key("Set-Cookie")
     }
   }
 
