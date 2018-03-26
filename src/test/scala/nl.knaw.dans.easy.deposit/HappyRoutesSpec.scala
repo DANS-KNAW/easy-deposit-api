@@ -55,6 +55,7 @@ class HappyRoutesSpec extends TestSupportFixture with ServletFixture with Scalat
   }
 
   "post /deposit" should "create a deposit" in {
+    clearTestDir()
     expectsUserFooBar
     post(
       uri = "/deposit",

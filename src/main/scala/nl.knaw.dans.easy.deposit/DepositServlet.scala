@@ -42,10 +42,10 @@ class DepositServlet(app: EasyDepositApiApp) extends AbstractAuthServlet(app) {
   get("/:id/state") { forDeposit(app.getDepositState) }
   put("/:id/state") { getStateInfo.map(s => forDeposit(app.setDepositState(s))).getOrRecover(badDoc) }
   delete("/:id") { forDeposit(app.deleteDeposit) }
-  get("/:id/file/*") { forFile(app.getDepositFiles) } //dir and file
-  post("/:id/file/*") { getInputStream.map(is => forFile(app.writeDepositFile(is))).getOrRecover(badInputStream) } //dir
-  put("/:id/file/*") { getInputStream.map(is => forFile(app.writeDepositFile(is))).getOrRecover(badInputStream) } //file
-  delete("/:id/file/*") { forFile(app.deleteDepositFile) } //dir and file
+  get("/:id/file/*") { forPath(app.getDepositFiles) } //dir and file
+  post("/:id/file/*") { getInputStream.map(is => forPath(app.writeDepositFile(is))).getOrRecover(badInputStream) } //dir
+  put("/:id/file/*") { getInputStream.map(is => forPath(app.writeDepositFile(is))).getOrRecover(badInputStream) } //file
+  delete("/:id/file/*") { forPath(app.deleteDepositFile) } //dir and file
 
   private def forUser[T](callback: (String) => Try[T]): ActionResult = {
     respond(Try(
@@ -62,7 +62,7 @@ class DepositServlet(app: EasyDepositApiApp) extends AbstractAuthServlet(app) {
     }
   }
 
-  private def forFile[Result](callback: (String, UUID, Path) => Try[Result]): ActionResult = {
+  private def forPath[Result](callback: (String, UUID, Path) => Try[Result]): ActionResult = {
     (getUUID, getPath) match {
       case (Failure(tId), Failure(tPath)) => BadRequest(s"${ tId.getMessage }. ${ tPath.getMessage }.")
       case (Failure(t), _) => BadRequest(t.getMessage)
