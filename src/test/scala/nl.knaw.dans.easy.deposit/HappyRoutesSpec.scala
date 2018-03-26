@@ -15,29 +15,35 @@
  */
 package nl.knaw.dans.easy.deposit
 
+import java.util.UUID
+
 import nl.knaw.dans.easy.deposit.authentication.AuthenticationMocker._
 import nl.knaw.dans.easy.deposit.authentication.AuthenticationProvider
 import org.eclipse.jetty.http.HttpStatus._
 import org.scalamock.scalatest.MockFactory
 import org.scalatra.test.scalatest.ScalatraSuite
 
+import scala.util.Success
+
 class HappyRoutesSpec extends TestSupportFixture with ServletFixture with ScalatraSuite with MockFactory {
 
-  private val app = new EasyDepositApiApp(minimalAppConfig)
-  private val depositServlet: DepositServlet = new DepositServlet(app) {
+  private class MockedApp extends EasyDepositApiApp(minimalAppConfig)
+  private val mockedApp = mock[MockedApp]
+  private val depositServlet: DepositServlet = new DepositServlet(mockedApp) {
     override def getAuthenticationProvider: AuthenticationProvider = mockedAuthenticationProvider
   }
-  private val authServlet = new AuthServlet(app) {
+  private val authServlet = new AuthServlet(mockedApp) {
     override def getAuthenticationProvider: AuthenticationProvider = mockedAuthenticationProvider
   }
   addServlet(depositServlet, "/deposit/*")
   addServlet(authServlet, "/auth/*")
-  addServlet(new EasyDepositApiServlet(app), "/*")
+  addServlet(new EasyDepositApiServlet(mockedApp), "/*")
 
   "get /" should "be ok" in {
+    mockedApp.getVersion _ expects () returning "test"
     expectsNoUser
     get(uri = "/") {
-      body shouldBe "EASY Deposit API Service running ()"
+      body shouldBe "EASY Deposit API Service running (test)"
       status shouldBe OK_200
     }
   }
@@ -55,16 +61,17 @@ class HappyRoutesSpec extends TestSupportFixture with ServletFixture with Scalat
   }
 
   "post /deposit" should "create a deposit" in {
-    clearTestDir()
+    val uuid = UUID.randomUUID()
     expectsUserFooBar
+    (mockedApp.createDeposit(_: String)) expects "foo" returning Success(uuid)
+
     post(
       uri = "/deposit",
       headers = Seq(("Authorization", fooBarBasicAuthHeader))
     ) {
       status shouldBe OK_200
-      body should (fullyMatch regex "[a-z0-9-]+" and have length 36) // a UUID
-      (testDir / "drafts" / "foo" / body / "deposit.properties").contentAsString should include("depositor.userId = foo")
-      header("Location") should (fullyMatch regex "http://localhost:[0-9]+/deposit/[0-9a-z-]{36}")
+      body shouldBe uuid.toString
+      header("Location") should (fullyMatch regex s"http://localhost:[0-9]+/deposit/$uuid")
     }
   }
 }
