@@ -35,66 +35,114 @@ class DepositServlet(app: EasyDepositApiApp) extends AbstractAuthServlet(app) {
     }
   }
 
-  get("/") { forUser(app.getDeposits) }
-  post("/") { forUser(app.createDeposit) }
-  get("/:id/metadata") { forDeposit(app.getDatasetMetadataForDeposit) }
-  put("/:id/metadata") { getDatasetMetadata.map(m => forDeposit(app.writeDataMetadataToDeposit(m))).getOrRecover(badDoc) }
-  get("/:id/state") { forDeposit(app.getDepositState) }
-  put("/:id/state") { getStateInfo.map(s => forDeposit(app.setDepositState(s))).getOrRecover(badDoc) }
-  delete("/:id") { forDeposit(app.deleteDeposit) }
-  get("/:id/file/*") { forPath(app.getDepositFiles) } //dir and file
-  post("/:id/file/*") { getInputStream.map(is => forPath(app.writeDepositFile(is))).getOrRecover(badInputStream) } //dir
-  put("/:id/file/*") { getInputStream.map(is => forPath(app.writeDepositFile(is))).getOrRecover(badInputStream) } //file
-  delete("/:id/file/*") { forPath(app.deleteDepositFile) } //dir and file
+  get("/") {
+    recoverResponseIfFailure(
+      forUser(app.getDeposits)
+        .map(s => Ok(???))
+    )
+  }
+  post("/") {
+    recoverResponseIfFailure(
+      forUser(app.createDeposit)
+        .map(uuid => Ok( // TODO UUID will become DepositInfo
+          body = uuid.toString,
+          headers = Map("Location" -> s"${ request.getRequestURL }/$uuid")
+        ))
+    )
+  }
+  get("/:id/metadata") {
+    recoverResponseIfFailure(
+      forDeposit(app.getDatasetMetadataForDeposit)
+        .map(_ => Ok(???))
+    )
+  }
+  put("/:id/metadata") {
+    recoverResponseIfFailure(for {
+      datasetMetadata <- getDatasetMetadata
+      _ <- forDeposit(app.writeDataMetadataToDeposit(datasetMetadata))
+    } yield Ok(???))
+  }
+  get("/:id/state") {
+    recoverResponseIfFailure(
+      forDeposit(app.getDepositState)
+        .map(_ => Ok(???))
+    )
+  }
+  put("/:id/state") {
+    recoverResponseIfFailure(for {
+      stateInfo <- getStateInfo
+      _ <- forDeposit(app.setDepositState(stateInfo))
+    } yield Ok(???))
+  }
+  delete("/:id") {
+    recoverResponseIfFailure(
+      forDeposit(app.deleteDeposit)
+        .map(_ => Ok(???))
+    )
+  }
+  get("/:id/file/*") { //dir and file
+    recoverResponseIfFailure(
+      forPath(app.getDepositFiles)
+        .map(_ => Ok(???))
+    )
+  }
+  post("/:id/file/*") { //dir
+    recoverResponseIfFailure(for {
+      inputStream <- getInputStream
+      fileWasCreated <- forPath(app.writeDepositFile(inputStream))
+    } yield Ok(???))
+  }
+  put("/:id/file/*") { //file
+    recoverResponseIfFailure(for {
+      inputStream <- getInputStream
+      fileWasCreated <- forPath(app.writeDepositFile(inputStream))
+    } yield Ok(???))
 
-  private def forUser[T](callback: (String) => Try[T]): ActionResult = {
-    val result = Try(callback(user.id)).flatten // catch throws that slipped through
-    respond(result)
+  }
+  delete("/:id/file/*") { //dir and file
+    recoverResponseIfFailure(
+      forPath(app.deleteDepositFile)
+        .map(_ => Ok(???))
+    )
   }
 
-  private def forDeposit[T](callback: (String, UUID) => Try[T]): ActionResult = {
-    respond(for {
+  private def forUser[T](callback: (String) => Try[T]): Try[T] = {
+    // simplest version of the forXxx methods
+    Try(callback(user.id)).flatten // catch throws that slipped through
+  }
+
+  private def forDeposit[T](callback: (String, UUID) => Try[T]): Try[T] = {
+    for {
       uuid <- getUUID
       result <- Try(callback(user.id, uuid)).flatten // catch throws that slipped through
-    } yield result)
+    } yield result
   }
 
-  private def forPath[Result](callback: (String, UUID, Path) => Try[Result]): ActionResult = {
-    respond(for {
+  private def forPath[Result](callback: (String, UUID, Path) => Try[Result]): Try[Result] = {
+    for {
       uuid <- getUUID
       path <- getPath
       result <- Try(callback(user.id, uuid, path)).flatten // catch throws that slipped through
-    } yield result)
+    } yield result
   }
 
-  private def respond[Result](appResult: Try[Result]): ActionResult = {
-    val actionResult = appResult match {
-      case Success(Unit) => Ok() // writeDataMetadataToDeposit, setDepositState, deleteDeposit, deleteDepositFile
-      case Success(seq: Seq[_]) if seq.isInstanceOf[DepositInfo] => Ok(???)
-      case Success(seq: Seq[_]) if seq.isInstanceOf[FileInfo] => Ok(???)
-      case Success(datasetMetadata: DatasetMetadata) => Ok(???)
-      case Success(stateInfo: StateInfo) => Ok(???)
-      case Success(result: Boolean) => Ok(result.toString) // writeDepositFile
-      case Success(uuid: UUID) => Ok( // TODO UUID will change into DepositInfo
-        body = uuid.toString,
-        headers = Map("Location" -> s"${ request.getRequestURL }/$uuid")
-      )
-      case Success(x) =>
-        logger.error(s"Not expected result type: ${ x.getClass.getName }")
-        InternalServerError("Internal Server Error")
+
+  private def recoverResponseIfFailure(appResult: Try[ActionResult]): ActionResult = {
+    val actionResult = appResult.getOrRecover {
       // TODO case Failure(t: ???) =>
-      case Failure(t: InvalidResource) =>
+      case t: InvalidResource =>
         logger.error(s"InvalidResource: ${ t.getMessage }")
         NotFound()
-      case Failure(t) =>
+      case t =>
         logger.error(s"Not expected exception: ${ t.getMessage }", t)
         InternalServerError("Internal Server Error")
     }
-    // TODO remove this workaround when ServiceEnhancedLogging.after is fixed
+    // TODO remove this when logging by ServiceEnhancedLogging.after is fixed
     // the body in the log might be too much
     logger.info(s"returned status=${ actionResult.status } headers=${ actionResult.headers }")
     actionResult
   }
+
   private class InvalidResource(s: String) extends Exception(s)
 
   private def getUUID: Try[UUID] = Try {
@@ -112,11 +160,6 @@ class DepositServlet(app: EasyDepositApiApp) extends AbstractAuthServlet(app) {
 
   private def getInputStream: Try[InputStream] = ???
 
-  private def badInputStream(t: Throwable): ActionResult = {
-    logger.error(s"badInputStream: ${ t.getMessage }", t)
-    BadRequest(s"Bad Request.")
-  }
-
   private implicit val jsonFormats: Formats = new DefaultFormats {}
 
   private def getStateInfo: Try[StateInfo] = Try {
@@ -133,9 +176,5 @@ class DepositServlet(app: EasyDepositApiApp) extends AbstractAuthServlet(app) {
   }.recoverWith { case t: Throwable =>
     logger.error(s"bad DatasetMetadata:${ t.getClass.getName } ${ t.getMessage }")
     Failure(new Exception(s"Bad Request. The metadata document is malformed."))
-  }
-
-  private def badDoc(t: Throwable): ActionResult = {
-    BadRequest(t.getMessage)
   }
 }
