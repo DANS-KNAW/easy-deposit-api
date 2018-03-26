@@ -80,7 +80,10 @@ class DepositServlet(app: EasyDepositApiApp) extends AbstractAuthServlet(app) {
       case Success(datasetMetadata: DatasetMetadata) => Ok(???)
       case Success(stateInfo: StateInfo) => Ok(???)
       case Success(result: Boolean) => Ok(result.toString) // writeDepositFile
-      case Success(uuid: UUID) => Ok(uuid.toString)
+      case Success(uuid: UUID) => Ok( // TODO UUID will change into DepositInfo
+        body = uuid.toString,
+        headers = Map("Location" -> s"${request.getRequestURL}/$uuid")
+      )
       case Success(x) =>
         logger.error(s"Not expected result type: ${ x.getClass.getName }")
         InternalServerError("Internal Server Error")

@@ -64,6 +64,7 @@ class HappyRoutesSpec extends TestSupportFixture with ServletFixture with Scalat
       status shouldBe OK_200
       body should (fullyMatch regex "[a-z0-9-]+" and have length 36) // a UUID
       (testDir / "drafts" / "foo" / body / "deposit.properties").contentAsString should include("depositor.userId = foo")
+      header("Location") should (fullyMatch regex "http://localhost:[0-9]+/deposit/[0-9a-z-]{36}")
     }
   }
 }
