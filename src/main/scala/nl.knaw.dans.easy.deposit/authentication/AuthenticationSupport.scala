@@ -15,6 +15,8 @@
  */
 package nl.knaw.dans.easy.deposit.authentication
 
+import java.net.URL
+
 import nl.knaw.dans.easy.deposit.authentication.AuthenticationSupport._
 import nl.knaw.dans.lib.error._
 import org.eclipse.jetty.http.HttpStatus._
@@ -46,12 +48,16 @@ trait AuthenticationSupport extends ScentrySupport[AuthUser] {
   /** Successful authentications will result in a cookie. */
   override protected def configureScentry {
 
+    // headers can be spoofed and should not be trusted
+    // it looks like the request URL is not constructed from headers
+    val returnCookieOverHttpsOnly = new URL(request.getRequestURL.toString).getProtocol == "https"
+
     // avoid name clash with implicit def cookieOptions
     val cookieConfig = CookieOptions(
       domain = "", // limits which server get the cookie // TODO by default the host who sent it?
       path = "/", // limits which route gets the cookie, TODO configure and/or from mounts in Service class
       maxAge = getProperties.getInt("auth.cookie.expiresIn", 10), // seconds, MUST be same default as in TokenSupport
-      secure = false, // TODO true when service supports HTTPS to prevent browsers to send it over http
+      secure = returnCookieOverHttpsOnly,
       httpOnly = true // JavaScript can't get the cookie
       // version = 0 // obsolete? https://stackoverflow.com/questions/29124177/recommended-set-cookie-version-used-by-web-servers-0-1-or-2#29143128
     )
