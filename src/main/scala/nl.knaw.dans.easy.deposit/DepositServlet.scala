@@ -48,46 +48,44 @@ class DepositServlet(app: EasyDepositApiApp) extends AbstractAuthServlet(app) {
   delete("/:id/file/*") { forPath(app.deleteDepositFile) } //dir and file
 
   private def forUser[T](callback: (String) => Try[T]): ActionResult = {
-    respond(Try(
-      callback(user.id)
-    ).flatten) // catch throws that slipped through
+    val result = Try(callback(user.id)).flatten // catch throws that slipped through
+    respond(result)
   }
 
   private def forDeposit[T](callback: (String, UUID) => Try[T]): ActionResult = {
-    getUUID match {
-      case Failure(t) => BadRequest(t.getMessage)
-      case Success(uuid) => respond(Try(
-        callback(user.id, uuid)
-      ).flatten) // catch throws that slipped through
-    }
+    respond(for {
+      uuid <- getUUID
+      result <- Try(callback(user.id, uuid)).flatten // catch throws that slipped through
+    } yield result)
   }
 
   private def forPath[Result](callback: (String, UUID, Path) => Try[Result]): ActionResult = {
-    (getUUID, getPath) match {
-      case (Failure(tId), Failure(tPath)) => BadRequest(s"${ tId.getMessage }. ${ tPath.getMessage }.")
-      case (Failure(t), _) => BadRequest(t.getMessage)
-      case (_, Failure(t)) => BadRequest(t.getMessage)
-      case (Success(uuid), Success(path)) => respond(Try(
-        callback(user.id, uuid, path)
-      ).flatten) // catch throws that slipped through
-    }
+    respond(for {
+      uuid <- getUUID
+      path <- getPath
+      result <- Try(callback(user.id, uuid, path)).flatten // catch throws that slipped through
+    } yield result)
   }
 
   private def respond[Result](appResult: Try[Result]): ActionResult = {
     val actionResult = appResult match {
-      case Success(Unit) => Ok()
+      case Success(Unit) => Ok() // writeDataMetadataToDeposit, setDepositState, deleteDeposit, deleteDepositFile
       case Success(seq: Seq[_]) if seq.isInstanceOf[DepositInfo] => Ok(???)
+      case Success(seq: Seq[_]) if seq.isInstanceOf[FileInfo] => Ok(???)
       case Success(datasetMetadata: DatasetMetadata) => Ok(???)
       case Success(stateInfo: StateInfo) => Ok(???)
       case Success(result: Boolean) => Ok(result.toString) // writeDepositFile
       case Success(uuid: UUID) => Ok( // TODO UUID will change into DepositInfo
         body = uuid.toString,
-        headers = Map("Location" -> s"${request.getRequestURL}/$uuid")
+        headers = Map("Location" -> s"${ request.getRequestURL }/$uuid")
       )
       case Success(x) =>
         logger.error(s"Not expected result type: ${ x.getClass.getName }")
         InternalServerError("Internal Server Error")
       // TODO case Failure(t: ???) =>
+      case Failure(t: InvalidResource) =>
+        logger.error(s"InvalidResource: ${ t.getMessage }")
+        NotFound()
       case Failure(t) =>
         logger.error(s"Not expected exception: ${ t.getMessage }", t)
         InternalServerError("Internal Server Error")
@@ -97,18 +95,19 @@ class DepositServlet(app: EasyDepositApiApp) extends AbstractAuthServlet(app) {
     logger.info(s"returned status=${ actionResult.status } headers=${ actionResult.headers }")
     actionResult
   }
+  private class InvalidResource(s: String) extends Exception(s)
 
   private def getUUID: Try[UUID] = Try {
     UUID.fromString(params("uuid"))
   }.recoverWith { case t: Throwable =>
-    Failure(new Exception(s"Bad Request. Invalid deposit id: ${ t.getMessage }"))
+    Failure(new InvalidResource(s"Invalid deposit id: ${ t.getMessage }"))
   }
 
   private def getPath: Try[Path] = Try {
     Paths.get(multiParams("splat").find(!_.trim.isEmpty).getOrElse(""))
   }.recoverWith { case t: Throwable =>
     logger.error(s"bad path:${ t.getClass.getName } ${ t.getMessage }")
-    Failure(new Exception(s"Bad Request. Invalid path."))
+    Failure(new InvalidResource(s"Invalid path."))
   }
 
   private def getInputStream: Try[InputStream] = ???
