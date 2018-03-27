@@ -15,12 +15,12 @@
  */
 package nl.knaw.dans.easy.deposit.authentication
 
+import javax.servlet.http.HttpServletRequest
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
-import org.scalatra.ScalatraBase
+import org.scalatra.{ ActionResult, ScalatraBase }
 
+// TODO candidate for dans-scala-lib (another package than authentication?)
 trait ServletEnhancedLogging extends DebugEnhancedLogging {
-
-  // TODO candidate for dans-scala-lib
   this: ScalatraBase =>
 
   before() {
@@ -31,5 +31,17 @@ trait ServletEnhancedLogging extends DebugEnhancedLogging {
     // TODO would ignore the ActionResult of the servlets respond method, always causing a 200
     // see this fork (2011): https://github.com/erikrozendaal/scalatra#filters
     // it also got called before executing a servlet route with response == null
+  }
+}
+object ServletEnhancedLogging extends DebugEnhancedLogging {
+
+  implicit class RichActionResult(actionResult: ActionResult)(implicit request: HttpServletRequest) extends Object {
+    // TODO as long as we don't learn how to use ServiceEnhancedLogging.after
+    // disadvantage of this pattern: developers might forget
+    // advantage: we can add snippets from the body, it can be used within a halt
+    def logResponse(msg: String=""): ActionResult = {
+      logger.info(s"${ request.getMethod } ${request.getRequestURL} returned status=${ actionResult.status } headers=${ actionResult.headers }")
+      actionResult
+    }
   }
 }

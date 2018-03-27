@@ -15,6 +15,7 @@
  */
 package nl.knaw.dans.easy.deposit
 
+import nl.knaw.dans.easy.deposit.authentication.ServletEnhancedLogging._
 import org.scalatra.Ok
 
 class AuthServlet(app: EasyDepositApiApp) extends AbstractAuthServlet(app) {
@@ -22,11 +23,12 @@ class AuthServlet(app: EasyDepositApiApp) extends AbstractAuthServlet(app) {
   post("/login") {
     login()
     Ok(s"signed in") // TODO return user info?
+      .logResponse()
   }
 
   put("/logout") {
     logOut() // destroys the scentry cookie
     Ok("you are signed out")
+      .logResponse()
   }
-
 }

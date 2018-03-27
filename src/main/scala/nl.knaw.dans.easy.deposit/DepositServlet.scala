@@ -21,8 +21,8 @@ import java.text.SimpleDateFormat
 import java.util.UUID
 
 import nl.knaw.dans.easy.deposit.DepositServlet._
+import nl.knaw.dans.easy.deposit.authentication.ServletEnhancedLogging._
 import nl.knaw.dans.lib.error._
-import org.eclipse.jetty.http.HttpStatus
 import org.json4s.ext.{ EnumNameSerializer, JodaTimeSerializers }
 import org.json4s.native.JsonMethods
 import org.json4s.native.Serialization.write
@@ -35,83 +35,84 @@ class DepositServlet(app: EasyDepositApiApp) extends AbstractAuthServlet(app) {
 
   before() {
     if (!isAuthenticated) {
-      halt(HttpStatus.FORBIDDEN_403, "missing, invalid or expired credentials")
+      halt(Forbidden("missing, invalid or expired credentials").logResponse())
     }
   }
 
   get("/") {
-    recoverResponseIfFailure(
+    recoverIfFailureAndLog(
       forUser(app.getDeposits)
         .map(deposits => Ok(body = toJson(deposits)))
     )
   }
   post("/") {
-    recoverResponseIfFailure(
+    recoverIfFailureAndLog(
       forUser(app.createDeposit)
         .map(uuid => Ok(
-          body = uuid, // TODO UUID will become DepositInfo
+          body = uuid, // TODO UUID will become DepositInfo, which should be wrapped by toJson
           headers = Map("Location" -> s"${ request.getRequestURL }/$uuid")
         ))
     )
   }
   get("/:id/metadata") {
-    recoverResponseIfFailure(
+    recoverIfFailureAndLog(
       forDeposit(app.getDatasetMetadataForDeposit)
         .map(datasetMetadata => Ok(body = toJson(datasetMetadata)))
     )
   }
   put("/:id/metadata") {
-    recoverResponseIfFailure(for {
+    recoverIfFailureAndLog(for {
       datasetMetadata <- getDatasetMetadata
       _ <- forDeposit(app.writeDataMetadataToDeposit(datasetMetadata))
     } yield Ok(???))
   }
   get("/:id/state") {
-    recoverResponseIfFailure(
+    recoverIfFailureAndLog(
       forDeposit(app.getDepositState)
         .map(depositState => Ok(body = toJson(depositState)))
     )
   }
   put("/:id/state") {
-    recoverResponseIfFailure(for {
+    recoverIfFailureAndLog(for {
       stateInfo <- getStateInfo
       _ <- forDeposit(app.setDepositState(stateInfo))
     } yield Ok(???))
   }
   delete("/:id") {
-    recoverResponseIfFailure(
+    recoverIfFailureAndLog(
       forDeposit(app.deleteDeposit)
         .map(_ => Ok(???))
     )
   }
   get("/:id/file/*") { //dir and file
-    recoverResponseIfFailure(
+    recoverIfFailureAndLog(
       forPath(app.getDepositFiles)
         .map(depositFiles => Ok(body = toJson(depositFiles)))
     )
   }
   post("/:id/file/*") { //dir
-    recoverResponseIfFailure(for {
+    recoverIfFailureAndLog(for {
       inputStream <- getInputStream
       newFileWasCreated <- forPath(app.writeDepositFile(inputStream))
     } yield Ok(???))
   }
   put("/:id/file/*") { //file
-    recoverResponseIfFailure(for {
+    recoverIfFailureAndLog(for {
       inputStream <- getInputStream
       newFileWasCreated <- forPath(app.writeDepositFile(inputStream))
     } yield Ok(???))
 
   }
   delete("/:id/file/*") { //dir and file
-    recoverResponseIfFailure(
+    recoverIfFailureAndLog(
       forPath(app.deleteDepositFile)
         .map(_ => Ok(???))
     )
   }
 
   private def forUser[T](callback: (String) => Try[T]): Try[T] = {
-    // simplest version of the forXxx methods
+    // shortest callBack signature of the forXxx(callBack) methods
+    // the signatures reflect the parameters in the route patterns and authenticated user
     Try(callback(user.id)).flatten // catch throws that slipped through
   }
 
@@ -131,8 +132,8 @@ class DepositServlet(app: EasyDepositApiApp) extends AbstractAuthServlet(app) {
   }
 
 
-  private def recoverResponseIfFailure(appResult: Try[ActionResult]): ActionResult = {
-    val actionResult = appResult.getOrRecover {
+  private def recoverIfFailureAndLog(appResult: Try[ActionResult]): ActionResult = {
+    appResult.getOrRecover {
       // TODO case Failure(t: ???) =>
       case t: InvalidResource =>
         logger.error(s"InvalidResource: ${ t.getMessage }")
@@ -141,11 +142,7 @@ class DepositServlet(app: EasyDepositApiApp) extends AbstractAuthServlet(app) {
         logger.error(s"Not expected exception: ${ t.getMessage }", t)
         InternalServerError("Internal Server Error")
     }
-    // TODO remove this when logging by ServiceEnhancedLogging.after is fixed
-    // the body in the log might be too much
-    logger.info(s"returned status=${ actionResult.status } headers=${ actionResult.headers }")
-    actionResult
-  }
+  }.logResponse() // not pure but prevents repeating and occasionally forgetting
 
   private def getUUID: Try[UUID] = Try {
     UUID.fromString(params("uuid"))

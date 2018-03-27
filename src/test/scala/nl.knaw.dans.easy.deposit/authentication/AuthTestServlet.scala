@@ -16,17 +16,18 @@
 package nl.knaw.dans.easy.deposit.authentication
 
 import org.scalatra.Ok
+import nl.knaw.dans.easy.deposit.authentication.ServletEnhancedLogging._
 
 class AuthTestServlet(authProvider: AuthenticationProvider) extends AbstractTestServlet(authProvider) {
 
   post("/login") {
     login()
-    Ok(s"signed in")
+    Ok(s"signed in").logResponse()
   }
 
   put("/logout") {
     logOut() // destroys the scentry cookie
-    Ok("you are signed out")
+    Ok("you are signed out").logResponse()
   }
 }
 

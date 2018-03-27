@@ -18,8 +18,8 @@ package nl.knaw.dans.easy.deposit.authentication
 import java.net.URL
 
 import nl.knaw.dans.easy.deposit.authentication.AuthenticationSupport._
+import nl.knaw.dans.easy.deposit.authentication.ServletEnhancedLogging._
 import nl.knaw.dans.lib.error._
-import org.eclipse.jetty.http.HttpStatus._
 import org.scalatra._
 import org.scalatra.auth.ScentryAuthStore.CookieAuthStore
 import org.scalatra.auth.{ Scentry, ScentryConfig, ScentryStrategy, ScentrySupport }
@@ -34,7 +34,7 @@ trait AuthenticationSupport extends ScentrySupport[AuthUser] {
     case token: String => decodeJWT(token)
       .doIfSuccess { user => scentry.store.set(encodeJWT(user)) } // refresh cookie
       .doIfFailure { case t => logger.info(s"invalid authentication: ${ t.getClass } ${ t.getMessage }") }
-      .getOrElse(null)
+      .getOrElse(null) // TODO a halt would allow to log the response, not sure about the internal workings, destroy the cookie?
   }
 
   /** read method name as: toCookie, see configured scentry.store */
@@ -88,9 +88,9 @@ trait AuthenticationSupport extends ScentrySupport[AuthUser] {
   /** Halts request processing in case of trouble. */
   def login() {
     if (hasAuthCookie)
-      halt(BAD_REQUEST_400) // don't trust a client that logs in while having an authentication cookie
+      halt(BadRequest().logResponse()) // don't trust a client that logs in while having an authentication cookie
     else if (!isAuthenticated) {
-      halt(FORBIDDEN_403, "invalid credentials")
+      halt(Forbidden("invalid credentials").logResponse())
     }
   }
 
@@ -110,7 +110,7 @@ trait AuthenticationSupport extends ScentrySupport[AuthUser] {
 
     if (hasMultipleAuthentications(hasAuthCookie, validStrategies, authenticationHeaders)) {
       logger.info(s"Client specified multiple authentications: hasAuthCookie=$hasAuthCookie, authentication headers [$authenticationHeaders], strategies [${ validStrategies.map(_.name) }]")
-      halt(BAD_REQUEST_400)
+      halt(BadRequest().logResponse())
     }
   }
 
