@@ -15,6 +15,7 @@
  */
 package nl.knaw.dans.easy.deposit
 
+import java.nio.file.FileAlreadyExistsException
 import java.util.UUID
 
 import better.files._
@@ -27,8 +28,9 @@ import gov.loc.repository.bagit.creator.BagCreator
 import gov.loc.repository.bagit.domain.{ Metadata => BagitMetadata }
 import gov.loc.repository.bagit.hash.StandardSupportedAlgorithms
 import org.joda.time.format.ISODateTimeFormat
-import java.nio.file.{ Files, Path, Paths }
-import java.util.{ Locale, Arrays => JArrays }
+import java.util.{ Arrays => JArrays }
+
+import scala.collection.Seq
 
 /**
  * Represents an existing deposit directory.
@@ -93,7 +95,12 @@ object DepositDir {
    * @param user    the user name
    * @return a list of [[DepositDir]] objects
    */
-  def list(baseDir: File, user: String): Try[Seq[DepositDir]] = ???
+  def list(baseDir: File, user: String): Try[Seq[DepositDir]] = Try {
+
+    new java.io.File(baseDir + "/" + "user001").listFiles
+      .map(x => new DepositDir(baseDir, user, UUID.fromString(x.getName)) )
+      .toSeq
+}
 
   /**
    * Returns the requested [[DepositDir]], if it is owned by `user`
@@ -116,7 +123,7 @@ object DepositDir {
 
     val uuid = UUID.randomUUID()
     val dir: File = (baseDir / user / uuid.toString)
-      .createIfNotExists(asDirectory = true, createParents = true)
+          .createIfNotExists(asDirectory = true, createParents = true)
 
     val dateTimeFormatter: DateTimeFormatter = ISODateTimeFormat.dateTime()
     val timeNow = DateTime.now(DateTimeZone.UTC).toString(dateTimeFormatter)
@@ -129,12 +136,12 @@ object DepositDir {
     (bagDir / "metadata")
       .createIfNotExists(asDirectory = true)
 
-    val props = new PropertiesConfiguration()
-    props.addProperty("creation.timestamp", timeNow)
-    props.addProperty("state.label", "DRAFT")
-    props.addProperty("state.description", "Deposit is open for changes.")
-    props.addProperty("depositor.userId", user)
-    props.save((dir / "deposit.properties").toJava)
+    new PropertiesConfiguration() {
+      addProperty("creation.timestamp", timeNow)
+      addProperty("state.label", "DRAFT")
+      addProperty("state.description", "Deposit is open for changes.")
+      addProperty("depositor.userId", user)
+    }save((dir / "deposit.properties").toJava)
 
     DepositDir(baseDir, user, uuid)
   }

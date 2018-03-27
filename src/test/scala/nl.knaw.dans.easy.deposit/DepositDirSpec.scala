@@ -15,27 +15,96 @@
  */
 package nl.knaw.dans.easy.deposit
 
-import scala.util.Success
+import java.io.File
+import java.nio.file.FileAlreadyExistsException
+
+import scala.util.{ Failure, Success, Try }
 
 class DepositDirSpec extends TestSupportFixture {
   private val draftsDir = testDir / "drafts"
-  draftsDir.createDirectory
 
-  "create" should "create a new directory with deposit.properties" in  {
-    val dd = DepositDir.create(draftsDir, "user001")
-    dd shouldBe a[Success[_]]
-    inside(dd) {
-      case Success(d) =>
-        (draftsDir / "user001" / d.id.toString).toJava should exist
-        (draftsDir / "user001" / d.id.toString / "deposit.properties").toJava should exist
-        (draftsDir / "user001" / d.id.toString / "bag").toJava should exist
-        (draftsDir / "user001" / d.id.toString / "bag/bag-info.txt").toJava should exist
-        (draftsDir / "user001" / d.id.toString / "bag/bagit.txt").toJava should exist
-        (draftsDir / "user001" / d.id.toString / "bag/manifest-sha1.txt").toJava should exist
-        (draftsDir / "user001" / d.id.toString / "bag/tagmanifest-sha1.txt").toJava should exist
-        (draftsDir / "user001" / d.id.toString / "bag/data").toJava should exist
-        (draftsDir / "user001" / d.id.toString / "bag/metadata").toJava should exist
+  "createDirectory" should "throw FileAlreadyExistsException the directory \"drafts\" is read only" in {
+    def getListErrorCheck() = {
+      Try { draftsDir.createDirectory }
+      match {
+        case Failure(_) => throw new FileAlreadyExistsException("directory \"drafts\" is read only")
+        case Success(_) => "success"
+      }
+    }
+    if (draftsDir.exists()) {
+      if (draftsDir.isReadable && !draftsDir.isWriteable) {
+        a[FileAlreadyExistsException] should be thrownBy { getListErrorCheck() }
+      }
     }
   }
 
+  def createAndCheckDeposit(): Unit = {
+    val dd = DepositDir.create(draftsDir, "user001")
+    inside(dd) {
+      case Success(d) =>
+        val dir = draftsDir / "user001" / d.id.toString
+        dir.toJava should exist
+        (dir / "deposit.properties").toJava should exist
+        (dir / "bag").toJava should exist
+        (dir / "bag/bag-info.txt").toJava should exist
+        (dir / "bag/bagit.txt").toJava should exist
+        (dir / "bag/manifest-sha1.txt").toJava should exist
+        (dir / "bag/tagmanifest-sha1.txt").toJava should exist
+        (dir / "bag/data").toJava should exist
+        (dir / "bag/metadata").toJava should exist
+    }
+  }
+
+  "it" should "create a new directory with deposit.properties" in {
+    createAndCheckDeposit()
+  }
+
+  "list" should "show no deposits of \"user001\" user" in {
+
+    val userDir = new File(draftsDir + "/" + "user001")
+    val listNoDeps = DepositDir.list(draftsDir, "user001")
+    var numOfDeposits = 1
+    listNoDeps match {
+      case Success(_) => {
+        numOfDeposits = listNoDeps.get.size
+      }
+      case Failure(_) => {
+        if (!userDir.exists())
+          numOfDeposits = 0
+          println("user001 directory does not exist. Deposit directory is empty")
+      }
+    }
+    println("Number of deposits = " + numOfDeposits)
+    numOfDeposits should equal (0)
+  }
+
+  it should "show one deposit of \"user001\" user" in {
+
+    createAndCheckDeposit()
+    var numOfDeposits = 0
+    val listOneDep = DepositDir.list(draftsDir, "user001")
+    listOneDep match {
+      case Success(_) => {
+        numOfDeposits = listOneDep.get.size
+      }
+      case Failure(_) => "failure"
+    }
+    println("Number of deposits = " + numOfDeposits)
+    numOfDeposits should equal (1)
+  }
+
+  it should "show more then two deposits of \"user001\" user" in {
+
+    for (i <- 1 to 3) createAndCheckDeposit()
+    var numOfDeposits = 0
+    val listManyDeps = DepositDir.list(draftsDir, "user001")
+    listManyDeps match {
+      case Success(_) => {
+        numOfDeposits = listManyDeps.get.size
+      }
+      case Failure(_) => "failure"
+    }
+    println("Number of deposits = " + numOfDeposits)
+    numOfDeposits should be > 2
+  }
 }
