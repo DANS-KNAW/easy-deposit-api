@@ -94,6 +94,35 @@ paths:
       security:
       - BearerAuth: []
 
+  /user:
+    get:
+      tags:
+      - user
+      summary: Retrieves user info object of the authenticated user.
+      responses:
+        200:
+          description: single user info object
+          content:
+            application/json:
+              schema:
+                type: object
+                items:
+                  $ref: "#/components/schemas/UserInfo"
+                example:
+                - username: "user001"
+                  firstName: "First"
+                  prefix: "van"
+                  lastName: "Namen"
+                  groups: [ "group001", "group002"]
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        403:
+          $ref: "#/components/responses/Forbidden"
+        500:
+          $ref: "#/components/responses/InternalServerError"
+      security:
+        - BearerAuth: []
+
   /deposit:
     get:
       tags:
@@ -602,6 +631,26 @@ components:
       description: Bad request. State document is malformed.
 
   schemas:
+
+    UserInfo:
+      type: object
+      required:
+        - username
+        - lastName
+      properties:
+        username:
+          type: "string"
+        firstName:
+          type: "string"
+          description: "(optional)"
+        prefix:
+          type: "string"
+          description: "insertions, called 'tussenvoegsels' in Dutch"
+        lastName:
+          type: "string"
+        groups:
+          type: "array"
+          description: "string array with group-names this user belongs to"
 
     # TODO: add links to state, metadata, files?
     DepositInfo:
