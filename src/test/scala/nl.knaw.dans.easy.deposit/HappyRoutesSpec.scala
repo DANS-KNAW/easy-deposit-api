@@ -70,7 +70,7 @@ class HappyRoutesSpec extends TestSupportFixture with ServletFixture with Scalat
       headers = Seq(("Authorization", fooBarBasicAuthHeader))
     ) {
       status shouldBe OK_200
-      body shouldBe uuid.toString
+      body shouldBe s"$uuid"
       header("Location") should (fullyMatch regex s"http://localhost:[0-9]+/deposit/$uuid")
     }
   }

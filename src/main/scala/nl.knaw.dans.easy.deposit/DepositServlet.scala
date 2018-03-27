@@ -17,15 +17,19 @@ package nl.knaw.dans.easy.deposit
 
 import java.io.InputStream
 import java.nio.file.{ Path, Paths }
+import java.text.SimpleDateFormat
 import java.util.UUID
 
+import nl.knaw.dans.easy.deposit.DepositServlet._
 import nl.knaw.dans.lib.error._
 import org.eclipse.jetty.http.HttpStatus
+import org.json4s.ext.{ EnumNameSerializer, JodaTimeSerializers }
 import org.json4s.native.JsonMethods
+import org.json4s.native.Serialization.write
 import org.json4s.{ DefaultFormats, Formats }
 import org.scalatra._
 
-import scala.util.{ Failure, Success, Try }
+import scala.util.{ Failure, Try }
 
 class DepositServlet(app: EasyDepositApiApp) extends AbstractAuthServlet(app) {
 
@@ -38,14 +42,14 @@ class DepositServlet(app: EasyDepositApiApp) extends AbstractAuthServlet(app) {
   get("/") {
     recoverResponseIfFailure(
       forUser(app.getDeposits)
-        .map(s => Ok(???))
+        .map(deposits => Ok(body = toJson(deposits)))
     )
   }
   post("/") {
     recoverResponseIfFailure(
       forUser(app.createDeposit)
-        .map(uuid => Ok( // TODO UUID will become DepositInfo
-          body = uuid.toString,
+        .map(uuid => Ok(
+          body = uuid, // TODO UUID will become DepositInfo
           headers = Map("Location" -> s"${ request.getRequestURL }/$uuid")
         ))
     )
@@ -53,7 +57,7 @@ class DepositServlet(app: EasyDepositApiApp) extends AbstractAuthServlet(app) {
   get("/:id/metadata") {
     recoverResponseIfFailure(
       forDeposit(app.getDatasetMetadataForDeposit)
-        .map(_ => Ok(???))
+        .map(datasetMetadata => Ok(body = toJson(datasetMetadata)))
     )
   }
   put("/:id/metadata") {
@@ -65,7 +69,7 @@ class DepositServlet(app: EasyDepositApiApp) extends AbstractAuthServlet(app) {
   get("/:id/state") {
     recoverResponseIfFailure(
       forDeposit(app.getDepositState)
-        .map(_ => Ok(???))
+        .map(depositState => Ok(body = toJson(depositState)))
     )
   }
   put("/:id/state") {
@@ -83,19 +87,19 @@ class DepositServlet(app: EasyDepositApiApp) extends AbstractAuthServlet(app) {
   get("/:id/file/*") { //dir and file
     recoverResponseIfFailure(
       forPath(app.getDepositFiles)
-        .map(_ => Ok(???))
+        .map(depositFiles => Ok(body = toJson(depositFiles)))
     )
   }
   post("/:id/file/*") { //dir
     recoverResponseIfFailure(for {
       inputStream <- getInputStream
-      fileWasCreated <- forPath(app.writeDepositFile(inputStream))
+      newFileWasCreated <- forPath(app.writeDepositFile(inputStream))
     } yield Ok(???))
   }
   put("/:id/file/*") { //file
     recoverResponseIfFailure(for {
       inputStream <- getInputStream
-      fileWasCreated <- forPath(app.writeDepositFile(inputStream))
+      newFileWasCreated <- forPath(app.writeDepositFile(inputStream))
     } yield Ok(???))
 
   }
@@ -143,8 +147,6 @@ class DepositServlet(app: EasyDepositApiApp) extends AbstractAuthServlet(app) {
     actionResult
   }
 
-  private class InvalidResource(s: String) extends Exception(s)
-
   private def getUUID: Try[UUID] = Try {
     UUID.fromString(params("uuid"))
   }.recoverWith { case t: Throwable =>
@@ -160,7 +162,16 @@ class DepositServlet(app: EasyDepositApiApp) extends AbstractAuthServlet(app) {
 
   private def getInputStream: Try[InputStream] = ???
 
-  private implicit val jsonFormats: Formats = new DefaultFormats {}
+  private implicit val jsonFormats: Formats = new DefaultFormats {
+    override protected def dateFormatter: SimpleDateFormat = new SimpleDateFormat("yyyy-MM-dd")
+  } + new EnumNameSerializer(State) ++ JodaTimeSerializers.all
+
+
+  def toJson[A <: AnyRef](a: A): String = {
+    // just for readability
+    // seems not to need a try: while the date formatter wasn't in place it produced empty strings
+    write(a)
+  }
 
   private def getStateInfo: Try[StateInfo] = Try {
     // TODO verify mime type?
@@ -177,4 +188,8 @@ class DepositServlet(app: EasyDepositApiApp) extends AbstractAuthServlet(app) {
     logger.error(s"bad DatasetMetadata:${ t.getClass.getName } ${ t.getMessage }")
     Failure(new Exception(s"Bad Request. The metadata document is malformed."))
   }
+}
+object DepositServlet {
+
+  private class InvalidResource(s: String) extends Exception(s)
 }
