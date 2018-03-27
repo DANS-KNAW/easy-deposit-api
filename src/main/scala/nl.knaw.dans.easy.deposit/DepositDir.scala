@@ -97,7 +97,7 @@ object DepositDir {
    */
   def list(baseDir: File, user: String): Try[Seq[DepositDir]] = Try {
 
-    new java.io.File(baseDir + "/" + "user001").listFiles
+    new java.io.File(baseDir + "/" + user).listFiles
       .filter(_.isDirectory)
       .map(x => new DepositDir(baseDir, user, UUID.fromString(x.getName)) )
       .toSeq
