@@ -16,8 +16,7 @@
 package nl.knaw.dans.easy.deposit
 
 import nl.knaw.dans.easy.deposit.authentication.AuthenticationMocker._
-import nl.knaw.dans.easy.deposit.authentication.{ AuthConfig, AuthUser, AuthenticationProvider, TokenSupport }
-import org.apache.commons.configuration.PropertiesConfiguration
+import nl.knaw.dans.easy.deposit.authentication.{ AuthUser, AuthenticationProvider }
 import org.eclipse.jetty.http.HttpStatus._
 import org.scalamock.scalatest.MockFactory
 import org.scalatra.auth.Scentry
@@ -34,14 +33,6 @@ class DepositServletErrorSpec extends TestSupportFixture with ServletFixture wit
   }
   addServlet(depositServlet, "/*")
 
-  private class TokenSupportImpl() extends TokenSupport with AuthConfig {
-
-    def getAuthenticationProvider: AuthenticationProvider = mockedAuthenticationProvider
-
-    def getProperties: PropertiesConfiguration = new PropertiesConfiguration()
-  }
-  private val tokenSupport = new TokenSupportImpl()
-
   "post /" should "return 500 (Internal Server Error) on a not expected exception and basic authentication" in {
     (mockedApp.createDeposit(_: String)) expects "foo" returning Failure(new Exception("whoops"))
     expectsUserFooBar
@@ -53,7 +44,7 @@ class DepositServletErrorSpec extends TestSupportFixture with ServletFixture wit
 
   it should "return 500 (Internal Server Error) on a not expected exception and a cookie" ignore {
     // TODO breaks tests in TypicalSessionSpec when running 'mvn clean install'
-    val jwtCookie = tokenSupport.encodeJWT(AuthUser("foo", isActive = true))
+    val jwtCookie = createJWT(AuthUser("foo", isActive = true))
     expectsUserFooBar
     post(uri = "/", headers = Seq(("Cookie", s"${ Scentry.scentryAuthKey }=$jwtCookie"))) {
       status shouldBe INTERNAL_SERVER_ERROR_500

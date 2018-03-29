@@ -17,7 +17,6 @@ package nl.knaw.dans.easy.deposit.authentication
 
 import nl.knaw.dans.easy.deposit._
 import nl.knaw.dans.easy.deposit.authentication.AuthenticationMocker._
-import org.apache.commons.configuration.PropertiesConfiguration
 import org.eclipse.jetty.http.HttpStatus._
 import org.joda.time.format.DateTimeFormat
 import org.scalamock.scalatest.MockFactory
@@ -28,16 +27,6 @@ class TypicalSessionSpec extends TestSupportFixture with ServletFixture with Sca
 
   addServlet(new TestServlet(mockedAuthenticationProvider), "/deposit/*")
   addServlet(new AuthTestServlet(mockedAuthenticationProvider), "/auth/*")
-
-  private class TokenSupportImpl() extends TokenSupport with AuthConfig {
-
-    def getAuthenticationProvider: AuthenticationProvider = mockedAuthenticationProvider
-
-    def getProperties: PropertiesConfiguration = new PropertiesConfiguration()
-  }
-  private val tokenSupport = new TokenSupportImpl()
-
-
 
   "get /deposit without credentials" should "return 403 (forbidden)" in {
     expectsNoUser
@@ -102,7 +91,7 @@ class TypicalSessionSpec extends TestSupportFixture with ServletFixture with Sca
 
   "get /deposit with valid cookie token" should "be ok" in {
     expectsNoUser
-    val jwtCookie = tokenSupport.encodeJWT(AuthUser("foo", isActive = true))
+    val jwtCookie = createJWT(AuthUser("foo", isActive = true))
 
     get(
       uri = "/deposit",
@@ -117,7 +106,7 @@ class TypicalSessionSpec extends TestSupportFixture with ServletFixture with Sca
 
   "put /auth/logout" should "clear the cookie" in {
     expectsNoUser
-    val jwtCookie = tokenSupport.encodeJWT(AuthUser("foo", isActive = true))
+    val jwtCookie = createJWT(AuthUser("foo", isActive = true))
 
     put(
       uri = "/auth/logout",
@@ -144,7 +133,7 @@ class TypicalSessionSpec extends TestSupportFixture with ServletFixture with Sca
       .parseDateTime(expiresString)
       .getMillis
     expiresLong -
-      (tokenSupport.tokenConfig.expiresIn * 1000) -
+      (jwtConfig.expiresIn * 1000) -
       System.currentTimeMillis
   }
 }

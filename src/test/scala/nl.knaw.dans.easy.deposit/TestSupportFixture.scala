@@ -17,6 +17,9 @@ package nl.knaw.dans.easy.deposit
 
 import better.files.File
 import better.files.File._
+import nl.knaw.dans.easy.deposit.authentication.AuthenticationMocker.mockedAuthenticationProvider
+import nl.knaw.dans.easy.deposit.authentication.TokenSupport.TokenConfig
+import nl.knaw.dans.easy.deposit.authentication.{ AuthConfig, AuthUser, AuthenticationProvider, TokenSupport }
 import org.apache.commons.configuration.PropertiesConfiguration
 import org.joda.time.{ DateTime, DateTimeUtils }
 import org.scalatest.{ BeforeAndAfter, FlatSpec, Inside, Matchers }
@@ -46,5 +49,20 @@ trait TestSupportFixture extends FlatSpec with Matchers with Inside with BeforeA
         .toString()
       )
     })
+  }
+
+  private class TokenSupportImpl() extends TokenSupport with AuthConfig {
+
+    // required by AuthConfig but not by TokenSupport
+    def getAuthenticationProvider: AuthenticationProvider = mockedAuthenticationProvider
+
+    def getProperties: PropertiesConfiguration = new PropertiesConfiguration()
+  }
+  private val tokenSupport = new TokenSupportImpl()
+
+  def jwtConfig: TokenConfig = tokenSupport.tokenConfig
+
+  def createJWT(user: AuthUser): String = {
+    tokenSupport.encodeJWT(user)
   }
 }
