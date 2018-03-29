@@ -15,8 +15,12 @@
  */
 package nl.knaw.dans.easy.deposit.components
 
-case class UserInfo(userName: String, firstName: Option[String] = None, prefix: Option[String] = None, lastName: String, groups: Option[Seq[String]] = None)
-
+case class UserInfo(userName: String,
+                    firstName: Option[String] = None,
+                    prefix: Option[String] = None,
+                    lastName: String,
+                    groups: Option[Seq[String]] = None
+                   )
 object UserInfo {
   def apply(attributes: Map[String, Seq[String]]): UserInfo = {
     // For possible attribute keys see: https://github.com/DANS-KNAW/dans.easy-test-users/blob/master/templates
