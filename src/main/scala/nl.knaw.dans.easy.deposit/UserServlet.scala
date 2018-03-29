@@ -17,7 +17,7 @@ package nl.knaw.dans.easy.deposit
 
 import nl.knaw.dans.easy.deposit.authentication.ServletEnhancedLogging._
 import nl.knaw.dans.easy.deposit.components.Json._
-import nl.knaw.dans.easy.deposit.components.User
+import nl.knaw.dans.easy.deposit.components.UserInfo
 import org.scalatra._
 
 import scala.util.Try
@@ -32,7 +32,7 @@ class UserServlet(app: EasyDepositApiApp) extends AbstractAuthServlet(app) {
 
   get("/") {
     Try(app.getUser(user.id)).flatten // no throw should slip through
-      .map(map => Ok(toJson(User(map))))
+      .map(map => Ok(toJson(UserInfo(map))))
       .getOrRecover(respond)
   }
   put("") {

@@ -55,8 +55,8 @@ object Json {
     write(a)
   }
 
-  def getUser(body: JsonInput): Try[User] = Try {
-    JsonMethods.parse(body).extract[User]
+  def getUser(body: JsonInput): Try[UserInfo] = Try {
+    JsonMethods.parse(body).extract[UserInfo]
   }.recoverWith { case t: Throwable => Failure(new InvalidDocument("User", t)) }
 
   def getStateInfo(body: JsonInput): Try[StateInfo] = Try {

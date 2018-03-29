@@ -15,12 +15,12 @@
  */
 package nl.knaw.dans.easy.deposit.components
 
-case class User(userName: String, firstName: Option[String] = None, prefix: Option[String] = None, lastName: String, groups: Option[Seq[String]] = None)
+case class UserInfo(userName: String, firstName: Option[String] = None, prefix: Option[String] = None, lastName: String, groups: Option[Seq[String]] = None)
 
-object User {
-  def apply(attributes: Map[String, Seq[String]]): User = {
+object UserInfo {
+  def apply(attributes: Map[String, Seq[String]]): UserInfo = {
     // For possible attribute keys see: https://github.com/DANS-KNAW/dans.easy-test-users/blob/master/templates
-    new User(
+    new UserInfo(
 
       // mandatory: https://github.com/DANS-KNAW/dans.easy-ldap-dir/blob/f17c391/files/easy-schema.ldif#L83-L84
       userName = attributes.getOrElse("uid", Seq.empty).headOption.getOrElse(""),
