@@ -22,12 +22,12 @@ class AuthTestServlet(authProvider: AuthenticationProvider) extends AbstractTest
 
   post("/login") {
     login()
-    Ok(s"signed in").logResponse()
+    Ok(s"signed in").logResponse
   }
 
   put("/logout") {
     logOut() // destroys the scentry cookie
-    Ok("you are signed out").logResponse()
+    Ok("you are signed out").logResponse
   }
 }
 

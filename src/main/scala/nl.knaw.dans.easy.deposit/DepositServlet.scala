@@ -22,7 +22,6 @@ import java.util.UUID
 
 import nl.knaw.dans.easy.deposit.DepositServlet._
 import nl.knaw.dans.easy.deposit.authentication.ServletEnhancedLogging._
-import nl.knaw.dans.lib.error._
 import org.json4s.JsonAST.{ JNull, JString }
 import org.json4s.ext.{ EnumNameSerializer, JodaTimeSerializers, UUIDSerializer }
 import org.json4s.native.JsonMethods
@@ -36,79 +35,75 @@ class DepositServlet(app: EasyDepositApiApp) extends AbstractAuthServlet(app) {
 
   before() {
     if (!isAuthenticated) {
-      halt(Forbidden("missing, invalid or expired credentials").logResponse())
+      halt(Forbidden("missing, invalid or expired credentials").logResponse)
     }
   }
 
   get("/") {
-    recoverIfFailureAndLog(
-      forUser(app.getDeposits)
-        .map(deposits => Ok(body = toJson(deposits)))
-    )
+    forUser(app.getDeposits)
+      .map(deposits => Ok(body = toJson(deposits)))
+      .getOrRecover(respond)
   }
   post("/") {
-    recoverIfFailureAndLog(
-      forUser(app.createDeposit)
-        .map(uuid => Ok(
-          body = uuid, // TODO UUID will become DepositInfo, which should be wrapped by toJson
-          headers = Map("Location" -> s"${ request.getRequestURL }/$uuid")
-        ))
-    )
+    forUser(app.createDeposit)
+      .map(uuid => Ok(
+        body = uuid, // TODO UUID will become DepositInfo, which should be wrapped by toJson
+        headers = Map("Location" -> s"${ request.getRequestURL }/$uuid")
+      ))
+      .getOrRecover(respond)
   }
   get("/:uuid/metadata") {
-    recoverIfFailureAndLog(
-      forDeposit(app.getDatasetMetadataForDeposit)
-        .map(datasetMetadata => Ok(body = toJson(datasetMetadata)))
-    )
+    forDeposit(app.getDatasetMetadataForDeposit)
+      .map(datasetMetadata => Ok(body = toJson(datasetMetadata)))
+      .getOrRecover(respond)
   }
   put("/:uuid/metadata") {
-    recoverIfFailureAndLog(for {
+    (for {
       datasetMetadata <- getDatasetMetadata(request.body)
       _ <- forDeposit(app.writeDataMetadataToDeposit(datasetMetadata))
     } yield Ok(???))
+      .getOrRecover(respond)
   }
   get("/:uuid/state") {
-    recoverIfFailureAndLog(
-      forDeposit(app.getDepositState)
-        .map(depositState => Ok(body = toJson(depositState)))
-    )
+    forDeposit(app.getDepositState)
+      .map(depositState => Ok(body = toJson(depositState)))
+      .getOrRecover(respond)
   }
   put("/:uuid/state") {
-    recoverIfFailureAndLog(for {
+    (for {
       stateInfo <- getStateInfo(request.body)
       _ <- forDeposit(app.setDepositState(stateInfo))
     } yield Ok(???))
+      .getOrRecover(respond)
   }
   delete("/:uuid") {
-    recoverIfFailureAndLog(
-      forDeposit(app.deleteDeposit)
-        .map(_ => Ok(???))
-    )
+    forDeposit(app.deleteDeposit)
+      .map(_ => Ok(???))
+      .getOrRecover(respond)
   }
   get("/:uuid/file/*") { //dir and file
-    recoverIfFailureAndLog(
-      forPath(app.getDepositFiles)
-        .map(depositFiles => Ok(body = toJson(depositFiles)))
-    )
+    forPath(app.getDepositFiles)
+      .map(depositFiles => Ok(body = toJson(depositFiles)))
+      .getOrRecover(respond)
   }
   post("/:uuid/file/*") { //dir
-    recoverIfFailureAndLog(for {
+    (for {
       inputStream <- getInputStream
       newFileWasCreated <- forPath(app.writeDepositFile(inputStream))
     } yield Ok(???))
+      .getOrRecover(respond)
   }
   put("/:uuid/file/*") { //file
-    recoverIfFailureAndLog(for {
+    (for {
       inputStream <- getInputStream
       newFileWasCreated <- forPath(app.writeDepositFile(inputStream))
     } yield Ok(???))
-
+      .getOrRecover(respond)
   }
   delete("/:uuid/file/*") { //dir and file
-    recoverIfFailureAndLog(
-      forPath(app.deleteDepositFile)
-        .map(_ => Ok(???))
-    )
+    forPath(app.deleteDepositFile)
+      .map(_ => Ok(???))
+      .getOrRecover(respond)
   }
 
   private def forUser[T](callback: (String) => Try[T]
@@ -135,20 +130,20 @@ class DepositServlet(app: EasyDepositApiApp) extends AbstractAuthServlet(app) {
     } yield result
   }
 
-  private def recoverIfFailureAndLog(appResult: Try[ActionResult]): ActionResult = {
-    appResult.getOrRecover {
+  private def respond(t: Throwable): ActionResult = {
+    t match {
       // TODO case Failure(t: ???) =>
-      case t: InvalidResource =>
+      case _: InvalidResource =>
         logger.error(s"InvalidResource: ${ t.getMessage }")
         NotFound()
-      case t: InvalidDocument =>
+      case _: InvalidDocument =>
         logger.error(s"Invalid ${ t.getMessage }:${ t.getCause.getClass.getName } ${ t.getCause.getMessage }")
         BadRequest(s"Bad Request. The ${ t.getMessage } document is malformed.")
-      case t =>
+      case _ =>
         logger.error(s"Not expected exception: ${ t.getMessage }", t)
         InternalServerError("Internal Server Error")
     }
-  }.logResponse() // not pure but prevents repeating and occasionally forgetting
+  }
 
   private def getUUID: Try[UUID] = Try {
     UUID.fromString(params("uuid"))

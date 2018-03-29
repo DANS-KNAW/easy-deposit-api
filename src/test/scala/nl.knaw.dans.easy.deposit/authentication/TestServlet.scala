@@ -23,13 +23,13 @@ class TestServlet(authProvider: AuthenticationProvider) extends AbstractTestServ
 
   before() {
     if (!isAuthenticated) {
-      halt(Forbidden("missing, invalid or expired credentials").logResponse())
+      halt(Forbidden("missing, invalid or expired credentials").logResponse)
     }
   }
 
   get("/") {
     contentType = "text/plain"
     Ok(s"$user ${ new DateTime() }: EASY Deposit API Service running")
-      .logResponse()
+      .logResponse
   }
 }

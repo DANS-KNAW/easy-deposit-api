@@ -88,9 +88,9 @@ trait AuthenticationSupport extends ScentrySupport[AuthUser] {
   /** Halts request processing in case of trouble. */
   def login() {
     if (hasAuthCookie)
-      halt(BadRequest().logResponse()) // don't trust a client that logs in while having an authentication cookie
+      halt(BadRequest().logResponse) // don't trust a client that logs in while having an authentication cookie
     else if (!isAuthenticated) {
-      halt(Forbidden("invalid credentials").logResponse())
+      halt(Forbidden("invalid credentials").logResponse)
     }
   }
 
@@ -110,7 +110,7 @@ trait AuthenticationSupport extends ScentrySupport[AuthUser] {
 
     if (hasMultipleAuthentications(hasAuthCookie, validStrategies, authenticationHeaders)) {
       logger.info(s"Client specified multiple authentications: hasAuthCookie=$hasAuthCookie, authentication headers [$authenticationHeaders], strategies [${ validStrategies.map(_.name) }]")
-      halt(BadRequest().logResponse())
+      halt(BadRequest().logResponse)
     }
   }
 

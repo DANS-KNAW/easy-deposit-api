@@ -15,15 +15,16 @@
  */
 package nl.knaw.dans.easy.deposit
 
+import nl.knaw.dans.easy.deposit.authentication.ServletEnhancedLogging
 import nl.knaw.dans.easy.deposit.authentication.ServletEnhancedLogging._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.scalatra._
 
-class EasyDepositApiServlet(app: EasyDepositApiApp) extends ScalatraServlet with DebugEnhancedLogging {
+class EasyDepositApiServlet(app: EasyDepositApiApp) extends ScalatraServlet with ServletEnhancedLogging {
 
   get("/") {
     contentType = "text/plain"
     Ok(s"EASY Deposit API Service running (${ app.getVersion })")
-      .logResponse()
+      .logResponse
   }
 }

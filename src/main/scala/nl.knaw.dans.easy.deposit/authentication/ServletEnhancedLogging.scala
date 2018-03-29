@@ -19,6 +19,8 @@ import javax.servlet.http.HttpServletRequest
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.scalatra.{ ActionResult, ScalatraBase }
 
+import scala.util.{ Failure, Success, Try }
+
 // TODO candidate for dans-scala-lib (another package than authentication?)
 trait ServletEnhancedLogging extends DebugEnhancedLogging {
   this: ScalatraBase =>
@@ -28,20 +30,30 @@ trait ServletEnhancedLogging extends DebugEnhancedLogging {
   }
   after() {
     //logger.info(s"response.status=${ response.getStatus } headers=${ response.headers }")
-    // TODO would ignore the ActionResult of the servlets respond method, always causing a 200
-    // see this fork (2011): https://github.com/erikrozendaal/scalatra#filters
-    // it also got called before executing a servlet route with response == null
   }
 }
 object ServletEnhancedLogging extends DebugEnhancedLogging {
 
   implicit class RichActionResult(actionResult: ActionResult)(implicit request: HttpServletRequest) extends Object {
-    // TODO as long as we don't learn how to use ServiceEnhancedLogging.after
-    // disadvantage of this pattern: developers might forget
-    // advantage: we can add snippets from the body, it can be used within a halt
-    def logResponse(msg: String=""): ActionResult = {
-      logger.info(s"${ request.getMethod } ${request.getRequestURL} returned status=${ actionResult.status } headers=${ actionResult.headers }")
-      actionResult
+    def logResponse: ActionResult = logResult(actionResult)
+  }
+
+  implicit class RichTriedActionResult(tried: Try[ActionResult])(implicit request: HttpServletRequest) extends Object {
+    // TODO to preserve actionResult into and beyond after filters, copy it into "implicit response: HttpServletResponse"
+    // See the last extensive readme version (documentation moved into an incomplete book and guides)
+    // https://github.com/scalatra/scalatra/blob/6a614d17c38d19826467adcabf1dc746e3192dfc/README.markdown
+    // sections #filters #action
+    def getOrRecover(recover: Throwable => ActionResult): ActionResult = {
+      // the signature is more specific than in nl.knaw.dans.lib.error and comes with the trait, not with just an import
+      logResult(tried match {
+        case Success(actionResult) => actionResult
+        case Failure(throwable) => recover(throwable)
+      })
     }
+  }
+
+  private def logResult(actionResult: ActionResult)(implicit request: HttpServletRequest) = {
+    logger.info(s"${ request.getMethod } returned status=${ actionResult.status } headers=${ actionResult.headers }")
+    actionResult
   }
 }
