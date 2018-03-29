@@ -28,7 +28,7 @@ class DepositServletErrorSpec extends TestSupportFixture with ServletFixture wit
 
   private class MockedApp extends EasyDepositApiApp(minimalAppConfig)
   private val mockedApp = mock[MockedApp]
-  private val depositServlet: DepositServlet = new DepositServlet(mockedApp) {
+  private val depositServlet = new DepositServlet(mockedApp) {
     override def getAuthenticationProvider: AuthenticationProvider = mockedAuthenticationProvider
   }
   addServlet(depositServlet, "/*")

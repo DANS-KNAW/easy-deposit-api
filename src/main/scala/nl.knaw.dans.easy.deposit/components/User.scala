@@ -1,6 +1,7 @@
-package nl.knaw.dans.easy.deposit
+package nl.knaw.dans.easy.deposit.components
 
 case class User(userName: String, firstName: Option[String] = None, prefix: Option[String] = None, lastName: String, groups: Option[Seq[String]] = None)
+
 object User {
   def apply(attributes: Map[String, Seq[String]]): User = {
     // For possible attribute keys see: https://github.com/DANS-KNAW/dans.easy-test-users/blob/master/templates

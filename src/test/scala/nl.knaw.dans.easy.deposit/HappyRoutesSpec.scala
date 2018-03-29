@@ -32,7 +32,10 @@ class HappyRoutesSpec extends TestSupportFixture with ServletFixture with Scalat
 
   private class MockedApp extends EasyDepositApiApp(minimalAppConfig)
   private val mockedApp = mock[MockedApp]
-  private val depositServlet: DepositServlet = new DepositServlet(mockedApp) {
+  private val userServlet = new UserServlet(mockedApp) {
+    override def getAuthenticationProvider: AuthenticationProvider = mockedAuthenticationProvider
+  }
+  private val depositServlet = new DepositServlet(mockedApp) {
     override def getAuthenticationProvider: AuthenticationProvider = mockedAuthenticationProvider
   }
   private val authServlet = new AuthServlet(mockedApp) {
@@ -40,6 +43,7 @@ class HappyRoutesSpec extends TestSupportFixture with ServletFixture with Scalat
   }
   addServlet(depositServlet, "/deposit/*")
   addServlet(authServlet, "/auth/*")
+  addServlet(userServlet, "/user/*")
   addServlet(new EasyDepositApiServlet(mockedApp), "/*")
 
   "get /" should "be ok" in {
@@ -98,7 +102,7 @@ class HappyRoutesSpec extends TestSupportFixture with ServletFixture with Scalat
     }
   }
 
-  "get /deposit/user" should "return a user with something for all atributes" in {
+  "get /user" should "return a user with something for all atributes" in {
     expectsUserFooBar
     (mockedApp.getUser(_: String)) expects "foo" returning Success(Map(
       "uid" -> Seq("foo"),
@@ -108,7 +112,7 @@ class HappyRoutesSpec extends TestSupportFixture with ServletFixture with Scalat
       "easyGroups" -> Seq("Archeology", "History")
     ))
     get(
-      uri = "/deposit/user",
+      uri = "/user",
       headers = Seq(("Authorization", fooBarBasicAuthHeader))
     ) {
       body shouldBe """{"userName":"foo","firstName":"Jan","prefix":"van de","lastName":"Berg","groups":["Archeology","History"]}"""
@@ -123,7 +127,7 @@ class HappyRoutesSpec extends TestSupportFixture with ServletFixture with Scalat
       "sn" -> Seq("Berg")
     ))
     get(
-      uri = "/deposit/user",
+      uri = "/user",
       headers = Seq(("Authorization", fooBarBasicAuthHeader))
     ) {
       body shouldBe """{"userName":"foo","lastName":"Berg"}"""
