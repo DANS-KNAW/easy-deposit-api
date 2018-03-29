@@ -15,7 +15,6 @@
  */
 package nl.knaw.dans.easy.deposit
 
-import java.nio.file.FileAlreadyExistsException
 import java.util.UUID
 
 import better.files._
@@ -29,7 +28,6 @@ import gov.loc.repository.bagit.domain.{ Metadata => BagitMetadata }
 import gov.loc.repository.bagit.hash.StandardSupportedAlgorithms
 import org.joda.time.format.ISODateTimeFormat
 import java.util.{ Arrays => JArrays }
-
 import scala.collection.Seq
 
 /**
@@ -97,11 +95,15 @@ object DepositDir {
    */
   def list(baseDir: File, user: String): Try[Seq[DepositDir]] = Try {
 
-    new java.io.File(baseDir + "/" + user).listFiles
-      .filter(_.isDirectory)
-      .map(x => new DepositDir(baseDir, user, UUID.fromString(x.getName)) )
-      .toSeq
-}
+    val file = baseDir / user
+    if (file.exists)
+      file
+        .list
+        .filter(_.isDirectory)
+        .map(x => new DepositDir(baseDir, user, UUID.fromString(x.name)))
+        .toSeq
+    else Seq.empty
+  }
 
   /**
    * Returns the requested [[DepositDir]], if it is owned by `user`
@@ -124,7 +126,7 @@ object DepositDir {
 
     val uuid = UUID.randomUUID()
     val dir: File = (baseDir / user / uuid.toString)
-          .createIfNotExists(asDirectory = true, createParents = true)
+      .createIfNotExists(asDirectory = true, createParents = true)
 
     val dateTimeFormatter: DateTimeFormatter = ISODateTimeFormat.dateTime()
     val timeNow = DateTime.now(DateTimeZone.UTC).toString(dateTimeFormatter)
@@ -134,15 +136,14 @@ object DepositDir {
     }
     val bagDir: File = dir / "bag"
     BagCreator.bagInPlace(bagDir.path, JArrays.asList(StandardSupportedAlgorithms.SHA1), true, metadata)
-    (bagDir / "metadata")
-      .createIfNotExists(asDirectory = true)
+    (bagDir / "metadata").createIfNotExists(asDirectory = true)
 
     new PropertiesConfiguration() {
       addProperty("creation.timestamp", timeNow)
       addProperty("state.label", "DRAFT")
       addProperty("state.description", "Deposit is open for changes.")
       addProperty("depositor.userId", user)
-    }save((dir / "deposit.properties").toJava)
+    }.save((dir / "deposit.properties").toJava)
 
     DepositDir(baseDir, user, uuid)
   }

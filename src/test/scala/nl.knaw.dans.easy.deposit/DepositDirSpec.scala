@@ -15,26 +15,21 @@
  */
 package nl.knaw.dans.easy.deposit
 
-import java.io.File
-import java.nio.file.FileAlreadyExistsException
-
-import scala.util.{ Failure, Success, Try }
+import java.nio.file.attribute.PosixFilePermission
+import scala.util.{ Failure, Success}
 
 class DepositDirSpec extends TestSupportFixture {
   private val draftsDir = testDir / "drafts"
 
-  "createDirectory" should "throw FileAlreadyExistsException the directory \"drafts\" is read only" in {
-    def getListErrorCheck() = {
-      Try { draftsDir.createDirectory }
-      match {
-        case Failure(_) => throw new FileAlreadyExistsException("directory \"drafts\" is read only")
-        case Success(_) => "success"
-      }
-    }
-    if (draftsDir.exists()) {
-      if (draftsDir.isReadable && !draftsDir.isWriteable) {
-        a[FileAlreadyExistsException] should be thrownBy { getListErrorCheck() }
-      }
+  before {
+    if(testDir.exists)testDir.delete(false)
+  }
+  "Create deposit" should "fail if the dir 'draft' is read only" in {
+
+    draftsDir.createDirectories()
+      .removePermission(PosixFilePermission.OWNER_WRITE)
+    inside(DepositDir.create(draftsDir, "user001")) {
+      case Failure(_) =>
     }
   }
 
@@ -59,52 +54,26 @@ class DepositDirSpec extends TestSupportFixture {
     createAndCheckDeposit()
   }
 
-  "list" should "show no deposits of \"user001\" user" in {
-
-    val userDir = new File(draftsDir + "/" + "user001")
-    val listNoDeps = DepositDir.list(draftsDir, "user001")
-    var numOfDeposits = 1
-    listNoDeps match {
-      case Success(_) => {
-        numOfDeposits = listNoDeps.get.size
-      }
-      case Failure(_) => {
-        if (!userDir.exists())
-          numOfDeposits = 0
-          println("user001 directory does not exist. Deposit directory is empty")
-      }
+  "list" should """show no deposits of "user001" user""" in {
+    draftsDir.createDirectories()
+    inside(DepositDir.list(draftsDir, "user001")) {
+      case Success(Seq()) =>
     }
-    println("Number of deposits = " + numOfDeposits)
-    numOfDeposits should equal (0)
   }
 
-  it should "show one deposit of \"user001\" user" in {
-
-    createAndCheckDeposit()
-    var numOfDeposits = 0
-    val listOneDep = DepositDir.list(draftsDir, "user001")
-    listOneDep match {
-      case Success(_) => {
-        numOfDeposits = listOneDep.get.size
-      }
-      case Failure(_) => "failure"
+  it should """show one deposit of "user001" user""" in {
+    draftsDir.createDirectories()
+    DepositDir.create(draftsDir, "user001")
+    inside(DepositDir.list(draftsDir, "user001")) {
+      case Success(Seq(_)) =>
     }
-    println("Number of deposits = " + numOfDeposits)
-    numOfDeposits should equal (1)
   }
 
-  it should "show more then two deposits of \"user001\" user" in {
-
-    for (i <- 1 to 3) createAndCheckDeposit()
-    var numOfDeposits = 0
-    val listManyDeps = DepositDir.list(draftsDir, "user001")
-    listManyDeps match {
-      case Success(_) => {
-        numOfDeposits = listManyDeps.get.size
-      }
-      case Failure(_) => "failure"
+  it should """show more than two deposits of "user001" user""" in {
+    draftsDir.createDirectories()
+    for (i <- 1 to 3) DepositDir.create(draftsDir, "user001")
+    inside(DepositDir.list(draftsDir, "user001")) {
+      case Success(Seq(_,_,_)) =>
     }
-    println("Number of deposits = " + numOfDeposits)
-    numOfDeposits should be > 2
   }
 }

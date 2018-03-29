@@ -20,7 +20,7 @@ import better.files.File._
 import org.scalamock.scalatest.MockFactory
 import org.scalatest._
 
-trait TestSupportFixture extends FlatSpec with Matchers with Inside with OneInstancePerTest {
+trait TestSupportFixture extends FlatSpec with Matchers with Inside with BeforeAndAfter {
 
   lazy val testDir: File = {
     (currentWorkingDirectory / "target" / "test" / getClass.getSimpleName)
