@@ -59,6 +59,8 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
     dir
   }
 
+  def getUser(user: String): Try[Map[String, Seq[String]]] = authentication.getUser(user)
+
   /**
    * Creates a new, empty deposit, containing an empty bag in the user's draft area. If the user
    * has no draft area yet, it is first created.

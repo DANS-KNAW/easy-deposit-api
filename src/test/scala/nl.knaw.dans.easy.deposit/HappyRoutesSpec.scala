@@ -98,6 +98,39 @@ class HappyRoutesSpec extends TestSupportFixture with ServletFixture with Scalat
     }
   }
 
+  "get /deposit/user" should "return a user with something for all atributes" in {
+    expectsUserFooBar
+    (mockedApp.getUser(_: String)) expects "foo" returning Success(Map(
+      "uid" -> Seq("foo"),
+      "cn" -> Seq("Jan"),
+      "dansPrefixes" -> Seq("van", "de"),
+      "sn" -> Seq("Berg"),
+      "easyGroups" -> Seq("Archeology", "History")
+    ))
+    get(
+      uri = "/deposit/user",
+      headers = Seq(("Authorization", fooBarBasicAuthHeader))
+    ) {
+      body shouldBe """{"userName":"foo","firstName":"Jan","prefix":"van de","lastName":"Berg","groups":["Archeology","History"]}"""
+      status shouldBe OK_200
+    }
+  }
+
+  it should "return a user with minimal atributes" in {
+    expectsUserFooBar
+    (mockedApp.getUser(_: String)) expects "foo" returning Success(Map(
+      "uid" -> Seq("foo"),
+      "sn" -> Seq("Berg")
+    ))
+    get(
+      uri = "/deposit/user",
+      headers = Seq(("Authorization", fooBarBasicAuthHeader))
+    ) {
+      body shouldBe """{"userName":"foo","lastName":"Berg"}"""
+      status shouldBe OK_200
+    }
+  }
+
   private val fixedUUID = UUID.fromString("1cd9409d-8645-46a0-80db-eaf468a5ba7e")
 
   s"get /$fixedUUID/state" should "return DatasetMetadata" in {

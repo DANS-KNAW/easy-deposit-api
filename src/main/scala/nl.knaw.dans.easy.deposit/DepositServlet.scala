@@ -29,7 +29,7 @@ import org.json4s.native.Serialization.write
 import org.json4s.{ CustomSerializer, DefaultFormats, Formats, JsonInput }
 import org.scalatra._
 
-import scala.util.{ Failure, Try }
+import scala.util.{ Failure, Success, Try }
 
 class DepositServlet(app: EasyDepositApiApp) extends AbstractAuthServlet(app) {
 
@@ -37,6 +37,12 @@ class DepositServlet(app: EasyDepositApiApp) extends AbstractAuthServlet(app) {
     if (!isAuthenticated) {
       halt(Forbidden("missing, invalid or expired credentials").logResponse)
     }
+  }
+
+  get("/user") {
+    forUser(app.getUser)
+      .map(map => Ok(toJson(User(map))))
+      .getOrRecover(respond)
   }
 
   get("/") {

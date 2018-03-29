@@ -39,6 +39,8 @@ trait LdapAuthentication extends DebugEnhancedLogging {
     val ldapProviderUrl: String
     val ldapUserClass = "easyUser"
 
+    def getUser(userName: String): Try[Map[String, Seq[String]]] = ???
+
     def getUser(userName: String, password: String): Option[AuthUser] = {
       findUser(userName, password)
         .doIfFailure { case t => logger.error(s"authentication of $userName failed with $t", t) }
