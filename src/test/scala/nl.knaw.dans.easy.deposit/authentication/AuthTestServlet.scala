@@ -15,8 +15,8 @@
  */
 package nl.knaw.dans.easy.deposit.authentication
 
-import org.scalatra.Ok
 import nl.knaw.dans.easy.deposit.authentication.ServletEnhancedLogging._
+import org.scalatra.Ok
 
 class AuthTestServlet(authProvider: AuthenticationProvider) extends AbstractTestServlet(authProvider) {
 

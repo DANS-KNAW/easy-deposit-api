@@ -23,7 +23,7 @@ abstract class AbstractAuthServlet(app: EasyDepositApiApp) extends ScalatraServl
   with ServletEnhancedLogging
   with AuthenticationSupport
   with TokenSupport
-  with AuthConfig{
+  with AuthConfig {
 
   override def getAuthenticationProvider: AuthenticationProvider = app.authentication
 

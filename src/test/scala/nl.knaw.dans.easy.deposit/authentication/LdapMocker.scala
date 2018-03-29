@@ -18,7 +18,6 @@ package nl.knaw.dans.easy.deposit.authentication
 import javax.naming.NamingEnumeration
 import javax.naming.directory.{ BasicAttributes, SearchControls, SearchResult }
 import javax.naming.ldap.LdapContext
-
 import org.scalamock.handlers.CallHandler3
 import org.scalamock.scalatest.MockFactory
 

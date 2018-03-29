@@ -16,14 +16,13 @@
 package nl.knaw.dans.easy.deposit.authentication
 
 import java.util
+
 import javax.naming.directory.{ Attribute, SearchControls, SearchResult }
 import javax.naming.ldap.{ InitialLdapContext, LdapContext }
 import javax.naming.{ AuthenticationException, Context }
-
 import nl.knaw.dans.lib.error.TryExtensions
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import nl.knaw.dans.lib.string._
-import org.apache.commons.lang.StringUtils
 import resource.managed
 
 import scala.collection.JavaConverters._

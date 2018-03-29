@@ -16,10 +16,10 @@
 package nl.knaw.dans.easy.deposit.authentication
 
 import java.util
+
 import javax.naming.AuthenticationException
 import javax.naming.directory.BasicAttributes
 import javax.naming.ldap.LdapContext
-
 import nl.knaw.dans.easy.deposit.TestSupportFixture
 import nl.knaw.dans.easy.deposit.authentication.LdapMocker._
 import org.scalamock.scalatest.MockFactory
