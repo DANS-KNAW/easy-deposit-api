@@ -13,19 +13,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package nl.knaw.dans.easy.deposit
+package nl.knaw.dans.easy.deposit.servlets
 
-import nl.knaw.dans.easy.deposit.authentication._
-import org.apache.commons.configuration.PropertiesConfiguration
-import org.scalatra.ScalatraServlet
+import org.scalatra.Ok
 
-abstract class AbstractAuthServlet(app: EasyDepositApiApp) extends ScalatraServlet
-  with ServletEnhancedLogging
-  with AuthenticationSupport
-  with TokenSupport
-  with AuthConfig {
+class AuthServlet(app: EasyDepositApiApp) extends AbstractAuthServlet(app) {
 
-  override def getAuthenticationProvider: AuthenticationProvider = app.authentication
+  post("/login") {
+    login()
+    Ok(s"signed in") // TODO return user info?
+      .logResponse
+  }
 
-  override def getProperties: PropertiesConfiguration = app.properties
+  put("/logout") {
+    logOut() // destroys the scentry cookie
+    Ok("you are signed out")
+      .logResponse
+  }
 }

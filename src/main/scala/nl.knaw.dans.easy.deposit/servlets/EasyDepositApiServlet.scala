@@ -13,8 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package nl.knaw.dans.easy.deposit
+package nl.knaw.dans.easy.deposit.servlets
 
+import nl.knaw.dans.easy.deposit.EasyDepositApiApp
 import nl.knaw.dans.easy.deposit.authentication.ServletEnhancedLogging
 import nl.knaw.dans.easy.deposit.authentication.ServletEnhancedLogging._
 import org.scalatra._

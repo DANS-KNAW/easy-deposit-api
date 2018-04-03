@@ -1,38 +1,17 @@
-/**
- * Copyright (C) 2018 DANS - Data Archiving and Networked Services (info@dans.knaw.nl)
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-package nl.knaw.dans.easy.deposit
+package nl.knaw.dans.easy.deposit.servlets
 
 import java.io.InputStream
 import java.nio.file.{ Path, Paths }
 import java.util.UUID
 
-import nl.knaw.dans.easy.deposit.DepositServlet._
 import nl.knaw.dans.easy.deposit.authentication.ServletEnhancedLogging._
-import nl.knaw.dans.easy.deposit.components.Json._
-import org.scalatra._
+import nl.knaw.dans.easy.deposit.components.Json.{ InvalidDocument, getDatasetMetadata, getStateInfo, toJson }
+import nl.knaw.dans.easy.deposit.{ EasyDepositApiApp, badDocResponse, internalErrorResponse }
+import org.scalatra.{ ActionResult, NotFound, Ok }
 
 import scala.util.{ Failure, Try }
 
-class DepositServlet(app: EasyDepositApiApp) extends AbstractAuthServlet(app) {
-
-  before() {
-    if (!isAuthenticated) {
-      halt(Forbidden("missing, invalid or expired credentials").logResponse)
-    }
-  }
+class DepositServlet(app: EasyDepositApiApp) extends ProtectedServlet(app) {
 
   get("/") {
     forUser(app.getDeposits)
@@ -148,9 +127,4 @@ class DepositServlet(app: EasyDepositApiApp) extends AbstractAuthServlet(app) {
   }
 
   private def getInputStream: Try[InputStream] = ???
-}
-
-object DepositServlet {
-
-  private class InvalidResource(s: String) extends Exception(s)
 }

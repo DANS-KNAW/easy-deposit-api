@@ -21,6 +21,7 @@ import java.util.UUID
 import nl.knaw.dans.easy.deposit.State._
 import nl.knaw.dans.easy.deposit.authentication.AuthenticationMocker._
 import nl.knaw.dans.easy.deposit.authentication.AuthenticationProvider
+import nl.knaw.dans.easy.deposit.servlets.{ AuthServlet, DepositServlet, EasyDepositApiServlet, ProtectedServlet }
 import org.eclipse.jetty.http.HttpStatus._
 import org.joda.time.DateTime
 import org.scalamock.scalatest.MockFactory
@@ -32,7 +33,7 @@ class HappyRoutesSpec extends TestSupportFixture with ServletFixture with Scalat
 
   private class MockedApp extends EasyDepositApiApp(minimalAppConfig)
   private val mockedApp = mock[MockedApp]
-  private val userServlet = new UserServlet(mockedApp) {
+  private val userServlet = new ProtectedServlet(mockedApp) {
     override def getAuthenticationProvider: AuthenticationProvider = mockedAuthenticationProvider
   }
   private val depositServlet = new DepositServlet(mockedApp) {

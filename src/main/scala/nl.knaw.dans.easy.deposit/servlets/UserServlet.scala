@@ -13,22 +13,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package nl.knaw.dans.easy.deposit
+package nl.knaw.dans.easy.deposit.servlets
 
 import nl.knaw.dans.easy.deposit.authentication.ServletEnhancedLogging._
 import nl.knaw.dans.easy.deposit.components.Json._
 import nl.knaw.dans.easy.deposit.components.UserInfo
+import nl.knaw.dans.easy.deposit.{ EasyDepositApiApp, badDocResponse, internalErrorResponse }
 import org.scalatra._
 
 import scala.util.Try
 
-class UserServlet(app: EasyDepositApiApp) extends AbstractAuthServlet(app) {
-
-  before() {
-    if (!isAuthenticated) {
-      halt(Forbidden("missing, invalid or expired credentials").logResponse)
-    }
-  }
+class UserServlet(app: EasyDepositApiApp) extends ProtectedServlet(app) {
 
   get("/") {
     Try(app.getUser(user.id)).flatten // no throw should slip through

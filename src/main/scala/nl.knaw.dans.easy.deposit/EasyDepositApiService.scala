@@ -16,6 +16,7 @@
 package nl.knaw.dans.easy.deposit
 
 import javax.servlet.ServletContext
+import nl.knaw.dans.easy.deposit.servlets.{ AuthServlet, DepositServlet, EasyDepositApiServlet, ProtectedServlet }
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.eclipse.jetty.server.Server
 import org.eclipse.jetty.servlet.ServletContextHandler
@@ -36,7 +37,7 @@ class EasyDepositApiService(serverPort: Int, app: EasyDepositApiApp) extends Deb
         override def init(context: ServletContext): Unit = {
           context.mount(new EasyDepositApiServlet(app), "/*")
           context.mount(new DepositServlet(app), "/deposit/*")
-          context.mount(new UserServlet(app), "/user/*")
+          context.mount(new ProtectedServlet(app), "/user/*")
           context.mount(new AuthServlet(app), "/auth/*") // TODO update swagger: /logXXX -> /auth/logXXX
         }
       })
