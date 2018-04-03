@@ -43,7 +43,7 @@ object ServletEnhancedLogging extends DebugEnhancedLogging {
     // See the last extensive readme version (documentation moved into an incomplete book and guides)
     // https://github.com/scalatra/scalatra/blob/6a614d17c38d19826467adcabf1dc746e3192dfc/README.markdown
     // sections #filters #action
-    def getOrRecover(recover: Throwable => ActionResult): ActionResult = {
+    def getOrRecoverResponse(recover: Throwable => ActionResult): ActionResult = {
       // the signature is more specific than in nl.knaw.dans.lib.error and comes with the trait, not with just an import
       logResult(tried match {
         case Success(actionResult) => actionResult

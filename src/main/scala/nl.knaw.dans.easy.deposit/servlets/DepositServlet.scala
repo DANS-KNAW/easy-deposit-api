@@ -16,7 +16,7 @@ class DepositServlet(app: EasyDepositApiApp) extends ProtectedServlet(app) {
   get("/") {
     forUser(app.getDeposits)
       .map(deposits => Ok(body = toJson(deposits)))
-      .getOrRecover(respond)
+      .getOrRecoverResponse(respond)
   }
   post("/") {
     forUser(app.createDeposit)
@@ -24,60 +24,60 @@ class DepositServlet(app: EasyDepositApiApp) extends ProtectedServlet(app) {
         body = uuid, // TODO UUID will become DepositInfo, which should be wrapped by toJson
         headers = Map("Location" -> s"${ request.getRequestURL }/$uuid")
       ))
-      .getOrRecover(respond)
+      .getOrRecoverResponse(respond)
   }
   get("/:uuid/metadata") {
     forDeposit(app.getDatasetMetadataForDeposit)
       .map(datasetMetadata => Ok(body = toJson(datasetMetadata)))
-      .getOrRecover(respond)
+      .getOrRecoverResponse(respond)
   }
   put("/:uuid/metadata") {
     (for {
       datasetMetadata <- getDatasetMetadata(request.body)
       _ <- forDeposit(app.writeDataMetadataToDeposit(datasetMetadata))
     } yield Ok(???))
-      .getOrRecover(respond)
+      .getOrRecoverResponse(respond)
   }
   get("/:uuid/state") {
     forDeposit(app.getDepositState)
       .map(depositState => Ok(body = toJson(depositState)))
-      .getOrRecover(respond)
+      .getOrRecoverResponse(respond)
   }
   put("/:uuid/state") {
     (for {
       stateInfo <- getStateInfo(request.body)
       _ <- forDeposit(app.setDepositState(stateInfo))
     } yield Ok(???))
-      .getOrRecover(respond)
+      .getOrRecoverResponse(respond)
   }
   delete("/:uuid") {
     forDeposit(app.deleteDeposit)
       .map(_ => Ok(???))
-      .getOrRecover(respond)
+      .getOrRecoverResponse(respond)
   }
   get("/:uuid/file/*") { //dir and file
     forPath(app.getDepositFiles)
       .map(depositFiles => Ok(body = toJson(depositFiles)))
-      .getOrRecover(respond)
+      .getOrRecoverResponse(respond)
   }
   post("/:uuid/file/*") { //dir
     (for {
       inputStream <- getInputStream
       newFileWasCreated <- forPath(app.writeDepositFile(inputStream))
     } yield Ok(???))
-      .getOrRecover(respond)
+      .getOrRecoverResponse(respond)
   }
   put("/:uuid/file/*") { //file
     (for {
       inputStream <- getInputStream
       newFileWasCreated <- forPath(app.writeDepositFile(inputStream))
     } yield Ok(???))
-      .getOrRecover(respond)
+      .getOrRecoverResponse(respond)
   }
   delete("/:uuid/file/*") { //dir and file
     forPath(app.deleteDepositFile)
       .map(_ => Ok(???))
-      .getOrRecover(respond)
+      .getOrRecoverResponse(respond)
   }
 
   private def forUser[T](callback: (String) => Try[T]

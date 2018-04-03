@@ -28,14 +28,14 @@ class UserServlet(app: EasyDepositApiApp) extends ProtectedServlet(app) {
   get("/") {
     Try(app.getUser(user.id)).flatten // no throw should slip through
       .map(map => Ok(toJson(UserInfo(map))))
-      .getOrRecover(respond)
+      .getOrRecoverResponse(respond)
   }
   put("") {
     (for {
       user <- getUser(request.body)
       _ <- Try(???).flatten
     } yield Ok(???))
-      .getOrRecover(respond)
+      .getOrRecoverResponse(respond)
   }
 
   private def respond(t: Throwable): ActionResult = t match {
