@@ -35,7 +35,7 @@ class EasyBasicAuthStrategy(protected override val app: ScalatraBase,
                         (implicit request: HttpServletRequest,
                          response: HttpServletResponse
                         ): Option[AuthUser] = {
-    authenticationProvider.getUser(userName, password)
+    authenticationProvider.authenticate(userName, password)
   }
 
   protected def getUserId(user: AuthUser)

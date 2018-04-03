@@ -27,10 +27,10 @@ class UserServlet(app: EasyDepositApiApp) extends ProtectedServlet(app) {
 
   get("/") {
     Try(app.getUser(user.id)).flatten // no throw should slip through
-      .map(map => Ok(toJson(UserInfo(map))))
+      .map(properties => Ok(toJson(UserInfo(properties))))
       .getOrRecoverResponse(respond)
   }
-  put("") {
+  put("/") {
     (for {
       user <- getUser(request.body)
       _ <- Try(???).flatten

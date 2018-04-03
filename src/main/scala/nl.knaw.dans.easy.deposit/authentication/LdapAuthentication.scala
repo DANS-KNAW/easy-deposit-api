@@ -22,7 +22,6 @@ import javax.naming.ldap.{ InitialLdapContext, LdapContext }
 import javax.naming.{ AuthenticationException, Context }
 import nl.knaw.dans.lib.error.TryExtensions
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
-import nl.knaw.dans.lib.string._
 import resource.managed
 
 import scala.collection.JavaConverters._
@@ -36,42 +35,63 @@ trait LdapAuthentication extends DebugEnhancedLogging {
     val ldapUserIdAttrName: String
     val ldapParentEntry: String
     val ldapProviderUrl: String
+    val ldapAdminPrincipal: String
+    val ldapAdminPassword: String
     val ldapUserClass = "easyUser"
 
-    def getUser(userName: String): Try[Map[String, Seq[String]]] = ???
+    /**
+     * @param userName name of the authenticated user
+     * @return
+     */
+    def getUser(userName: String): Try[Map[String, Seq[String]]] = {
+      findUser(userName, adminContextProperties) match { // TODO permanent connection?
+        case Success(Some(props)) => Success(props)
+        case Success(None) => Failure(new Exception(s"User [$userName] not found by [$ldapAdminPrincipal] (deleted after login?)"))
+        case Failure(t) => Failure(new Exception(s"Configuration error of ldap admin user: $t", t))
+      }
+    }
 
-    def getUser(userName: String, password: String): Option[AuthUser] = {
-      findUser(userName, password)
-        .doIfFailure { case t => logger.error(s"authentication of $userName failed with $t", t) }
+    def authenticate(userName: String, password: String): Option[AuthUser] = {
+      findUser(userName, userContextProperties(userName, password))
+        .doIfFailure { case t => logger.error(s"authentication of [$userName] failed with $t", t) }
+        .map(_.map(props => AuthUser(props)).find(_.isActive)) // TODO move to caller to differentiate between not authenticated/authorised (user might need to verify its email)
         .getOrElse(None)
     }
 
-    def findUser(userName: String, password: String): Try[Option[AuthUser]] = {
-      logger.info(s"looking for user [$userName]")
+    private def findUser(searchedUserName: String, contextProperties: util.Hashtable[String, String]) = {
+      logger.info(s"looking for user [$searchedUserName]")
 
-      val query = s"(&(objectClass=$ldapUserClass)($ldapUserIdAttrName=$userName))"
-      val connectionProperties = new util.Hashtable[String, String]() {
-        put(Context.PROVIDER_URL, ldapProviderUrl)
-        put(Context.SECURITY_AUTHENTICATION, "simple")
-        put(Context.SECURITY_PRINCIPAL, s"$ldapUserIdAttrName=$userName,$ldapParentEntry")
-        put(Context.SECURITY_CREDENTIALS, password)
-        put(Context.INITIAL_CONTEXT_FACTORY, "com.sun.jndi.ldap.LdapCtxFactory")
-      }
+      val query = s"(&(objectClass=$ldapUserClass)($ldapUserIdAttrName=$searchedUserName))"
       val searchControls = new SearchControls() {
         setSearchScope(SearchControls.SUBTREE_SCOPE)
       }
 
-      if (userName.isBlank || password.isBlank)
-        Failure(new IllegalArgumentException("user-name nor password should be blank"))
-      else managed(getContext(connectionProperties))
+      managed(getContext(contextProperties))
         .map(_
           .search(ldapParentEntry, query, searchControls)
           .asScala.toList.headOption
-          .map(searchResult => AuthUser(toMap(searchResult)))
-          .find(_.isActive)
+          .map(searchResult => toMap(searchResult))
         ).tried.recoverWith {
         case _: AuthenticationException => Success(None)
         case t => Failure(t)
+      }
+    }
+
+    private def adminContextProperties = {
+      createContextProperties(ldapAdminPrincipal, ldapAdminPassword)
+    }
+
+    private def userContextProperties(userName: String, password: String) = {
+      createContextProperties(s"$ldapUserIdAttrName=$userName,$ldapParentEntry", password)
+    }
+
+    private def createContextProperties(principal: String, password: String) = {
+      new util.Hashtable[String, String]() {
+        put(Context.PROVIDER_URL, ldapProviderUrl)
+        put(Context.SECURITY_AUTHENTICATION, "simple")
+        put(Context.SECURITY_PRINCIPAL, principal)
+        put(Context.SECURITY_CREDENTIALS, password)
+        put(Context.INITIAL_CONTEXT_FACTORY, "com.sun.jndi.ldap.LdapCtxFactory")
       }
     }
 
@@ -83,8 +103,8 @@ trait LdapAuthentication extends DebugEnhancedLogging {
       (attribute.getID, attribute.getAll.asScala.map(_.toString).toSeq)
     }
 
-    protected def getContext(connectionProperties: util.Hashtable[String, String]): LdapContext = {
-      new InitialLdapContext(connectionProperties, null)
+    protected def getContext(contextProperties: util.Hashtable[String, String]): LdapContext = {
+      new InitialLdapContext(contextProperties, null)
     }
   }
 }

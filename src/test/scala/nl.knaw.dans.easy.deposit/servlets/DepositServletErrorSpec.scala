@@ -13,11 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package nl.knaw.dans.easy.deposit
+package nl.knaw.dans.easy.deposit.servlets
 
 import nl.knaw.dans.easy.deposit.authentication.AuthenticationMocker._
 import nl.knaw.dans.easy.deposit.authentication.{ AuthUser, AuthenticationProvider }
-import nl.knaw.dans.easy.deposit.servlets.DepositServlet
+import nl.knaw.dans.easy.deposit.{ EasyDepositApiApp, TestSupportFixture }
 import org.eclipse.jetty.http.HttpStatus._
 import org.scalamock.scalatest.MockFactory
 import org.scalatra.auth.Scentry

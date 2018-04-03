@@ -44,7 +44,7 @@ class UserPasswordStrategy(protected override val app: ScalatraBase,
                            (implicit request: HttpServletRequest,
                             response: HttpServletResponse
                            ): Option[AuthUser] = {
-    authenticationProvider.getUser(formFieldLogin, formFieldPassword)
+    authenticationProvider.authenticate(formFieldLogin, formFieldPassword)
   }
 }
 

@@ -21,7 +21,7 @@ import javax.naming.ldap.LdapContext
 import org.scalamock.handlers.CallHandler3
 import org.scalamock.scalatest.MockFactory
 
-object LdapMocker extends MockFactory {
+case class LdapMocker() extends MockFactory {
 
   // TODO why not needed in easy-dowload?
   class MockedSearchResult extends SearchResult("", "", new BasicAttributes())
