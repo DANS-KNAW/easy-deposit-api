@@ -127,35 +127,7 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/DepositInfo"
-                example:
-                # Unfortunately, the example value also gets displayed in the
-                # model in Swagger Editor. It is grayed-out, so I guess we can
-                # live with that.
-                - id: "93674123-1699-49c5-af91-ed31db19adc9"
-                  title: My draft deposit
-                  state: DRAFT
-                  state_description: Deposit is open for modification.
-                  date: "2018-01-20T10:40:52Z"
-                - id: "a145a1be-5463-4b10-a621-a9e511ff7f20"
-                  title: "My submitted deposit 1"
-                  state: IN_PROGRESS
-                  state_description: Deposit is being processed.
-                  date: "2017-12-01T11:10:22Z"
-                - id: "1d946f5b-e53b-4f71-b1f3-7481475d07db"
-                  title: "My submitted deposit 2"
-                  state: REJECTED
-                  state_description: Some files are missing
-                  date: "2018-01-12T10:40:52Z"
-                - id: "5befec97-1e57-4210-b7b6-57a604aaef47"
-                  title: "My submitted deposit 2"
-                  state: ARCHIVED
-                  state_description: |
-                    Deposit was successfully archived at
-                    https://easy.dans.knaw.nl/datasets/id/easy-dataset:12345
-                  date: "2017-08-09T10:10:22Z"
+                $ref: "#/components/schemas/DepositInfo"
         401:
           $ref: "#/components/responses/Unauthorized"
         403:
@@ -449,7 +421,6 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/FileInfo"
-
         401:
           $ref: "#/components/responses/Unauthorized"
         403:
@@ -668,11 +639,28 @@ components:
           format: "date-time"
           description: "Deposit date"
       example:
-          id: "1d946f5b-e53b-4f71-b1f3-7481475d07db"
-          title: My draft deposit
-          state: DRAFT
-          state_description: Deposit is open for modification.
-          date: "2018-01-12T10:40:52Z"
+          - id: "93674123-1699-49c5-af91-ed31db19adc9"
+            title: My draft deposit
+            state: DRAFT
+            state_description: Deposit is open for modification.
+            date: "2018-01-20T10:40:52Z"
+          - id: "a145a1be-5463-4b10-a621-a9e511ff7f20"
+            title: "My submitted deposit 1"
+            state: IN_PROGRESS
+            state_description: Deposit is being processed.
+            date: "2017-12-01T11:10:22Z"
+          - id: "1d946f5b-e53b-4f71-b1f3-7481475d07db"
+            title: "My submitted deposit 2"
+            state: REJECTED
+            state_description: Some files are missing
+            date: "2018-01-12T10:40:52Z"
+          - id: "5befec97-1e57-4210-b7b6-57a604aaef47"
+            title: "My submitted deposit 2"
+            state: ARCHIVED
+            state_description: |
+              Deposit was successfully archived at
+              https://easy.dans.knaw.nl/datasets/id/easy-dataset:12345
+            date: "2017-08-09T10:10:22Z"
 
     State:
       type: object
