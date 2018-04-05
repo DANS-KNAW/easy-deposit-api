@@ -15,20 +15,19 @@
  */
 package nl.knaw.dans.easy.deposit
 
-import java.util.UUID
+import java.util.{ UUID, Arrays => JArrays }
 
 import better.files._
+import gov.loc.repository.bagit.creator.BagCreator
+import gov.loc.repository.bagit.domain.{ Metadata => BagitMetadata }
+import gov.loc.repository.bagit.hash.StandardSupportedAlgorithms
+import nl.knaw.dans.lib.error._
 import org.apache.commons.configuration.PropertiesConfiguration
 import org.joda.time.format.{ DateTimeFormatter, ISODateTimeFormat }
 import org.joda.time.{ DateTime, DateTimeZone }
 
-import scala.util.Try
-import gov.loc.repository.bagit.creator.BagCreator
-import gov.loc.repository.bagit.domain.{ Metadata => BagitMetadata }
-import gov.loc.repository.bagit.hash.StandardSupportedAlgorithms
-import org.joda.time.format.ISODateTimeFormat
-import java.util.{ Arrays => JArrays }
 import scala.collection.Seq
+import scala.util.{ Failure, Try }
 
 /**
  * Represents an existing deposit directory.
@@ -93,16 +92,18 @@ object DepositDir {
    * @param user    the user name
    * @return a list of [[DepositDir]] objects
    */
-  def list(baseDir: File, user: String): Try[Seq[DepositDir]] = Try {
-
-    val file = baseDir / user
-    if (file.exists)
-      file
+  def list(baseDir: File, user: String): Try[Seq[DepositDir]] = {
+    val userDir = baseDir / user
+    if (userDir.exists)
+      userDir
         .list
         .filter(_.isDirectory)
-        .map(x => new DepositDir(baseDir, user, UUID.fromString(x.name)))
+        .map(deposit => Try {
+          new DepositDir(baseDir, user, UUID.fromString(deposit.name))
+        }.recoverWith { case t: Throwable => Failure(CorruptDepositException(user, deposit.name)) })
         .toSeq
-    else Seq.empty
+        .collectResults
+    else Try { Seq.empty }
   }
 
   /**

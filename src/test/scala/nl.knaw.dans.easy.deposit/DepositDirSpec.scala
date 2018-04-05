@@ -33,7 +33,7 @@ class DepositDirSpec extends TestSupportFixture {
     }
   }
 
-  def createAndCheckDeposit(): Unit = {
+  "it" should "create a new directory with deposit.properties" in {
     val dd = DepositDir.create(draftsDir, "user001")
     inside(dd) {
       case Success(d) =>
@@ -48,10 +48,6 @@ class DepositDirSpec extends TestSupportFixture {
         (dir / "bag/data").toJava should exist
         (dir / "bag/metadata").toJava should exist
     }
-  }
-
-  "it" should "create a new directory with deposit.properties" in {
-    createAndCheckDeposit()
   }
 
   "list" should """show no deposits of "user001" user""" in {

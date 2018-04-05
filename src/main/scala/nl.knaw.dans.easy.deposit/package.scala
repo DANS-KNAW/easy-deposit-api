@@ -23,10 +23,13 @@ import org.joda.time.DateTime
 
 package object deposit {
 
-  sealed abstract class DepositException(msg: String, cause: Throwable) extends Exception(msg, cause)
+  sealed abstract class DepositException(msg: String, cause: Throwable = null) extends Exception(msg, cause)
 
   case class NoSuchDepositException(user: String, id: UUID, cause: Throwable = null)
     extends DepositException(s"Deposit with id $id not found for user $user", cause)
+
+  case class CorruptDepositException(user: String, id: String)
+    extends DepositException(s"Invalid deposit uuid $id for user $user")
 
   case class IllegalStateTransitionException(user: String, id: UUID, oldState: State, newState: State)
     extends DepositException(s"Cannot transition from $oldState to $newState (deposit id: $id, user: $user)", null)
