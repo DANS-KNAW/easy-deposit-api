@@ -105,15 +105,7 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                items:
-                  $ref: "#/components/schemas/UserInfo"
-                example:
-                - username: "user001"
-                  firstName: "First"
-                  prefix: "van"
-                  lastName: "Namen"
-                  groups: [ "group001", "group002"]
+                $ref: "#/components/schemas/UserInfo"
         401:
           $ref: "#/components/responses/Unauthorized"
         403:
@@ -637,6 +629,12 @@ components:
       required:
         - username
         - lastName
+      example:
+      - username: "user001"
+        firstName: "First"
+        prefix: "van"
+        lastName: "Namen"
+        groups: [ "group001", "group002"]
       properties:
         username:
           type: "string"
