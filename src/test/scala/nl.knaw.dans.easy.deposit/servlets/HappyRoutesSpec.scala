@@ -103,10 +103,11 @@ class HappyRoutesSpec extends TestSupportFixture with ServletFixture with Scalat
     }
   }
 
-  "get /user" should "return a user with something for all attributes" ignore {
+  "get /user" should "return a user with something for all attributes" in {
     expectsUserFooBar
-    (mockedAuthenticationProvider.getUser(_: String)) expects "foo" returning Success(Map(
+    (mockedApp.getUser(_: String)) expects "foo" returning Success(Map(
       "uid" -> Seq("foo"),
+      "cn" -> Seq("Jan"),
       "dansPrefixes" -> Seq("van", "den"),
       "sn" -> Seq("Berg"),
       "easyGroups" -> Seq("Archeology", "History")
@@ -115,14 +116,14 @@ class HappyRoutesSpec extends TestSupportFixture with ServletFixture with Scalat
       uri = "/user",
       headers = Seq(("Authorization", fooBarBasicAuthHeader))
     ) {
-      body shouldBe """{"userName":"foo","firstName":"Jan","prefix":"van de","lastName":"Berg","groups":["Archeology","History"]}"""
+      body shouldBe """{"userName":"foo","firstName":"Jan","prefix":"van den","lastName":"Berg","groups":["Archeology","History"]}"""
       status shouldBe OK_200
     }
   }
 
-  it should "return a user with minimal attributes" ignore {
+  it should "return a user with minimal attributes" in {
     expectsUserFooBar
-    (mockedAuthenticationProvider.getUser(_: String)) expects "foo" returning Success(Map(
+    (mockedApp.getUser(_: String)) expects "foo" returning Success(Map(
       "uid" -> Seq("foo"),
       "sn" -> Seq("Berg")
     ))
