@@ -31,7 +31,7 @@ class DebugConfigSpec extends FlatSpec with Matchers {
   }
 
   it should "contain an application.properties with the same keys as the one in src/main/assembly/dist/cfg" in {
-    val propsInDebugConfig = new PropertiesConfiguration((currentWorkingDirectory / "src" / "test" / "resources" / "debug-config"/ "application.properties").toJava)
+    val propsInDebugConfig = new PropertiesConfiguration((currentWorkingDirectory / "src" / "test" / "resources" / "debug-config" / "application.properties").toJava)
     val propsInDistCfg = new PropertiesConfiguration((currentWorkingDirectory / "src" / "main" / "assembly" / "dist" / "cfg" / "application.properties").toJava)
 
     propsInDebugConfig.getKeys.asScala.toSet shouldBe propsInDistCfg.getKeys.asScala.toSet

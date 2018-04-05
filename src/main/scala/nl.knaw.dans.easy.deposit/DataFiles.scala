@@ -30,7 +30,7 @@ import scala.util.Try
  * @param dataFilesBase the base directory of the data files
  * @param filesMetaData the file containing the file metadata
  */
-class DataFiles (dataFilesBase: File, filesMetaData: File) {
+class DataFiles(dataFilesBase: File, filesMetaData: File) {
 
   /**
    * Lists information about the files the directory `path` and its subdirectories.
@@ -43,7 +43,7 @@ class DataFiles (dataFilesBase: File, filesMetaData: File) {
   /**
    * Write the inputstream `is` to the relative path into the data files directory.
    *
-   * @param is the input stream
+   * @param is   the input stream
    * @param path the relative path to the file to write
    * @return `true` if a new file was created, `false` if an existing file was overwritten
    */

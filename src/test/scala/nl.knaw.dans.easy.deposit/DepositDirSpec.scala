@@ -19,12 +19,10 @@ import java.nio.file.attribute.PosixFilePermission
 import scala.util.{ Failure, Success}
 
 class DepositDirSpec extends TestSupportFixture {
+  before { clearTestDir() }
   private val draftsDir = testDir / "drafts"
 
-  before {
-    if(testDir.exists)testDir.delete(false)
-  }
-  "Create deposit" should "fail if the dir 'draft' is read only" in {
+  "DepositDir.create" should "fail if the dir 'draft' is read only" in {
 
     draftsDir.createDirectories()
       .removePermission(PosixFilePermission.OWNER_WRITE)
@@ -33,8 +31,9 @@ class DepositDirSpec extends TestSupportFixture {
     }
   }
 
-  "it" should "create a new directory with deposit.properties" in {
+  it should "create a new directory with deposit.properties" in {
     val dd = DepositDir.create(draftsDir, "user001")
+    dd shouldBe a[Success[_]]
     inside(dd) {
       case Success(d) =>
         val dir = draftsDir / "user001" / d.id.toString

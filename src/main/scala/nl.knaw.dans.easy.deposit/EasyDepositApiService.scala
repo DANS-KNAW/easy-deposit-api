@@ -16,7 +16,7 @@
 package nl.knaw.dans.easy.deposit
 
 import javax.servlet.ServletContext
-
+import nl.knaw.dans.easy.deposit.servlets._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.eclipse.jetty.server.Server
 import org.eclipse.jetty.servlet.ServletContextHandler
@@ -30,13 +30,15 @@ class EasyDepositApiService(serverPort: Int, app: EasyDepositApiApp) extends Deb
   import logger._
 
   private val server = new Server(serverPort)
-  private val context = new ServletContextHandler(ServletContextHandler.NO_SESSIONS)
+  private val context = new ServletContextHandler(ServletContextHandler.NO_SESSIONS & ServletContextHandler.SECURITY)
   context.addEventListener(new ScalatraListener() {
     override def probeForCycleClass(classLoader: ClassLoader): (String, LifeCycle) = {
       ("anonymous", new LifeCycle {
         override def init(context: ServletContext): Unit = {
-          context.mount(new EasyDepositApiServlet(app), "/")
-          context.mount(new DepositServlet(app), "/deposit")
+          context.mount(new EasyDepositApiServlet(app), "/*")
+          context.mount(new DepositServlet(app), "/deposit/*")
+          context.mount(new UserServlet(app), "/user/*")
+          context.mount(new AuthServlet(app), "/auth/*") // TODO update swagger: /logXXX -> /auth/logXXX
         }
       })
     }

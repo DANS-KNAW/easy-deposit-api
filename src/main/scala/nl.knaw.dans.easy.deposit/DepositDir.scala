@@ -124,9 +124,8 @@ object DepositDir {
    * @return the newly created [[DepositDir]]
    */
   def create(baseDir: File, user: String): Try[DepositDir] = Try {
-
     val uuid = UUID.randomUUID()
-    val dir: File = (baseDir / user / uuid.toString)
+    val depositDir: File = (baseDir / user / uuid.toString)
       .createIfNotExists(asDirectory = true, createParents = true)
 
     val dateTimeFormatter: DateTimeFormatter = ISODateTimeFormat.dateTime()
@@ -135,7 +134,8 @@ object DepositDir {
       add("Created", timeNow)
       add("Bag-Size", "0 KB")
     }
-    val bagDir: File = dir / "bag"
+    val bagDir: File = depositDir / "bag"
+    bagDir.createDirectory()
     BagCreator.bagInPlace(bagDir.path, JArrays.asList(StandardSupportedAlgorithms.SHA1), true, metadata)
     (bagDir / "metadata").createIfNotExists(asDirectory = true)
 
@@ -144,7 +144,7 @@ object DepositDir {
       addProperty("state.label", "DRAFT")
       addProperty("state.description", "Deposit is open for changes.")
       addProperty("depositor.userId", user)
-    }.save((dir / "deposit.properties").toJava)
+    }.save((depositDir / "deposit.properties").toJava)
 
     DepositDir(baseDir, user, uuid)
   }

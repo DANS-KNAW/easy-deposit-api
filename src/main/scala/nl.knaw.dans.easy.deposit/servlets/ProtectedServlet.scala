@@ -13,17 +13,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package nl.knaw.dans.easy.deposit
+package nl.knaw.dans.easy.deposit.servlets
 
-import nl.knaw.dans.lib.logging.DebugEnhancedLogging
-import org.scalatra._
+import nl.knaw.dans.easy.deposit.EasyDepositApiApp
+import nl.knaw.dans.easy.deposit.authentication.ServletEnhancedLogging
+import nl.knaw.dans.easy.deposit.authentication.ServletEnhancedLogging._
+import org.scalatra.Forbidden
 
-class EasyDepositApiServlet(app: EasyDepositApiApp) extends ScalatraServlet with DebugEnhancedLogging {
-  import app._
-  import logger._
+class ProtectedServlet(app: EasyDepositApiApp) extends AbstractAuthServlet(app) with ServletEnhancedLogging {
 
-  get("/") {
-    contentType = "text/plain"
-    Ok(s"EASY Deposit API Service running (${app.getVersion})")
+  before() {
+    if (!isAuthenticated) {
+      halt(Forbidden("missing, invalid or expired credentials").logResponse)
+    }
   }
 }

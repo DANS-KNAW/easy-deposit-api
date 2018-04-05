@@ -778,7 +778,12 @@ components:
         messageForDataManager:
           type: string
         privacySensitiveDataPresent:
-          type: boolean
+          type: string
+          enum:
+          - yes
+          - no
+          - unspecified
+
         acceptLicenseAgreement:
           type: boolean
 
@@ -791,6 +796,12 @@ components:
       properties:
         category:
           type: string
+          enum:
+          - open
+          - open_for_registered_users
+          - restricted_group
+          - restricted_request
+          - other_access
         group:
           type: string
 

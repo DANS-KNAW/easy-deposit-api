@@ -15,7 +15,7 @@
  */
 package nl.knaw.dans.easy.deposit
 
-import org.rogach.scallop.{ScallopConf, ScallopOption, Subcommand, singleArgConverter}
+import org.rogach.scallop.{ ScallopConf, Subcommand }
 
 class CommandLineOptions(args: Array[String], configuration: Configuration) extends ScallopConf(args) {
   appendDefaultToDescription = true
