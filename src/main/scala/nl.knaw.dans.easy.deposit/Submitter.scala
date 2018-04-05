@@ -22,7 +22,7 @@ import scala.util.Try
 /**
  * Object that contains the logic for submitting a deposit.
  *
- * @param stagingBaseDir the base directory for staged copies
+ * @param stagingBaseDir  the base directory for staged copies
  * @param submitToBaseDir the directory to which the staged copy must be moved.
  */
 class Submitter(stagingBaseDir: File, submitToBaseDir: File) {

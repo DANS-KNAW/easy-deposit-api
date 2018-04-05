@@ -17,6 +17,7 @@ package nl.knaw.dans.easy.deposit.authentication
 
 import nl.knaw.dans.easy.deposit._
 import nl.knaw.dans.easy.deposit.authentication.AuthenticationMocker._
+import nl.knaw.dans.easy.deposit.servlets.ServletFixture
 import org.eclipse.jetty.http.HttpStatus._
 import org.scalamock.scalatest.MockFactory
 import org.scalatra.test.scalatest.ScalatraSuite

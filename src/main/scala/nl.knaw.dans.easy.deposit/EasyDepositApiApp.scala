@@ -35,9 +35,13 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
     override val ldapUserIdAttrName: String = properties.getString("users.ldap-user-id-attr-name")
     override val ldapParentEntry: String = properties.getString("users.ldap-parent-entry")
     override val ldapProviderUrl: String = properties.getString("users.ldap-url")
-    logger.info(s"Authentication: ldapProviderUrl = $ldapProviderUrl")
-    logger.info(s"Authentication: ldapParentEntry = $ldapParentEntry")
-    logger.info(s"Authentication: ldapUserIdAttrName = $ldapUserIdAttrName")
+    override val ldapAdminPrincipal: String = properties.getString("users.ldap-admin-principal")
+    override val ldapAdminPassword: String = properties.getString("users.ldap-admin-password")
+    logger.info(s"users.ldap-url = $ldapProviderUrl")
+    logger.info(s"users.ldap-parent-entry = $ldapParentEntry")
+    logger.info(s"users.ldap-user-id-attr-name = $ldapUserIdAttrName")
+    logger.info(s"users.ldap-admin-principal = $ldapAdminPrincipal")
+    logger.info(s"users.ldap-admin-password = $ldapAdminPassword")// TODO configured in same security context as logged?
   }
 
   def getVersion: String = {
@@ -58,6 +62,8 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
 
     dir
   }
+
+  def getUser(user: String): Try[Map[String, Seq[String]]] = authentication.getUser(user)
 
   /**
    * Creates a new, empty deposit, containing an empty bag in the user's draft area. If the user

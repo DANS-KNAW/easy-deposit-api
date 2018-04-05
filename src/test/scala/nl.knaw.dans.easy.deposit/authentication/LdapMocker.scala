@@ -18,11 +18,10 @@ package nl.knaw.dans.easy.deposit.authentication
 import javax.naming.NamingEnumeration
 import javax.naming.directory.{ BasicAttributes, SearchControls, SearchResult }
 import javax.naming.ldap.LdapContext
-
 import org.scalamock.handlers.CallHandler3
 import org.scalamock.scalatest.MockFactory
 
-object LdapMocker extends MockFactory {
+case class LdapMocker() extends MockFactory {
 
   // TODO why not needed in easy-dowload?
   class MockedSearchResult extends SearchResult("", "", new BasicAttributes())

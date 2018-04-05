@@ -35,6 +35,14 @@
         name: dans.knaw.nl-easy-deposit-api
         state: latest
 
+    - name: Configure application (application.properties)
+      replace:
+        dest: "{{ dans_config_base }}/easy-deposit-api/application.properties"
+        regexp: '^{{ item.key }}=.*$'
+        replace: '{{ item.key }}={{ item.value }}'
+      with_items:
+        - { key: "users.ldap-admin-password", value: "{{ easy_test_users_ldapadmin_password }}" }
+
     - name: deposit/ingest directories
       file:
         path: "{{ item }}"

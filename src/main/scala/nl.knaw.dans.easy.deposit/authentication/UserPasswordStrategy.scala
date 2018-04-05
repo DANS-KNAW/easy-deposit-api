@@ -16,7 +16,6 @@
 package nl.knaw.dans.easy.deposit.authentication
 
 import javax.servlet.http.{ HttpServletRequest, HttpServletResponse }
-
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.scalatra.ScalatraBase
 import org.scalatra.auth.ScentryStrategy
@@ -45,7 +44,7 @@ class UserPasswordStrategy(protected override val app: ScalatraBase,
                            (implicit request: HttpServletRequest,
                             response: HttpServletResponse
                            ): Option[AuthUser] = {
-    authenticationProvider.getUser(formFieldLogin, formFieldPassword)
+    authenticationProvider.authenticate(formFieldLogin, formFieldPassword)
   }
 }
 

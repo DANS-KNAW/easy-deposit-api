@@ -16,39 +16,42 @@
 package nl.knaw.dans.easy.deposit.authentication
 
 import java.util
+
 import javax.naming.AuthenticationException
 import javax.naming.directory.BasicAttributes
 import javax.naming.ldap.LdapContext
-
 import nl.knaw.dans.easy.deposit.TestSupportFixture
 import nl.knaw.dans.easy.deposit.authentication.LdapMocker._
 import org.scalamock.scalatest.MockFactory
 
-import scala.util.{ Failure, Success }
+import scala.util.Success
 
 class LdapAuthenticationSpec extends TestSupportFixture with MockFactory {
 
-  private val wiring = new LdapAuthentication {
+  val ldapMocker = LdapMocker()
+  private def wiring = new LdapAuthentication {
     override val authentication: Authentication = new Authentication {
       override val ldapUserIdAttrName: String = ""
       override val ldapParentEntry: String = ""
       override val ldapProviderUrl: String = "http://"
+      override val ldapAdminPrincipal: String = "x"
+      override val ldapAdminPassword: String = "y"
 
       override def getContext(connectionProperties: util.Hashtable[String, String]): LdapContext = {
-        mockedLdpContext
+        ldapMocker.mockedLdpContext
       }
     }
   }
 
-  "getUser" should "return an active user" in {
-    expectLdapAttributes(new BasicAttributes() {
+  "getUser(user,password)" should "return an active user" in {
+    ldapMocker.expectLdapAttributes(new BasicAttributes() {
       put("dansState", "ACTIVE")
       put("uid", "someone")
       put("easyGroups", "abc")
     })
 
-    inside(wiring.authentication.findUser("someone", "somepassword")) {
-      case Success(Some(user)) =>
+    inside(wiring.authentication.authenticate("someone", "somepassword")) {
+      case Some(user) =>
         user.id shouldBe "someone"
         user.groups shouldBe Stream("abc")
         user.roles shouldBe empty
@@ -58,38 +61,55 @@ class LdapAuthenticationSpec extends TestSupportFixture with MockFactory {
   }
 
   it should "return none for a blocked user" in {
-    expectLdapAttributes(new BasicAttributes() {
+    ldapMocker.expectLdapAttributes(new BasicAttributes() {
       put("dansState", "BLOCKED")
     })
 
-    wiring.authentication.findUser("someone", "somepassword") shouldBe Success(None)
+    wiring.authentication.authenticate("someone", "somepassword") shouldBe None
+  }
+
+  it should "fail on other ldap problems" in {
+    ldapMocker.expectLdapSearch throwing new Exception("whoops")
+
+    wiring.authentication.authenticate("someone", "somepassword") should matchPattern {
+      case None => // different logging than with AuthenticationException
+    }
   }
 
   it should "return none for an invalid username or password" in {
-    expectLdapSearch throwing new AuthenticationException()
+    ldapMocker.expectLdapSearch throwing new AuthenticationException()
 
-    wiring.authentication.findUser("someone", "somepassword") shouldBe Success(None)
+    wiring.authentication.authenticate("someone", "somepassword") shouldBe None
   }
 
   it should "not access ldap with a blank user" in {
 
-    wiring.authentication.findUser(" ", "somepassword") should matchPattern {
-      case Failure(e: IllegalArgumentException) =>
+    wiring.authentication.authenticate(" ", "somepassword") should matchPattern {
+      case None =>
     }
   }
 
   it should "not access ldap with a blank password" in {
 
-    wiring.authentication.findUser("someone", " ") should matchPattern {
-      case Failure(e: IllegalArgumentException) =>
+    wiring.authentication.authenticate("someone", " ") should matchPattern {
+      case None =>
     }
   }
 
-  it should "fail on other ldap problems" in {
-    expectLdapSearch throwing new Exception("whoops")
+  "getUser(user)" should "return user properties" in {
+    ldapMocker.expectLdapAttributes(new BasicAttributes() {
+      put("uid", "foo")
+      put("dansPrefixes", "van")
+      get("dansPrefixes").add("den")
+      put("sn", "Berg")
+      put("easyGroups", "Archeology")
+      get("easyGroups").add("History")
+    })
 
-    wiring.authentication.findUser("someone", "somepassword") should matchPattern {
-      case Failure(t) if t.getMessage == "whoops" =>
+    inside(wiring.authentication.getUser("someone")) {
+      case Success(user) => // just sampling the result
+        user("dansPrefixes").toArray shouldBe Array("van", "den")
+        user("easyGroups").toArray shouldBe Array("Archeology", "History")
     }
   }
 }

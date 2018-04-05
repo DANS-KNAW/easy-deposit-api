@@ -13,15 +13,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package nl.knaw.dans.easy.deposit
+package nl.knaw.dans.easy.deposit.servlets
 
-import nl.knaw.dans.lib.logging.DebugEnhancedLogging
-import org.scalatra._
+import nl.knaw.dans.easy.deposit.EasyDepositApiApp
+import nl.knaw.dans.easy.deposit.authentication.ServletEnhancedLogging._
+import org.scalatra.Ok
 
-class EasyDepositApiServlet(app: EasyDepositApiApp) extends ScalatraServlet with DebugEnhancedLogging {
+class AuthServlet(app: EasyDepositApiApp) extends AbstractAuthServlet(app) {
 
-  get("/") {
-    contentType = "text/plain"
-    Ok(s"EASY Deposit API Service running (${ app.getVersion })")
+  post("/login") {
+    login()
+    Ok(s"signed in") // TODO return user info?
+      .logResponse
+  }
+
+  put("/logout") {
+    logOut() // destroys the scentry cookie
+    Ok("you are signed out")
+      .logResponse
   }
 }

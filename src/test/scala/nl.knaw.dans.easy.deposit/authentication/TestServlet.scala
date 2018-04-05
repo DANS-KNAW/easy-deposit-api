@@ -15,20 +15,21 @@
  */
 package nl.knaw.dans.easy.deposit.authentication
 
-import org.eclipse.jetty.http.HttpStatus
+import nl.knaw.dans.easy.deposit.authentication.ServletEnhancedLogging._
 import org.joda.time.DateTime
-import org.scalatra.Ok
+import org.scalatra.{ Forbidden, Ok }
 
 class TestServlet(authProvider: AuthenticationProvider) extends AbstractTestServlet(authProvider) {
 
   before() {
     if (!isAuthenticated) {
-      halt(HttpStatus.FORBIDDEN_403, "missing, invalid or expired credentials")
+      halt(Forbidden("missing, invalid or expired credentials").logResponse)
     }
   }
 
   get("/") {
     contentType = "text/plain"
     Ok(s"$user ${ new DateTime() }: EASY Deposit API Service running")
+      .logResponse
   }
 }

@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package nl.knaw.dans.easy.deposit
+package nl.knaw.dans.easy.deposit.servlets
 
 import org.eclipse.jetty.server.nio.SelectChannelConnector
 import org.scalatra.test.EmbeddedJettyContainer

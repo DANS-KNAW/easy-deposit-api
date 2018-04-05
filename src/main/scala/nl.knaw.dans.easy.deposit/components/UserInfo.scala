@@ -1,0 +1,42 @@
+/**
+ * Copyright (C) 2018 DANS - Data Archiving and Networked Services (info@dans.knaw.nl)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package nl.knaw.dans.easy.deposit.components
+
+case class UserInfo(userName: String,
+                    firstName: Option[String] = None,
+                    prefix: Option[String] = None,
+                    lastName: String,
+                    groups: Option[Seq[String]] = None
+                   )
+object UserInfo {
+  def apply(attributes: Map[String, Seq[String]]): UserInfo = {
+    // For possible attribute keys see: https://github.com/DANS-KNAW/dans.easy-test-users/blob/master/templates
+    new UserInfo(
+
+      // mandatory: https://github.com/DANS-KNAW/dans.easy-ldap-dir/blob/f17c391/files/easy-schema.ldif#L83-L84
+      userName = attributes.getOrElse("uid", Seq.empty).headOption.getOrElse(""),
+
+      firstName = attributes.getOrElse("cn", Seq.empty).headOption,
+
+      // https://github.com/DANS-KNAW/easy-app/blob/b41e9e93e35f97af00c48d0515b09cc57bc5ba6c/lib-deprecated/dans-ldap/src/main/java/nl/knaw/dans/common/ldap/management/DANSSchema.java#L33-L34
+      prefix = attributes.get("dansPrefixes").map(s => s.mkString(" ")),
+
+      lastName = attributes.getOrElse("sn", Seq.empty).headOption.getOrElse(""),
+
+      groups = attributes.get("easyGroups")
+    )
+  }
+}

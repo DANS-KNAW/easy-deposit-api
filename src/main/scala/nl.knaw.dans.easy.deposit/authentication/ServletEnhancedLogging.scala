@@ -15,18 +15,45 @@
  */
 package nl.knaw.dans.easy.deposit.authentication
 
+import javax.servlet.http.HttpServletRequest
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
-import org.scalatra.ScalatraBase
+import org.scalatra.{ ActionResult, ScalatraBase }
 
+import scala.util.{ Failure, Success, Try }
+
+// TODO candidate for dans-scala-lib (another package than authentication?)
 trait ServletEnhancedLogging extends DebugEnhancedLogging {
-
-  // TODO candidate for dans-scala-lib
   this: ScalatraBase =>
 
   before() {
     logger.info(s"${ request.getMethod } ${ request.getRequestURL } remote=${ request.getRemoteAddr } params=$params headers=${ request.headers } body=${ request.body }")
   }
   after() {
-    logger.info(s"response.status=${ response.getStatus } headers=${ response.headers }")
+    //logger.info(s"response.status=${ response.getStatus } headers=${ response.headers }")
+  }
+}
+object ServletEnhancedLogging extends DebugEnhancedLogging {
+
+  implicit class RichActionResult(actionResult: ActionResult)(implicit request: HttpServletRequest) extends Object {
+    def logResponse: ActionResult = logResult(actionResult)
+  }
+
+  implicit class RichTriedActionResult(tried: Try[ActionResult])(implicit request: HttpServletRequest) extends Object {
+    // TODO to preserve actionResult into and beyond after filters, copy it into "implicit response: HttpServletResponse"
+    // See the last extensive readme version (documentation moved into an incomplete book and guides)
+    // https://github.com/scalatra/scalatra/blob/6a614d17c38d19826467adcabf1dc746e3192dfc/README.markdown
+    // sections #filters #action
+    def getOrRecoverResponse(recover: Throwable => ActionResult): ActionResult = {
+      // the signature is more specific than in nl.knaw.dans.lib.error and comes with the trait, not with just an import
+      logResult(tried match {
+        case Success(actionResult) => actionResult
+        case Failure(throwable) => recover(throwable)
+      })
+    }
+  }
+
+  private def logResult(actionResult: ActionResult)(implicit request: HttpServletRequest) = {
+    logger.info(s"${ request.getMethod } returned status=${ actionResult.status } headers=${ actionResult.headers }")
+    actionResult
   }
 }

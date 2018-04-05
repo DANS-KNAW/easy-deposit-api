@@ -17,15 +17,20 @@ package nl.knaw.dans.easy.deposit
 
 import better.files.File
 import better.files.File._
+import nl.knaw.dans.easy.deposit.authentication.AuthenticationMocker.mockedAuthenticationProvider
+import nl.knaw.dans.easy.deposit.authentication.TokenSupport.TokenConfig
+import nl.knaw.dans.easy.deposit.authentication.{ AuthConfig, AuthUser, AuthenticationProvider, TokenSupport }
+import org.apache.commons.configuration.PropertiesConfiguration
 import org.joda.time.{ DateTime, DateTimeUtils }
-import org.scalatest.{ FlatSpec, Inside, Matchers }
+import org.scalatest.{ BeforeAndAfter, FlatSpec, Inside, Matchers }
 
-trait TestSupportFixture extends FlatSpec with Matchers with Inside {
+trait TestSupportFixture extends FlatSpec with Matchers with Inside with BeforeAndAfter {
 
-  lazy val testDir: File = {
-    (currentWorkingDirectory / "target" / "test" / getClass.getSimpleName)
-      .delete(true)
-      .createDirectories()
+  lazy val testDir: File = currentWorkingDirectory / "target" / "test" / getClass.getSimpleName
+
+  def clearTestDir(): Unit = {
+    if (testDir.exists)
+      testDir.delete().createDirectories()
   }
 
   /** Causes DateTime.now() to return a predefined value. */
@@ -35,4 +40,29 @@ trait TestSupportFixture extends FlatSpec with Matchers with Inside {
 
   /** Base64 encoded foo:bar */
   val fooBarBasicAuthHeader = "Basic Zm9vOmJhcg=="
+
+  def minimalAppConfig: Configuration = {
+    new Configuration("", new PropertiesConfiguration() {
+      addProperty("deposits.drafts", (testDir / "drafts")
+        .delete(true)
+        .createIfNotExists(asDirectory = true, createParents = true)
+        .toString()
+      )
+    })
+  }
+
+  private class TokenSupportImpl() extends TokenSupport with AuthConfig {
+
+    // required by AuthConfig but not by TokenSupport
+    def getAuthenticationProvider: AuthenticationProvider = mockedAuthenticationProvider
+
+    def getProperties: PropertiesConfiguration = new PropertiesConfiguration()
+  }
+  private val tokenSupport = new TokenSupportImpl()
+
+  def jwtConfig: TokenConfig = tokenSupport.tokenConfig
+
+  def createJWT(user: AuthUser): String = {
+    tokenSupport.encodeJWT(user)
+  }
 }

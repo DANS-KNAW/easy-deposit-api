@@ -16,7 +16,6 @@
 package nl.knaw.dans.easy.deposit.authentication
 
 import javax.servlet.http.{ HttpServletRequest, HttpServletResponse }
-
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.scalatra.ScalatraBase
 import org.scalatra.auth.strategy.BasicAuthStrategy
@@ -36,7 +35,7 @@ class EasyBasicAuthStrategy(protected override val app: ScalatraBase,
                         (implicit request: HttpServletRequest,
                          response: HttpServletResponse
                         ): Option[AuthUser] = {
-    authenticationProvider.getUser(userName, password)
+    authenticationProvider.authenticate(userName, password)
   }
 
   protected def getUserId(user: AuthUser)

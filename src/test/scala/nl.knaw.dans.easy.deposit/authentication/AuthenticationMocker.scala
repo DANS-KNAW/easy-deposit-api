@@ -22,15 +22,15 @@ object AuthenticationMocker extends MockFactory {
   val mockedAuthenticationProvider: AuthenticationProvider = mock[AuthenticationProvider]
 
   def expectsInvalidUser: CallHandler2[String, String, Option[AuthUser]] = {
-    (mockedAuthenticationProvider.getUser(_: String, _: String)) expects(*, *) returning None
+    (mockedAuthenticationProvider.authenticate(_: String, _: String)) expects(*, *) returning None
   }
 
   def expectsUserFooBar: CallHandler2[String, String, Option[AuthUser]] = {
-    (mockedAuthenticationProvider.getUser(_: String, _: String)) expects("foo", "bar") returning
+    (mockedAuthenticationProvider.authenticate(_: String, _: String)) expects("foo", "bar") returning
       Some(AuthUser("foo", isActive = true))
   }
 
   def expectsNoUser: CallHandler2[String, String, Option[AuthUser]] = {
-    (mockedAuthenticationProvider.getUser(_: String, _: String)) expects(*, *) never()
+    (mockedAuthenticationProvider.authenticate(_: String, _: String)) expects(*, *) never()
   }
 }
