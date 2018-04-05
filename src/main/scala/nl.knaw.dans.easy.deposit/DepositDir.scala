@@ -15,14 +15,19 @@
  */
 package nl.knaw.dans.easy.deposit
 
-import java.util.UUID
+import java.util.{ UUID, Arrays => JArrays }
 
 import better.files._
+import gov.loc.repository.bagit.creator.BagCreator
+import gov.loc.repository.bagit.domain.{ Metadata => BagitMetadata }
+import gov.loc.repository.bagit.hash.StandardSupportedAlgorithms
+import nl.knaw.dans.lib.error._
 import org.apache.commons.configuration.PropertiesConfiguration
 import org.joda.time.format.{ DateTimeFormatter, ISODateTimeFormat }
 import org.joda.time.{ DateTime, DateTimeZone }
 
-import scala.util.Try
+import scala.collection.Seq
+import scala.util.{ Failure, Try }
 
 /**
  * Represents an existing deposit directory.
@@ -87,7 +92,19 @@ object DepositDir {
    * @param user    the user name
    * @return a list of [[DepositDir]] objects
    */
-  def list(baseDir: File, user: String): Try[Seq[DepositDir]] = ???
+  def list(baseDir: File, user: String): Try[Seq[DepositDir]] = {
+    val userDir = baseDir / user
+    if (userDir.exists)
+      userDir
+        .list
+        .filter(_.isDirectory)
+        .map(deposit => Try {
+          new DepositDir(baseDir, user, UUID.fromString(deposit.name))
+        }.recoverWith { case t: Throwable => Failure(CorruptDepositException(user, deposit.name)) })
+        .toSeq
+        .collectResults
+    else Try { Seq.empty }
+  }
 
   /**
    * Returns the requested [[DepositDir]], if it is owned by `user`
@@ -107,18 +124,27 @@ object DepositDir {
    * @return the newly created [[DepositDir]]
    */
   def create(baseDir: File, user: String): Try[DepositDir] = Try {
-
     val uuid = UUID.randomUUID()
-    val dir: File = (baseDir / user / uuid.toString)
+    val depositDir: File = (baseDir / user / uuid.toString)
       .createIfNotExists(asDirectory = true, createParents = true)
 
     val dateTimeFormatter: DateTimeFormatter = ISODateTimeFormat.dateTime()
-    val props = new PropertiesConfiguration()
-    props.addProperty("creation.timestamp", DateTime.now(DateTimeZone.UTC).toString(dateTimeFormatter))
-    props.addProperty("state.label", "DRAFT")
-    props.addProperty("state.description", "Deposit is open for changes.")
-    props.addProperty("depositor.userId", user)
-    props.save((dir / "deposit.properties").toJava)
+    val timeNow = DateTime.now(DateTimeZone.UTC).toString(dateTimeFormatter)
+    val metadata = new BagitMetadata {
+      add("Created", timeNow)
+      add("Bag-Size", "0 KB")
+    }
+    val bagDir: File = depositDir / "bag"
+    bagDir.createDirectory()
+    BagCreator.bagInPlace(bagDir.path, JArrays.asList(StandardSupportedAlgorithms.SHA1), true, metadata)
+    (bagDir / "metadata").createIfNotExists(asDirectory = true)
+
+    new PropertiesConfiguration() {
+      addProperty("creation.timestamp", timeNow)
+      addProperty("state.label", "DRAFT")
+      addProperty("state.description", "Deposit is open for changes.")
+      addProperty("depositor.userId", user)
+    }.save((depositDir / "deposit.properties").toJava)
 
     DepositDir(baseDir, user, uuid)
   }

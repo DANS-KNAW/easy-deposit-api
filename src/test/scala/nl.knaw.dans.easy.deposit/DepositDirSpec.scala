@@ -15,23 +15,60 @@
  */
 package nl.knaw.dans.easy.deposit
 
-import scala.util.Success
+import java.nio.file.attribute.PosixFilePermission
+import scala.util.{ Failure, Success}
 
 class DepositDirSpec extends TestSupportFixture {
   before { clearTestDir() }
+  private val draftsDir = testDir / "drafts"
 
-  private val draftsDir = (testDir / "drafts")
-    .delete(true)
-    .createIfNotExists(asDirectory = true, createParents = true)
+  "DepositDir.create" should "fail if the dir 'draft' is read only" in {
 
-  "create" should "create a new directory with deposit.properties" in {
+    draftsDir.createDirectories()
+      .removePermission(PosixFilePermission.OWNER_WRITE)
+    inside(DepositDir.create(draftsDir, "user001")) {
+      case Failure(_) =>
+    }
+  }
+
+  it should "create a new directory with deposit.properties" in {
     val dd = DepositDir.create(draftsDir, "user001")
     dd shouldBe a[Success[_]]
     inside(dd) {
       case Success(d) =>
-        (draftsDir / "user001" / d.id.toString).toJava should exist
-        (draftsDir / "user001" / d.id.toString / "deposit.properties").toJava should exist
+        val dir = draftsDir / "user001" / d.id.toString
+        dir.toJava should exist
+        (dir / "deposit.properties").toJava should exist
+        (dir / "bag").toJava should exist
+        (dir / "bag/bag-info.txt").toJava should exist
+        (dir / "bag/bagit.txt").toJava should exist
+        (dir / "bag/manifest-sha1.txt").toJava should exist
+        (dir / "bag/tagmanifest-sha1.txt").toJava should exist
+        (dir / "bag/data").toJava should exist
+        (dir / "bag/metadata").toJava should exist
     }
   }
 
+  "list" should """show no deposits of "user001" user""" in {
+    draftsDir.createDirectories()
+    inside(DepositDir.list(draftsDir, "user001")) {
+      case Success(Seq()) =>
+    }
+  }
+
+  it should """show one deposit of "user001" user""" in {
+    draftsDir.createDirectories()
+    DepositDir.create(draftsDir, "user001")
+    inside(DepositDir.list(draftsDir, "user001")) {
+      case Success(Seq(_)) =>
+    }
+  }
+
+  it should """show more than two deposits of "user001" user""" in {
+    draftsDir.createDirectories()
+    for (i <- 1 to 3) DepositDir.create(draftsDir, "user001")
+    inside(DepositDir.list(draftsDir, "user001")) {
+      case Success(Seq(_,_,_)) =>
+    }
+  }
 }
