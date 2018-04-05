@@ -464,6 +464,9 @@ paths:
       tags:
       - file
       summary: Adds or overwrites the specified file in the deposit.
+      parameters:
+       - $ref: "#/components/parameters/DepositId"
+       - $ref: "#/components/parameters/FilePath"
       description: If any of `file_path`'s parent do not yet exist, they are first created.
       operationId: writeFile
       requestBody:
@@ -509,6 +512,9 @@ paths:
       tags:
       - file
       summary: Deletes a file from deposit.
+      parameters:
+       - $ref: "#/components/parameters/DepositId"
+       - $ref: "#/components/parameters/FilePath"
       operationId: deleteFile
       responses:
         204:
@@ -630,7 +636,7 @@ components:
         - username
         - lastName
       example:
-      - username: "user001"
+        username: "user001"
         firstName: "First"
         prefix: "van"
         lastName: "Namen"
