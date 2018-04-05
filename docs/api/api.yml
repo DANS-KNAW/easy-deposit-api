@@ -55,7 +55,7 @@ paths:
         500:
           description: Service is unavailable because of an error.
 
-  /login:
+  /auth/login:
     post:
       tags:
       - authentication
@@ -78,7 +78,7 @@ paths:
       security:
       - BasicAuth: []
 
-  /logout:
+  /auth/logout:
     post:
       tags:
       - authentication
