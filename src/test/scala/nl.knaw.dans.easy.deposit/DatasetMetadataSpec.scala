@@ -132,7 +132,6 @@ class DatasetMetadataSpec extends TestSupportFixture {
 
   "deserialization/serialisation" should "at most have different white space and different order of fields" in {
     val expected = example.split("\n").map(_.trim.replaceAll(": ", ":")).mkString
-    // JObject(List((doi,JString(doi:10.17632/DANS.6wg5xccnjd.1)), ...
     val result = Json.toJson(Json.getDatasetMetadata(example).getOrElse(""))
     result.length shouldBe expected.length
     //result shouldBe expected // won't work because of random order of class members
@@ -143,31 +142,27 @@ class DatasetMetadataSpec extends TestSupportFixture {
     inside(Json.getDatasetMetadata("""{"x":1}""")) {
       case Success(_: DatasetMetadata) =>
     }
-    inside(Json.toDatasetMetadata("""{"x":1}""")) {
-      case Success(_: DatasetMetadata) =>
+  }
+
+  it should "extract just the last object" in {
+    inside(Json.getDatasetMetadata("""{"urn": "abc"}{"doi": "doi:10.17632/DANS.6wg5xccnjd.1"}""")) {
+      case Success(dm: DatasetMetadata) =>
+        dm.doi shouldBe Some("doi:10.17632/DANS.6wg5xccnjd.1")
+        dm.urn shouldBe None
     }
   }
 
   it should "be happy with empty objects" in {
     // JObject(List())
     inside(Json.getDatasetMetadata("""{}{}""")) { case Success(_: DatasetMetadata) => }
-    inside(Json.toDatasetMetadata("""{}{}""")) { case Success(_: DatasetMetadata) => }
   }
 
   it should "fail on an empty array" in {
     // JArray(List())
-    inside(Json.getDatasetMetadata("""[]""")) { case Success(_: DatasetMetadata) => }
-    inside(Json.toDatasetMetadata("""[]""")) { case Success(_: DatasetMetadata) => }
-  }
-
-  it should "fail on empty arrays" in {
-    // JArray(List())
-    inside(Json.getDatasetMetadata("""[][]""")) { case Success(_: DatasetMetadata) => }
-    inside(Json.toDatasetMetadata("""[][]""")) { case Success(_: DatasetMetadata) => }
+    inside(Json.getDatasetMetadata("""[]""")) { case Failure(_: InvalidDocument) => }
   }
 
   it should "not accept a literal number" in {
     inside(Json.getDatasetMetadata("""123""")) { case Failure(_: InvalidDocument) => }
-    inside(Json.toDatasetMetadata("""123""")) { case Failure(_: InvalidDocument) => }
   }
 }

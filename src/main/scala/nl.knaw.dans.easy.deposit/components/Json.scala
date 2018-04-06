@@ -19,17 +19,19 @@ import java.nio.file.{ Path, Paths }
 import java.text.SimpleDateFormat
 
 import nl.knaw.dans.easy.deposit.{ DatasetMetadata, State, StateInfo }
-import org.json4s.JsonAST.{ JNull, JString, JValue }
+import org.json4s
+import org.json4s.JsonAST._
 import org.json4s.ext.{ EnumNameSerializer, JodaTimeSerializers, UUIDSerializer }
 import org.json4s.native.JsonMethods
 import org.json4s.native.Serialization.write
-import org.json4s.{ CustomSerializer, DefaultFormats, Formats, JsonInput, Reader }
+import org.json4s.{ CustomSerializer, DefaultFormats, Formats, JsonInput }
 
-import scala.util.{ Failure, Success, Try }
+import scala.util.{ Failure, Try }
 
 object Json {
 
-  class InvalidDocument(s: String, t: Throwable) extends Exception(s, t)
+  // TODO rename to InvalidDocumentException (would cause merge conflicts with PR #20)
+  case class InvalidDocument(s: String, t: Throwable) extends Exception(s, t)
 
   class PathSerializer extends CustomSerializer[Path](format =>
     ( {
@@ -55,28 +57,22 @@ object Json {
     write(a)
   }
 
-  def getUser(body: JsonInput): Try[UserInfo] = Try {
-    JsonMethods.parse(body).extract[UserInfo]
-  }.recoverWith { case t: Throwable => Failure(new InvalidDocument("User", t)) }
+  def getUser(body: JsonInput): Try[UserInfo] = {
+    parseObject(body).map(_.extract[UserInfo])
+  }.recoverWith { case t: Throwable => Failure(InvalidDocument("User", t)) }
 
-  def getStateInfo(body: JsonInput): Try[StateInfo] = Try {
-    JsonMethods.parse(body).extract[StateInfo]
-  }.recoverWith { case t: Throwable => Failure(new InvalidDocument("StateInfo", t)) }
+  def getStateInfo(body: JsonInput): Try[StateInfo] = {
+    parseObject(body).map(_.extract[StateInfo])
+  }.recoverWith { case t: Throwable => Failure(InvalidDocument("StateInfo", t)) }
 
-  def getDatasetMetadata(body: JsonInput): Try[DatasetMetadata] = Try {
-    val jValue = JsonMethods.parse(body)
-    jValue.extract[DatasetMetadata]
-  }.recoverWith { case t: Throwable => Failure(new InvalidDocument("DatasetMetadata", t)) }
+  def getDatasetMetadata(body: JsonInput): Try[DatasetMetadata] = {
+    parseObject(body).map(_.extract[DatasetMetadata])
+  }.recoverWith { case t: Throwable => Failure(InvalidDocument("DatasetMetadata", t)) }
 
-  implicit object DatasetMetadataReader extends Reader[DatasetMetadata] {
-    def read(json: JValue): DatasetMetadata = DatasetMetadata()
-  }
-  def toDatasetMetadata(body: JsonInput): Try[DatasetMetadata] = Try {
-    val jValue = JsonMethods.parse(body)
-    jValue.getAs[DatasetMetadata]
-  } match {
-    case Success(Some(dm)) => Success(dm)
-    case Success(None) => Failure(new InvalidDocument("DatasetMetadata",new Exception("empty document")))
-    case Failure(t: Throwable) => Failure(new InvalidDocument("DatasetMetadata", t))
+  private def parseObject(body: JsonInput): Try[json4s.JValue] = Try {
+    JsonMethods.parse(body)
+  }.map {
+    case jObject if jObject.isInstanceOf[JObject] => jObject
+    case jValue => throw new Exception(s"expected an object, got a ${ jValue.getClass }")
   }
 }
