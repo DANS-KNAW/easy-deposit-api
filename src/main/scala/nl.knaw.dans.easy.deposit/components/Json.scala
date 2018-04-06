@@ -19,13 +19,13 @@ import java.nio.file.{ Path, Paths }
 import java.text.SimpleDateFormat
 
 import nl.knaw.dans.easy.deposit.{ DatasetMetadata, State, StateInfo }
-import org.json4s.JsonAST.{ JNull, JString }
+import org.json4s.JsonAST.{ JNull, JString, JValue }
 import org.json4s.ext.{ EnumNameSerializer, JodaTimeSerializers, UUIDSerializer }
 import org.json4s.native.JsonMethods
 import org.json4s.native.Serialization.write
-import org.json4s.{ CustomSerializer, DefaultFormats, Formats, JsonInput }
+import org.json4s.{ CustomSerializer, DefaultFormats, Formats, JsonInput, Reader }
 
-import scala.util.{ Failure, Try }
+import scala.util.{ Failure, Success, Try }
 
 object Json {
 
@@ -64,6 +64,19 @@ object Json {
   }.recoverWith { case t: Throwable => Failure(new InvalidDocument("StateInfo", t)) }
 
   def getDatasetMetadata(body: JsonInput): Try[DatasetMetadata] = Try {
-    JsonMethods.parse(body).extract[DatasetMetadata]
+    val jValue = JsonMethods.parse(body)
+    jValue.extract[DatasetMetadata]
   }.recoverWith { case t: Throwable => Failure(new InvalidDocument("DatasetMetadata", t)) }
+
+  implicit object DatasetMetadataReader extends Reader[DatasetMetadata] {
+    def read(json: JValue): DatasetMetadata = DatasetMetadata()
+  }
+  def toDatasetMetadata(body: JsonInput): Try[DatasetMetadata] = Try {
+    val jValue = JsonMethods.parse(body)
+    jValue.getAs[DatasetMetadata]
+  } match {
+    case Success(Some(dm)) => Success(dm)
+    case Success(None) => Failure(new InvalidDocument("DatasetMetadata",new Exception("empty document")))
+    case Failure(t: Throwable) => Failure(new InvalidDocument("DatasetMetadata", t))
+  }
 }

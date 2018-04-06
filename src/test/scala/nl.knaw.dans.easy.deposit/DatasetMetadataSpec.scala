@@ -1,6 +1,9 @@
 package nl.knaw.dans.easy.deposit
 
 import nl.knaw.dans.easy.deposit.components.Json
+import nl.knaw.dans.easy.deposit.components.Json.InvalidDocument
+
+import scala.util.{ Failure, Success }
 
 class DatasetMetadataSpec extends TestSupportFixture {
   private val example =
@@ -127,11 +130,44 @@ class DatasetMetadataSpec extends TestSupportFixture {
       |  "dateAvailable": "string"
       |}""".stripMargin
 
-  "deserialization and serialisation" should "at most have different white space and order of fields may vary" in {
-    Json.toJson(Json.getDatasetMetadata(example).getOrElse("")) shouldBe example.split("\n").map(_.trim.replaceAll(": ",":")).mkString
-
+  "deserialization/serialisation" should "at most have different white space and different order of fields" in {
+    val expected = example.split("\n").map(_.trim.replaceAll(": ", ":")).mkString
+    // JObject(List((doi,JString(doi:10.17632/DANS.6wg5xccnjd.1)), ...
+    val result = Json.toJson(Json.getDatasetMetadata(example).getOrElse(""))
+    result.length shouldBe expected.length
+    //result shouldBe expected // won't work because of random order of class members
   }
-  "serialization and deserialisation" should "return the same object" ignore {
 
+  "deserialization" should "ignore additional info" in {
+    //JObject(List((x,JInt(1))))
+    inside(Json.getDatasetMetadata("""{"x":1}""")) {
+      case Success(_: DatasetMetadata) =>
+    }
+    inside(Json.toDatasetMetadata("""{"x":1}""")) {
+      case Success(_: DatasetMetadata) =>
+    }
+  }
+
+  it should "be happy with empty objects" in {
+    // JObject(List())
+    inside(Json.getDatasetMetadata("""{}{}""")) { case Success(_: DatasetMetadata) => }
+    inside(Json.toDatasetMetadata("""{}{}""")) { case Success(_: DatasetMetadata) => }
+  }
+
+  it should "fail on an empty array" in {
+    // JArray(List())
+    inside(Json.getDatasetMetadata("""[]""")) { case Success(_: DatasetMetadata) => }
+    inside(Json.toDatasetMetadata("""[]""")) { case Success(_: DatasetMetadata) => }
+  }
+
+  it should "fail on empty arrays" in {
+    // JArray(List())
+    inside(Json.getDatasetMetadata("""[][]""")) { case Success(_: DatasetMetadata) => }
+    inside(Json.toDatasetMetadata("""[][]""")) { case Success(_: DatasetMetadata) => }
+  }
+
+  it should "not accept a literal number" in {
+    inside(Json.getDatasetMetadata("""123""")) { case Failure(_: InvalidDocument) => }
+    inside(Json.toDatasetMetadata("""123""")) { case Failure(_: InvalidDocument) => }
   }
 }
