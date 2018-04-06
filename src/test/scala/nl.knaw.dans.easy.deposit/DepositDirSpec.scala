@@ -34,9 +34,9 @@ class DepositDirSpec extends TestSupportFixture {
   }
 
   it should "create a new directory with deposit.properties" in {
-    val dd = DepositDir.create(draftsDir, "user001")
-    dd shouldBe a[Success[_]]
-    inside(dd) {
+    val tryDeposit = DepositDir.create(draftsDir, "user001")
+    tryDeposit shouldBe a[Success[_]]
+    inside(tryDeposit) {
       case Success(d) =>
         val dir = draftsDir / "user001" / d.id.toString
         dir.toJava should exist
@@ -52,30 +52,37 @@ class DepositDirSpec extends TestSupportFixture {
   }
 
   "list" should """show no deposits of "user001" user""" in {
-    inside(DepositDir.list(draftsDir, "user001")) {
-      case Success(Seq()) =>
+    val tryDeposits = DepositDir.list(draftsDir, "user001")
+    tryDeposits shouldBe a[Success[_]]
+    inside(tryDeposits) {
+      case Success(list) => list shouldBe empty
     }
   }
 
   it should """show one deposit of "user001" user""" in {
     DepositDir.create(draftsDir, "user001")
-    inside(DepositDir.list(draftsDir, "user001")) {
-      case Success(Seq(_)) =>
+    val tryDeposits = DepositDir.list(draftsDir, "user001")
+    tryDeposits shouldBe a[Success[_]]
+    inside(tryDeposits) {
+      case Success(list) => list should have length 1
     }
   }
 
   it should """show more than two deposits of "user001" user""" in {
     for (i <- 1 to 3) DepositDir.create(draftsDir, "user001")
-    inside(DepositDir.list(draftsDir, "user001")) {
-      case Success(Seq(_,_,_)) =>
+    val tryDeposits = DepositDir.list(draftsDir, "user001")
+    tryDeposits shouldBe a[Success[_]]
+    inside(tryDeposits) {
+      case Success(list) => list should have length 3
     }
   }
 
   "get" should """return a specified deposit""" in {
-    DepositDir.create(draftsDir, "user001")
-    val dp = DepositDir.list(draftsDir, "user001")
-    inside(DepositDir.get(draftsDir, "user001", dp.get.head.id)) {
-      case Success(_) =>
+    val deposit = DepositDir.create(draftsDir, "user001").get
+    val tryDeposit = DepositDir.get(draftsDir, "user001", deposit.id)
+    tryDeposit shouldBe a[Success[_]]
+    inside(tryDeposit) {
+      case Success(dp) => dp shouldBe deposit
     }
   }
 
