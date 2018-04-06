@@ -71,4 +71,30 @@ class DepositDirSpec extends TestSupportFixture {
       case Success(Seq(_,_,_)) =>
     }
   }
+  private val user = "foo"
+  private val dd = DepositDir(draftsDir, user, uuid)
+  private val metadataFile = dd.baseDir / user / uuid.toString / "data" / "metadata" / "dataset.xml"
+
+  "setDatasetMetadata" should "create a file" in {
+    // prepare empty deposit
+    metadataFile.parent.createIfNotExists(asDirectory = true, createParents = true)
+
+    dd.setDatasetMetadata(DatasetMetadata()) shouldBe Success(())
+    new String(metadataFile.loadBytes) shouldBe "{}"
+  }
+
+  it should "overwrite a file" in {
+    // prepare existing metadata
+    metadataFile.parent.createIfNotExists(asDirectory = true, createParents = true)
+    metadataFile.write("blabla")
+
+    dd.setDatasetMetadata(DatasetMetadata()) shouldBe Success(())
+    new String(metadataFile.loadBytes) shouldBe "{}"
+  }
+
+  it should "report the deposit does not exist" in {
+    inside(dd.setDatasetMetadata(DatasetMetadata())) {
+      case Failure(NoSuchDepositException(_, _, _)) =>
+    }
+  }
 }

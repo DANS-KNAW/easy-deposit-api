@@ -15,6 +15,8 @@
  */
 package nl.knaw.dans.easy.deposit
 
+import java.util.UUID
+
 import better.files.File
 import better.files.File._
 import nl.knaw.dans.easy.deposit.authentication.AuthenticationMocker.mockedAuthenticationProvider
@@ -27,6 +29,7 @@ import org.scalatest.{ BeforeAndAfter, FlatSpec, Inside, Matchers }
 trait TestSupportFixture extends FlatSpec with Matchers with Inside with BeforeAndAfter {
 
   lazy val testDir: File = currentWorkingDirectory / "target" / "test" / getClass.getSimpleName
+  lazy val uuid: UUID = UUID.randomUUID()
 
   def clearTestDir(): Unit = {
     if (testDir.exists)
