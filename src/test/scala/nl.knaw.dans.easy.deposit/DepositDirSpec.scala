@@ -19,12 +19,14 @@ import java.nio.file.attribute.PosixFilePermission
 import scala.util.{ Failure, Success}
 
 class DepositDirSpec extends TestSupportFixture {
-  before { clearTestDir() }
+  before {
+    clearTestDir()
+    draftsDir.createDirectories()
+  }
   private val draftsDir = testDir / "drafts"
 
   "DepositDir.create" should "fail if the dir 'draft' is read only" in {
-
-    draftsDir.createDirectories()
+    draftsDir
       .removePermission(PosixFilePermission.OWNER_WRITE)
     inside(DepositDir.create(draftsDir, "user001")) {
       case Failure(_) =>
@@ -50,14 +52,12 @@ class DepositDirSpec extends TestSupportFixture {
   }
 
   "list" should """show no deposits of "user001" user""" in {
-    draftsDir.createDirectories()
     inside(DepositDir.list(draftsDir, "user001")) {
       case Success(Seq()) =>
     }
   }
 
   it should """show one deposit of "user001" user""" in {
-    draftsDir.createDirectories()
     DepositDir.create(draftsDir, "user001")
     inside(DepositDir.list(draftsDir, "user001")) {
       case Success(Seq(_)) =>
@@ -65,10 +65,18 @@ class DepositDirSpec extends TestSupportFixture {
   }
 
   it should """show more than two deposits of "user001" user""" in {
-    draftsDir.createDirectories()
     for (i <- 1 to 3) DepositDir.create(draftsDir, "user001")
     inside(DepositDir.list(draftsDir, "user001")) {
       case Success(Seq(_,_,_)) =>
     }
   }
+
+  "get" should """return a specified deposit""" in {
+    DepositDir.create(draftsDir, "user001")
+    val dp = DepositDir.list(draftsDir, "user001")
+    inside(DepositDir.get(draftsDir, "user001", dp.get.head.id)) {
+      case Success(_) =>
+    }
+  }
+
 }
