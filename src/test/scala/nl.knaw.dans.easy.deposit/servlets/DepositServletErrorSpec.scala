@@ -15,15 +15,17 @@
  */
 package nl.knaw.dans.easy.deposit.servlets
 
+import java.util.UUID
+
 import nl.knaw.dans.easy.deposit.authentication.AuthenticationMocker._
 import nl.knaw.dans.easy.deposit.authentication.{ AuthUser, AuthenticationProvider }
-import nl.knaw.dans.easy.deposit.{ EasyDepositApiApp, TestSupportFixture }
+import nl.knaw.dans.easy.deposit.{ DatasetMetadata, EasyDepositApiApp, NoSuchDepositException, TestSupportFixture }
 import org.eclipse.jetty.http.HttpStatus._
 import org.scalamock.scalatest.MockFactory
 import org.scalatra.auth.Scentry
 import org.scalatra.test.scalatest.ScalatraSuite
 
-import scala.util.Failure
+import scala.util.{ Failure, Success }
 
 class DepositServletErrorSpec extends TestSupportFixture with ServletFixture with ScalatraSuite with MockFactory {
 
@@ -60,6 +62,21 @@ class DepositServletErrorSpec extends TestSupportFixture with ServletFixture wit
     post(uri = "/", headers = Seq(("Authorization", fooBarBasicAuthHeader))) {
       status shouldBe INTERNAL_SERVER_ERROR_500
       body shouldBe "Internal Server Error"
+    }
+  }
+
+  s"put /:uuid/metadata" should "report a lost dataset" in {
+    expectsUserFooBar
+    (mockedApp.writeDataMetadataToDeposit(_: DatasetMetadata)(_: String, _: UUID)) expects(*, "foo", uuid) returning
+      Failure(NoSuchDepositException("foo", uuid, new Exception()))
+
+    put(
+      uri = s"/$uuid/metadata",
+      body = """{"blabla":"blabla"}""",
+      headers = Seq(("Authorization", fooBarBasicAuthHeader))
+    ) {
+      status shouldBe NOT_FOUND_404
+      body shouldBe s"Deposit with id $uuid not found for user foo"
     }
   }
 }

@@ -16,20 +16,18 @@
 package nl.knaw.dans.easy.deposit
 
 import java.nio.file.NoSuchFileException
-import java.util.UUID
 import java.util.{ UUID, Arrays => JArrays }
 
 import better.files._
-import nl.knaw.dans.easy.deposit.components.Json.toJson
 import gov.loc.repository.bagit.creator.BagCreator
 import gov.loc.repository.bagit.domain.{ Metadata => BagitMetadata }
 import gov.loc.repository.bagit.hash.StandardSupportedAlgorithms
+import nl.knaw.dans.easy.deposit.components.Json.toJson
 import nl.knaw.dans.lib.error._
 import org.apache.commons.configuration.PropertiesConfiguration
 import org.joda.time.format.{ DateTimeFormatter, ISODateTimeFormat }
 import org.joda.time.{ DateTime, DateTimeZone }
 
-import scala.util.{ Failure, Try }
 import scala.collection.Seq
 import scala.util.{ Failure, Try }
 

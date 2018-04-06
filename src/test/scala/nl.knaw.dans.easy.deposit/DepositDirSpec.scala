@@ -22,7 +22,7 @@ class DepositDirSpec extends TestSupportFixture {
   before { clearTestDir() }
   private val draftsDir = testDir / "drafts"
 
-  "DepositDir.create" should "fail if the dir 'draft' is read only" in {
+  "create" should "fail if the dir 'draft' is read only" in {
 
     draftsDir.createDirectories()
       .removePermission(PosixFilePermission.OWNER_WRITE)
@@ -66,14 +66,14 @@ class DepositDirSpec extends TestSupportFixture {
 
   it should """show more than two deposits of "user001" user""" in {
     draftsDir.createDirectories()
-    for (i <- 1 to 3) DepositDir.create(draftsDir, "user001")
+    for (_ <- 1 to 3) DepositDir.create(draftsDir, "user001")
     inside(DepositDir.list(draftsDir, "user001")) {
       case Success(Seq(_,_,_)) =>
     }
   }
-  private val user = "foo"
-  private val dd = DepositDir(draftsDir, user, uuid)
-  private val metadataFile = dd.baseDir / user / uuid.toString / "data" / "metadata" / "dataset.xml"
+
+  private val dd = DepositDir(draftsDir, "foo", uuid)
+  private val metadataFile = dd.baseDir / "foo" / uuid.toString / "data" / "metadata" / "dataset.xml"
 
   "setDatasetMetadata" should "create a file" in {
     // prepare empty deposit
@@ -83,7 +83,7 @@ class DepositDirSpec extends TestSupportFixture {
     new String(metadataFile.loadBytes) shouldBe "{}"
   }
 
-  it should "overwrite a file" in {
+  it should "overwrite existing metadata" in {
     // prepare existing metadata
     metadataFile.parent.createIfNotExists(asDirectory = true, createParents = true)
     metadataFile.write("blabla")
@@ -93,6 +93,7 @@ class DepositDirSpec extends TestSupportFixture {
   }
 
   it should "report the deposit does not exist" in {
+    // no preparations for a "lost" deposit
     inside(dd.setDatasetMetadata(DatasetMetadata())) {
       case Failure(NoSuchDepositException(_, _, _)) =>
     }

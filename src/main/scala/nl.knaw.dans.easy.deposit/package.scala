@@ -19,11 +19,9 @@ import java.nio.file.Path
 import java.util.UUID
 
 import nl.knaw.dans.easy.deposit.State.State
-import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.joda.time.DateTime
-import org.scalatra.{ ActionResult, BadRequest, InternalServerError }
 
-package object deposit extends DebugEnhancedLogging {
+package object deposit {
 
   sealed abstract class DepositException(msg: String, cause: Throwable = null) extends Exception(msg, cause)
 
@@ -43,8 +41,6 @@ package object deposit extends DebugEnhancedLogging {
     val DRAFT, SUBMITTED, IN_PROGRESS, REJECTED, ARCHIVED = Value
   }
 
-  import State._
-
   /**
    * Summary information about a deposit.
    */
@@ -60,15 +56,4 @@ package object deposit extends DebugEnhancedLogging {
    * @param sha1sum  the SHA-1 checksum of the file data
    */
   case class FileInfo(fileName: String, dirPath: Path, sha1sum: String)
-
-
-  def internalErrorResponse(t: Throwable): ActionResult = {
-    logger.error(s"Not expected exception: ${ t.getMessage }", t)
-    InternalServerError("Internal Server Error")
-  }
-
-  def badDocResponse(t: Throwable): ActionResult = {
-    logger.error(s"Invalid ${ t.getMessage }:${ t.getCause.getClass.getName } ${ t.getCause.getMessage }")
-    BadRequest(s"Bad Request. The ${ t.getMessage } document is malformed.")
-  }
 }
