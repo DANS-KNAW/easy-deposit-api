@@ -55,7 +55,7 @@ paths:
         500:
           description: Service is unavailable because of an error.
 
-  /login:
+  /auth/login:
     post:
       tags:
       - authentication
@@ -78,7 +78,7 @@ paths:
       security:
       - BasicAuth: []
 
-  /logout:
+  /auth/logout:
     post:
       tags:
       - authentication
@@ -93,6 +93,27 @@ paths:
                 type: string
       security:
       - BearerAuth: []
+
+  /user:
+    get:
+      tags:
+      - user
+      summary: Retrieves user info object of the authenticated user.
+      responses:
+        200:
+          description: single user info object
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserInfo"
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        403:
+          $ref: "#/components/responses/Forbidden"
+        500:
+          $ref: "#/components/responses/InternalServerError"
+      security:
+        - BearerAuth: []
 
   /deposit:
     get:
@@ -443,6 +464,9 @@ paths:
       tags:
       - file
       summary: Adds or overwrites the specified file in the deposit.
+      parameters:
+       - $ref: "#/components/parameters/DepositId"
+       - $ref: "#/components/parameters/FilePath"
       description: If any of `file_path`'s parent do not yet exist, they are first created.
       operationId: writeFile
       requestBody:
@@ -488,6 +512,9 @@ paths:
       tags:
       - file
       summary: Deletes a file from deposit.
+      parameters:
+       - $ref: "#/components/parameters/DepositId"
+       - $ref: "#/components/parameters/FilePath"
       operationId: deleteFile
       responses:
         204:
@@ -602,6 +629,32 @@ components:
       description: Bad request. State document is malformed.
 
   schemas:
+
+    UserInfo:
+      type: object
+      required:
+        - username
+        - lastName
+      example:
+        username: "user001"
+        firstName: "First"
+        prefix: "van"
+        lastName: "Namen"
+        groups: [ "group001", "group002"]
+      properties:
+        username:
+          type: "string"
+        firstName:
+          type: "string"
+          description: "(optional)"
+        prefix:
+          type: "string"
+          description: "insertions, called 'tussenvoegsels' in Dutch"
+        lastName:
+          type: "string"
+        groups:
+          type: "array"
+          description: "string array with group-names this user belongs to"
 
     # TODO: add links to state, metadata, files?
     DepositInfo:
