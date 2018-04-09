@@ -44,7 +44,7 @@ object Json {
   )
 
   private implicit val jsonFormats: Formats = new DefaultFormats {
-    // TODO we need a timestamp for DepositInfo, but may need dates for not yet implemented members of DatasetMetadata
+    // we need a timestamp for DepositInfo, dates in DatasetMetadata are plain strings so no conflict
     override protected def dateFormatter: SimpleDateFormat = new SimpleDateFormat("yyyy-MM-dd")
   } +
     UUIDSerializer +

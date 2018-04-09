@@ -38,7 +38,7 @@ class EasyDepositApiService(serverPort: Int, app: EasyDepositApiApp) extends Deb
           context.mount(new EasyDepositApiServlet(app), "/*")
           context.mount(new DepositServlet(app), "/deposit/*")
           context.mount(new UserServlet(app), "/user/*")
-          context.mount(new AuthServlet(app), "/auth/*") // TODO update swagger: /logXXX -> /auth/logXXX
+          context.mount(new AuthServlet(app), "/auth/*")
         }
       })
     }
