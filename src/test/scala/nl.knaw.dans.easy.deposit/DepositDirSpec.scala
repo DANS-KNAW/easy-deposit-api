@@ -87,7 +87,7 @@ class DepositDirSpec extends TestSupportFixture {
   }
 
   private val dd = DepositDir(draftsDir, "foo", uuid)
-  private val metadataFile = dd.baseDir / "foo" / uuid.toString / "data" / "metadata" / "dataset.xml"
+  private val metadataFile = dd.baseDir / "foo" / uuid.toString / "bag" / "metadata" / "dataset.json"
 
   "setDatasetMetadata" should "create a file" in {
     // prepare empty deposit

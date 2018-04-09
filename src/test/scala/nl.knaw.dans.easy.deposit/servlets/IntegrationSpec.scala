@@ -26,12 +26,9 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
   private val depositApiApp = new EasyDepositApiApp(minimalAppConfig)
   mountServlets(depositApiApp, mockedAuthenticationProvider)
 
+  s"scenario: POST /deposit; PUT /deposit/:uuid/metadata" should "succeed" in {
 
-  s"put /deposit + metadata" should "succeed" ignore {
-    // manual test stumbles on not-implemented at
-    // https://github.com/DANS-KNAW/easy-deposit-api/blob/3771e59/src/main/scala/nl.knaw.dans.easy.deposit/DepositDir.scala#L117
     expectsUserFooBar
-
     val uuid = post(
       uri = s"/deposit",
       headers = Seq(("Authorization", fooBarBasicAuthHeader))
@@ -39,12 +36,14 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
       new String(bodyBytes)
     }
 
+    expectsUserFooBar
     put(
       uri = s"/deposit/$uuid/metadata",
-      body = """{"blabla":"blabla"}""",
+      body = """{"blabla":"blabla"}""", // more variations in DepositDirSpec
       headers = Seq(("Authorization", fooBarBasicAuthHeader))
     ) {
       status shouldBe NO_CONTENT_204
     }
+    new String((testDir / "drafts" / "foo" / uuid.toString / "bag" / "metadata" / "dataset.json").loadBytes) shouldBe "{}"
   }
 }

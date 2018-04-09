@@ -124,7 +124,9 @@ class DepositServlet(app: EasyDepositApiApp) extends ProtectedServlet(app) {
     case _: CorruptDepositException => ???
     case _: IllegalStateTransitionException => ???
     case _: ConfigurationException => ???
-    case t: NoSuchDepositException => NotFound(body = t.getMessage)
+    case t: NoSuchDepositException =>
+      logger.info(s"${ t.cause.getClass.getName } ${ t.cause.getMessage }")
+      NotFound(body = t.getMessage)
     case _: InvalidResource =>
       logger.error(s"InvalidResource: ${ t.getMessage }")
       NotFound()

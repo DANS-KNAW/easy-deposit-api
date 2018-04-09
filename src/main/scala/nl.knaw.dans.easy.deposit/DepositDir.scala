@@ -40,7 +40,7 @@ import scala.util.{ Failure, Try }
  */
 case class DepositDir private(baseDir: File, user: String, id: UUID) {
 
-  private val dataDir = baseDir / user / id.toString / "data"
+  private val dataDir = baseDir / user / id.toString / "bag"
   private val metadataDir: File = dataDir / "metadata"
 
   /**
@@ -80,7 +80,7 @@ case class DepositDir private(baseDir: File, user: String, id: UUID) {
   def setDatasetMetadata(md: DatasetMetadata): Try[Unit] = Try {
     // TODO EasyDepositApiApp.writeDataMetadataToDeposit says: should be complete
     // TODO Who is responsible? I suppose also URN/DOI should not change.
-    (metadataDir / "dataset.xml").write(toJson(md))
+    (metadataDir / "dataset.json").write(toJson(md))
     () // satisfy the compiler which doesn't want a File
   }.recoverWith { case t: NoSuchFileException => Failure[Unit](NoSuchDepositException(user, id, t)) }
 
