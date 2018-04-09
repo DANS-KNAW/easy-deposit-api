@@ -29,5 +29,4 @@ package object servlets extends DebugEnhancedLogging {
     logger.error(s"Invalid ${ t.getMessage }:${ t.getCause.getClass.getName } ${ t.getCause.getMessage }")
     BadRequest(s"Bad Request. The ${ t.getMessage } document is malformed.")
   }
-
 }

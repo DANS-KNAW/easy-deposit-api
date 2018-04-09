@@ -41,7 +41,7 @@ import scala.util.{ Failure, Try }
 case class DepositDir private(baseDir: File, user: String, id: UUID) {
 
   private val dataDir = baseDir / user / id.toString / "bag"
-  private val metadataDir: File = dataDir / "metadata"
+  private val metadataDir = dataDir / "metadata"
 
   /**
    * @return an information object about the current state of the desposit.
@@ -82,7 +82,7 @@ case class DepositDir private(baseDir: File, user: String, id: UUID) {
     // TODO Who is responsible? I suppose also URN/DOI should not change.
     (metadataDir / "dataset.json").write(toJson(md))
     () // satisfy the compiler which doesn't want a File
-  }.recoverWith { case t: NoSuchFileException => Failure[Unit](NoSuchDepositException(user, id, t)) }
+  }.recoverWith { case t: NoSuchFileException => Failure(NoSuchDepositException(user, id, t)) }
 
   /**
    * @return object to access the data files of this deposit
