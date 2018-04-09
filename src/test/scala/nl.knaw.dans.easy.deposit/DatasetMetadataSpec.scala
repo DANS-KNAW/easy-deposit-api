@@ -22,9 +22,10 @@ import scala.util.{ Failure, Success }
 
 class DatasetMetadataSpec extends TestSupportFixture {
   private val example =
+  // TODO "insertions": null
     """{
       |  "doi": "doi:10.17632/DANS.6wg5xccnjd.1",
-      |  "urn": "string",
+      |  "languageOfDescription": "string",
       |  "titles": [
       |    "Title 1",
       |    "Title 2"
@@ -32,67 +33,56 @@ class DatasetMetadataSpec extends TestSupportFixture {
       |  "alternativeTitles": [
       |    "string"
       |  ],
+      |  "descriptions": [
+      |    "string"
+      |  ],
       |  "creators": [
       |    {
       |      "titles": "Prof Dr",
       |      "initials": "A",
-      |      "insertions": null,
-      |      "surname": "Einstein"
+      |      "surname": "Einstein",
+      |      "ids": [
+      |        {
+      |          "scheme": "DOI",
+      |          "value": "1234/5678"
+      |        },
+      |        {
+      |          "scheme": "ISNI",
+      |          "value": "ISNI|000000012281955X"
+      |        }
+      |      ],
+      |      "organization": "University of Zurich"
       |    }
       |  ],
       |  "contributors": [
       |    {
       |      "titles": "Prof Dr",
       |      "initials": "A",
-      |      "insertions": null,
-      |      "surname": "Einstein"
+      |      "surname": "Einstein",
+      |      "ids": [
+      |        {
+      |          "scheme": "DOI",
+      |          "value": "1234/5678"
+      |        },
+      |        {
+      |          "scheme": "ISNI",
+      |          "value": "ISNI|000000012281955X"
+      |        }
+      |      ],
+      |      "organization": "University of Zurich"
       |    }
       |  ],
-      |  "created": "string",
-      |  "descriptions": [
-      |    "Description 1"
-      |  ],
+      |  "dateCreated": "string",
       |  "audiences": [
-      |    "string"
-      |  ],
-      |  "archisNrs": [
-      |    "string"
-      |  ],
-      |  "subjectsAbrComplex": [
       |    "string"
       |  ],
       |  "subjects": [
       |    "string"
       |  ],
-      |  "temporalCoveragesAbr": [
-      |    "string"
-      |  ],
-      |  "temporalCoverages": [
-      |    "string"
-      |  ],
-      |  "spatialPoints": [
-      |    {
-      |      "scheme": "string",
-      |      "x": "string",
-      |      "y": "string"
-      |    }
-      |  ],
-      |  "spatialBoxes": [
-      |    {
-      |      "scheme": "string",
-      |      "north": "string",
-      |      "east": "string",
-      |      "south": "string",
-      |      "west": "string"
-      |    }
-      |  ],
-      |  "spatialCoverages": [
-      |    "string"
-      |  ],
       |  "identifiers": [
       |    {
       |      "scheme": "string",
-      |      "identifier": "string"
+      |      "value": "string"
       |    }
       |  ],
       |  "relations": [
@@ -102,6 +92,42 @@ class DatasetMetadataSpec extends TestSupportFixture {
       |      "title": "string"
       |    }
       |  ],
+      |  "languagesOfFilesIso639": [
+      |    "string"
+      |  ],
+      |  "languagesOfFiles": [
+      |    "string"
+      |  ],
+      |  "datesIso8601": [
+      |    {
+      |      "scheme": "string",
+      |      "value": "string"
+      |    }
+      |  ],
+      |  "dates": [
+      |    {
+      |      "scheme": "string",
+      |      "value": "string"
+      |    }
+      |  ],
+      |  "sources": [
+      |    "string"
+      |  ],
+      |  "instructionsForReuse": [
+      |    "string"
+      |  ],
+      |  "rightsHolders": [
+      |    "string"
+      |  ],
+      |  "publishers": [
+      |    "string"
+      |  ],
+      |  "accessRights": {
+      |    "category": "open",
+      |    "group": "string"
+      |  },
+      |  "license": "string",
+      |  "dateAvailable": "string",
       |  "typesDcmi": [
       |    "string"
       |  ],
@@ -114,42 +140,78 @@ class DatasetMetadataSpec extends TestSupportFixture {
       |  "formats": [
       |    "string"
       |  ],
-      |  "languagesIso639": [
+      |  "archisNrs": [
       |    "string"
       |  ],
-      |  "languages": [
+      |  "subjectsAbrComplex": [
       |    "string"
       |  ],
-      |  "sources": [
+      |  "temporalCoveragesAbr": [
       |    "string"
       |  ],
-      |  "datesIso8601": [
+      |  "extraClarinMetadataPresent": true,
+      |  "temporalCoverages": [
+      |    "string"
+      |  ],
+      |  "spatialPoints": [
       |    {
       |      "scheme": "string",
-      |      "date": "string"
+      |      "x": 0,
+      |      "y": 0
       |    }
       |  ],
-      |  "dates": [
+      |  "spatialBoxes": [
       |    {
       |      "scheme": "string",
-      |      "date": "string"
+      |      "north": 0,
+      |      "east": 0,
+      |      "south": 0,
+      |      "west": 0
       |    }
       |  ],
-      |  "remarks": "string",
-      |  "rightsHolders": [
+      |  "spatialCoverageIso3166": [
+      |    {
+      |      "scheme": "string",
+      |      "value": "string"
+      |    }
+      |  ],
+      |  "spatialCoverages": [
       |    "string"
       |  ],
-      |  "publishers": [
-      |    "string"
-      |  ],
-      |  "dateAvailable": "string"
+      |  "messageForDataManager": "string",
+      |  "privacySensitiveDataPresent": "yes",
+      |  "acceptLicenseAgreement": true
       |}""".stripMargin
 
   "deserialization/serialisation" should "at most have different white space and different order of fields" in {
     val expected = example.split("\n").map(_.trim.replaceAll(": ", ":")).mkString
     val result = Json.toJson(Json.getDatasetMetadata(example).getOrElse(""))
+    result shouldBe expected // won't work because of random order of class members
     result.length shouldBe expected.length
-    //result shouldBe expected // won't work because of random order of class members
+  }
+
+  "author deserialization/serialisation" should "at most have different white space and different order of fields" in {
+    val example =
+      """    {
+        |      "titles": "Prof Dr",
+        |      "initials": "A",
+        |      "surname": "Einstein",
+        |      "ids": [
+        |        {
+        |          "scheme": "DOI",
+        |          "value": "1234/5678"
+        |        },
+        |        {
+        |          "scheme": "ISNI",
+        |          "value": "ISNI|000000012281955X"
+        |        }
+        |      ],
+        |      "organization": "University of Zurich"
+        |    }""".stripMargin
+    val expected = example.split("\n").map(_.trim.replaceAll(": ", ":")).mkString
+    val result = Json.toJson(Json.getAuthor(example).getOrElse(""))
+    result shouldBe expected // won't work because of random order of class members
+    result.length shouldBe expected.length
   }
 
   "deserialization" should "ignore additional info" in {
@@ -160,10 +222,10 @@ class DatasetMetadataSpec extends TestSupportFixture {
   }
 
   it should "extract just the last object" in {
-    inside(Json.getDatasetMetadata("""{"urn": "abc"}{"doi": "doi:10.17632/DANS.6wg5xccnjd.1"}""")) {
+    inside(Json.getDatasetMetadata("""{"languageOfDescription": "string"}{"doi": "doi:10.17632/DANS.6wg5xccnjd.1"}""")) {
       case Success(dm: DatasetMetadata) =>
         dm.doi shouldBe Some("doi:10.17632/DANS.6wg5xccnjd.1")
-        dm.urn shouldBe None
+        dm.languageOfDescription shouldBe None
     }
   }
 

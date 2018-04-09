@@ -18,6 +18,7 @@ package nl.knaw.dans.easy.deposit.components
 import java.nio.file.{ Path, Paths }
 import java.text.SimpleDateFormat
 
+import nl.knaw.dans.easy.deposit.DatasetMetadata.{ AccessCategory, PrivacySensitiveDataPresent }
 import nl.knaw.dans.easy.deposit.{ DatasetMetadata, State, StateInfo }
 import org.json4s
 import org.json4s.JsonAST._
@@ -33,7 +34,7 @@ object Json {
   // TODO rename to InvalidDocumentException (would cause merge conflicts with PR #20)
   case class InvalidDocument(s: String, t: Throwable) extends Exception(s, t)
 
-  class PathSerializer extends CustomSerializer[Path](format =>
+  class PathSerializer extends CustomSerializer[Path](_ =>
     ( {
       case JString(s) => Paths.get(s)
       case JNull => null
@@ -49,7 +50,9 @@ object Json {
   } +
     UUIDSerializer +
     new PathSerializer +
-    new EnumNameSerializer(State) ++
+    new EnumNameSerializer(State) +
+    new EnumNameSerializer(AccessCategory) +
+    new EnumNameSerializer(PrivacySensitiveDataPresent) ++
     JodaTimeSerializers.all
 
   def toJson[A <: AnyRef](a: A): String = {
