@@ -114,7 +114,9 @@ object DepositDir {
    * @param id      the identifier of the deposit
    * @return a [[DepositDir]] object
    */
-  def get(baseDir: File, user: String, id: UUID): Try[DepositDir] = ???
+  def get(baseDir: File, user: String, id: UUID): Try[DepositDir] = Try {
+    DepositDir(baseDir, user, id)
+  }
 
   /**
    * Creates and returns a new deposit for `user`.
