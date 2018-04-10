@@ -44,6 +44,7 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
     ) {
       status shouldBe NO_CONTENT_204
     }
-    (testDir / "drafts" / "foo" / uuid.toString / "bag" / "metadata" / "dataset.json").contentAsString shouldBe "{}" // TODO more
+    (testDir / "drafts" / "foo" / uuid.toString / "bag" / "metadata" / "dataset.json").contentAsString shouldBe
+      """{"privacySensitiveDataPresent":"unspecified","acceptLicenseAgreement":false}""" // TODO more
   }
 }

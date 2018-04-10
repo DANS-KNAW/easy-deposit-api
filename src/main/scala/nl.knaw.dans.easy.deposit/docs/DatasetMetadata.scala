@@ -1,3 +1,18 @@
+/**
+ * Copyright (C) 2018 DANS - Data Archiving and Networked Services (info@dans.knaw.nl)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package nl.knaw.dans.easy.deposit.docs
 
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.AccessCategory.AccessCategory
@@ -25,8 +40,8 @@ case class DatasetMetadata(doi: Option[String] = None,
                            rightsHolders: Option[Seq[String]] = None,
                            publishers: Option[Seq[String]] = None,
                            accessRights: Option[AccessRights] = None,
-                           license: Option[String],
-                           dateAvailable: Option[String],
+                           license: Option[String] = None,
+                           dateAvailable: Option[String] = None,
                            typesDcmi: Option[Seq[String]] = None,
                            types: Option[Seq[String]] = None,
                            formatsMediaType: Option[Seq[String]] = None,
@@ -39,7 +54,7 @@ case class DatasetMetadata(doi: Option[String] = None,
                            spatialBoxes: Option[Seq[SpatialBox]] = None,
                            spatialCoverageIso3166: Option[Seq[SchemedValue]] = None,
                            spatialCoverages: Option[Seq[String]] = None,
-                           messageForDataManager: Option[String],
+                           messageForDataManager: Option[String] = None,
                            privacySensitiveDataPresent: PrivacySensitiveDataPresent = unspecified,
                            acceptLicenseAgreement: Boolean = false,
                           )

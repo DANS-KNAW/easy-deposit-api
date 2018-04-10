@@ -19,13 +19,14 @@ import java.util.UUID
 
 import nl.knaw.dans.easy.deposit.authentication.AuthenticationMocker._
 import nl.knaw.dans.easy.deposit.authentication.{ AuthUser, AuthenticationProvider }
-import nl.knaw.dans.easy.deposit.{ DatasetMetadata, EasyDepositApiApp, NoSuchDepositException, TestSupportFixture }
+import nl.knaw.dans.easy.deposit.docs.DatasetMetadata
+import nl.knaw.dans.easy.deposit.{ EasyDepositApiApp, NoSuchDepositException, TestSupportFixture }
 import org.eclipse.jetty.http.HttpStatus._
 import org.scalamock.scalatest.MockFactory
 import org.scalatra.auth.Scentry
 import org.scalatra.test.scalatest.ScalatraSuite
 
-import scala.util.{ Failure, Success }
+import scala.util.Failure
 
 class DepositServletErrorSpec extends TestSupportFixture with ServletFixture with ScalatraSuite with MockFactory {
 
