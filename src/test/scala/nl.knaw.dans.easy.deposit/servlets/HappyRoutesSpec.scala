@@ -21,6 +21,7 @@ import java.util.UUID
 import nl.knaw.dans.easy.deposit.State._
 import nl.knaw.dans.easy.deposit._
 import nl.knaw.dans.easy.deposit.authentication.AuthenticationMocker._
+import nl.knaw.dans.easy.deposit.docs.DatasetMetadata
 import org.eclipse.jetty.http.HttpStatus._
 import org.joda.time.DateTime
 import org.scalamock.scalatest.MockFactory

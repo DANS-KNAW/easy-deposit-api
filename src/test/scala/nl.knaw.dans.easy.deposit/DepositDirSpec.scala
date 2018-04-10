@@ -17,6 +17,8 @@ package nl.knaw.dans.easy.deposit
 
 import java.nio.file.attribute.PosixFilePermission
 
+import nl.knaw.dans.easy.deposit.docs.DatasetMetadata
+
 import scala.util.{ Failure, Success }
 
 class DepositDirSpec extends TestSupportFixture {
@@ -95,7 +97,8 @@ class DepositDirSpec extends TestSupportFixture {
     metadataFile.parent.createIfNotExists(asDirectory = true, createParents = true)
 
     dd.setDatasetMetadata(DatasetMetadata()) shouldBe Success(())
-    metadataFile.contentAsString shouldBe "{}"
+    metadataFile.contentAsString shouldBe
+      """{"privacySensitiveDataPresent":"unspecified","acceptLicenseAgreement":false}"""
   }
 
   it should "overwrite existing metadata" in {
@@ -104,7 +107,8 @@ class DepositDirSpec extends TestSupportFixture {
     metadataFile.write("blabla")
 
     dd.setDatasetMetadata(DatasetMetadata()) shouldBe Success(())
-    metadataFile.contentAsString shouldBe "{}"
+    metadataFile.contentAsString shouldBe
+      """{"privacySensitiveDataPresent":"unspecified","acceptLicenseAgreement":false}"""
   }
 
   it should "report the deposit does not exist" in {
