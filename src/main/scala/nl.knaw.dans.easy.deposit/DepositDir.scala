@@ -15,6 +15,7 @@
  */
 package nl.knaw.dans.easy.deposit
 
+import java.nio.file.NoSuchFileException
 import java.util.{ UUID, Arrays => JArrays }
 
 import better.files._
@@ -22,6 +23,7 @@ import gov.loc.repository.bagit.creator.BagCreator
 import gov.loc.repository.bagit.domain.{ Metadata => BagitMetadata }
 import gov.loc.repository.bagit.hash.StandardSupportedAlgorithms
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata
+import nl.knaw.dans.easy.deposit.components.Json.toJson
 import nl.knaw.dans.lib.error._
 import org.apache.commons.configuration.PropertiesConfiguration
 import org.joda.time.format.{ DateTimeFormatter, ISODateTimeFormat }
@@ -38,6 +40,9 @@ import scala.util.{ Failure, Try }
  * @param id      the ID of the deposit
  */
 case class DepositDir private(baseDir: File, user: String, id: UUID) {
+
+  private val dataDir = baseDir / user / id.toString / "bag"
+  private val metadataDir = dataDir / "metadata"
 
   /**
    * @return an information object about the current state of the desposit.
@@ -73,13 +78,18 @@ case class DepositDir private(baseDir: File, user: String, id: UUID) {
    *
    * @param md the metadata to write
    */
-  def setDatasetMetadata(md: DatasetMetadata): Try[Unit] = ???
+  def setDatasetMetadata(md: DatasetMetadata): Try[Unit] = Try {
+    // TODO EasyDepositApiApp.writeDataMetadataToDeposit says: should be complete
+    // TODO Who is responsible? I suppose also URN/DOI should not change.
+    (metadataDir / "dataset.json").write(toJson(md))
+    () // satisfy the compiler which doesn't want a File
+  }.recoverWith { case t: NoSuchFileException => Failure(NoSuchDepositException(user, id, t)) }
 
   /**
    * @return object to access the data files of this deposit
    */
   def getDataFiles: Try[DataFiles] = Try {
-    new DataFiles(baseDir / user / id.toString / "data", baseDir / user / id.toString / "data" / "metadata" / "files.xml")
+    new DataFiles(dataDir, metadataDir / "files.xml")
   }
 
 }
