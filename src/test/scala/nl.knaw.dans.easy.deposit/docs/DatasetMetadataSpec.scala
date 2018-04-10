@@ -148,7 +148,6 @@ class DatasetMetadataSpec extends TestSupportFixture {
       |  "temporalCoveragesAbr": [
       |    "string"
       |  ],
-      |  "extraClarinMetadataPresent": true,
       |  "temporalCoverages": [
       |    "string"
       |  ],
@@ -199,7 +198,7 @@ class DatasetMetadataSpec extends TestSupportFixture {
         |  ]
         |}""".stripMargin
     Json.toJson(Json.getDatasetMetadata(example).getOrElse("")) shouldBe
-      """{"creators":[{}],"extraClarinMetadataPresent":false,"privacySensitiveDataPresent":"unspecified","acceptLicenseAgreement":false}"""
+      """{"creators":[{}],"privacySensitiveDataPresent":"unspecified","acceptLicenseAgreement":false}"""
   }
 
   "deserialization" should "ignore additional info" in {
