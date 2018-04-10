@@ -13,10 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package nl.knaw.dans.easy.deposit
+package nl.knaw.dans.easy.deposit.docs
 
-import nl.knaw.dans.easy.deposit.components.Json
-import nl.knaw.dans.easy.deposit.components.Json.InvalidDocument
+import nl.knaw.dans.easy.deposit.TestSupportFixture
+import nl.knaw.dans.easy.deposit.docs.Json.InvalidDocument
 
 import scala.util.{ Failure, Success }
 
@@ -186,30 +186,6 @@ class DatasetMetadataSpec extends TestSupportFixture {
   "deserialization/serialisation" should "at most have different white space and different order of fields" in {
     val expected = example.split("\n").map(_.trim.replaceAll(": ", ":")).mkString
     val result = Json.toJson(Json.getDatasetMetadata(example).getOrElse(""))
-    result shouldBe expected // won't work because of random order of class members
-    result.length shouldBe expected.length
-  }
-
-  "author deserialization/serialisation" should "at most have different white space and different order of fields" in {
-    val example =
-      """    {
-        |      "titles": "Prof Dr",
-        |      "initials": "A",
-        |      "surname": "Einstein",
-        |      "ids": [
-        |        {
-        |          "scheme": "DOI",
-        |          "value": "1234/5678"
-        |        },
-        |        {
-        |          "scheme": "ISNI",
-        |          "value": "ISNI|000000012281955X"
-        |        }
-        |      ],
-        |      "organization": "University of Zurich"
-        |    }""".stripMargin
-    val expected = example.split("\n").map(_.trim.replaceAll(": ", ":")).mkString
-    val result = Json.toJson(Json.getAuthor(example).getOrElse(""))
     result shouldBe expected // won't work because of random order of class members
     result.length shouldBe expected.length
   }

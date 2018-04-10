@@ -13,13 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package nl.knaw.dans.easy.deposit.components
+package nl.knaw.dans.easy.deposit.docs
 
 import java.nio.file.{ Path, Paths }
 import java.text.SimpleDateFormat
 
-import nl.knaw.dans.easy.deposit.DatasetMetadata.{ AccessCategory, PrivacySensitiveDataPresent }
-import nl.knaw.dans.easy.deposit.{ DatasetMetadata, State, StateInfo }
+import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.{ AccessCategory, PrivacySensitiveDataPresent }
+import nl.knaw.dans.easy.deposit.{ State, StateInfo }
 import org.json4s
 import org.json4s.JsonAST._
 import org.json4s.ext.{ EnumNameSerializer, JodaTimeSerializers, UUIDSerializer }
