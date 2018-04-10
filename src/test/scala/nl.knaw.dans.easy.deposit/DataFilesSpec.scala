@@ -15,6 +15,31 @@
  */
 package nl.knaw.dans.easy.deposit
 
+import java.io.{ FileInputStream, InputStream }
+import java.nio.file.Paths
+
+import scala.util.Success
+
 class DataFilesSpec extends TestSupportFixture {
 
+  before {
+    clearTestDir()
+    draftsDir.createDirectories()
+  }
+  private val draftsDir = testDir / "drafts"
+
+  "write" should "blabla" in {
+    // prepare empty deposit
+    val dd = DepositDir(draftsDir, "foo", uuid)
+    // prepare uploaded file
+    val input = (draftsDir / "input" / "test.tst").write("Lorum ipsum est")
+    val inputStream: InputStream = new FileInputStream(input.toJava)
+
+    dd.getDataFiles.map(_.write(inputStream, Paths.get("test.txt"))) shouldBe Success(true)
+
+    (dd.baseDir / "foo" / uuid.toString / "bag" / "data" / "test.txt")
+      .contentAsString shouldBe "Lorum ipsum est"
+
+    // TODO als verify the file meta data
+  }
 }
