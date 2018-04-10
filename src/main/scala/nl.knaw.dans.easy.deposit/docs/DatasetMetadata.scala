@@ -56,42 +56,41 @@ object DatasetMetadata {
     val open, open_for_registered_users, restricted_group, restricted_request, other_access = Value
   }
 
-  case class AccessRights(category: Option[AccessCategory] = None,
-                          group: Option[String] = None,
+  case class AccessRights(category: AccessCategory,
+                          group: String,
                          )
 
-  case class Author(
-                     titles: Option[String] = None,
-                     initials: Option[String] = None,
-                     insertions: Option[String] = None,
-                     surname: Option[String] = None,
-                     role: Option[String] = None,
-                     ids: Seq[SchemedValue] = Seq.empty,
-                     organization: Option[String] = None,
+  case class Author(titles: Option[String] = None,
+                    initials: Option[String] = None,
+                    insertions: Option[String] = None,
+                    surname: Option[String] = None,
+                    role: Option[String] = None,
+                    ids: Seq[SchemedValue] = Seq.empty,
+                    organization: Option[String] = None,
                    )
 
   case class Date(scheme: Option[String] = None,
                   date: Option[String] = None,
                  )
 
-  case class SpatialPoint(scheme: Option[String] = None,
-                          x: Option[Int] = None,
-                          y: Option[Int] = None,
+  case class SpatialPoint(scheme: String,
+                          x: Int,
+                          y: Int,
                          )
 
-  case class SpatialBox(scheme: Option[String] = None,
-                        north: Option[Int] = None,
-                        east: Option[Int] = None,
-                        south: Option[Int] = None,
-                        west: Option[Int] = None,
+  case class SpatialBox(scheme: String,
+                        north: Int,
+                        east: Int,
+                        south: Int,
+                        west: Int,
                        )
 
-  case class SchemedValue(scheme: Option[String] = None,
-                          value: Option[String] = None,
+  case class SchemedValue(scheme: String,
+                          value: String,
                          )
 
-  case class Identifier(scheme: Option[String] = None,
-                        identifier: Option[String] = None,
+  case class Identifier(scheme: String,
+                        identifier: String,
                        )
 
   case class Relation(qualifier: Option[String] = None,
