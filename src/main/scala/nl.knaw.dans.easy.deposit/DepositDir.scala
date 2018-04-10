@@ -22,6 +22,7 @@ import better.files._
 import gov.loc.repository.bagit.creator.BagCreator
 import gov.loc.repository.bagit.domain.{ Metadata => BagitMetadata }
 import gov.loc.repository.bagit.hash.StandardSupportedAlgorithms
+import nl.knaw.dans.easy.deposit.docs.DatasetMetadata
 import nl.knaw.dans.easy.deposit.components.Json.toJson
 import nl.knaw.dans.lib.error._
 import org.apache.commons.configuration.PropertiesConfiguration

@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package nl.knaw.dans.easy.deposit.components
+package nl.knaw.dans.easy.deposit.docs
 
 case class UserInfo(userName: String,
                     firstName: Option[String] = None,

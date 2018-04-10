@@ -21,9 +21,10 @@ import java.util.UUID
 
 import nl.knaw.dans.easy.deposit._
 import nl.knaw.dans.easy.deposit.authentication.ServletEnhancedLogging._
-import nl.knaw.dans.easy.deposit.components.Json._
-import nl.knaw.dans.easy.deposit.servlets.DepositServlet._
-import org.scalatra._
+import nl.knaw.dans.easy.deposit.docs.Json.{ InvalidDocument, getDatasetMetadata, getStateInfo, toJson }
+import nl.knaw.dans.easy.deposit.servlets.DepositServlet.InvalidResource
+import nl.knaw.dans.easy.deposit.{ EasyDepositApiApp, badDocResponse, internalErrorResponse }
+import org.scalatra.{ ActionResult, NotFound, Ok }
 
 import scala.util.{ Failure, Try }
 
