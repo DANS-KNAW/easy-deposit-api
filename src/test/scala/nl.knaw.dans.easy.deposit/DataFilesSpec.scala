@@ -15,31 +15,34 @@
  */
 package nl.knaw.dans.easy.deposit
 
-import java.io.{ FileInputStream, InputStream }
+import java.io.{ ByteArrayInputStream, InputStream }
 import java.nio.file.Paths
 
 import scala.util.Success
 
 class DataFilesSpec extends TestSupportFixture {
 
-  before {
+  override def beforeEach(): Unit = {
+    super.beforeEach()
     clearTestDir()
     draftsDir.createDirectories()
   }
+
   private val draftsDir = testDir / "drafts"
 
   "write" should "blabla" in {
-    // prepare empty deposit
+    // preparations
     val dd = DepositDir(draftsDir, "foo", uuid)
-    // prepare uploaded file
-    val input = (draftsDir / "input" / "test.tst").write("Lorum ipsum est")
-    val inputStream: InputStream = new FileInputStream(input.toJava)
+    val content = "Lorum ipsum est"
+    val inputStream: InputStream = new ByteArrayInputStream(content.getBytes())
+    val fileInBag = "test.txt"
 
-    dd.getDataFiles.map(_.write(inputStream, Paths.get("test.txt"))) shouldBe Success(true)
+    // execution
+    dd.getDataFiles.map(_.write(inputStream, Paths.get(fileInBag))) shouldBe Success(true)
 
-    (dd.baseDir / "foo" / uuid.toString / "bag" / "data" / "test.txt")
-      .contentAsString shouldBe "Lorum ipsum est"
-
-    // TODO als verify the file meta data
+    // verifications
+    (dd.baseDir / "bag" / "data" / fileInBag).contentAsString shouldBe content
+    (dd.baseDir / "bag" / "???").contentAsString shouldBe // TODO fill in ???
+      s"""{"fileName": "$fileInBag", "dirPath": "???", "sha1sum": "???"}"""
   }
 }
