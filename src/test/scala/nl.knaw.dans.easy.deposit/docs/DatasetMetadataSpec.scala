@@ -22,7 +22,6 @@ import scala.util.{ Failure, Success }
 
 class DatasetMetadataSpec extends TestSupportFixture {
   private val example =
-  // TODO "insertions": null
     """{
       |  "doi": "doi:10.17632/DANS.6wg5xccnjd.1",
       |  "languageOfDescription": "string",
@@ -186,8 +185,21 @@ class DatasetMetadataSpec extends TestSupportFixture {
   "deserialization/serialisation" should "at most have different white space and different order of fields" in {
     val expected = example.split("\n").map(_.trim.replaceAll(": ", ":")).mkString
     val result = Json.toJson(Json.getDatasetMetadata(example).getOrElse(""))
-    result shouldBe expected // won't work because of random order of class members
+    //result shouldBe expected // might suffer from random order of fields, but can help debugging
     result.length shouldBe expected.length
+  }
+
+  it should "return defaults for omitted fields and omit null fields that don't have a default" in {
+    val example =
+      """{
+        |  "creators": [
+        |    {
+        |      "insertions": null,
+        |    }
+        |  ]
+        |}""".stripMargin
+    Json.toJson(Json.getDatasetMetadata(example).getOrElse("")) shouldBe
+      """{"creators":[{}],"extraClarinMetadataPresent":false,"privacySensitiveDataPresent":"unspecified","acceptLicenseAgreement":false}"""
   }
 
   "deserialization" should "ignore additional info" in {
