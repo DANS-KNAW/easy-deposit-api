@@ -19,7 +19,6 @@ import nl.knaw.dans.easy.deposit.EasyDepositApiApp
 import nl.knaw.dans.easy.deposit.authentication.ServletEnhancedLogging._
 import nl.knaw.dans.easy.deposit.docs.Json._
 import nl.knaw.dans.easy.deposit.docs.UserInfo
-import nl.knaw.dans.easy.deposit.{ EasyDepositApiApp, badDocResponse, internalErrorResponse }
 import org.scalatra._
 
 import scala.util.Try
