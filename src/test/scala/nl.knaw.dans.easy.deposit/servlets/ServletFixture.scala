@@ -15,14 +15,15 @@
  */
 package nl.knaw.dans.easy.deposit.servlets
 
+import nl.knaw.dans.easy.deposit.EasyDepositApiApp
+import nl.knaw.dans.easy.deposit.authentication.AuthenticationProvider
 import org.eclipse.jetty.server.nio.SelectChannelConnector
 import org.scalatra.test.EmbeddedJettyContainer
 import org.scalatra.test.scalatest.ScalatraSuite
 
 /**
- * Temporary fixture such that the servlets can be tested with ScalatraSuite.
  * This Suite relies on Jetty 9.x, while we still require Jetty 8.x
- * By overriding the two functions below, issues related to these versions are solved.
+ * By overriding localPort and baseUrl below, issues related to these versions are solved.
  */
 trait ServletFixture extends EmbeddedJettyContainer {
   this: ScalatraSuite =>
@@ -39,5 +40,21 @@ trait ServletFixture extends EmbeddedJettyContainer {
         require(port > 0, "The detected local port is < 1, that's not allowed")
         "http://%s:%d".format(host, port)
     }.getOrElse(sys.error("can't calculate base URL: no connector"))
+  }
+
+  def mountServlets(app: EasyDepositApiApp, authenticationProvider: AuthenticationProvider): Unit = {
+    val userServlet = new UserServlet(app) {
+      override def getAuthenticationProvider: AuthenticationProvider = authenticationProvider
+    }
+    val depositServlet = new DepositServlet(app) {
+      override def getAuthenticationProvider: AuthenticationProvider = authenticationProvider
+    }
+    val authServlet = new AuthServlet(app) {
+      override def getAuthenticationProvider: AuthenticationProvider = authenticationProvider
+    }
+    addServlet(depositServlet, "/deposit/*")
+    addServlet(userServlet, "/user/*")
+    addServlet(authServlet, "/auth/*")
+    addServlet(new EasyDepositApiServlet(app), "/*")
   }
 }

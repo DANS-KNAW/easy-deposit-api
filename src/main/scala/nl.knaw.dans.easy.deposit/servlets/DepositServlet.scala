@@ -19,11 +19,11 @@ import java.io.InputStream
 import java.nio.file.{ Path, Paths }
 import java.util.UUID
 
+import nl.knaw.dans.easy.deposit._
 import nl.knaw.dans.easy.deposit.authentication.ServletEnhancedLogging._
-import nl.knaw.dans.easy.deposit.components.Json.{ InvalidDocument, getDatasetMetadata, getStateInfo, toJson }
-import nl.knaw.dans.easy.deposit.servlets.DepositServlet.InvalidResource
-import nl.knaw.dans.easy.deposit.{ EasyDepositApiApp, badDocResponse, internalErrorResponse }
-import org.scalatra.{ ActionResult, NotFound, Ok }
+import nl.knaw.dans.easy.deposit.components.Json._
+import nl.knaw.dans.easy.deposit.servlets.DepositServlet._
+import org.scalatra._
 
 import scala.util.{ Failure, Try }
 
@@ -51,7 +51,7 @@ class DepositServlet(app: EasyDepositApiApp) extends ProtectedServlet(app) {
     (for {
       datasetMetadata <- getDatasetMetadata(request.body)
       _ <- forDeposit(app.writeDataMetadataToDeposit(datasetMetadata))
-    } yield Ok(???))
+    } yield NoContent())
       .getOrRecoverResponse(respond)
   }
   get("/:uuid/state") {
@@ -121,7 +121,12 @@ class DepositServlet(app: EasyDepositApiApp) extends ProtectedServlet(app) {
   }
 
   private def respond(t: Throwable): ActionResult = t match {
-    // TODO case Failure(t: ???) =>
+    case _: CorruptDepositException => ???
+    case _: IllegalStateTransitionException => ???
+    case _: ConfigurationException => ???
+    case t: NoSuchDepositException =>
+      logger.info(s"${ t.cause.getClass.getName } ${ t.cause.getMessage }")
+      NotFound(body = t.getMessage)
     case _: InvalidResource =>
       logger.error(s"InvalidResource: ${ t.getMessage }")
       NotFound()

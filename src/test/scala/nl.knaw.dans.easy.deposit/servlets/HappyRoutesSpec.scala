@@ -21,7 +21,6 @@ import java.util.UUID
 import nl.knaw.dans.easy.deposit.State._
 import nl.knaw.dans.easy.deposit._
 import nl.knaw.dans.easy.deposit.authentication.AuthenticationMocker._
-import nl.knaw.dans.easy.deposit.authentication.AuthenticationProvider
 import org.eclipse.jetty.http.HttpStatus._
 import org.joda.time.DateTime
 import org.scalamock.scalatest.MockFactory
@@ -33,19 +32,7 @@ class HappyRoutesSpec extends TestSupportFixture with ServletFixture with Scalat
 
   private class MockedApp extends EasyDepositApiApp(minimalAppConfig)
   private val mockedApp = mock[MockedApp]
-  private val userServlet = new UserServlet(mockedApp) {
-    override def getAuthenticationProvider: AuthenticationProvider = mockedAuthenticationProvider
-  }
-  private val depositServlet = new DepositServlet(mockedApp) {
-    override def getAuthenticationProvider: AuthenticationProvider = mockedAuthenticationProvider
-  }
-  private val authServlet = new AuthServlet(mockedApp) {
-    override def getAuthenticationProvider: AuthenticationProvider = mockedAuthenticationProvider
-  }
-  addServlet(depositServlet, "/deposit/*")
-  addServlet(userServlet, "/user/*")
-  addServlet(authServlet, "/auth/*")
-  addServlet(new EasyDepositApiServlet(mockedApp), "/*")
+  mountServlets(mockedApp, mockedAuthenticationProvider)
 
   "get /" should "be ok" in {
     mockedApp.getVersion _ expects() returning "test"
@@ -137,16 +124,14 @@ class HappyRoutesSpec extends TestSupportFixture with ServletFixture with Scalat
     }
   }
 
-  private val fixedUUID = UUID.fromString("1cd9409d-8645-46a0-80db-eaf468a5ba7e")
-
-  s"get /$fixedUUID/state" should "return DatasetMetadata" in {
+  s"get /deposit/:uuid/state" should "return DatasetMetadata" in {
     expectsUserFooBar
     // TODO how to define expects for the curried method called by the PUT variant?
-    (mockedApp.getDepositState(_: String, _: UUID)) expects("foo", fixedUUID) returning
+    (mockedApp.getDepositState(_: String, _: UUID)) expects("foo", uuid) returning
       Success(StateInfo(DRAFT, "x"))
 
     get(
-      uri = s"/deposit/$fixedUUID/state",
+      uri = s"/deposit/$uuid/state",
       headers = Seq(("Authorization", fooBarBasicAuthHeader))
     ) {
       body shouldBe s"""{"state":"DRAFT","stateDescription":"x"}"""
@@ -154,17 +139,31 @@ class HappyRoutesSpec extends TestSupportFixture with ServletFixture with Scalat
     }
   }
 
-  s"get /$fixedUUID/file/a.txt" should "return FileInfo" in {
+  s"get /deposit/:uuid/file/a.txt" should "return FileInfo" in {
     expectsUserFooBar
-    (mockedApp.getDepositFiles(_: String, _: UUID, _: Path)) expects("foo", fixedUUID, *) returning
+    (mockedApp.getDepositFiles(_: String, _: UUID, _: Path)) expects("foo", uuid, *) returning
       Success(Seq(FileInfo("a.txt", Paths.get("files/a.txt"), "x")))
 
     get(
-      uri = s"/deposit/$fixedUUID/file/a.txt",
+      uri = s"/deposit/$uuid/file/a.txt",
       headers = Seq(("Authorization", fooBarBasicAuthHeader))
     ) {
       body shouldBe s"""[{"fileName":"a.txt","dirPath":"files/a.txt","sha1sum":"x"}]"""
       status shouldBe OK_200
+    }
+  }
+
+  s"put /deposit/:uuid/metadata" should "ignore undefined json content" in {
+    expectsUserFooBar
+    (mockedApp.writeDataMetadataToDeposit(_: DatasetMetadata)(_: String, _: UUID)) expects(*, "foo", uuid) returning
+      Success(())
+
+    put(
+      uri = s"/deposit/$uuid/metadata",
+      body = """{"blabla":"blabla"}""",
+      headers = Seq(("Authorization", fooBarBasicAuthHeader))
+    ) {
+      status shouldBe NO_CONTENT_204
     }
   }
 }

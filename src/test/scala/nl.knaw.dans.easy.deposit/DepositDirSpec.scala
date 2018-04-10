@@ -16,7 +16,8 @@
 package nl.knaw.dans.easy.deposit
 
 import java.nio.file.attribute.PosixFilePermission
-import scala.util.{ Failure, Success}
+
+import scala.util.{ Failure, Success }
 
 class DepositDirSpec extends TestSupportFixture {
   before {
@@ -86,4 +87,30 @@ class DepositDirSpec extends TestSupportFixture {
     }
   }
 
+  private val dd = DepositDir(draftsDir, "foo", uuid)
+  private val metadataFile = dd.baseDir / "foo" / uuid.toString / "bag" / "metadata" / "dataset.json"
+
+  "setDatasetMetadata" should "create a file" in {
+    // prepare empty deposit
+    metadataFile.parent.createIfNotExists(asDirectory = true, createParents = true)
+
+    dd.setDatasetMetadata(DatasetMetadata()) shouldBe Success(())
+    metadataFile.contentAsString shouldBe "{}"
+  }
+
+  it should "overwrite existing metadata" in {
+    // prepare existing metadata
+    metadataFile.parent.createIfNotExists(asDirectory = true, createParents = true)
+    metadataFile.write("blabla")
+
+    dd.setDatasetMetadata(DatasetMetadata()) shouldBe Success(())
+    metadataFile.contentAsString shouldBe "{}"
+  }
+
+  it should "report the deposit does not exist" in {
+    // no preparations for a "lost" deposit
+    dd.setDatasetMetadata(DatasetMetadata()) should matchPattern {
+      case Failure(NoSuchDepositException(_, _, _)) =>
+    }
+  }
 }
