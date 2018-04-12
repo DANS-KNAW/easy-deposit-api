@@ -55,4 +55,27 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
       body shouldBe """{"privacySensitiveDataPresent":"unspecified","acceptLicenseAgreement":false}"""
     }
   }
+
+  s"scenario: POST /deposit twice; GET /deposit" should "return a list of datasets" ignore {
+    // requires implementation of DespositDir.getDepositInfo
+
+    (0 until 2).foreach {
+      expectsUserFooBar
+      post(
+        uri = s"/deposit",
+        headers = Seq(("Authorization", fooBarBasicAuthHeader))
+      ) {
+        new String(bodyBytes)
+      }
+    }
+
+    expectsUserFooBar
+    get(
+      uri = s"/deposit",
+      headers = Seq(("Authorization", fooBarBasicAuthHeader))
+    ) {
+      status shouldBe OK_200
+      body shouldBe """{[...]}"""
+    }
+  }
 }
