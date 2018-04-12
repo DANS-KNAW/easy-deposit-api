@@ -77,7 +77,7 @@ class DepositServletErrorSpec extends TestSupportFixture with ServletFixture wit
       headers = Seq(("Authorization", fooBarBasicAuthHeader))
     ) {
       status shouldBe NOT_FOUND_404
-      body shouldBe s"Deposit with id $uuid not found for user foo"
+      body shouldBe s"Deposit $uuid not found"
     }
   }
 
@@ -104,7 +104,7 @@ class DepositServletErrorSpec extends TestSupportFixture with ServletFixture wit
       uri = s"/$uuid/metadata",
       headers = Seq(("Authorization", fooBarBasicAuthHeader))
     ) {
-      body shouldBe s"Deposit with id $uuid not found for user foo"
+      body shouldBe s"Deposit $uuid not found"
       status shouldBe NOT_FOUND_404
     }
   }

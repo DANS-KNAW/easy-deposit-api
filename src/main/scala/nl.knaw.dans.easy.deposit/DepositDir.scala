@@ -103,7 +103,7 @@ case class DepositDir private(baseDir: File, user: String, id: UUID) extends Deb
     // TODO Who is responsible? I suppose also DOI should not change.
     (metadataDir / "dataset.json").write(toJson(md))
     () // satisfy the compiler which doesn't want a File
-  }.recoverWith { case t: NoSuchFileException => notFoundFailure(t) }
+  }.recoverWith { case _: NoSuchFileException => notFoundFailure() }
 
   /**
    * @return object to access the data files of this deposit
