@@ -26,6 +26,7 @@ import gov.loc.repository.bagit.hash.StandardSupportedAlgorithms
 import nl.knaw.dans.easy.deposit.docs.Json.{ InvalidDocument, toJson }
 import nl.knaw.dans.easy.deposit.docs.{ DatasetMetadata, Json }
 import nl.knaw.dans.lib.error._
+import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.apache.commons.configuration.PropertiesConfiguration
 import org.joda.time.format.{ DateTimeFormatter, ISODateTimeFormat }
 import org.joda.time.{ DateTime, DateTimeZone }
@@ -41,7 +42,7 @@ import scala.util.{ Failure, Try }
  * @param user    the user ID of the deposit's owner
  * @param id      the ID of the deposit
  */
-case class DepositDir private(baseDir: File, user: String, id: UUID) {
+case class DepositDir private(baseDir: File, user: String, id: UUID) extends DebugEnhancedLogging {
 
   private val dataDir = baseDir / user / id.toString / "bag"
   private val metadataDir = dataDir / "metadata"
@@ -77,8 +78,11 @@ case class DepositDir private(baseDir: File, user: String, id: UUID) {
     Try { (metadataDir / "dataset.json").fileInputStream }
       .flatMap(_ (is => Json.getDatasetMetadata(StreamInput(is))))
       .recoverWith {
-        case t: FileNotFoundException => Failure(NoSuchDepositException(user, id))
-        case t: InvalidDocument => Failure(CorruptDepositException(user, id.toString))
+        case t: InvalidDocument =>
+          logger.error(s"invalid DatasetMetadata for user=$user, id=$id: ${t.getCause.getClass} ${t.getCause.getMessage}")
+          Failure(CorruptDepositException(user, id.toString))
+        case t: FileNotFoundException => Failure(NoSuchDepositException(user, id, t))
+        case t: NoSuchFileException => Failure(NoSuchDepositException(user, id, t))
         case t => Failure(t)
       }
   }

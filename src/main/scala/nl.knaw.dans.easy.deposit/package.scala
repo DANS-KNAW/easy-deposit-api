@@ -25,7 +25,7 @@ package object deposit {
 
   sealed abstract class DepositException(msg: String, cause: Throwable = null) extends Exception(msg, cause)
 
-  case class NoSuchDepositException(user: String, id: UUID, cause: Throwable = null)
+  case class NoSuchDepositException(user: String, id: UUID, cause: Throwable)
     extends DepositException(s"Deposit with id $id not found for user $user", cause)
 
   case class CorruptDepositException(user: String, id: String)

@@ -15,6 +15,8 @@
  */
 package nl.knaw.dans.easy.deposit.servlets
 
+import java.util.UUID
+
 import nl.knaw.dans.easy.deposit.authentication.AuthenticationMocker._
 import nl.knaw.dans.easy.deposit.{ EasyDepositApiApp, _ }
 import org.eclipse.jetty.http.HttpStatus._
@@ -26,33 +28,45 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
   private val depositApiApp = new EasyDepositApiApp(minimalAppConfig)
   mountServlets(depositApiApp, mockedAuthenticationProvider)
 
-  s"scenario: POST /deposit; PUT+GET /deposit/:uuid/metadata" should "return default dataset metadata" in {
+  private val basicAuthentication: (String, String) = ("Authorization", fooBarBasicAuthHeader)
+
+  s"scenario: /deposit/:uuid/metadata life cycle" should "return default dataset metadata" in {
 
     expectsUserFooBar
-    val uuid = post(
-      uri = s"/deposit",
-      headers = Seq(("Authorization", fooBarBasicAuthHeader))
-    ) {
+    val uuid = post(uri = s"/deposit", headers = Seq(basicAuthentication)) {
       new String(bodyBytes)
     }
+    val metadataURI = s"/deposit/$uuid/metadata"
 
     expectsUserFooBar
-    put(
-      uri = s"/deposit/$uuid/metadata",
-      body = """{"blabla":"blabla"}""", // more variations in DepositDirSpec
-      headers = Seq(("Authorization", fooBarBasicAuthHeader))
+    put(metadataURI, headers = Seq(basicAuthentication),
+        body = """{"blabla":"blabla"}""" // more variations in DepositDirSpec
     ) {
       status shouldBe NO_CONTENT_204
     }
     (testDir / "drafts" / "foo" / uuid.toString / "bag" / "metadata" / "dataset.json").toJava should exist
 
     expectsUserFooBar
-    get(
-      uri = s"/deposit/$uuid/metadata",
-      headers = Seq(("Authorization", fooBarBasicAuthHeader))
-    ) {
+    get(metadataURI, headers = Seq(basicAuthentication)) {
       status shouldBe OK_200
       body shouldBe """{"privacySensitiveDataPresent":"unspecified","acceptLicenseAgreement":false}"""
+    }
+
+    // invalidate the metadata and try again
+    val dd = DepositDir(testDir / "drafts", "foo", UUID.fromString(uuid))
+    val mdFile = (dd.baseDir / "foo" / uuid.toString / "bag" / "metadata" / "dataset.json").write("---")
+
+    expectsUserFooBar
+    get(metadataURI, headers = Seq(basicAuthentication)) {
+      status shouldBe INTERNAL_SERVER_ERROR_500
+    }
+
+    // remove the dataset and try another time
+    mdFile.delete() // TODO replace with "GET deposit/:uuid" when implemented
+
+    expectsUserFooBar
+    get(metadataURI, headers = Seq(basicAuthentication)) {
+      status shouldBe NOT_FOUND_404
     }
   }
 
@@ -63,7 +77,7 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
       expectsUserFooBar
       post(
         uri = s"/deposit",
-        headers = Seq(("Authorization", fooBarBasicAuthHeader))
+        headers = Seq(basicAuthentication)
       ) {
         new String(bodyBytes)
       }
@@ -72,7 +86,7 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
     expectsUserFooBar
     get(
       uri = s"/deposit",
-      headers = Seq(("Authorization", fooBarBasicAuthHeader))
+      headers = Seq(basicAuthentication)
     ) {
       status shouldBe OK_200
       body shouldBe """{[...]}"""
