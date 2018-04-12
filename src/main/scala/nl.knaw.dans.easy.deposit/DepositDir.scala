@@ -15,7 +15,6 @@
  */
 package nl.knaw.dans.easy.deposit
 
-import java.io.{ FileNotFoundException, IOException }
 import java.nio.file.NoSuchFileException
 import java.util.{ UUID, Arrays => JArrays }
 
@@ -23,8 +22,8 @@ import better.files._
 import gov.loc.repository.bagit.creator.BagCreator
 import gov.loc.repository.bagit.domain.{ Metadata => BagitMetadata }
 import gov.loc.repository.bagit.hash.StandardSupportedAlgorithms
-import nl.knaw.dans.easy.deposit.docs.{ DatasetMetadata, Json }
 import nl.knaw.dans.easy.deposit.docs.Json.{ InvalidDocument, toJson }
+import nl.knaw.dans.easy.deposit.docs.{ DatasetMetadata, Json }
 import nl.knaw.dans.lib.error._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.apache.commons.configuration.PropertiesConfiguration
@@ -77,9 +76,9 @@ case class DepositDir private(baseDir: File, user: String, id: UUID) extends Deb
     (for {
       content <- Try { (metadataDir / "dataset.json").contentAsString }
       dm <- Json.getDatasetMetadata(content)
-    } yield dm).recoverWith{
-      case t: NoSuchFileException => Failure(NoSuchDepositException(user,id))
-      case t: InvalidDocument => Failure(CorruptDepositException(user,id.toString))
+    } yield dm).recoverWith {
+      case t: NoSuchFileException => Failure(NoSuchDepositException(user, id))
+      case t: InvalidDocument => Failure(CorruptDepositException(user, id.toString))
       case t => Failure(t)
     }
   }

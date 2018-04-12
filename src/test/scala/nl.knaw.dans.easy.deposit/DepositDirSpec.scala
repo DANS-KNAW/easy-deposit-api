@@ -117,7 +117,20 @@ class DepositDirSpec extends TestSupportFixture {
       case Failure(NoSuchDepositException(_, _, _)) =>
     }
   }
+
   "getDatasetMetadata" should "complain about a not found file" in {
+    dd.getDatasetMetadata should matchPattern {
+      case Failure(NoSuchDepositException(_, _, _)) =>
+    }
+  }
+  it should "get the content" in {
+    metadataFile.parent.createIfNotExists(asDirectory = true, createParents = true)
+    metadataFile.write("{}")
+    dd.getDatasetMetadata shouldBe Success(DatasetMetadata())
+  }
+  it should "complain about invalid content" in {
+    metadataFile.parent.createIfNotExists(asDirectory = true, createParents = true)
+    metadataFile.write("---")
     dd.getDatasetMetadata should matchPattern {
       case Failure(CorruptDepositException(_, _)) =>
     }

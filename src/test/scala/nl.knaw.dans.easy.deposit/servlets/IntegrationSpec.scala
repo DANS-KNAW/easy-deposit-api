@@ -26,7 +26,7 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
   private val depositApiApp = new EasyDepositApiApp(minimalAppConfig)
   mountServlets(depositApiApp, mockedAuthenticationProvider)
 
-  s"scenario: POST /deposit; PUT /deposit/:uuid/metadata" should "succeed" in {
+  s"scenario: POST /deposit; PUT+GET /deposit/:uuid/metadata" should "return default dataset metadata" in {
 
     expectsUserFooBar
     val uuid = post(
@@ -44,7 +44,15 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
     ) {
       status shouldBe NO_CONTENT_204
     }
-    (testDir / "drafts" / "foo" / uuid.toString / "bag" / "metadata" / "dataset.json").contentAsString shouldBe
-      """{"privacySensitiveDataPresent":"unspecified","acceptLicenseAgreement":false}""" // TODO more
+    (testDir / "drafts" / "foo" / uuid.toString / "bag" / "metadata" / "dataset.json").toJava should exist
+
+    expectsUserFooBar
+    get(
+      uri = s"/deposit/$uuid/metadata",
+      headers = Seq(("Authorization", fooBarBasicAuthHeader))
+    ) {
+      status shouldBe OK_200
+      body shouldBe """{"privacySensitiveDataPresent":"unspecified","acceptLicenseAgreement":false}"""
+    }
   }
 }
