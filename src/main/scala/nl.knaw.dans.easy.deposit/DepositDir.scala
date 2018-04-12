@@ -15,6 +15,7 @@
  */
 package nl.knaw.dans.easy.deposit
 
+import java.io.FileNotFoundException
 import java.nio.file.NoSuchFileException
 import java.util.{ UUID, Arrays => JArrays }
 
@@ -25,10 +26,10 @@ import gov.loc.repository.bagit.hash.StandardSupportedAlgorithms
 import nl.knaw.dans.easy.deposit.docs.Json.{ InvalidDocument, toJson }
 import nl.knaw.dans.easy.deposit.docs.{ DatasetMetadata, Json }
 import nl.knaw.dans.lib.error._
-import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.apache.commons.configuration.PropertiesConfiguration
 import org.joda.time.format.{ DateTimeFormatter, ISODateTimeFormat }
 import org.joda.time.{ DateTime, DateTimeZone }
+import org.json4s.StreamInput
 
 import scala.collection.Seq
 import scala.util.{ Failure, Try }
@@ -73,14 +74,13 @@ case class DepositDir private(baseDir: File, user: String, id: UUID) {
    * @return the dataset level metadata in this deposit
    */
   def getDatasetMetadata: Try[DatasetMetadata] = {
-    (for {
-      content <- Try { (metadataDir / "dataset.json").contentAsString }
-      dm <- Json.getDatasetMetadata(content)
-    } yield dm).recoverWith {
-      case t: NoSuchFileException => Failure(NoSuchDepositException(user, id))
-      case t: InvalidDocument => Failure(CorruptDepositException(user, id.toString))
-      case t => Failure(t)
-    }
+    Try { (metadataDir / "dataset.json").fileInputStream }
+      .flatMap(_(is => Json.getDatasetMetadata(StreamInput(is))))
+      .recoverWith {
+        case t: FileNotFoundException => Failure(NoSuchDepositException(user, id))
+        case t: InvalidDocument => Failure(CorruptDepositException(user, id.toString))
+        case t => Failure(t)
+      }
   }
 
   /**
