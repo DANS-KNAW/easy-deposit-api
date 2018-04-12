@@ -40,7 +40,7 @@ import scala.util.{ Failure, Try }
  * @param user    the user ID of the deposit's owner
  * @param id      the ID of the deposit
  */
-case class DepositDir private(baseDir: File, user: String, id: UUID) extends DebugEnhancedLogging {
+case class DepositDir private(baseDir: File, user: String, id: UUID) {
 
   private val dataDir = baseDir / user / id.toString / "bag"
   private val metadataDir = dataDir / "metadata"
