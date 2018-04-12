@@ -60,19 +60,19 @@ object Json {
     write(a)
   }
 
-  def getUser(body: JsonInput): Try[UserInfo] = {
+  def getUser(body: String): Try[UserInfo] = {
     parseObject(body).map(_.extract[UserInfo])
   }.recoverWith { case t: Throwable => Failure(InvalidDocument("User", t)) }
 
-  def getStateInfo(body: JsonInput): Try[StateInfo] = {
+  def getStateInfo(body: String): Try[StateInfo] = {
     parseObject(body).map(_.extract[StateInfo])
   }.recoverWith { case t: Throwable => Failure(InvalidDocument("StateInfo", t)) }
 
-  def getDatasetMetadata(body: JsonInput): Try[DatasetMetadata] = {
+  def getDatasetMetadata(body: String): Try[DatasetMetadata] = {
     parseObject(body).map(_.extract[DatasetMetadata])
   }.recoverWith { case t: Throwable => Failure(InvalidDocument("DatasetMetadata", t)) }
 
-  private def parseObject(body: JsonInput): Try[json4s.JValue] = Try {
+  private def parseObject(body: String): Try[json4s.JValue] = Try {
     JsonMethods.parse(body)
   }.map {
     case jObject if jObject.isInstanceOf[JObject] => jObject
