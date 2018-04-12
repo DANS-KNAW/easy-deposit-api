@@ -31,18 +31,17 @@ class DataFilesSpec extends TestSupportFixture {
   private val draftsDir = testDir / "drafts"
 
   "write" should "blabla" in {
-    // preparations
     val dd = DepositDir(draftsDir, "foo", uuid)
+    // preparations
+    val dataFiles = dd.getDataFiles.get// unsafe but just the preparation of a unit test
     val content = "Lorum ipsum est"
     val inputStream: InputStream = new ByteArrayInputStream(content.getBytes())
     val fileInBag = "test.txt"
 
     // execution
-    dd.getDataFiles.map(_.write(inputStream, Paths.get(fileInBag))) shouldBe Success(true)
+    dataFiles.write(inputStream, Paths.get(fileInBag)) shouldBe Success(true)
 
     // verifications
-    (dd.baseDir / "bag" / "data" / fileInBag).contentAsString shouldBe content
-    (dd.baseDir / "bag" / "???").contentAsString shouldBe // TODO fill in ???
-      s"""{"fileName": "$fileInBag", "dirPath": "???", "sha1sum": "???"}"""
+    (dataFiles.dataFilesBase / fileInBag).contentAsString shouldBe content
   }
 }
