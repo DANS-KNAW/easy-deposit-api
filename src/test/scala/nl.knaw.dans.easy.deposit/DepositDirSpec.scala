@@ -132,7 +132,7 @@ class DepositDirSpec extends TestSupportFixture {
     metadataFile.parent.createIfNotExists(asDirectory = true, createParents = true)
     metadataFile.write("---")
     dd.getDatasetMetadata should matchPattern {
-      case Failure(CorruptDepositException(_, _)) =>
+      case Failure(CorruptDepositException(_, _, _)) =>
     }
   }
 }

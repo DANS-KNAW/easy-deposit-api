@@ -15,6 +15,7 @@
  */
 package nl.knaw.dans.easy.deposit
 
+import nl.knaw.dans.easy.deposit.docs.Json.InvalidDocumentException
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.scalatra.{ ActionResult, BadRequest, InternalServerError }
 
@@ -25,7 +26,7 @@ package object servlets extends DebugEnhancedLogging {
     InternalServerError("Internal Server Error")
   }
 
-  def badDocResponse(t: Throwable): ActionResult = {
+  def badDocResponse(t: InvalidDocumentException): ActionResult = {
     logger.error(s"Invalid ${ t.getMessage }:${ t.getCause.getClass.getName } ${ t.getCause.getMessage }")
     BadRequest(s"Bad Request. The ${ t.getMessage } document is malformed.")
   }

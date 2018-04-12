@@ -20,8 +20,8 @@ import java.nio.file.{ Path, Paths }
 import java.util.UUID
 
 import nl.knaw.dans.easy.deposit.authentication.ServletEnhancedLogging._
-import nl.knaw.dans.easy.deposit.docs.Json.{ InvalidDocument, getDatasetMetadata, getStateInfo, toJson }
-import nl.knaw.dans.easy.deposit.servlets.DepositServlet.InvalidResource
+import nl.knaw.dans.easy.deposit.docs.Json.{ InvalidDocumentException, getDatasetMetadata, getStateInfo, toJson }
+import nl.knaw.dans.easy.deposit.servlets.DepositServlet.InvalidResourceException
 import nl.knaw.dans.easy.deposit.{ EasyDepositApiApp, _ }
 import org.scalatra.{ ActionResult, NoContent, NotFound, Ok }
 
@@ -122,27 +122,35 @@ class DepositServlet(app: EasyDepositApiApp) extends ProtectedServlet(app) {
 
   private def respond(t: Throwable): ActionResult = t match {
     case _: IllegalStateTransitionException => ???
-    case nsde: NoSuchDepositException =>
-      logger.info(s"${ nsde.cause.getClass.getName } ${ nsde.cause.getMessage }")
-      NotFound(body = t.getMessage)
-    case _: InvalidResource =>
-      logger.error(s"InvalidResource: ${ t.getMessage }")
-      NotFound()
-    case _: InvalidDocument => badDocResponse(t)
+    case e: NoSuchDepositException => NoSuchDespositResponse(e)
+    case e: InvalidResourceException => InvalidResourceResponse(e)
+    case e: InvalidDocumentException => badDocResponse(e)
     case _ => internalErrorResponse(t)
+  }
+
+  private def NoSuchDespositResponse(e: NoSuchDepositException) = {
+    // we log but don't expose which file was not found
+    logger.info(e.getMessage)
+    NotFound(body = s"Deposit ${ e.id } not found")
+  }
+
+  private def InvalidResourceResponse(t: InvalidResourceException) = {
+    // we log but don't expose which part of the uri was invalid
+    logger.error(s"${ t.getMessage }")
+    NotFound()
   }
 
   private def getUUID: Try[UUID] = Try {
     UUID.fromString(params("uuid"))
   }.recoverWith { case t: Throwable =>
-    Failure(new InvalidResource(s"Invalid deposit id: ${ t.getMessage }"))
+    Failure(new InvalidResourceException(s"Invalid deposit id: ${ t.getMessage }"))
   }
 
   private def getPath: Try[Path] = Try {
     Paths.get(multiParams("splat").find(!_.trim.isEmpty).getOrElse(""))
   }.recoverWith { case t: Throwable =>
     logger.error(s"bad path:${ t.getClass.getName } ${ t.getMessage }")
-    Failure(new InvalidResource(s"Invalid path."))
+    Failure(new InvalidResourceException(s"Invalid path."))
   }
 
   private def getInputStream: Try[InputStream] = ???
@@ -150,5 +158,5 @@ class DepositServlet(app: EasyDepositApiApp) extends ProtectedServlet(app) {
 
 object DepositServlet {
 
-  private class InvalidResource(s: String) extends Exception(s)
+  private class InvalidResourceException(s: String) extends Exception(s)
 }

@@ -23,7 +23,7 @@ import better.files._
 import gov.loc.repository.bagit.creator.BagCreator
 import gov.loc.repository.bagit.domain.{ Metadata => BagitMetadata }
 import gov.loc.repository.bagit.hash.StandardSupportedAlgorithms
-import nl.knaw.dans.easy.deposit.docs.Json.{ InvalidDocument, toJson }
+import nl.knaw.dans.easy.deposit.docs.Json.{ InvalidDocumentException, toJson }
 import nl.knaw.dans.easy.deposit.docs.{ DatasetMetadata, Json }
 import nl.knaw.dans.lib.error._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
@@ -78,13 +78,19 @@ case class DepositDir private(baseDir: File, user: String, id: UUID) extends Deb
     Try { (metadataDir / "dataset.json").fileInputStream }
       .flatMap(_ (is => Json.getDatasetMetadata(StreamInput(is))))
       .recoverWith {
-        case t: InvalidDocument =>
-          logger.error(s"invalid DatasetMetadata for user=$user, id=$id: ${t.getCause.getClass} ${t.getCause.getMessage}")
-          Failure(CorruptDepositException(user, id.toString))
-        case t: FileNotFoundException => Failure(NoSuchDepositException(user, id, t))
-        case t: NoSuchFileException => Failure(NoSuchDepositException(user, id, t))
+        case t: InvalidDocumentException => Failure(CorruptDepositException(user, id.toString, t))
+        case _: FileNotFoundException => notFoundFailure()
+        case _: NoSuchFileException => notFoundFailure()
         case t => Failure(t)
       }
+  }
+
+  private def notFoundFailure() = {
+    Failure(NoSuchDepositException(
+      user,
+      id,
+      new Exception(s"File not found: $metadataDir/dataset.json")
+    ))
   }
 
   /**
@@ -97,7 +103,7 @@ case class DepositDir private(baseDir: File, user: String, id: UUID) extends Deb
     // TODO Who is responsible? I suppose also DOI should not change.
     (metadataDir / "dataset.json").write(toJson(md))
     () // satisfy the compiler which doesn't want a File
-  }.recoverWith { case t: NoSuchFileException => Failure(NoSuchDepositException(user, id, t)) }
+  }.recoverWith { case t: NoSuchFileException => notFoundFailure(t) }
 
   /**
    * @return object to access the data files of this deposit
@@ -125,7 +131,7 @@ object DepositDir {
         .filter(_.isDirectory)
         .map(deposit => Try {
           new DepositDir(baseDir, user, UUID.fromString(deposit.name))
-        }.recoverWith { case t: Throwable => Failure(CorruptDepositException(user, deposit.name)) })
+        }.recoverWith { case t: Throwable => Failure(CorruptDepositException(user, deposit.name, t)) })
         .toSeq
         .collectResults
     else Try { Seq.empty }
