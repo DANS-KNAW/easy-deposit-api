@@ -75,7 +75,7 @@ case class DepositDir private(baseDir: File, user: String, id: UUID) {
    */
   def getDatasetMetadata: Try[DatasetMetadata] = {
     Try { (metadataDir / "dataset.json").fileInputStream }
-      .flatMap(_(is => Json.getDatasetMetadata(StreamInput(is))))
+      .flatMap(_ (is => Json.getDatasetMetadata(StreamInput(is))))
       .recoverWith {
         case t: FileNotFoundException => Failure(NoSuchDepositException(user, id))
         case t: InvalidDocument => Failure(CorruptDepositException(user, id.toString))
