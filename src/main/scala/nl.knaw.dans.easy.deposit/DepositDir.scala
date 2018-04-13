@@ -208,7 +208,7 @@ object DepositDir {
 
     new PropertiesConfiguration() {
       addProperty("creation.timestamp", timeNow)
-      addProperty("state.label", "DRAFT")
+      addProperty("state.label", State.DRAFT.toString)
       addProperty("state.description", "Deposit is open for changes.")
       addProperty("depositor.userId", user)
     }.save((depositDir / "deposit.properties").toJava)

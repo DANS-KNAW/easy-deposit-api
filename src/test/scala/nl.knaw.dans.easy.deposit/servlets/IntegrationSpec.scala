@@ -88,12 +88,14 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
         new String(bodyBytes)
       }
     }
+    responseBodies.foreach(_ should endWith("""CEST"}"""))
 
     // list all deposits
     expectsUserFooBar
     get(uri = s"/deposit", headers = Seq(basicAuthentication)) {
       status shouldBe OK_200
       // random order
+      println(body)
       responseBodies.foreach(body should include(_))
       body.length shouldBe responseBodies.mkString("[", ",", "]").length
       body should startWith("""[{""")
