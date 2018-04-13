@@ -31,8 +31,8 @@ import scala.util.{ Failure, Try }
 
 object Json {
 
-  // TODO rename to InvalidDocumentException (would cause merge conflicts with PR #20)
-  case class InvalidDocument(s: String, t: Throwable) extends Exception(s, t)
+  case class InvalidDocumentException(s: String, t: Throwable)
+    extends Exception(s"invalid $s: ${t.getClass} ${t.getMessage}", t)
 
   class PathSerializer extends CustomSerializer[Path](_ =>
     ( {
@@ -62,15 +62,15 @@ object Json {
 
   def getUser(body: JsonInput): Try[UserInfo] = {
     parseObject(body).map(_.extract[UserInfo])
-  }.recoverWith { case t: Throwable => Failure(InvalidDocument("User", t)) }
+  }.recoverWith { case t: Throwable => Failure(InvalidDocumentException("User", t)) }
 
   def getStateInfo(body: JsonInput): Try[StateInfo] = {
     parseObject(body).map(_.extract[StateInfo])
-  }.recoverWith { case t: Throwable => Failure(InvalidDocument("StateInfo", t)) }
+  }.recoverWith { case t: Throwable => Failure(InvalidDocumentException("StateInfo", t)) }
 
   def getDatasetMetadata(body: JsonInput): Try[DatasetMetadata] = {
     parseObject(body).map(_.extract[DatasetMetadata])
-  }.recoverWith { case t: Throwable => Failure(InvalidDocument("DatasetMetadata", t)) }
+  }.recoverWith { case t: Throwable => Failure(InvalidDocumentException("DatasetMetadata", t)) }
 
   private def parseObject(body: JsonInput): Try[json4s.JValue] = Try {
     JsonMethods.parse(body)

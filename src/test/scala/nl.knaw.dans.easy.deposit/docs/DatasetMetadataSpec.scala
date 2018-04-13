@@ -16,7 +16,7 @@
 package nl.knaw.dans.easy.deposit.docs
 
 import nl.knaw.dans.easy.deposit.TestSupportFixture
-import nl.knaw.dans.easy.deposit.docs.Json.InvalidDocument
+import nl.knaw.dans.easy.deposit.docs.Json.InvalidDocumentException
 
 import scala.util.{ Failure, Success }
 
@@ -223,10 +223,10 @@ class DatasetMetadataSpec extends TestSupportFixture {
 
   it should "fail on an empty array" in {
     // JArray(List())
-    inside(Json.getDatasetMetadata("""[]""")) { case Failure(_: InvalidDocument) => }
+    inside(Json.getDatasetMetadata("""[]""")) { case Failure(_: InvalidDocumentException) => }
   }
 
   it should "not accept a literal number" in {
-    inside(Json.getDatasetMetadata("""123""")) { case Failure(_: InvalidDocument) => }
+    inside(Json.getDatasetMetadata("""123""")) { case Failure(_: InvalidDocumentException) => }
   }
 }

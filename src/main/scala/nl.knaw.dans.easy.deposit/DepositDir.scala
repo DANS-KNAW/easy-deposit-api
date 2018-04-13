@@ -15,6 +15,7 @@
  */
 package nl.knaw.dans.easy.deposit
 
+import java.io.FileNotFoundException
 import java.nio.file.NoSuchFileException
 import java.util.{ UUID, Arrays => JArrays }
 
@@ -22,12 +23,14 @@ import better.files._
 import gov.loc.repository.bagit.creator.BagCreator
 import gov.loc.repository.bagit.domain.{ Metadata => BagitMetadata }
 import gov.loc.repository.bagit.hash.StandardSupportedAlgorithms
-import nl.knaw.dans.easy.deposit.docs.DatasetMetadata
-import nl.knaw.dans.easy.deposit.docs.Json.toJson
+import nl.knaw.dans.easy.deposit.docs.Json.{ InvalidDocumentException, toJson }
+import nl.knaw.dans.easy.deposit.docs.{ DatasetMetadata, Json }
 import nl.knaw.dans.lib.error._
+import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.apache.commons.configuration.PropertiesConfiguration
 import org.joda.time.format.{ DateTimeFormatter, ISODateTimeFormat }
 import org.joda.time.{ DateTime, DateTimeZone }
+import org.json4s.StreamInput
 
 import scala.collection.Seq
 import scala.util.{ Failure, Try }
@@ -39,7 +42,7 @@ import scala.util.{ Failure, Try }
  * @param user    the user ID of the deposit's owner
  * @param id      the ID of the deposit
  */
-case class DepositDir private(baseDir: File, user: String, id: UUID) {
+case class DepositDir private(baseDir: File, user: String, id: UUID) extends DebugEnhancedLogging {
 
   private val dataDir = baseDir / user / id.toString / "bag"
   private val metadataDir = dataDir / "metadata"
@@ -71,7 +74,24 @@ case class DepositDir private(baseDir: File, user: String, id: UUID) {
   /**
    * @return the dataset level metadata in this deposit
    */
-  def getDatasetMetadata: Try[DatasetMetadata] = ???
+  def getDatasetMetadata: Try[DatasetMetadata] = {
+    Try { (metadataDir / "dataset.json").fileInputStream }
+      .flatMap(_ (is => Json.getDatasetMetadata(StreamInput(is))))
+      .recoverWith {
+        case t: InvalidDocumentException => Failure(CorruptDepositException(user, id.toString, t))
+        case _: FileNotFoundException => notFoundFailure()
+        case _: NoSuchFileException => notFoundFailure()
+        case t => Failure(t)
+      }
+  }
+
+  private def notFoundFailure() = {
+    Failure(NoSuchDepositException(
+      user,
+      id,
+      new Exception(s"File not found: $metadataDir/dataset.json")
+    ))
+  }
 
   /**
    * Writes the dataset level metadata for this deposit.
@@ -80,10 +100,10 @@ case class DepositDir private(baseDir: File, user: String, id: UUID) {
    */
   def setDatasetMetadata(md: DatasetMetadata): Try[Unit] = Try {
     // TODO EasyDepositApiApp.writeDataMetadataToDeposit says: should be complete
-    // TODO Who is responsible? I suppose also URN/DOI should not change.
+    // TODO Who is responsible? I suppose also DOI should not change.
     (metadataDir / "dataset.json").write(toJson(md))
     () // satisfy the compiler which doesn't want a File
-  }.recoverWith { case t: NoSuchFileException => Failure(NoSuchDepositException(user, id, t)) }
+  }.recoverWith { case _: NoSuchFileException => notFoundFailure() }
 
   /**
    * @return object to access the data files of this deposit
@@ -111,7 +131,7 @@ object DepositDir {
         .filter(_.isDirectory)
         .map(deposit => Try {
           new DepositDir(baseDir, user, UUID.fromString(deposit.name))
-        }.recoverWith { case t: Throwable => Failure(CorruptDepositException(user, deposit.name)) })
+        }.recoverWith { case t: Throwable => Failure(CorruptDepositException(user, deposit.name, t)) })
         .toSeq
         .collectResults
     else Try { Seq.empty }
