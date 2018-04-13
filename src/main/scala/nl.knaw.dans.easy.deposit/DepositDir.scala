@@ -33,7 +33,7 @@ import org.joda.time.{ DateTime, DateTimeZone }
 import org.json4s.StreamInput
 
 import scala.collection.Seq
-import scala.util.{ Failure, Try }
+import scala.util.{ Failure, Success, Try }
 
 /**
  * Represents an existing deposit directory.
@@ -69,7 +69,41 @@ case class DepositDir private(baseDir: File, user: String, id: UUID) extends Deb
   /**
    * @return basic information about the deposit.
    */
-  def getDepositInfo: Try[DepositInfo] = ???
+  def getDepositInfo: Try[DepositInfo] = {
+    for{
+      title <- getDatasetTitle
+      props <- getDepositProps
+      state <- Try{State.withName(props.getString("state.label"))}
+      created <- Try{new DateTime(props.getString("creation.timestamp"))}
+    } yield DepositInfo(
+      id,
+      title,
+      state,
+      props.getString("state.description"),
+      created
+    )
+  }.recoverWith {
+    case t: CorruptDepositException => Failure(t)
+    case _: FileNotFoundException => notFoundFailure()
+    case _: NoSuchFileException => notFoundFailure()
+    case t => Failure(CorruptDepositException(user, id.toString, t))
+  }
+
+  private def getDatasetTitle = {
+    getDatasetMetadata
+      .map(_.titles.flatMap(_.headOption).getOrElse(""))
+      .recoverWith{
+        case t: NoSuchDepositException => Success("")
+        case t => Failure(t)
+      }
+  }
+
+  private def getDepositProps = {
+    val props = new PropertiesConfiguration()
+    Try { (dataDir.parent / "deposit.properties").fileReader }
+      .flatMap(_ (is => Try { props.load(is) }))
+      .map(_ => props)
+  }
 
   /**
    * @return the dataset level metadata in this deposit

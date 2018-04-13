@@ -23,6 +23,8 @@ import org.eclipse.jetty.http.HttpStatus._
 import org.scalamock.scalatest.MockFactory
 import org.scalatra.test.scalatest.ScalatraSuite
 
+import scala.collection.immutable
+
 class IntegrationSpec extends TestSupportFixture with ServletFixture with ScalatraSuite with MockFactory {
 
   private val depositApiApp = new EasyDepositApiApp(minimalAppConfig)
@@ -64,10 +66,30 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
     }
 
     // remove the dataset and try another time
-    mdFile.delete() // TODO replace with "GET deposit/:uuid" when implemented
+    mdFile.delete() // TODO replace with "DELETE deposit/:uuid" when implemented
     expectsUserFooBar
     get(metadataURI, headers = Seq(basicAuthentication)) {
       status shouldBe NOT_FOUND_404
+    }
+  }
+
+  s"scenario: POST /deposit twice; GET /deposit" should "return a list of datasets" in {
+
+    // create two deposits
+    val uuids: Seq[String] = (0 until 2).map { _ =>
+      expectsUserFooBar
+      post(uri = s"/deposit", headers = Seq(basicAuthentication)) {
+        new String(bodyBytes)
+      }
+    }
+
+    expectsUserFooBar
+    get(uri = s"/deposit", headers = Seq(basicAuthentication)) {
+      status shouldBe OK_200
+      body should startWith ("""[{"id":"""") // start of the first
+      body should include (""","title":"","state":"DRAFT","stateDescription":"Deposit is open for changes.","timestamp":""")
+      body should include (s"""},{"id":""") // start of the second
+      uuids.foreach(body should include(_))
     }
   }
 }
