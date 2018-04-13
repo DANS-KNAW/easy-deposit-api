@@ -87,8 +87,7 @@ class HappyRoutesSpec extends TestSupportFixture with ServletFixture with Scalat
     ) {
       status shouldBe OK_200
       // TODO IntegrationSpec seems to apply CEST consistently, should be Z anyway
-      val info1 =
-        s"""{"id":"$uuid1","title":"x","state":"DRAFT","stateDescription":"a","timestamp":"2018-03-27T14:34:56CEST"}"""
+      val info1 = s"""{"id":"$uuid1","title":"x","state":"DRAFT","stateDescription":"a","timestamp":"2018-03-27T14:34:56CEST"}"""
       val info2 = s"""{"id":"$uuid2","title":"y","state":"SUBMITTED","stateDescription":"b","timestamp":"2018-03-22T22:43:01CET"}"""
       body shouldBe s"""[$info1,$info2]"""
     }
