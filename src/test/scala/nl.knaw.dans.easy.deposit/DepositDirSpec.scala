@@ -20,7 +20,8 @@ import java.nio.file.attribute.PosixFilePermission
 import scala.util.{ Failure, Success }
 
 class DepositDirSpec extends TestSupportFixture {
-  before {
+  override def beforeEach {
+    super.beforeEach()
     clearTestDir()
     draftsDir.createDirectories()
   }

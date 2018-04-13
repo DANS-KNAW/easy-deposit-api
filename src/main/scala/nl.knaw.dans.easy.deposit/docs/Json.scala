@@ -19,7 +19,7 @@ import java.nio.file.{ Path, Paths }
 import java.text.SimpleDateFormat
 
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.{ AccessCategory, PrivacySensitiveDataPresent }
-import nl.knaw.dans.easy.deposit.{ State, StateInfo }
+import nl.knaw.dans.easy.deposit.{ DepositInfo, State, StateInfo }
 import org.json4s
 import org.json4s.JsonAST._
 import org.json4s.ext.{ EnumNameSerializer, JodaTimeSerializers, UUIDSerializer }
@@ -71,6 +71,10 @@ object Json {
   def getDatasetMetadata(body: JsonInput): Try[DatasetMetadata] = {
     parseObject(body).map(_.extract[DatasetMetadata])
   }.recoverWith { case t: Throwable => Failure(InvalidDocumentException("DatasetMetadata", t)) }
+
+  def getDepositInfo(body: JsonInput): Try[DepositInfo] = {
+    parseObject(body).map(_.extract[DepositInfo])
+  }.recoverWith { case t: Throwable => Failure(InvalidDocumentException("DepositInfo", t)) }
 
   private def parseObject(body: JsonInput): Try[json4s.JValue] = Try {
     JsonMethods.parse(body)

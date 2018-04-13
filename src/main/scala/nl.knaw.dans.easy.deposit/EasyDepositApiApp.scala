@@ -73,8 +73,8 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
    * @param user the user ID
    * @return the new deposit's ID
    */
-  def createDeposit(user: String): Try[UUID] = {
-    DepositDir.create(draftsDir, user).map(_.id)
+  def createDeposit(user: String): Try[DepositInfo] = {
+    DepositDir.create(draftsDir, user).flatMap(_.getDepositInfo)
   }
 
   /**

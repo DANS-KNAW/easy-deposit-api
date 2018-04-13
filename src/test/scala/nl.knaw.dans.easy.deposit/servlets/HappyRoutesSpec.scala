@@ -59,14 +59,15 @@ class HappyRoutesSpec extends TestSupportFixture with ServletFixture with Scalat
   "post /deposit" should "create a deposit" in {
     val uuid = UUID.randomUUID()
     expectsUserFooBar
-    (mockedApp.createDeposit(_: String)) expects "foo" returning Success(uuid)
+    (mockedApp.createDeposit(_: String)) expects "foo" returning
+      Success(DepositInfo(uuid, "just a test", State.DRAFT, "Deposit is open for changes.", new DateTime("2018-04-13")))
 
     post(
       uri = "/deposit",
       headers = Seq(("Authorization", fooBarBasicAuthHeader))
     ) {
       status shouldBe OK_200
-      body shouldBe s"$uuid"
+      body should startWith (s"""{"id":"$uuid","title":"just a test","state":"DRAFT","stateDescription":"Deposit is open for changes.","timestamp":""")
       header("Location") should (fullyMatch regex s"http://localhost:[0-9]+/deposit/$uuid")
     }
   }

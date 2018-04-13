@@ -36,9 +36,9 @@ class DepositServlet(app: EasyDepositApiApp) extends ProtectedServlet(app) {
   }
   post("/") {
     forUser(app.createDeposit)
-      .map(uuid => Ok(
-        body = uuid, // TODO UUID will become DepositInfo, which should be wrapped by toJson
-        headers = Map("Location" -> s"${ request.getRequestURL }/$uuid")
+      .map(depositInfo => Ok(
+        body = toJson(depositInfo),
+        headers = Map("Location" -> s"${ request.getRequestURL }/${depositInfo.id}")
       ))
       .getOrRecoverResponse(respond)
   }
