@@ -21,13 +21,16 @@ import java.util.UUID
 
 import nl.knaw.dans.easy.deposit.authentication.ServletEnhancedLogging._
 import nl.knaw.dans.easy.deposit.docs.Json.{ InvalidDocumentException, getDatasetMetadata, getStateInfo, toJson }
-import nl.knaw.dans.easy.deposit.servlets.DepositServlet.InvalidResourceException
+import nl.knaw.dans.easy.deposit.servlets.DepositServlet._
 import nl.knaw.dans.easy.deposit.{ EasyDepositApiApp, _ }
-import org.scalatra.{ ActionResult, NoContent, NotFound, Ok }
+import org.scalatra._
+import org.scalatra.servlet.{ FileUploadSupport, HasMultipartConfig }
 
-import scala.util.{ Failure, Try }
+import scala.util.{ Failure, Success, Try }
 
-class DepositServlet(app: EasyDepositApiApp) extends ProtectedServlet(app) {
+class DepositServlet(app: EasyDepositApiApp) extends ProtectedServlet(app)
+  with HasMultipartConfig // by default no maximum file size TODO set max, ScalatraAsyncSupport?
+  with FileUploadSupport {
 
   get("/") {
     forUser(app.getDeposits)
@@ -76,20 +79,16 @@ class DepositServlet(app: EasyDepositApiApp) extends ProtectedServlet(app) {
       .map(depositFiles => Ok(body = toJson(depositFiles)))
       .getOrRecoverResponse(respond)
   }
-  post("/:uuid/file/*") { //dir
-    (for {
+  post("/:uuid/file/*") { upload } //dir
+  put("/:uuid/file/*") { upload } //file
+  private def upload = {
+    for {
       inputStream <- getInputStream
       newFileWasCreated <- forPath(app.writeDepositFile(inputStream))
-    } yield Ok(???))
-      .getOrRecoverResponse(respond)
-  }
-  put("/:uuid/file/*") { //file
-    (for {
-      inputStream <- getInputStream
-      newFileWasCreated <- forPath(app.writeDepositFile(inputStream))
-    } yield Ok(???))
-      .getOrRecoverResponse(respond)
-  }
+      _ = inputStream.close()
+    } yield Ok(???)
+  }.getOrRecoverResponse(respond)
+
   delete("/:uuid/file/*") { //dir and file
     forPath(app.deleteDepositFile)
       .map(_ => Ok(???))
@@ -124,6 +123,7 @@ class DepositServlet(app: EasyDepositApiApp) extends ProtectedServlet(app) {
     case _: IllegalStateTransitionException => ???
     case e: NoSuchDepositException => NoSuchDespositResponse(e)
     case e: InvalidResourceException => InvalidResourceResponse(e)
+    case e: BadUploadException => BadRequest(e.getMessage)
     case e: InvalidDocumentException => badDocResponse(e)
     case _ => internalErrorResponse(t)
   }
@@ -153,10 +153,22 @@ class DepositServlet(app: EasyDepositApiApp) extends ProtectedServlet(app) {
     Failure(new InvalidResourceException(s"Invalid path."))
   }
 
-  private def getInputStream: Try[InputStream] = ???
+  private def getInputStream: Try[InputStream] = {
+    fileParams.get("file") match {
+      case None => Failure(BadUploadException("No file specified for upload"))
+      case Some(fileItem) => Success(fileItem.getInputStream)
+      // TODO do something with provided mime-type / character encoding?
+      // http://static.javadoc.io/org.scalatra/scalatra-unidoc_2.12/2.6.3/org/scalatra/servlet/FileUploadSupport.html
+      // a.o: you need to enable multipart configuration in your web.xml
+      // http://static.javadoc.io/org.scalatra/scalatra-unidoc_2.12/2.6.3/org/scalatra/servlet/FileItem.html
+      // https://docs.oracle.com/javaee/7/api/javax/servlet/http/Part.html#write-java.lang.String-
+      // a.o: use, for example, file renaming, where possible, rather than copying all of the underlying data
+    }
+  }
 }
 
 object DepositServlet {
 
+  private case class BadUploadException(s: String) extends Exception(s)
   private class InvalidResourceException(s: String) extends Exception(s)
 }
