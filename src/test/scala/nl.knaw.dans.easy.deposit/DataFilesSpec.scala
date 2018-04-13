@@ -33,7 +33,8 @@ class DataFilesSpec extends TestSupportFixture {
   "write" should "blabla" in {
     val dd = DepositDir(draftsDir, "foo", uuid)
     // preparations
-    val dataFiles = dd.getDataFiles.get// unsafe but just the preparation of a unit test
+    val dataFiles = dd.getDataFiles.get
+    // unsafe but just the preparation of a unit test
     val content = "Lorum ipsum est"
     val inputStream: InputStream = new ByteArrayInputStream(content.getBytes())
     val fileInBag = "test.txt"

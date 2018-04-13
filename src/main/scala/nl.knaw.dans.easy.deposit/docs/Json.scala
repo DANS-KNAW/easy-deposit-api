@@ -18,21 +18,21 @@ package nl.knaw.dans.easy.deposit.docs
 import java.nio.file.{ Path, Paths }
 import java.text.SimpleDateFormat
 
-import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.{ AccessCategory, PrivacySensitiveDataPresent }
 import nl.knaw.dans.easy.deposit.{ State, StateInfo }
+import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.{ AccessCategory, PrivacySensitiveDataPresent }
 import org.json4s
+import org.json4s.{ CustomSerializer, DefaultFormats, Formats, JsonInput }
 import org.json4s.JsonAST._
 import org.json4s.ext.{ EnumNameSerializer, JodaTimeSerializers, UUIDSerializer }
 import org.json4s.native.JsonMethods
 import org.json4s.native.Serialization.write
-import org.json4s.{ CustomSerializer, DefaultFormats, Formats, JsonInput }
 
 import scala.util.{ Failure, Try }
 
 object Json {
 
   case class InvalidDocumentException(s: String, t: Throwable)
-    extends Exception(s"invalid $s: ${t.getClass} ${t.getMessage}", t)
+    extends Exception(s"invalid $s: ${ t.getClass } ${ t.getMessage }", t)
 
   class PathSerializer extends CustomSerializer[Path](_ =>
     ( {

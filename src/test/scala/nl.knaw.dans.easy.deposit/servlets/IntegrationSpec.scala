@@ -17,8 +17,8 @@ package nl.knaw.dans.easy.deposit.servlets
 
 import java.util.UUID
 
-import nl.knaw.dans.easy.deposit.authentication.AuthenticationMocker._
 import nl.knaw.dans.easy.deposit.{ EasyDepositApiApp, _ }
+import nl.knaw.dans.easy.deposit.authentication.AuthenticationMocker._
 import org.eclipse.jetty.http.HttpStatus._
 import org.scalamock.scalatest.MockFactory
 import org.scalatra.test.scalatest.ScalatraSuite
@@ -42,7 +42,7 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
     // create dataset metadata
     expectsUserFooBar
     put(metadataURI, headers = Seq(basicAuthentication),
-        body = """{"blabla":"blabla"}""" // more variations in DepositDirSpec
+      body = """{"blabla":"blabla"}""" // more variations in DepositDirSpec
     ) {
       status shouldBe NO_CONTENT_204
     }

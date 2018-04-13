@@ -21,8 +21,8 @@ import nl.knaw.dans.easy.deposit.authentication.AuthenticationSupport._
 import nl.knaw.dans.easy.deposit.authentication.ServletEnhancedLogging._
 import nl.knaw.dans.lib.error._
 import org.scalatra._
-import org.scalatra.auth.ScentryAuthStore.CookieAuthStore
 import org.scalatra.auth.{ Scentry, ScentryConfig, ScentryStrategy, ScentrySupport }
+import org.scalatra.auth.ScentryAuthStore.CookieAuthStore
 
 import scala.collection.JavaConverters._
 

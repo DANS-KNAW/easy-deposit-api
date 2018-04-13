@@ -25,6 +25,7 @@ class DepositDirSpec extends TestSupportFixture {
     clearTestDir()
     draftsDir.createDirectories()
   }
+
   private val draftsDir = testDir / "drafts"
 
   "DepositDir.create" should "fail if the dir 'draft' is read only" in {

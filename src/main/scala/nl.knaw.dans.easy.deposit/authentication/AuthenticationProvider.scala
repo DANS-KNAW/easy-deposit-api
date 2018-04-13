@@ -19,5 +19,6 @@ import scala.util.Try
 
 trait AuthenticationProvider {
   def authenticate(userName: String, password: String): Option[AuthUser]
+
   def getUser(userName: String): Try[Map[String, Seq[String]]]
 }

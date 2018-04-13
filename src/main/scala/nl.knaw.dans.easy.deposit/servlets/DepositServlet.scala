@@ -19,10 +19,10 @@ import java.io.InputStream
 import java.nio.file.{ Path, Paths }
 import java.util.UUID
 
-import nl.knaw.dans.easy.deposit.authentication.ServletEnhancedLogging._
-import nl.knaw.dans.easy.deposit.docs.Json.{ InvalidDocumentException, getDatasetMetadata, getStateInfo, toJson }
-import nl.knaw.dans.easy.deposit.servlets.DepositServlet.InvalidResourceException
 import nl.knaw.dans.easy.deposit.{ EasyDepositApiApp, _ }
+import nl.knaw.dans.easy.deposit.authentication.ServletEnhancedLogging._
+import nl.knaw.dans.easy.deposit.docs.Json.{ getDatasetMetadata, getStateInfo, toJson, InvalidDocumentException }
+import nl.knaw.dans.easy.deposit.servlets.DepositServlet.InvalidResourceException
 import org.scalatra.{ ActionResult, NoContent, NotFound, Ok }
 
 import scala.util.{ Failure, Try }
