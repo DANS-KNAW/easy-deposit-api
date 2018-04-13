@@ -32,7 +32,7 @@ import scala.util.{ Failure, Try }
 object Json {
 
   case class InvalidDocumentException(s: String, t: Throwable)
-    extends Exception(s"invalid $s: ${t.getClass} ${t.getMessage}", t)
+    extends Exception(s"invalid $s: ${ t.getClass } ${ t.getMessage }", t)
 
   class PathSerializer extends CustomSerializer[Path](_ =>
     ( {

@@ -70,11 +70,11 @@ case class DepositDir private(baseDir: File, user: String, id: UUID) extends Deb
    * @return basic information about the deposit.
    */
   def getDepositInfo: Try[DepositInfo] = {
-    for{
+    for {
       title <- getDatasetTitle
       props <- getDepositProps
-      state <- Try{State.withName(props.getString("state.label"))}
-      created <- Try{new DateTime(props.getString("creation.timestamp"))}
+      state <- Try { State.withName(props.getString("state.label")) }
+      created <- Try { new DateTime(props.getString("creation.timestamp")) }
     } yield DepositInfo(
       id,
       title,
@@ -92,7 +92,7 @@ case class DepositDir private(baseDir: File, user: String, id: UUID) extends Deb
   private def getDatasetTitle = {
     getDatasetMetadata
       .map(_.titles.flatMap(_.headOption).getOrElse(""))
-      .recoverWith{
+      .recoverWith {
         case t: NoSuchDepositException => Success("")
         case t => Failure(t)
       }
