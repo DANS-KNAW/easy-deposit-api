@@ -17,8 +17,6 @@ package nl.knaw.dans.easy.deposit
 
 import java.nio.file.attribute.PosixFilePermission
 
-import nl.knaw.dans.easy.deposit.docs.DatasetMetadata
-
 import scala.util.{ Failure, Success }
 
 class DepositDirSpec extends TestSupportFixture {
@@ -86,53 +84,6 @@ class DepositDirSpec extends TestSupportFixture {
     tryDeposit shouldBe a[Success[_]]
     inside(tryDeposit) {
       case Success(dp) => dp shouldBe deposit
-    }
-  }
-
-  private val dd = DepositDir(draftsDir, "foo", uuid)
-  private val metadataFile = dd.baseDir / "foo" / uuid.toString / "bag" / "metadata" / "dataset.json"
-
-  "setDatasetMetadata" should "create a file" in {
-    // prepare empty deposit
-    metadataFile.parent.createIfNotExists(asDirectory = true, createParents = true)
-
-    dd.setDatasetMetadata(DatasetMetadata()) shouldBe Success(())
-    metadataFile.contentAsString shouldBe
-      """{"privacySensitiveDataPresent":"unspecified","acceptLicenseAgreement":false}"""
-  }
-
-  it should "overwrite existing metadata" in {
-    // prepare existing metadata
-    metadataFile.parent.createIfNotExists(asDirectory = true, createParents = true)
-    metadataFile.write("blabla")
-
-    dd.setDatasetMetadata(DatasetMetadata()) shouldBe Success(())
-    metadataFile.contentAsString shouldBe
-      """{"privacySensitiveDataPresent":"unspecified","acceptLicenseAgreement":false}"""
-  }
-
-  it should "report the deposit does not exist" in {
-    // no preparations for a "lost" deposit
-    dd.setDatasetMetadata(DatasetMetadata()) should matchPattern {
-      case Failure(NoSuchDepositException(_, _, _)) =>
-    }
-  }
-
-  "getDatasetMetadata" should "complain about a not found file" in {
-    dd.getDatasetMetadata should matchPattern {
-      case Failure(NoSuchDepositException(_, _, _)) =>
-    }
-  }
-  it should "get the content" in {
-    metadataFile.parent.createIfNotExists(asDirectory = true, createParents = true)
-    metadataFile.write("{}")
-    dd.getDatasetMetadata shouldBe Success(DatasetMetadata())
-  }
-  it should "complain about invalid content" in {
-    metadataFile.parent.createIfNotExists(asDirectory = true, createParents = true)
-    metadataFile.write("---")
-    dd.getDatasetMetadata should matchPattern {
-      case Failure(CorruptDepositException(_, _, _)) =>
     }
   }
 }

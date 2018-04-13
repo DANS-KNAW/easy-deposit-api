@@ -32,12 +32,14 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
 
   s"scenario: /deposit/:uuid/metadata life cycle" should "return default dataset metadata" in {
 
+    // create dataset
     expectsUserFooBar
     val uuid = post(uri = s"/deposit", headers = Seq(basicAuthentication)) {
       new String(bodyBytes)
     }
     val metadataURI = s"/deposit/$uuid/metadata"
 
+    // create dataset metadata
     expectsUserFooBar
     put(metadataURI, headers = Seq(basicAuthentication),
         body = """{"blabla":"blabla"}""" // more variations in DepositDirSpec
@@ -46,6 +48,7 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
     }
     (testDir / "drafts" / "foo" / uuid.toString / "bag" / "metadata" / "dataset.json").toJava should exist
 
+    // get dataset metadata
     expectsUserFooBar
     get(metadataURI, headers = Seq(basicAuthentication)) {
       status shouldBe OK_200
@@ -55,7 +58,6 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
     // invalidate the metadata and try again
     val dd = DepositDir(testDir / "drafts", "foo", UUID.fromString(uuid))
     val mdFile = (dd.baseDir / "foo" / uuid.toString / "bag" / "metadata" / "dataset.json").write("---")
-
     expectsUserFooBar
     get(metadataURI, headers = Seq(basicAuthentication)) {
       status shouldBe INTERNAL_SERVER_ERROR_500
@@ -63,33 +65,9 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
 
     // remove the dataset and try another time
     mdFile.delete() // TODO replace with "GET deposit/:uuid" when implemented
-
     expectsUserFooBar
     get(metadataURI, headers = Seq(basicAuthentication)) {
       status shouldBe NOT_FOUND_404
-    }
-  }
-
-  s"scenario: POST /deposit twice; GET /deposit" should "return a list of datasets" ignore {
-    // requires implementation of DespositDir.getDepositInfo
-
-    (0 until 2).foreach {
-      expectsUserFooBar
-      post(
-        uri = s"/deposit",
-        headers = Seq(basicAuthentication)
-      ) {
-        new String(bodyBytes)
-      }
-    }
-
-    expectsUserFooBar
-    get(
-      uri = s"/deposit",
-      headers = Seq(basicAuthentication)
-    ) {
-      status shouldBe OK_200
-      body shouldBe """{[...]}"""
     }
   }
 }
