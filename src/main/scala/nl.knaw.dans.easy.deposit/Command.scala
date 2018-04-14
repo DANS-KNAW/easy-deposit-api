@@ -20,8 +20,8 @@ import nl.knaw.dans.lib.error._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 
 import scala.language.reflectiveCalls
-import scala.util.control.NonFatal
 import scala.util.{ Failure, Try }
+import scala.util.control.NonFatal
 
 object Command extends App with DebugEnhancedLogging {
   type FeedBackMessage = String

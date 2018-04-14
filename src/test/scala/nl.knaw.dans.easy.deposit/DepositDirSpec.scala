@@ -20,10 +20,12 @@ import java.nio.file.attribute.PosixFilePermission
 import scala.util.{ Failure, Success }
 
 class DepositDirSpec extends TestSupportFixture {
-  before {
+  override def beforeEach(): Unit = {
+    super.beforeEach()
     clearTestDir()
     draftsDir.createDirectories()
   }
+
   private val draftsDir = testDir / "drafts"
 
   "DepositDir.create" should "fail if the dir 'draft' is read only" in {

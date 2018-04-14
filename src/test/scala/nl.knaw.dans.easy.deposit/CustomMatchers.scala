@@ -17,7 +17,7 @@ package nl.knaw.dans.easy.deposit
 
 import java.io.File
 
-import org.scalatest.matchers.{ MatchResult, Matcher }
+import org.scalatest.matchers.{ Matcher, MatchResult }
 
 import scala.io.Source
 

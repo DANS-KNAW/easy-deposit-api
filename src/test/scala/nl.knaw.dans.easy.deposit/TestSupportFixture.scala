@@ -19,14 +19,14 @@ import java.util.UUID
 
 import better.files.File
 import better.files.File._
+import nl.knaw.dans.easy.deposit.authentication.{ AuthConfig, AuthenticationProvider, AuthUser, TokenSupport }
 import nl.knaw.dans.easy.deposit.authentication.AuthenticationMocker.mockedAuthenticationProvider
 import nl.knaw.dans.easy.deposit.authentication.TokenSupport.TokenConfig
-import nl.knaw.dans.easy.deposit.authentication.{ AuthConfig, AuthUser, AuthenticationProvider, TokenSupport }
 import org.apache.commons.configuration.PropertiesConfiguration
 import org.joda.time.{ DateTime, DateTimeUtils }
-import org.scalatest.{ BeforeAndAfter, FlatSpec, Inside, Matchers }
+import org.scalatest._
 
-trait TestSupportFixture extends FlatSpec with Matchers with Inside with BeforeAndAfter {
+trait TestSupportFixture extends FlatSpec with Matchers with Inside with BeforeAndAfterEach {
 
   lazy val testDir: File = currentWorkingDirectory / "target" / "test" / getClass.getSimpleName
   lazy val uuid: UUID = UUID.randomUUID()

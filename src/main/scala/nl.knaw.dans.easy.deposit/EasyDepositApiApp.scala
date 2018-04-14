@@ -42,7 +42,7 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
     logger.info(s"users.ldap-parent-entry = $ldapParentEntry")
     logger.info(s"users.ldap-user-id-attr-name = $ldapUserIdAttrName")
     logger.info(s"users.ldap-admin-principal = $ldapAdminPrincipal")
-    logger.info(s"users.ldap-admin-password = $ldapAdminPassword")// TODO configured in same security context as logged?
+    logger.info(s"users.ldap-admin-password = $ldapAdminPassword") // TODO configured in same security context as logged?
   }
 
   def getVersion: String = {

@@ -18,11 +18,11 @@ package nl.knaw.dans.easy.deposit.authentication
 import nl.knaw.dans.easy.deposit.authentication.TokenSupport._
 import nl.knaw.dans.lib.error._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
-import org.json4s.native.JsonMethods.parse
 import org.json4s.{ DefaultFormats, Formats }
+import org.json4s.native.JsonMethods.parse
+import pdi.jwt.{ Jwt, JwtAlgorithm, JwtClaim, JwtOptions }
 import pdi.jwt.JwtAlgorithm.HS256
 import pdi.jwt.algorithms.JwtHmacAlgorithm
-import pdi.jwt.{ Jwt, JwtAlgorithm, JwtClaim, JwtOptions }
 
 import scala.util.{ Failure, Try }
 

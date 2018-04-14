@@ -18,7 +18,7 @@ package nl.knaw.dans.easy.deposit
 import java.io.InputStream
 import java.nio.file.{ Path, Paths }
 
-import better.files.File
+import better.files._
 
 import scala.util.Try
 
@@ -30,7 +30,7 @@ import scala.util.Try
  * @param dataFilesBase the base directory of the data files
  * @param filesMetaData the file containing the file metadata
  */
-class DataFiles(dataFilesBase: File, filesMetaData: File) {
+case class DataFiles(dataFilesBase: File, filesMetaData: File) {
 
   /**
    * Lists information about the files the directory `path` and its subdirectories.
@@ -47,7 +47,19 @@ class DataFiles(dataFilesBase: File, filesMetaData: File) {
    * @param path the relative path to the file to write
    * @return `true` if a new file was created, `false` if an existing file was overwritten
    */
-  def write(is: InputStream, path: Path): Try[Boolean] = ???
+  def write(is: InputStream, path: Path): Try[Boolean] = Try {
+
+    val file: File = dataFilesBase / path.toString
+    if (!file.exists) {
+      file.createIfNotExists(asDirectory = false, createParents = true)
+      if (!file.isDirectory) file.outputStream.foreach(is.pipeTo(_))
+      true
+    }
+    else {
+      if (!file.isDirectory) file.outputStream.foreach(is.pipeTo(_))
+      false
+    }
+  }
 
   /**
    * Deletes the file or directory located at the relative path into the data files directory. Directories

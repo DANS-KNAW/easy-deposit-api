@@ -15,8 +15,8 @@
  */
 package nl.knaw.dans.easy.deposit.authentication
 
-import org.json4s.native.JsonMethods.parse
 import org.json4s.{ DefaultFormats, Formats }
+import org.json4s.native.JsonMethods.parse
 
 import scala.util.{ Failure, Try }
 

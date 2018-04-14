@@ -15,9 +15,9 @@
  */
 package nl.knaw.dans.easy.deposit.docs
 
-import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.AccessCategory.AccessCategory
-import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.PrivacySensitiveDataPresent.{ PrivacySensitiveDataPresent, unspecified }
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata._
+import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.AccessCategory.AccessCategory
+import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.PrivacySensitiveDataPresent.{ unspecified, PrivacySensitiveDataPresent }
 
 case class DatasetMetadata(doi: Option[String] = None,
                            languageOfDescription: Option[String] = None,
