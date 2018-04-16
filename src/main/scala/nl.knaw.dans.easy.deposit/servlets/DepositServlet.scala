@@ -20,10 +20,10 @@ import java.nio.file.{ Path, Paths }
 import java.util.UUID
 
 import nl.knaw.dans.easy.deposit.authentication.ServletEnhancedLogging._
-import nl.knaw.dans.easy.deposit.docs.Json.{ InvalidDocumentException, getDatasetMetadata, getStateInfo, toJson }
+import nl.knaw.dans.easy.deposit.docs.Json.{ getDatasetMetadata, getStateInfo, toJson, InvalidDocumentException }
 import nl.knaw.dans.easy.deposit.servlets.DepositServlet.InvalidResourceException
 import nl.knaw.dans.easy.deposit.{ EasyDepositApiApp, _ }
-import org.scalatra.{ ActionResult, NoContent, NotFound, Ok }
+import org.scalatra.{ ActionResult, Created, NoContent, NotFound, Ok }
 
 import scala.util.{ Failure, Try }
 
@@ -36,7 +36,7 @@ class DepositServlet(app: EasyDepositApiApp) extends ProtectedServlet(app) {
   }
   post("/") {
     forUser(app.createDeposit)
-      .map(depositInfo => Ok(
+      .map(depositInfo => Created(
         body = toJson(depositInfo),
         headers = Map("Location" -> s"${ request.getRequestURL }/${ depositInfo.id }")
       ))
