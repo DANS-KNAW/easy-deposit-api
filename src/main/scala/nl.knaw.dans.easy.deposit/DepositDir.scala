@@ -73,8 +73,8 @@ case class DepositDir private(baseDir: File, user: String, id: UUID) extends Deb
     for {
       title <- getDatasetTitle
       props <- getDepositProps
-      state <- Try { State.withName(props.getString("state.label")) }
-      created <- Try { new DateTime(props.getString("creation.timestamp")) }
+      state = State.withName(props.getString("state.label"))
+      created = new DateTime(props.getString("creation.timestamp"))
     } yield DepositInfo(
       id,
       title,
