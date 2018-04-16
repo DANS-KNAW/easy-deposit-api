@@ -21,7 +21,7 @@ import java.util.UUID
 
 import better.files.File
 import nl.knaw.dans.easy.deposit.authentication.LdapAuthentication
-import nl.knaw.dans.easy.deposit.docs.DatasetMetadata
+import nl.knaw.dans.easy.deposit.docs.{ DatasetMetadata, DepositInfo }
 import nl.knaw.dans.lib.error._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.apache.commons.configuration.PropertiesConfiguration

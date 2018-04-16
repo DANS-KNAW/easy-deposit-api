@@ -17,9 +17,10 @@ package nl.knaw.dans.easy.deposit.docs
 
 import java.nio.file.{ Path, Paths }
 import java.text.SimpleDateFormat
+import java.util.SimpleTimeZone
 
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.{ AccessCategory, PrivacySensitiveDataPresent }
-import nl.knaw.dans.easy.deposit.{ DepositInfo, State, StateInfo }
+import nl.knaw.dans.easy.deposit.{ State, StateInfo }
 import org.json4s
 import org.json4s.JsonAST._
 import org.json4s.ext.{ EnumNameSerializer, JodaTimeSerializers, UUIDSerializer }
@@ -44,10 +45,7 @@ object Json {
     )
   )
 
-  private implicit val jsonFormats: Formats = new DefaultFormats {
-    // we need a timestamp for DepositInfo, dates in DatasetMetadata are plain strings so no conflict
-    override protected def dateFormatter: SimpleDateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssz")
-  } +
+  private implicit val jsonFormats: Formats = new DefaultFormats {} +
     UUIDSerializer +
     new PathSerializer +
     new EnumNameSerializer(State) +

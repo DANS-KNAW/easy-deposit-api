@@ -24,12 +24,12 @@ import gov.loc.repository.bagit.creator.BagCreator
 import gov.loc.repository.bagit.domain.{ Metadata => BagitMetadata }
 import gov.loc.repository.bagit.hash.StandardSupportedAlgorithms
 import nl.knaw.dans.easy.deposit.docs.Json.{ InvalidDocumentException, toJson }
-import nl.knaw.dans.easy.deposit.docs.{ DatasetMetadata, Json }
+import nl.knaw.dans.easy.deposit.docs.{ DatasetMetadata, DepositInfo, Json }
 import nl.knaw.dans.lib.error._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.apache.commons.configuration.PropertiesConfiguration
-import org.joda.time.format.{ DateTimeFormatter, ISODateTimeFormat }
-import org.joda.time.{ DateTime, DateTimeZone }
+import org.joda.time.DateTime
+import org.joda.time.DateTimeZone.UTC
 import org.json4s.StreamInput
 
 import scala.collection.Seq
@@ -74,7 +74,7 @@ case class DepositDir private(baseDir: File, user: String, id: UUID) extends Deb
       title <- getDatasetTitle
       props <- getDepositProps
       state = State.withName(props.getString("state.label"))
-      created = new DateTime(props.getString("creation.timestamp"))
+      created = new DateTime(props.getString("creation.timestamp")).withZone(UTC)
     } yield DepositInfo(
       id,
       title,
@@ -191,14 +191,12 @@ object DepositDir {
    * @return the newly created [[DepositDir]]
    */
   def create(baseDir: File, user: String): Try[DepositDir] = Try {
-    val uuid = UUID.randomUUID()
-    val depositDir: File = (baseDir / user / uuid.toString)
+    val depositInfo = DepositInfo()
+    val depositDir: File = (baseDir / user / depositInfo.id.toString)
       .createIfNotExists(asDirectory = true, createParents = true)
 
-    val dateTimeFormatter: DateTimeFormatter = ISODateTimeFormat.dateTime()
-    val timeNow = DateTime.now(DateTimeZone.UTC).toString(dateTimeFormatter)
     val metadata = new BagitMetadata {
-      add("Created", timeNow)
+      add("Created", depositInfo.timestampString)
       add("Bag-Size", "0 KB")
     }
     val bagDir: File = depositDir / "bag"
@@ -207,13 +205,13 @@ object DepositDir {
     (bagDir / "metadata").createIfNotExists(asDirectory = true)
 
     new PropertiesConfiguration() {
-      addProperty("creation.timestamp", timeNow)
-      addProperty("state.label", State.DRAFT.toString)
-      addProperty("state.description", "Deposit is open for changes.")
+      addProperty("creation.timestamp", depositInfo.timestamp)
+      addProperty("state.label", depositInfo.state.toString)
+      addProperty("state.description", depositInfo.stateDescription)
       addProperty("depositor.userId", user)
     }.save((depositDir / "deposit.properties").toJava)
 
-    DepositDir(baseDir, user, uuid)
+    DepositDir(baseDir, user, depositInfo.id)
   }
 }
 

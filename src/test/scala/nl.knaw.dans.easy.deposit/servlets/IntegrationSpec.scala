@@ -88,7 +88,7 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
         new String(bodyBytes)
       }
     }
-    responseBodies.foreach(_ should endWith("""CEST"}"""))
+    responseBodies.foreach(_ should endWith("""Z"}"""))
 
     // list all deposits
     expectsUserFooBar

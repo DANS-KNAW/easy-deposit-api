@@ -19,7 +19,6 @@ import java.nio.file.Path
 import java.util.UUID
 
 import nl.knaw.dans.easy.deposit.State.State
-import org.joda.time.DateTime
 
 package object deposit {
 
@@ -40,11 +39,6 @@ package object deposit {
     type State = Value
     val DRAFT, SUBMITTED, IN_PROGRESS, REJECTED, ARCHIVED = Value
   }
-
-  /**
-   * Summary information about a deposit.
-   */
-  case class DepositInfo(id: UUID, title: String, state: State, stateDescription: String, timestamp: DateTime)
 
   case class StateInfo(state: State, stateDescription: String)
 
