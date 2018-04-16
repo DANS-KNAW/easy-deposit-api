@@ -27,7 +27,7 @@ class AuthServlet(app: EasyDepositApiApp) extends AbstractAuthServlet(app) {
       .logResponse
   }
 
-  put("/logout") {
+  post("/logout") {
     logOut() // destroys the scentry cookie
     Ok("you are signed out")
       .logResponse
