@@ -203,6 +203,7 @@ object DepositDir {
     bagDir.createDirectory()
     BagCreator.bagInPlace(bagDir.path, JArrays.asList(StandardSupportedAlgorithms.SHA1), true, metadata)
     (bagDir / "metadata").createIfNotExists(asDirectory = true)
+    (bagDir / "metadata" / "dataset.json").write("{}")
 
     new PropertiesConfiguration() {
       addProperty("creation.timestamp", depositInfo.timestamp)

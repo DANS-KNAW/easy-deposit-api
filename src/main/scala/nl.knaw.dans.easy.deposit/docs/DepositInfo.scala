@@ -31,13 +31,13 @@ case class DepositInfo(id: UUID = UUID.randomUUID(),
                        title: String = "",
                        state: State = State.DRAFT,
                        stateDescription: String = "Deposit is open for changes.",
-                       timestamp: DateTime = nowWithoutMilis // TODO is this creation time or last (status) change?
+                       timestamp: DateTime = nowWithoutMillis // TODO is this creation time or last (status) change?
                       ) {
 
   def timestampString: String = timestamp.toString(dateTimeFormatter)
 }
 object DepositInfo {
-  def nowWithoutMilis: DateTime = {
+  def nowWithoutMillis: DateTime = {
     val now = DateTime.now(UTC)
     now.minusMillis(now.millisOfSecond().get())
   }
