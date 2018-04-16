@@ -21,7 +21,7 @@ import java.util.UUID
 
 import better.files.File
 import nl.knaw.dans.easy.deposit.authentication.LdapAuthentication
-import nl.knaw.dans.easy.deposit.docs.DatasetMetadata
+import nl.knaw.dans.easy.deposit.docs.{ DatasetMetadata, DepositInfo }
 import nl.knaw.dans.lib.error._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.apache.commons.configuration.PropertiesConfiguration
@@ -73,8 +73,8 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
    * @param user the user ID
    * @return the new deposit's ID
    */
-  def createDeposit(user: String): Try[UUID] = {
-    DepositDir.create(draftsDir, user).map(_.id)
+  def createDeposit(user: String): Try[DepositInfo] = {
+    DepositDir.create(draftsDir, user).flatMap(_.getDepositInfo)
   }
 
   /**

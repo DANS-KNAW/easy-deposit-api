@@ -18,6 +18,7 @@ package nl.knaw.dans.easy.deposit.servlets
 import java.util.UUID
 
 import nl.knaw.dans.easy.deposit.authentication.AuthenticationMocker._
+import nl.knaw.dans.easy.deposit.docs.Json
 import nl.knaw.dans.easy.deposit.{ EasyDepositApiApp, _ }
 import org.eclipse.jetty.http.HttpStatus._
 import org.scalamock.scalatest.MockFactory
@@ -25,8 +26,12 @@ import org.scalatra.test.scalatest.ScalatraSuite
 
 class IntegrationSpec extends TestSupportFixture with ServletFixture with ScalatraSuite with MockFactory {
 
-  private val depositApiApp = new EasyDepositApiApp(minimalAppConfig)
-  mountServlets(depositApiApp, mockedAuthenticationProvider)
+  override def beforeEach {
+    super.beforeEach()
+    clearTestDir()
+  }
+
+  mountServlets(new EasyDepositApiApp(minimalAppConfig), mockedAuthenticationProvider)
 
   private val basicAuthentication: (String, String) = ("Authorization", fooBarBasicAuthHeader)
 
@@ -34,15 +39,16 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
 
     // create dataset
     expectsUserFooBar
-    val uuid = post(uri = s"/deposit", headers = Seq(basicAuthentication)) {
+    val responseBody = post(uri = s"/deposit", headers = Seq(basicAuthentication)) {
       new String(bodyBytes)
     }
+    val uuid = Json.getDepositInfo(responseBody).map(_.id.toString).getOrElse("whoops")
     val metadataURI = s"/deposit/$uuid/metadata"
 
     // create dataset metadata
     expectsUserFooBar
     put(metadataURI, headers = Seq(basicAuthentication),
-        body = """{"blabla":"blabla"}""" // more variations in DepositDirSpec
+      body = """{"blabla":"blabla"}""" // more variations in DepositDirSpec
     ) {
       status shouldBe NO_CONTENT_204
     }
@@ -56,18 +62,44 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
     }
 
     // invalidate the metadata and try again
-    val dd = DepositDir(testDir / "drafts", "foo", UUID.fromString(uuid))
-    val mdFile = (dd.baseDir / "foo" / uuid.toString / "bag" / "metadata" / "dataset.json").write("---")
+    val mdFile = {
+      val dd = DepositDir(testDir / "drafts", "foo", UUID.fromString(uuid))
+      (dd.baseDir / "foo" / uuid.toString / "bag" / "metadata" / "dataset.json").write("---")
+    }
     expectsUserFooBar
     get(metadataURI, headers = Seq(basicAuthentication)) {
       status shouldBe INTERNAL_SERVER_ERROR_500
     }
 
-    // remove the dataset and try another time
-    mdFile.delete() // TODO replace with "GET deposit/:uuid" when implemented
+    // remove the metadata and try another time
+    mdFile.delete() // TODO replace with "DELETE deposit/:uuid" when implemented
     expectsUserFooBar
     get(metadataURI, headers = Seq(basicAuthentication)) {
       status shouldBe NOT_FOUND_404
+    }
+  }
+
+  s"scenario: POST /deposit twice; GET /deposit" should "return a list of datasets" in {
+
+    // create two deposits
+    val responseBodies: Seq[String] = (0 until 2).map { _ =>
+      expectsUserFooBar
+      post(uri = s"/deposit", headers = Seq(basicAuthentication)) {
+        new String(bodyBytes)
+      }
+    }
+    responseBodies.foreach(_ should endWith("""Z"}"""))
+
+    // list all deposits
+    expectsUserFooBar
+    get(uri = s"/deposit", headers = Seq(basicAuthentication)) {
+      status shouldBe OK_200
+      // random order
+      println(body)
+      responseBodies.foreach(body should include(_))
+      body.length shouldBe responseBodies.mkString("[", ",", "]").length
+      body should startWith("""[{""")
+      body should endWith("""}]""")
     }
   }
 }

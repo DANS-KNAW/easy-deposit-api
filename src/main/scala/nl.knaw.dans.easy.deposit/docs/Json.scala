@@ -17,6 +17,7 @@ package nl.knaw.dans.easy.deposit.docs
 
 import java.nio.file.{ Path, Paths }
 import java.text.SimpleDateFormat
+import java.util.SimpleTimeZone
 
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.{ AccessCategory, PrivacySensitiveDataPresent }
 import nl.knaw.dans.easy.deposit.{ State, StateInfo }
@@ -32,7 +33,7 @@ import scala.util.{ Failure, Try }
 object Json {
 
   case class InvalidDocumentException(s: String, t: Throwable)
-    extends Exception(s"invalid $s: ${t.getClass} ${t.getMessage}", t)
+    extends Exception(s"invalid $s: ${ t.getClass } ${ t.getMessage }", t)
 
   class PathSerializer extends CustomSerializer[Path](_ =>
     ( {
@@ -44,10 +45,7 @@ object Json {
     )
   )
 
-  private implicit val jsonFormats: Formats = new DefaultFormats {
-    // we need a timestamp for DepositInfo, dates in DatasetMetadata are plain strings so no conflict
-    override protected def dateFormatter: SimpleDateFormat = new SimpleDateFormat("yyyy-MM-dd")
-  } +
+  private implicit val jsonFormats: Formats = new DefaultFormats {} +
     UUIDSerializer +
     new PathSerializer +
     new EnumNameSerializer(State) +
@@ -71,6 +69,10 @@ object Json {
   def getDatasetMetadata(body: JsonInput): Try[DatasetMetadata] = {
     parseObject(body).map(_.extract[DatasetMetadata])
   }.recoverWith { case t: Throwable => Failure(InvalidDocumentException("DatasetMetadata", t)) }
+
+  def getDepositInfo(body: JsonInput): Try[DepositInfo] = {
+    parseObject(body).map(_.extract[DepositInfo])
+  }.recoverWith { case t: Throwable => Failure(InvalidDocumentException("DepositInfo", t)) }
 
   private def parseObject(body: JsonInput): Try[json4s.JValue] = Try {
     JsonMethods.parse(body)

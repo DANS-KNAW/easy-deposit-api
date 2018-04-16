@@ -21,9 +21,10 @@ import java.util.UUID
 import nl.knaw.dans.easy.deposit.State._
 import nl.knaw.dans.easy.deposit._
 import nl.knaw.dans.easy.deposit.authentication.AuthenticationMocker._
-import nl.knaw.dans.easy.deposit.docs.DatasetMetadata
+import nl.knaw.dans.easy.deposit.docs.{ DatasetMetadata, DepositInfo }
 import org.eclipse.jetty.http.HttpStatus._
 import org.joda.time.DateTime
+import org.joda.time.DateTimeZone.UTC
 import org.scalamock.scalatest.MockFactory
 import org.scalatra.test.scalatest.ScalatraSuite
 
@@ -34,6 +35,9 @@ class HappyRoutesSpec extends TestSupportFixture with ServletFixture with Scalat
   private class MockedApp extends EasyDepositApiApp(minimalAppConfig)
   private val mockedApp = mock[MockedApp]
   mountServlets(mockedApp, mockedAuthenticationProvider)
+  private val now = "2018-03-22T21:43:01.576"
+  private val nowUTC = "2018-03-22T20:43:01Z"
+  mockDateTimeNow(now)
 
   "get /" should "be ok" in {
     mockedApp.getVersion _ expects() returning "test"
@@ -59,14 +63,15 @@ class HappyRoutesSpec extends TestSupportFixture with ServletFixture with Scalat
   "post /deposit" should "create a deposit" in {
     val uuid = UUID.randomUUID()
     expectsUserFooBar
-    (mockedApp.createDeposit(_: String)) expects "foo" returning Success(uuid)
+    (mockedApp.createDeposit(_: String)) expects "foo" returning
+      Success(DepositInfo(uuid, title = "just a test"))
 
     post(
       uri = "/deposit",
       headers = Seq(("Authorization", fooBarBasicAuthHeader))
     ) {
       status shouldBe OK_200
-      body shouldBe s"$uuid"
+      body shouldBe s"""{"id":"$uuid","title":"just a test","state":"DRAFT","stateDescription":"Deposit is open for changes.","timestamp":"$nowUTC"}"""
       header("Location") should (fullyMatch regex s"http://localhost:[0-9]+/deposit/$uuid")
     }
   }
@@ -76,8 +81,8 @@ class HappyRoutesSpec extends TestSupportFixture with ServletFixture with Scalat
     val uuid2 = UUID.randomUUID()
     expectsUserFooBar
     (mockedApp.getDeposits(_: String)) expects "foo" returning Success(Seq(
-      DepositInfo(uuid1, "x", DRAFT, "a", new DateTime("2018-03-27")),
-      DepositInfo(uuid2, "y", SUBMITTED, "b", new DateTime("2018-03-22"))
+      DepositInfo(uuid1, "x", DRAFT, "a", DateTime.now),
+      DepositInfo(uuid2, "y", SUBMITTED, "b", DateTime.now )
     ))
 
     get(
@@ -85,8 +90,9 @@ class HappyRoutesSpec extends TestSupportFixture with ServletFixture with Scalat
       headers = Seq(("Authorization", fooBarBasicAuthHeader))
     ) {
       status shouldBe OK_200
-      val info1 = s"""{"id":"$uuid1","title":"x","state":"DRAFT","stateDescription":"a","timestamp":"2018-03-27"}"""
-      val info2 = s"""{"id":"$uuid2","title":"y","state":"SUBMITTED","stateDescription":"b","timestamp":"2018-03-22"}"""
+      // TODO IntegrationSpec seems to apply CEST consistently, should be Z anyway
+      val info1 = s"""{"id":"$uuid1","title":"x","state":"DRAFT","stateDescription":"a","timestamp":"$nowUTC"}"""
+      val info2 = s"""{"id":"$uuid2","title":"y","state":"SUBMITTED","stateDescription":"b","timestamp":"$nowUTC"}"""
       body shouldBe s"""[$info1,$info2]"""
     }
   }

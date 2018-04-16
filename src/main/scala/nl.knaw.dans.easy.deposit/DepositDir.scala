@@ -24,16 +24,16 @@ import gov.loc.repository.bagit.creator.BagCreator
 import gov.loc.repository.bagit.domain.{ Metadata => BagitMetadata }
 import gov.loc.repository.bagit.hash.StandardSupportedAlgorithms
 import nl.knaw.dans.easy.deposit.docs.Json.{ InvalidDocumentException, toJson }
-import nl.knaw.dans.easy.deposit.docs.{ DatasetMetadata, Json }
+import nl.knaw.dans.easy.deposit.docs.{ DatasetMetadata, DepositInfo, Json }
 import nl.knaw.dans.lib.error._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.apache.commons.configuration.PropertiesConfiguration
-import org.joda.time.format.{ DateTimeFormatter, ISODateTimeFormat }
-import org.joda.time.{ DateTime, DateTimeZone }
+import org.joda.time.DateTime
+import org.joda.time.DateTimeZone.UTC
 import org.json4s.StreamInput
 
 import scala.collection.Seq
-import scala.util.{ Failure, Try }
+import scala.util.{ Failure, Success, Try }
 
 /**
  * Represents an existing deposit directory.
@@ -69,7 +69,41 @@ case class DepositDir private(baseDir: File, user: String, id: UUID) extends Deb
   /**
    * @return basic information about the deposit.
    */
-  def getDepositInfo: Try[DepositInfo] = ???
+  def getDepositInfo: Try[DepositInfo] = {
+    for {
+      title <- getDatasetTitle
+      props <- getDepositProps
+      state = State.withName(props.getString("state.label"))
+      created = new DateTime(props.getString("creation.timestamp")).withZone(UTC)
+    } yield DepositInfo(
+      id,
+      title,
+      state,
+      props.getString("state.description"),
+      created
+    )
+  }.recoverWith {
+    case t: CorruptDepositException => Failure(t)
+    case _: FileNotFoundException => notFoundFailure()
+    case _: NoSuchFileException => notFoundFailure()
+    case t => Failure(CorruptDepositException(user, id.toString, t))
+  }
+
+  private def getDatasetTitle = {
+    getDatasetMetadata
+      .map(_.titles.flatMap(_.headOption).getOrElse(""))
+      .recoverWith {
+        case t: NoSuchDepositException => Success("")
+        case t => Failure(t)
+      }
+  }
+
+  private def getDepositProps = {
+    val props = new PropertiesConfiguration()
+    Try { (dataDir.parent / "deposit.properties").fileReader }
+      .flatMap(_ (is => Try { props.load(is) }))
+      .map(_ => props)
+  }
 
   /**
    * @return the dataset level metadata in this deposit
@@ -157,14 +191,12 @@ object DepositDir {
    * @return the newly created [[DepositDir]]
    */
   def create(baseDir: File, user: String): Try[DepositDir] = Try {
-    val uuid = UUID.randomUUID()
-    val depositDir: File = (baseDir / user / uuid.toString)
+    val depositInfo = DepositInfo()
+    val depositDir: File = (baseDir / user / depositInfo.id.toString)
       .createIfNotExists(asDirectory = true, createParents = true)
 
-    val dateTimeFormatter: DateTimeFormatter = ISODateTimeFormat.dateTime()
-    val timeNow = DateTime.now(DateTimeZone.UTC).toString(dateTimeFormatter)
     val metadata = new BagitMetadata {
-      add("Created", timeNow)
+      add("Created", depositInfo.timestampString)
       add("Bag-Size", "0 KB")
     }
     val bagDir: File = depositDir / "bag"
@@ -173,13 +205,13 @@ object DepositDir {
     (bagDir / "metadata").createIfNotExists(asDirectory = true)
 
     new PropertiesConfiguration() {
-      addProperty("creation.timestamp", timeNow)
-      addProperty("state.label", "DRAFT")
-      addProperty("state.description", "Deposit is open for changes.")
+      addProperty("creation.timestamp", depositInfo.timestamp)
+      addProperty("state.label", depositInfo.state.toString)
+      addProperty("state.description", depositInfo.stateDescription)
       addProperty("depositor.userId", user)
     }.save((depositDir / "deposit.properties").toJava)
 
-    DepositDir(baseDir, user, uuid)
+    DepositDir(baseDir, user, depositInfo.id)
   }
 }
 
