@@ -33,7 +33,7 @@ import org.joda.time.{ DateTime, DateTimeZone }
 import org.json4s.StreamInput
 
 import scala.collection.Seq
-import scala.util.{ Failure, Try }
+import scala.util.{ Failure, Success, Try }
 
 /**
  * Represents an existing deposit directory.
@@ -43,9 +43,9 @@ import scala.util.{ Failure, Try }
  * @param id      the ID of the deposit
  */
 case class DepositDir private(baseDir: File, user: String, id: UUID) extends DebugEnhancedLogging {
-
-  private val dataDir = baseDir / user / id.toString / "bag"
-  private val metadataDir = dataDir / "metadata"
+  private val bagDir = baseDir / user / id.toString / "bag"
+  private val metadataDir = bagDir / "metadata"
+  private val dataFilesDir = bagDir / "data"
 
   /**
    * @return an information object about the current state of the desposit.
@@ -86,11 +86,7 @@ case class DepositDir private(baseDir: File, user: String, id: UUID) extends Deb
   }
 
   private def notFoundFailure() = {
-    Failure(NoSuchDepositException(
-      user,
-      id,
-      new Exception(s"File not found: $metadataDir/dataset.json")
-    ))
+    Failure(NoSuchDepositException(user, id, new Exception(s"File not found: $metadataDir/dataset.json")))
   }
 
   /**
@@ -109,7 +105,7 @@ case class DepositDir private(baseDir: File, user: String, id: UUID) extends Deb
    * @return object to access the data files of this deposit
    */
   def getDataFiles: Try[DataFiles] = Try {
-    new DataFiles(dataDir, metadataDir / "files.xml")
+    new DataFiles(dataFilesDir, metadataDir / "files.xml")
   }
 
 }
@@ -145,8 +141,9 @@ object DepositDir {
    * @param id      the identifier of the deposit
    * @return a [[DepositDir]] object
    */
-  def get(baseDir: File, user: String, id: UUID): Try[DepositDir] = Try {
-    DepositDir(baseDir, user, id)
+  def get(baseDir: File, user: String, id: UUID): Try[DepositDir] = {
+    if ((baseDir / user / id.toString).exists) Success(DepositDir(baseDir, user, id))
+    else Failure(NoSuchDepositException(user, id, null))
   }
 
   /**

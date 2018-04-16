@@ -23,7 +23,7 @@ import nl.knaw.dans.easy.deposit.authentication.ServletEnhancedLogging._
 import nl.knaw.dans.easy.deposit.docs.Json.{ InvalidDocumentException, getDatasetMetadata, getStateInfo, toJson }
 import nl.knaw.dans.easy.deposit.servlets.DepositServlet.InvalidResourceException
 import nl.knaw.dans.easy.deposit.{ EasyDepositApiApp, _ }
-import org.scalatra.{ ActionResult, NoContent, NotFound, Ok }
+import org.scalatra.{ ActionResult, NoContent, NotFound, Ok, Created }
 
 import scala.util.{ Failure, Try }
 
@@ -36,7 +36,7 @@ class DepositServlet(app: EasyDepositApiApp) extends ProtectedServlet(app) {
   }
   post("/") {
     forUser(app.createDeposit)
-      .map(uuid => Ok(
+      .map(uuid => Created(
         body = uuid, // TODO UUID will become DepositInfo, which should be wrapped by toJson
         headers = Map("Location" -> s"${ request.getRequestURL }/$uuid")
       ))
@@ -87,7 +87,8 @@ class DepositServlet(app: EasyDepositApiApp) extends ProtectedServlet(app) {
     (for {
       inputStream <- getInputStream
       newFileWasCreated <- forPath(app.writeDepositFile(inputStream))
-    } yield Ok(???))
+    } yield if (newFileWasCreated) Created(headers = Map("Location" -> request.uri.toASCIIString))
+            else Ok())
       .getOrRecoverResponse(respond)
   }
   delete("/:uuid/file/*") { //dir and file
@@ -153,7 +154,9 @@ class DepositServlet(app: EasyDepositApiApp) extends ProtectedServlet(app) {
     Failure(new InvalidResourceException(s"Invalid path."))
   }
 
-  private def getInputStream: Try[InputStream] = ???
+  private def getInputStream: Try[InputStream] = Try {
+    request.getInputStream
+  }
 }
 
 object DepositServlet {
