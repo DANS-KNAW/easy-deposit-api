@@ -15,6 +15,31 @@
  */
 package nl.knaw.dans.easy.deposit
 
+import java.io.{ ByteArrayInputStream, InputStream }
+import java.nio.charset.StandardCharsets
+import java.nio.file.Paths
+
+import scala.util.Success
+
 class DataFilesSpec extends TestSupportFixture {
 
+  override def beforeEach(): Unit = {
+    super.beforeEach()
+    clearTestDir()
+    draftsDir.createDirectories()
+  }
+
+  private val draftsDir = testDir / "drafts"
+
+  "write" should "write content to the path specified" in {
+    val dd = DepositDir(draftsDir, "user01", uuid)
+    val dataFiles = dd.getDataFiles.get
+    val content = "Lorem ipsum est"
+    val inputStream: InputStream = new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8))
+    val fileInBag = "location/in/data/dir/test.txt"
+
+    dataFiles.write(inputStream, Paths.get(fileInBag)) shouldBe Success(true)
+
+    (draftsDir / "user01" / uuid.toString / "bag" / "data" /  fileInBag).contentAsString shouldBe content
+  }
 }
