@@ -50,7 +50,7 @@ class DepositServlet(app: EasyDepositApiApp) extends ProtectedServlet(app) {
   put("/:uuid/metadata") {
     {
       for {
-        managedIS <- Try { managed(request.getInputStream) }
+        managedIS <- getRequestBodyAsManagedInputStream
         datasetMetadata <- managedIS.apply(is => getDatasetMetadata(is))
         _ <- forDeposit(app.writeDataMetadataToDeposit(datasetMetadata))
       } yield NoContent()
@@ -64,12 +64,13 @@ class DepositServlet(app: EasyDepositApiApp) extends ProtectedServlet(app) {
   put("/:uuid/state") {
     {
       for {
-        managedIS <- Try { managed(request.getInputStream) }
+        managedIS <- getRequestBodyAsManagedInputStream
         stateInfo <- managedIS.apply(is => getStateInfo(is))
         _ <- forDeposit(app.setDepositState(stateInfo))
       } yield Ok(???)
     }.getOrRecoverResponse(respond)
   }
+
   delete("/:uuid") {
     forDeposit(app.deleteDeposit)
       .map(_ => NoContent())
@@ -84,7 +85,7 @@ class DepositServlet(app: EasyDepositApiApp) extends ProtectedServlet(app) {
   put("/:uuid/file/*") { upload } //file
   private def upload = {
     for {
-      managedIS <- Try { managed(request.getInputStream) }
+      managedIS <- getRequestBodyAsManagedInputStream
       newFileWasCreated <- managedIS.apply(is => forPath(app.writeDepositFile(is)))
     } yield if (newFileWasCreated)
               Created(headers = Map("Location" -> request.uri.toASCIIString))
@@ -152,6 +153,10 @@ class DepositServlet(app: EasyDepositApiApp) extends ProtectedServlet(app) {
   }.recoverWith { case t: Throwable =>
     logger.error(s"bad path:${ t.getClass.getName } ${ t.getMessage }")
     Failure(new InvalidResourceException(s"Invalid path."))
+  }
+
+  private def getRequestBodyAsManagedInputStream = {
+    Try { managed(request.getInputStream) }
   }
 }
 
