@@ -706,16 +706,6 @@ components:
         sha1sum: ab3aa0555f31a8d7809fae4b03a95195edb01f5c
 
     DatasetMetadata:
-      required:
-      - titles
-      - languageOfDescription
-      - creators
-      - dateCreated
-      - audiences
-      - accessRights
-      - license
-      - privacySensitiveDataPresent
-      - acceptLicenseAgreement
       type: object
       properties:
         # Basic information
