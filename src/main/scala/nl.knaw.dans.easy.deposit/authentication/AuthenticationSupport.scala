@@ -78,8 +78,6 @@ trait AuthenticationSupport extends ScentrySupport[AuthUser] {
   }
 
   before() {
-    haltOnMultipleAuthentications()
-
     // a decent client would not provide credentials to logout
     // so no pointless ldap access
     authenticate()
@@ -87,49 +85,8 @@ trait AuthenticationSupport extends ScentrySupport[AuthUser] {
 
   /** Halts request processing in case of trouble. */
   def login() {
-    if (hasAuthCookie)
-      halt(BadRequest().logResponse) // don't trust a client that logs in while having an authentication cookie
-    else if (!isAuthenticated) {
+    if (!isAuthenticated) {
       halt(Forbidden("invalid credentials").logResponse)
-    }
-  }
-
-  /**
-   * Whether a route needs protection or not
-   * a client providing multiple authentications should not be trusted
-   */
-  private def haltOnMultipleAuthentications(): Unit = {
-
-    // size >=1 means EasyBasicAuthStrategy is valid
-    val authenticationHeaders = request
-      .getHeaderNames.asScala.toList
-      .map(_.toLowerCase)
-      .filter(h => headers.contains(h))
-
-    val validStrategies = scentry.strategies.values.filter(_.isValid)
-
-    if (hasMultipleAuthentications(hasAuthCookie, validStrategies, authenticationHeaders)) {
-      logger.info(s"Client specified multiple authentications: hasAuthCookie=$hasAuthCookie, authentication headers [$authenticationHeaders], strategies [${ validStrategies.map(_.name) }]")
-      halt(BadRequest().logResponse)
-    }
-  }
-
-  def hasAuthCookie: Boolean = {
-    request.getCookies.exists(_.getName == Scentry.scentryAuthKey)
-  }
-
-  private def hasMultipleAuthentications(hasAuthCookie: Boolean, validStrategies: Iterable[ScentryStrategy[AuthUser]], authenticationHeaders: List[String]) = {
-    (hasAuthCookie, validStrategies.size, authenticationHeaders.size) match {
-
-      // a client providing a JWT cookie and meeting the needs of a strategy should not be trusted
-      // in case basic authentication was not registered we need to check for that header too
-      case (true, 1, _) | (true, _, 1) => true
-
-      // a client providing multiple authentication headers and/or satisfying multiple strategies should not be trustet
-      case (_, nrOfStrategies, nrOfHeaders) if nrOfStrategies > 1 || nrOfHeaders > 1 => true
-
-      // did not detect multiple authentication methods in the request
-      case _ => false
     }
   }
 }
