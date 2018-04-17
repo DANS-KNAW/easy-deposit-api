@@ -43,9 +43,9 @@ import scala.util.{ Failure, Success, Try }
  * @param id      the ID of the deposit
  */
 case class DepositDir private(baseDir: File, user: String, id: UUID) extends DebugEnhancedLogging {
-
-  private val dataDir = baseDir / user / id.toString / "bag"
-  private val metadataDir = dataDir / "metadata"
+  private val deposit = baseDir / user/ id.toString
+  private val bagDir = deposit / "bag"
+  private val metadataDir = bagDir / "metadata"
 
   /**
    * @return an information object about the current state of the desposit.
@@ -64,7 +64,9 @@ case class DepositDir private(baseDir: File, user: String, id: UUID) extends Deb
   /**
    * Deletes the deposit.
    */
-  def delete(): Try[Unit] = ???
+  def delete(): Try[Unit] = Try {
+    deposit.delete()
+  }
 
   /**
    * @return basic information about the deposit.
@@ -100,7 +102,7 @@ case class DepositDir private(baseDir: File, user: String, id: UUID) extends Deb
 
   private def getDepositProps = {
     val props = new PropertiesConfiguration()
-    Try { (dataDir.parent / "deposit.properties").fileReader }
+    Try { (bagDir.parent / "deposit.properties").fileReader }
       .flatMap(_ (is => Try { props.load(is) }))
       .map(_ => props)
   }
@@ -143,7 +145,7 @@ case class DepositDir private(baseDir: File, user: String, id: UUID) extends Deb
    * @return object to access the data files of this deposit
    */
   def getDataFiles: Try[DataFiles] = Try {
-    new DataFiles(dataDir, metadataDir / "files.xml")
+    new DataFiles(bagDir, metadataDir / "files.xml")
   }
 
 }
