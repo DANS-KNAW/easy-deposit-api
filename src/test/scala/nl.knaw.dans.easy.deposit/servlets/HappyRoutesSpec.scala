@@ -71,7 +71,7 @@ class HappyRoutesSpec extends TestSupportFixture with ServletFixture with Scalat
       headers = Seq(("Authorization", fooBarBasicAuthHeader))
     ) {
       status shouldBe CREATED_201
-      body shouldBe s"""{"id":"$uuid","title":"just a test","state":"DRAFT","stateDescription":"Deposit is open for changes.","timestamp":"$nowUTC"}"""
+      body shouldBe s"""{"id":"$uuid","title":"just a test","state":"DRAFT","stateDescription":"Deposit is open for changes.","date":"$nowUTC"}"""
       header("Location") should (fullyMatch regex s"http://localhost:[0-9]+/deposit/$uuid")
     }
   }
@@ -91,8 +91,8 @@ class HappyRoutesSpec extends TestSupportFixture with ServletFixture with Scalat
     ) {
       status shouldBe OK_200
       // TODO IntegrationSpec seems to apply CEST consistently, should be Z anyway
-      val info1 = s"""{"id":"$uuid1","title":"x","state":"DRAFT","stateDescription":"a","timestamp":"$nowUTC"}"""
-      val info2 = s"""{"id":"$uuid2","title":"y","state":"SUBMITTED","stateDescription":"b","timestamp":"$nowUTC"}"""
+      val info1 = s"""{"id":"$uuid1","title":"x","state":"DRAFT","stateDescription":"a","date":"$nowUTC"}"""
+      val info2 = s"""{"id":"$uuid2","title":"y","state":"SUBMITTED","stateDescription":"b","date":"$nowUTC"}"""
       body shouldBe s"""[$info1,$info2]"""
     }
   }

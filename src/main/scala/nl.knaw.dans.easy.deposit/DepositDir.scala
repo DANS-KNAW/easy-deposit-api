@@ -206,7 +206,7 @@ object DepositDir {
     (bagDir / "metadata" / "dataset.json").write("{}")
 
     new PropertiesConfiguration() {
-      addProperty("creation.timestamp", depositInfo.timestamp)
+      addProperty("creation.timestamp", depositInfo.date)
       addProperty("state.label", depositInfo.state.toString)
       addProperty("state.description", depositInfo.stateDescription)
       addProperty("depositor.userId", user)
