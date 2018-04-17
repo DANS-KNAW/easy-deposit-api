@@ -20,7 +20,7 @@ import nl.knaw.dans.easy.deposit.authentication.ServletEnhancedLogging
 import nl.knaw.dans.easy.deposit.authentication.ServletEnhancedLogging._
 import org.scalatra.Forbidden
 
-class ProtectedServlet(app: EasyDepositApiApp) extends AbstractAuthServlet(app) /*with ServletEnhancedLogging*/ {
+class ProtectedServlet(app: EasyDepositApiApp) extends AbstractAuthServlet(app) {
 
   before() {
     if (!isAuthenticated) {
