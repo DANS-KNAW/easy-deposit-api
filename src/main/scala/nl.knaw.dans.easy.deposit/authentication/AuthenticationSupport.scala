@@ -78,8 +78,6 @@ trait AuthenticationSupport extends ScentrySupport[AuthUser] {
   }
 
   before() {
-    // a decent client would not provide credentials to logout
-    // so no pointless ldap access
     authenticate()
   }
 
