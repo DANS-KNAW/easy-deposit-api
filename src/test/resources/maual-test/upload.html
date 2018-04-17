@@ -1,0 +1,29 @@
+<html>
+<head>
+    <script>
+        function setAction(el){
+            document.getElementById('form').action = "http://test.dans.knaw.nl:20190/deposit/" +
+               el.value +"/file/fixed-file-name"
+            return true
+        }
+    </script>
+</head>
+<body>
+<h1>Manual test for upload.</h1>
+<form id="form" action="http://test.dans.knaw.nl:20190/deposit/" method="post">
+    <!--<input type="file" id="myFiles" multiple size="50">-->
+    <input type="file" id="myFile">
+    <p>
+        <label for="dataset">dataset id</label>
+        <input type="text" name="dataset" id="dataset" onChange="setAction(this)"/></p>
+    <h2>Log in on the flight, please clear session cookies for the next attempt.</h2>
+    <p>
+        <label for="login">user id</label>
+        <input type="text" name="login" id="login"/></p>
+    <p>
+        <label for="password">password</label>
+        <input type="password" name="password" id="password"/></p>
+    <p><input type="submit"/></p>
+</form>
+</body>
+</html>
