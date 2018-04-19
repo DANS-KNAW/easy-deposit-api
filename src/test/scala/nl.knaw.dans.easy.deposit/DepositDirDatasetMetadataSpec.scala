@@ -23,7 +23,7 @@ class DepositDirDatasetMetadataSpec extends TestSupportFixture {
   private val dd = DepositDir(testDir / "drafts", "foo", uuid)
   private val metadataFile = dd.baseDir / "foo" / uuid.toString / "bag" / "metadata" / "dataset.json"
 
-  override def beforeEach() = {
+  override def beforeEach(): Unit = {
     super.beforeEach()
     clearTestDir()
     dd.baseDir.createDirectories()

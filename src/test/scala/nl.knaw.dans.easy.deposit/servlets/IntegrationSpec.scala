@@ -26,7 +26,7 @@ import org.scalatra.test.scalatest.ScalatraSuite
 
 class IntegrationSpec extends TestSupportFixture with ServletFixture with ScalatraSuite with MockFactory {
 
-  override def beforeEach {
+  override def beforeEach(): Unit = {
     super.beforeEach()
     clearTestDir()
   }
