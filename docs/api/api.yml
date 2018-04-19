@@ -257,6 +257,34 @@ paths:
       security:
       - BearerAuth: []
 
+  /deposit/{id}/metadata/doi:
+    description: |
+      The reserved Digital Object Identifier for this deposit.
+    get:
+      tags:
+      - deposit
+      parameters:
+      - $ref: "#/components/parameters/DepositId"
+      responses:
+        200:
+          description: valid DOI minted by DANS
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Doi"
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        403:
+          $ref: "#/components/responses/Forbidden"
+        404:
+          $ref: "#/components/responses/NotFoundContainingDepositDoesNotExist"
+        410:
+          $ref: "#/components/responses/Gone"
+        500:
+          $ref: "#/components/responses/InternalServerError"
+      security:
+        - BearerAuth: []
+
   /deposit/{id}/state:
     get:
       tags:
@@ -655,6 +683,12 @@ components:
         groups:
           type: "array"
           description: "string array with group-names this user belongs to"
+
+    Doi:
+      type: object
+      properties:
+        doi:
+          type: "string"
 
     # TODO: add links to state, metadata, files?
     DepositInfo:
