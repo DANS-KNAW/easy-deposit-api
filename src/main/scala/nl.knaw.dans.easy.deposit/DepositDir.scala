@@ -45,7 +45,7 @@ import scala.util.{ Failure, Success, Try }
 case class DepositDir private(baseDir: File, user: String, id: UUID) extends DebugEnhancedLogging {
   private val bagDir = baseDir / user / id.toString / "bag"
   private val metadataDir = bagDir / "metadata"
-  private val dataFilesDir = bagDir / "data"
+  val dataFilesDir: File = bagDir / "data"
 
   /**
    * @return an information object about the current state of the desposit.

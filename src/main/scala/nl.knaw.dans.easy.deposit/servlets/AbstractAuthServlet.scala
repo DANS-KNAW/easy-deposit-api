@@ -21,7 +21,7 @@ import org.apache.commons.configuration.PropertiesConfiguration
 import org.scalatra.ScalatraServlet
 
 abstract class AbstractAuthServlet(app: EasyDepositApiApp) extends ScalatraServlet
-  /*with ServletEnhancedLogging*/
+  with ServletEnhancedLogging
   with AuthenticationSupport
   with TokenSupport
   with AuthConfig {
