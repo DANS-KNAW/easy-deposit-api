@@ -10,20 +10,16 @@
 </head>
 <body>
 <h1>Manual test for upload.</h1>
-<form id="form" action="http://test.dans.knaw.nl:20190/deposit/" method="post">
-    <!--<input type="file" id="myFiles" multiple size="50">-->
-    <input type="file" id="myFile">
-    <p>
-        <label for="dataset">dataset id</label>
-        <input type="text" name="dataset" id="dataset" onChange="setAction(this)"/></p>
-    <h2>Log in on the flight, in case you don't have a cookie yet.</h2>
-    <p>
-        <label for="login">user id</label>
-        <input type="text" name="login" id="login"/></p>
-    <p>
-        <label for="password">password</label>
-        <input type="password" name="password" id="password"/></p>
-    <p><input type="submit"/></p>
+<a href="login.html">login</a>
+<form id="form"
+      action="http://test.dans.knaw.nl:20190/deposit/07d53775-aeff-478c-85d3-a8e27724ab9f/file/some.png"
+      method="post"
+      enctype="multipart/form-data"
+>
+    <input type="file" id="myFiles" multiple size="50">
+    <!--<input type="file" id="myFile">-->
+    <input type="submit"/>
 </form>
+<p>NB: Needs server side implementation of multipart/form-data.</p>
 </body>
 </html>
