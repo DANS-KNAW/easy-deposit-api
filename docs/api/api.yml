@@ -278,8 +278,6 @@ paths:
           $ref: "#/components/responses/Forbidden"
         404:
           $ref: "#/components/responses/NotFoundContainingDepositDoesNotExist"
-        410:
-          $ref: "#/components/responses/Gone"
         500:
           $ref: "#/components/responses/InternalServerError"
       security:
