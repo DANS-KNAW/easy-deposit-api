@@ -31,7 +31,10 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
     clearTestDir()
   }
 
-  mountServlets(new EasyDepositApiApp(minimalAppConfig), mockedAuthenticationProvider)
+  private val app: EasyDepositApiApp = new EasyDepositApiApp(minimalAppConfig) {
+    override val pidRequester: PidRequester = mock[PidRequester]
+  }
+  mountServlets(app, mockedAuthenticationProvider)
 
   private val basicAuthentication: (String, String) = ("Authorization", fooBarBasicAuthHeader)
 

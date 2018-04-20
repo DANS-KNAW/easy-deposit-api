@@ -19,6 +19,8 @@ import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.AccessCategory.AccessCateg
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.PrivacySensitiveDataPresent.{ PrivacySensitiveDataPresent, unspecified }
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata._
 
+import scala.util.{ Failure, Success, Try }
+
 case class DatasetMetadata(doi: Option[String] = None,
                            languageOfDescription: Option[String] = None,
                            titles: Option[Seq[String]] = None,
@@ -57,7 +59,19 @@ case class DatasetMetadata(doi: Option[String] = None,
                            messageForDataManager: Option[String] = None,
                            privacySensitiveDataPresent: PrivacySensitiveDataPresent = unspecified,
                            acceptLicenseAgreement: Boolean = false,
-                          )
+                          ) {
+  def reserveDOI: Try[String] = doi match {
+    case Some(value) => Success(value)
+    case None => // "POST /create?type=doi"
+      ???
+  }
+
+  def validateUpdate(oldDM: DatasetMetadata): Try[Unit] = {
+    // TODO limit this check to DANS managed DOI's?
+    if (oldDM.doi == doi) Success(())
+    else Failure(new Exception("Use /deposit/{id}/metadata/doi to reserve a DOI once for a deposit"))
+  }
+}
 object DatasetMetadata {
 
   object PrivacySensitiveDataPresent extends Enumeration {
