@@ -24,7 +24,6 @@ import nl.knaw.dans.easy.deposit.authentication.AuthenticationMocker._
 import nl.knaw.dans.easy.deposit.docs.{ DatasetMetadata, DepositInfo }
 import org.eclipse.jetty.http.HttpStatus._
 import org.joda.time.DateTime
-import org.joda.time.DateTimeZone.UTC
 import org.scalamock.scalatest.MockFactory
 import org.scalatra.test.scalatest.ScalatraSuite
 
@@ -70,6 +69,8 @@ class HappyRoutesSpec extends TestSupportFixture with ServletFixture with Scalat
       uri = "/deposit",
       headers = Seq(("Authorization", fooBarBasicAuthHeader))
     ) {
+      status shouldBe CREATED_201
+      body shouldBe s"""{"id":"$uuid","title":"just a test","state":"DRAFT","stateDescription":"Deposit is open for changes.","date":"$nowUTC"}"""
       status shouldBe CREATED_201
       body shouldBe s"""{"id":"$uuid","title":"just a test","state":"DRAFT","stateDescription":"Deposit is open for changes.","date":"$nowUTC"}"""
       header("Location") should (fullyMatch regex s"http://localhost:[0-9]+/deposit/$uuid")

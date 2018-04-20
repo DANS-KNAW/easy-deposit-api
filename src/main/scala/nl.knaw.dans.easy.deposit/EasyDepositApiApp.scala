@@ -81,7 +81,7 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
    * Returns the list of `DepositInfo` objects for the deposits in the user's draft area.
    *
    * @param user the user ID
-   * @return a list of [[DepositInfo]] objects
+   * @return a list of [[docs.DepositInfo]] objects
    */
   def getDeposits(user: String): Try[Seq[DepositInfo]] = {
     for {
@@ -157,7 +157,7 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
   } yield md
 
   /**
-   * Writes the provided [[DatasetMetadata]] object as `dataset.xml` to the deposit directory. Any
+   * Writes the provided [[docs.DatasetMetadata]] object as `dataset.xml` to the deposit directory. Any
    * existing `dataset.xml` is overwritten, so it is important that the object contains the complete
    * current metadata.
    *

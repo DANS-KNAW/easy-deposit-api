@@ -26,10 +26,7 @@ trait ServletEnhancedLogging extends DebugEnhancedLogging {
   this: ScalatraBase =>
 
   before() {
-    logger.info(s"${ request.getMethod } ${ request.getRequestURL } remote=${ request.getRemoteAddr } params=$params headers=${ request.headers } body=${ request.body }")
-  }
-  after() {
-    //logger.info(s"response.status=${ response.getStatus } headers=${ response.headers }")
+    logger.info(s"${ request.getMethod } ${ request.getRequestURL } remote=${ request.getRemoteAddr } params=$params headers=${ request.headers }")
   }
 }
 object ServletEnhancedLogging extends DebugEnhancedLogging {

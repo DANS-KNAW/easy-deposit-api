@@ -16,8 +16,6 @@
 package nl.knaw.dans.easy.deposit.docs
 
 import java.nio.file.{ Path, Paths }
-import java.text.SimpleDateFormat
-import java.util.SimpleTimeZone
 
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.{ AccessCategory, PrivacySensitiveDataPresent }
 import nl.knaw.dans.easy.deposit.{ State, StateInfo }

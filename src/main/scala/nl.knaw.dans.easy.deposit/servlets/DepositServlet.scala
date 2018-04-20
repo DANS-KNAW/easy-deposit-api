@@ -15,15 +15,15 @@
  */
 package nl.knaw.dans.easy.deposit.servlets
 
-import java.io.InputStream
 import java.nio.file.{ Path, Paths }
 import java.util.UUID
 
 import nl.knaw.dans.easy.deposit.authentication.ServletEnhancedLogging._
-import nl.knaw.dans.easy.deposit.docs.Json.{ getDatasetMetadata, getStateInfo, toJson, InvalidDocumentException }
+import nl.knaw.dans.easy.deposit.docs.Json.{ InvalidDocumentException, getDatasetMetadata, getStateInfo, toJson }
 import nl.knaw.dans.easy.deposit.servlets.DepositServlet.InvalidResourceException
 import nl.knaw.dans.easy.deposit.{ EasyDepositApiApp, _ }
-import org.scalatra.{ ActionResult, Created, NoContent, NotFound, Ok }
+import org.scalatra._
+import resource.managed
 
 import scala.util.{ Failure, Try }
 
@@ -35,12 +35,12 @@ class DepositServlet(app: EasyDepositApiApp) extends ProtectedServlet(app) {
       .getOrRecoverResponse(respond)
   }
   post("/") {
-    forUser(app.createDeposit)
-      .map(depositInfo => Created(
+    forUser(app.createDeposit).map { depositInfo =>
+      Created(
         body = toJson(depositInfo),
         headers = Map("Location" -> s"${ request.getRequestURL }/${ depositInfo.id }")
-      ))
-      .getOrRecoverResponse(respond)
+      )
+    }.getOrRecoverResponse(respond)
   }
   get("/:uuid/metadata") {
     forDeposit(app.getDatasetMetadataForDeposit)
@@ -48,11 +48,13 @@ class DepositServlet(app: EasyDepositApiApp) extends ProtectedServlet(app) {
       .getOrRecoverResponse(respond)
   }
   put("/:uuid/metadata") {
-    (for {
-      datasetMetadata <- getDatasetMetadata(request.body)
-      _ <- forDeposit(app.writeDataMetadataToDeposit(datasetMetadata))
-    } yield NoContent())
-      .getOrRecoverResponse(respond)
+    {
+      for {
+        managedIS <- getRequestBodyAsManagedInputStream
+        datasetMetadata <- managedIS.apply(is => getDatasetMetadata(is))
+        _ <- forDeposit(app.writeDataMetadataToDeposit(datasetMetadata))
+      } yield NoContent()
+    }.getOrRecoverResponse(respond)
   }
   get("/:uuid/state") {
     forDeposit(app.getDepositState)
@@ -60,12 +62,15 @@ class DepositServlet(app: EasyDepositApiApp) extends ProtectedServlet(app) {
       .getOrRecoverResponse(respond)
   }
   put("/:uuid/state") {
-    (for {
-      stateInfo <- getStateInfo(request.body)
-      _ <- forDeposit(app.setDepositState(stateInfo))
-    } yield Ok(???))
-      .getOrRecoverResponse(respond)
+    {
+      for {
+        managedIS <- getRequestBodyAsManagedInputStream
+        stateInfo <- managedIS.apply(is => getStateInfo(is))
+        _ <- forDeposit(app.setDepositState(stateInfo))
+      } yield Ok(???)
+    }.getOrRecoverResponse(respond)
   }
+
   delete("/:uuid") {
     forDeposit(app.deleteDeposit)
       .map(_ => NoContent())
@@ -76,20 +81,17 @@ class DepositServlet(app: EasyDepositApiApp) extends ProtectedServlet(app) {
       .map(depositFiles => Ok(body = toJson(depositFiles)))
       .getOrRecoverResponse(respond)
   }
-  post("/:uuid/file/*") { //dir
-    (for {
-      inputStream <- getInputStream
-      newFileWasCreated <- forPath(app.writeDepositFile(inputStream))
-    } yield Ok(???))
-      .getOrRecoverResponse(respond)
-  }
-  put("/:uuid/file/*") { //file
-    (for {
-      inputStream <- getInputStream
-      newFileWasCreated <- forPath(app.writeDepositFile(inputStream))
-    } yield Ok(???))
-      .getOrRecoverResponse(respond)
-  }
+  post("/:uuid/file/*") { upload } //dir
+  put("/:uuid/file/*") { upload } //file
+  private def upload = {
+    for {
+      managedIS <- getRequestBodyAsManagedInputStream
+      newFileWasCreated <- managedIS.apply(is => forPath(app.writeDepositFile(is)))
+    } yield if (newFileWasCreated)
+              Created(headers = Map("Location" -> request.uri.toASCIIString))
+            else Ok()
+  }.getOrRecoverResponse(respond)
+
   delete("/:uuid/file/*") { //dir and file
     forPath(app.deleteDepositFile)
       .map(_ => Ok(???))
@@ -153,7 +155,9 @@ class DepositServlet(app: EasyDepositApiApp) extends ProtectedServlet(app) {
     Failure(new InvalidResourceException(s"Invalid path."))
   }
 
-  private def getInputStream: Try[InputStream] = ???
+  private def getRequestBodyAsManagedInputStream = {
+    Try { managed(request.getInputStream) }
+  }
 }
 
 object DepositServlet {
