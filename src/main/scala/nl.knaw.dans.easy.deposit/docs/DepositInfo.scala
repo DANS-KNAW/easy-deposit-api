@@ -27,8 +27,8 @@ import org.joda.time.format.ISODateTimeFormat
 /**
  * Summary information about a deposit.
  *
- * @param title [[../DepositDir#getDepositInfo]] retrieves it form [[DatasetMetadata]]
- * @param state [[../DepositDir#create]] stores it in deposit.properties
+ * @param title            [[../DepositDir#getDepositInfo]] retrieves it form [[DatasetMetadata]]
+ * @param state            [[../DepositDir#create]] stores it in deposit.properties
  * @param stateDescription stored in deposit.properties
  * @param date             stored in [[../BagitMetadata]].Created
  *                         and as creation.timestamp in deposit.properties

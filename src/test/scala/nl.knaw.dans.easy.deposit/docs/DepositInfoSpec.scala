@@ -17,8 +17,6 @@ package nl.knaw.dans.easy.deposit.docs
 
 import nl.knaw.dans.easy.deposit._
 import org.joda.time.{ DateTime, DateTimeZone }
-import org.joda.time.DateTimeZone.UTC
-import org.joda.time.tz.FixedDateTimeZone
 
 import scala.util.Success
 
@@ -27,7 +25,7 @@ class DepositInfoSpec extends TestSupportFixture {
   private val now = "2018-03-22T21:43:01.576"
   private val nowUTC = "2018-03-22T20:43:01Z"
   mockDateTimeNow(now)
-  DateTimeZone.getDefault.convertLocalToUTC(new DateTime(now).getMillis,true)
+  DateTimeZone.getDefault.convertLocalToUTC(new DateTime(now).getMillis, true)
   val depositInfoObject = DepositInfo(title = "Lorum ipsum")
   val depositInfoString = s"""{"id":"$uuid","title":"Lorum ipsum","state":"DRAFT","stateDescription":"Deposit is open for changes.","date":"2018-03-22T21:43:01Z"}"""
 

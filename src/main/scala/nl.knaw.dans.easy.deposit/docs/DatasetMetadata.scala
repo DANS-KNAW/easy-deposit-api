@@ -19,8 +19,6 @@ import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.AccessCategory.AccessCateg
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.PrivacySensitiveDataPresent.{ PrivacySensitiveDataPresent, unspecified }
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata._
 
-import scala.util.{ Failure, Success, Try }
-
 case class DatasetMetadata(doi: Option[String] = None,
                            languageOfDescription: Option[String] = None,
                            titles: Option[Seq[String]] = None,

@@ -22,9 +22,7 @@ import nl.knaw.dans.easy.deposit.authentication.ServletEnhancedLogging._
 import nl.knaw.dans.lib.error._
 import org.scalatra._
 import org.scalatra.auth.ScentryAuthStore.CookieAuthStore
-import org.scalatra.auth.{ Scentry, ScentryConfig, ScentryStrategy, ScentrySupport }
-
-import scala.collection.JavaConverters._
+import org.scalatra.auth.{ ScentryConfig, ScentrySupport }
 
 trait AuthenticationSupport extends ScentrySupport[AuthUser] {
   self: ScalatraBase with TokenSupport with AuthConfig =>

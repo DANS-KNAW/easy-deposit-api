@@ -23,7 +23,7 @@ import org.scalamock.scalatest.MockFactory
 
 import scala.util.{ Failure, Success }
 
-class DepositDirSpec extends TestSupportFixture  with MockFactory {
+class DepositDirSpec extends TestSupportFixture with MockFactory {
   override def beforeEach(): Unit = {
     super.beforeEach()
     clearTestDir()

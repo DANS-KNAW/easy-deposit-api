@@ -40,6 +40,6 @@ class DataFilesSpec extends TestSupportFixture {
 
     dataFiles.write(inputStream, Paths.get(fileInBag)) shouldBe Success(true)
 
-    (draftsDir / "user01" / uuid.toString / "bag" / "data" /  fileInBag).contentAsString shouldBe content
+    (draftsDir / "user01" / uuid.toString / "bag" / "data" / fileInBag).contentAsString shouldBe content
   }
 }

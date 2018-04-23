@@ -21,14 +21,14 @@ import java.nio.file.{ Path, Paths }
 import java.util.UUID
 
 import better.files.File
-import nl.knaw.dans.easy.deposit.PidRequesterComponent.{ PidRequester, PidType }
+import nl.knaw.dans.easy.deposit.PidRequesterComponent.PidRequester
 import nl.knaw.dans.easy.deposit.authentication.LdapAuthentication
 import nl.knaw.dans.easy.deposit.docs.{ DatasetMetadata, DepositInfo }
 import nl.knaw.dans.lib.error._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.apache.commons.configuration.PropertiesConfiguration
 
-import scala.util.{ Failure, Success, Try }
+import scala.util.Try
 
 class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLogging
   with LdapAuthentication
