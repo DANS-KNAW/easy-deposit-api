@@ -144,7 +144,7 @@ case class DepositDir private(baseDir: File, user: String, id: UUID) extends Deb
    * @return object to access the data files of this deposit
    */
   def getDataFiles: Try[DataFiles] = Try {
-    new DataFiles(dataFilesDir, metadataDir / "files.xml")
+    DataFiles(dataFilesDir, metadataDir / "files.xml")
   }
 
   /**

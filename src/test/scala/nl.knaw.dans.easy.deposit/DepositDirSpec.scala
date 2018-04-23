@@ -17,9 +17,13 @@ package nl.knaw.dans.easy.deposit
 
 import java.nio.file.attribute.PosixFilePermission
 
+import nl.knaw.dans.easy.deposit.PidRequesterComponent.PidRequester
+import nl.knaw.dans.easy.deposit.PidRequesterComponent.PidType.PidType
+import org.scalamock.scalatest.MockFactory
+
 import scala.util.{ Failure, Success }
 
-class DepositDirSpec extends TestSupportFixture {
+class DepositDirSpec extends TestSupportFixture  with MockFactory {
   override def beforeEach(): Unit = {
     super.beforeEach()
     clearTestDir()
@@ -87,5 +91,43 @@ class DepositDirSpec extends TestSupportFixture {
     inside(tryDeposit) {
       case Success(dp) => dp shouldBe deposit
     }
+  }
+
+  "getDOI" should """return a new value""" in {
+    val user = "user001"
+    val doi = "12345"
+    val deposit = DepositDir.create(draftsDir, user).get
+    val mdFile = deposit.baseDir / user / deposit.id.toString / "bag" / "metadata" / "dataset.json"
+    mdFile.contentAsString shouldBe "{}"
+
+    val pidMocker = mock[PidRequester]
+    (pidMocker.requestPid(_: PidType)) expects * once() returning Success(doi)
+
+    deposit.getDOI(pidMocker) shouldBe Success(doi)
+    mdFile.contentAsString should startWith(s"""{"doi":"$doi",""")
+  }
+
+  it should """complain about an invalid dataset""" in {
+    val user = "user001"
+    val doi = "12345"
+    val deposit = DepositDir.create(draftsDir, user).get
+    (deposit.baseDir / user / deposit.id.toString / "bag" / "metadata" / "dataset.json").writeText("""{"doi":"$doi"}""")
+
+    val pidMocker = mock[PidRequester] // note that no pid is requested
+
+    deposit.getDOI(pidMocker) shouldBe a[Failure[_]]
+  }
+
+  it should """return the available DOI""" in {
+    val user = "user001"
+    val doi = "12345"
+    val deposit = DepositDir.create(draftsDir, user).get
+    val dd = deposit.baseDir / user / deposit.id.toString
+    (dd / "bag" / "metadata" / "dataset.json").writeText(s"""{"doi":"$doi"}""")
+    (dd / "deposit.properties").writeText(s"""identifier.doi = $doi""")
+
+    val pidMocker = mock[PidRequester] // note that no pid is requested
+
+    deposit.getDOI(pidMocker) shouldBe Success(doi)
   }
 }
