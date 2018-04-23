@@ -23,11 +23,12 @@ import better.files._
 import gov.loc.repository.bagit.creator.BagCreator
 import gov.loc.repository.bagit.domain.{ Metadata => BagitMetadata }
 import gov.loc.repository.bagit.hash.StandardSupportedAlgorithms
-import nl.knaw.dans.easy.deposit.docs.Json.{ InvalidDocumentException, toJson }
 import nl.knaw.dans.easy.deposit.docs.{ DatasetMetadata, DepositInfo, Json }
+import nl.knaw.dans.easy.deposit.docs.Json.{ toJson, InvalidDocumentException }
+import nl.knaw.dans.easy.deposit.State.State
 import nl.knaw.dans.lib.error._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
-import org.apache.commons.configuration.PropertiesConfiguration
+import org.apache.commons.configuration.{ CompositeConfiguration, PropertiesConfiguration }
 import org.joda.time.DateTime
 import org.joda.time.DateTimeZone.UTC
 import org.json4s.StreamInput
@@ -50,7 +51,21 @@ case class DepositDir private(baseDir: File, user: String, id: UUID) extends Deb
   /**
    * @return an information object about the current state of the desposit.
    */
-  def getStateInfo: Try[StateInfo] = ???
+  def getStateInfo: Try[StateInfo] = {
+    for {
+      props <- getDepositProps
+      state <- getState(props)
+      description <- getStateDescription(props)
+    } yield StateInfo(state, description)
+  }
+
+  private def getState(props: PropertiesConfiguration) = Try {
+    State.withName(props.getString("state.label"))
+  }
+
+  private def getStateDescription(props: PropertiesConfiguration) = Try {
+    props.getString("state.description")
+  }
 
   /**
    * Sets changes the state of the deposit. If the state transition is not allow a `Failure` containing
@@ -59,7 +74,35 @@ case class DepositDir private(baseDir: File, user: String, id: UUID) extends Deb
    * @param stateInfo the new state
    * @return success of failure
    */
-  def setStateInfo(stateInfo: StateInfo): Try[Unit] = ???
+  def setStateInfo(stateInfo: StateInfo): Try[Unit] = {
+    for {
+      props <- getDepositProps
+      currentState <- getState(props)
+      _ <- checkStateTransition(currentState, stateInfo.state)
+      cc <- createCompositeConfiguration(props)
+      _ <- Try {
+        cc.setProperty("state.label", stateInfo.state.toString)
+        cc.setProperty("state.description", stateInfo.stateDescription.toString)
+      }
+      _ <- saveDepositProps(props)
+    } yield ()
+  }
+
+  private def checkStateTransition(transition: (State, State)) = {
+    transition match {
+      case (State.DRAFT, State.SUBMITTED) => Success(())
+      case (State.REJECTED, State.DRAFT) => Success(())
+      case (oldState, newState) => Failure(IllegalStateTransitionException(user, id, oldState, newState))
+    }
+  }
+
+  private def createCompositeConfiguration(props: PropertiesConfiguration) = Try {
+    new CompositeConfiguration(props)
+  }
+
+  private def saveDepositProps(props: PropertiesConfiguration) = Try {
+    props.save()
+  }
 
   /**
    * Deletes the deposit.
@@ -75,8 +118,8 @@ case class DepositDir private(baseDir: File, user: String, id: UUID) extends Deb
     for {
       title <- getDatasetTitle
       props <- getDepositProps
-      state = State.withName(props.getString("state.label"))
-      created = new DateTime(props.getString("creation.timestamp")).withZone(UTC)
+      state <- Try { State.withName(props.getString("state.label")) }
+      created <- Try { new DateTime(props.getString("creation.timestamp")).withZone(UTC) }
     } yield DepositInfo(
       id,
       title,
@@ -101,10 +144,7 @@ case class DepositDir private(baseDir: File, user: String, id: UUID) extends Deb
   }
 
   private def getDepositProps = {
-    val props = new PropertiesConfiguration()
-    Try { (bagDir.parent / "deposit.properties").fileReader }
-      .flatMap(_ (is => Try { props.load(is) }))
-      .map(_ => props)
+    Try { new PropertiesConfiguration((bagDir.parent / "deposit.properties").toJava) }
   }
 
   /**

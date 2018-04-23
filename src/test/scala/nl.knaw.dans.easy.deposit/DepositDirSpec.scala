@@ -88,4 +88,47 @@ class DepositDirSpec extends TestSupportFixture {
       case Success(dp) => dp shouldBe deposit
     }
   }
+
+  "setStateInfo" should "result in Success when transitioning from DRAFT to SUBMITTED" in {
+    val deposit = DepositDir.create(draftsDir, "user001").get
+    val propsFile = draftsDir / "user001" / deposit.id.toString / "deposit.properties"
+    val result = deposit.setStateInfo(StateInfo(State.SUBMITTED, "Ready for processing"))
+    result shouldBe a[Success[_]]
+    propsFile.contentAsString should include regex """state.label\s*=\s*SUBMITTED""".r
+  }
+
+  it should "result in Success when transitioning from REJECTED to DRAFT" in {
+    val deposit = DepositDir.create(draftsDir, "user001").get
+    val propsFile = draftsDir / "user001" / deposit.id.toString / "deposit.properties"
+    val old = propsFile.contentAsString
+    propsFile.write(old.replaceFirst("DRAFT", "REJECTED"))
+    val result = deposit.setStateInfo(StateInfo(State.DRAFT, "Open for changes"))
+    result shouldBe a[Success[_]]
+    propsFile.contentAsString should include regex """state.label\s*=\s*DRAFT""".r
+  }
+
+  it should "result in IllegalStateTransitionException when transitioning from DRAFT to ARCHIVED" in {
+    val deposit = DepositDir.create(draftsDir, "user001").get
+    val result = deposit.setStateInfo(StateInfo(State.ARCHIVED, "Completed archival process"))
+    result shouldBe a[Failure[_]]
+    inside(result) {
+      case Failure(e) =>
+        e shouldBe a[IllegalStateTransitionException]
+        e.getMessage should include("Cannot transition")
+    }
+  }
+
+  it should "result in IllegalStateTransitionException when transitioning from REJECTED to ARCHIVED" in {
+    val deposit = DepositDir.create(draftsDir, "user001").get
+    val propsFile = draftsDir / "user001" / deposit.id.toString / "deposit.properties"
+    val old = propsFile.contentAsString
+    propsFile.write(old.replaceFirst("DRAFT", "REJECTED"))
+    val result = deposit.setStateInfo(StateInfo(State.ARCHIVED, "Completed archival process"))
+    result shouldBe a[Failure[_]]
+    inside(result) {
+      case Failure(e) =>
+        e shouldBe a[IllegalStateTransitionException]
+        e.getMessage should include("Cannot transition")
+    }
+  }
 }
