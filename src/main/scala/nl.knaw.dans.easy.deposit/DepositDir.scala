@@ -23,6 +23,7 @@ import better.files._
 import gov.loc.repository.bagit.creator.BagCreator
 import gov.loc.repository.bagit.domain.{ Metadata => BagitMetadata }
 import gov.loc.repository.bagit.hash.StandardSupportedAlgorithms
+import nl.knaw.dans.easy.deposit.PidRequesterComponent.{ PidRequester, PidType }
 import nl.knaw.dans.easy.deposit.docs.Json.{ InvalidDocumentException, toJson }
 import nl.knaw.dans.easy.deposit.docs.{ DatasetMetadata, DepositInfo, Json }
 import nl.knaw.dans.lib.error._
@@ -45,7 +46,9 @@ import scala.util.{ Failure, Success, Try }
 case class DepositDir private(baseDir: File, user: String, id: UUID) extends DebugEnhancedLogging {
   private val bagDir = baseDir / user / id.toString / "bag"
   private val metadataDir = bagDir / "metadata"
-  val dataFilesDir: File = bagDir / "data"
+  private val dataFilesDir = bagDir / "data"
+  private val depositPropertiesFile = bagDir.parent / "deposit.properties"
+  private val datasetMetadataFile = metadataDir / "dataset.json"
 
   /**
    * @return an information object about the current state of the desposit.
@@ -95,14 +98,14 @@ case class DepositDir private(baseDir: File, user: String, id: UUID) extends Deb
     getDatasetMetadata
       .map(_.titles.flatMap(_.headOption).getOrElse(""))
       .recoverWith {
-        case t: NoSuchDepositException => Success("")
+        case _: NoSuchDepositException => Success("")
         case t => Failure(t)
       }
   }
 
   private def getDepositProps = {
     val props = new PropertiesConfiguration()
-    Try { (bagDir.parent / "deposit.properties").fileReader }
+    Try { depositPropertiesFile.fileReader }
       .flatMap(_ (is => Try { props.load(is) }))
       .map(_ => props)
   }
@@ -111,7 +114,7 @@ case class DepositDir private(baseDir: File, user: String, id: UUID) extends Deb
    * @return the dataset level metadata in this deposit
    */
   def getDatasetMetadata: Try[DatasetMetadata] = {
-    Try { (metadataDir / "dataset.json").fileInputStream }
+    Try { datasetMetadataFile.fileInputStream }
       .flatMap(_ (is => Json.getDatasetMetadata(StreamInput(is))))
       .recoverWith {
         case t: InvalidDocumentException => Failure(CorruptDepositException(user, id.toString, t))
@@ -133,7 +136,7 @@ case class DepositDir private(baseDir: File, user: String, id: UUID) extends Deb
   def setDatasetMetadata(md: DatasetMetadata): Try[Unit] = Try {
     // TODO EasyDepositApiApp.writeDataMetadataToDeposit says: should be complete
     // TODO Who is responsible? I suppose also DOI should not change.
-    (metadataDir / "dataset.json").write(toJson(md))
+    datasetMetadataFile.write(toJson(md))
     () // satisfy the compiler which doesn't want a File
   }.recoverWith { case _: NoSuchFileException => notFoundFailure() }
 
@@ -144,6 +147,30 @@ case class DepositDir private(baseDir: File, user: String, id: UUID) extends Deb
     new DataFiles(dataFilesDir, metadataDir / "files.xml")
   }
 
+  /**
+   * @param pidRequester used to mint a new doi if none was found yet
+   * @return the doi as stored in deposit.properties and dataset.xml
+   */
+  def getDOI(pidRequester: PidRequester): Try[String] = for {
+    dm <- getDatasetMetadata
+    props <- getDepositProps
+    maybeDOI = Option(props.getString("identifier.doi", null))
+    _ <- doisMatch(dm, maybeDOI)
+    doi <- maybeDOI.map(Success(_)).getOrElse(pidRequester.requestPid(PidType.doi))
+    _ = props.addProperty("identifier.doi", doi)
+    _ <- if (maybeDOI.isDefined) Success(())
+         else Try { props.save(depositPropertiesFile.toJava) }
+    _ <- if (maybeDOI.isDefined) Success(())
+         else setDatasetMetadata(dm.copy(doi = Some(doi)))
+  } yield doi
+
+  private def doisMatch(dm: DatasetMetadata, doi: Option[String]) = Try {
+    if (doi == dm.doi) Success(())
+    else {
+      val e = new Exception(s"DOI in dataset.xml [${ dm.doi }] does not equal DOI in deposit.properties [$doi]")
+      Failure(CorruptDepositException(user, id.toString, e))
+    }
+  }
 }
 
 object DepositDir {
@@ -178,7 +205,8 @@ object DepositDir {
    * @return a [[DepositDir]] object
    */
   def get(baseDir: File, user: String, id: UUID): Try[DepositDir] = {
-    if ((baseDir / user / id.toString).exists) Success(DepositDir(baseDir, user, id))
+    val depositDir = DepositDir(baseDir, user, id)
+    if (depositDir.baseDir.exists) Success(depositDir)
     else Failure(NoSuchDepositException(user, id, null))
   }
 
@@ -191,27 +219,27 @@ object DepositDir {
    */
   def create(baseDir: File, user: String): Try[DepositDir] = Try {
     val depositInfo = DepositInfo()
-    val depositDir: File = (baseDir / user / depositInfo.id.toString)
-      .createIfNotExists(asDirectory = true, createParents = true)
+    val depositDir = DepositDir(baseDir, user, depositInfo.id)
+    depositDir.bagDir.createIfNotExists(asDirectory = true, createParents = true)
 
-    val metadata = new BagitMetadata {
-      add("Created", depositInfo.timestampString)
+    val bagitdMetadata = new BagitMetadata {
+      add("Created", depositInfo.date.toString)
       add("Bag-Size", "0 KB")
     }
-    val bagDir: File = depositDir / "bag"
-    bagDir.createDirectory()
-    BagCreator.bagInPlace(bagDir.path, JArrays.asList(StandardSupportedAlgorithms.SHA1), true, metadata)
-    (bagDir / "metadata").createIfNotExists(asDirectory = true)
-    (bagDir / "metadata" / "dataset.json").write("{}")
+    BagCreator.bagInPlace(depositDir.bagDir.path, JArrays.asList(StandardSupportedAlgorithms.SHA1), true, bagitdMetadata)
+
+    // creating the following before the bag would move the metadata directory into bag/data
+    depositDir.metadataDir.createIfNotExists(asDirectory = true)
+    depositDir.datasetMetadataFile.write("{}")
 
     new PropertiesConfiguration() {
       addProperty("creation.timestamp", depositInfo.date)
       addProperty("state.label", depositInfo.state.toString)
       addProperty("state.description", depositInfo.stateDescription)
       addProperty("depositor.userId", user)
-    }.save((depositDir / "deposit.properties").toJava)
+    }.save(depositDir.depositPropertiesFile.toJava)
 
-    DepositDir(baseDir, user, depositInfo.id)
+    depositDir
   }
 }
 

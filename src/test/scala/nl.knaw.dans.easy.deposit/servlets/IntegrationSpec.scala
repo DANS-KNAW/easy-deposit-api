@@ -17,6 +17,7 @@ package nl.knaw.dans.easy.deposit.servlets
 
 import java.util.UUID
 
+import nl.knaw.dans.easy.deposit.PidRequesterComponent.PidRequester
 import nl.knaw.dans.easy.deposit.authentication.AuthenticationMocker._
 import nl.knaw.dans.easy.deposit.docs.Json
 import nl.knaw.dans.easy.deposit.{ EasyDepositApiApp, _ }
@@ -114,20 +115,20 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
     }
     val uuid = Json.getDepositInfo(responseBody).map(_.id.toString).getOrElse("whoops")
 
+    val dataFilesBase = DepositDir(testDir / "drafts", "foo", UUID.fromString(uuid)).getDataFiles.get.dataFilesBase
     val times = 500
-    val dd = DepositDir(testDir / "drafts", "foo", UUID.fromString(uuid))
     val expectedContentSize = 37 * times - 1
 
     // upload the file twice
     expectsUserFooBar
     post(uri = s"/deposit/$uuid/file/path/to/text.txt", headers = Seq(basicAuthentication), body = randomContent(times)) {
       status shouldBe CREATED_201
-      (dd.dataFilesDir / "path" / "to" / "text.txt").size shouldBe expectedContentSize
+      (dataFilesBase / "path" / "to" / "text.txt").size shouldBe expectedContentSize
     }
     expectsUserFooBar
     post(uri = s"/deposit/$uuid/file/path/to/text.txt", headers = Seq(basicAuthentication), body = randomContent(times)) {
       status shouldBe OK_200
-      (dd.dataFilesDir / "path" / "to" / "text.txt").size shouldBe expectedContentSize
+      (dataFilesBase / "path" / "to" / "text.txt").size shouldBe expectedContentSize
     }
   }
 

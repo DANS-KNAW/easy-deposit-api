@@ -2,6 +2,7 @@ package nl.knaw.dans.easy.deposit
 
 import java.net.URI
 
+import nl.knaw.dans.easy.deposit.PidRequesterComponent.PidRequester
 import nl.knaw.dans.easy.deposit.PidRequesterComponent.PidType.PidType
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import scalaj.http.Http
@@ -11,6 +12,8 @@ import scala.util.{ Failure, Success, Try }
 trait PidRequesterComponent extends DebugEnhancedLogging {
 
   val pidRequester: PidRequester
+}
+object PidRequesterComponent {
 
   trait PidRequester {
     val pidGeneratorService: URI
@@ -25,8 +28,6 @@ trait PidRequesterComponent extends DebugEnhancedLogging {
       case r => Failure(new RuntimeException(s"PID Generator failed: code=${ r.code } body=${ r.body }"))
     }
   }
-}
-object PidRequesterComponent {
   object PidType extends Enumeration {
     type PidType = Value
     val urn, doi = Value

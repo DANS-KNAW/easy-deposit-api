@@ -30,7 +30,7 @@ import scala.util.Try
  * @param dataFilesBase the base directory of the data files
  * @param filesMetaData the file containing the file metadata
  */
-class DataFiles(dataFilesBase: File, filesMetaData: File) {
+case class DataFiles(dataFilesBase: File, filesMetaData: File) {
 
   /**
    * Lists information about the files the directory `path` and its subdirectories.
