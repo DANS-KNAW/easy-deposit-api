@@ -67,7 +67,7 @@ class DepositServlet(app: EasyDepositApiApp) extends ProtectedServlet(app) {
         managedIS <- getRequestBodyAsManagedInputStream
         stateInfo <- managedIS.apply(is => getStateInfo(is))
         _ <- forDeposit(app.setDepositState(stateInfo))
-      } yield Ok(???)
+      } yield NoContent()
     }.getOrRecoverResponse(respond)
   }
 
@@ -123,7 +123,7 @@ class DepositServlet(app: EasyDepositApiApp) extends ProtectedServlet(app) {
   }
 
   private def respond(t: Throwable): ActionResult = t match {
-    case _: IllegalStateTransitionException => ???
+    case e: IllegalStateTransitionException => Forbidden(e.getMessage)
     case e: NoSuchDepositException => NoSuchDespositResponse(e)
     case e: InvalidResourceException => InvalidResourceResponse(e)
     case e: InvalidDocumentException => badDocResponse(e)
