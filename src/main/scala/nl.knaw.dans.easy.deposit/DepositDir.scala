@@ -31,7 +31,6 @@ import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.apache.commons.configuration.PropertiesConfiguration
 import org.joda.time.DateTime
 import org.joda.time.DateTimeZone.UTC
-import org.json4s.StreamInput
 
 import scala.collection.Seq
 import scala.util.{ Failure, Success, Try }
@@ -115,7 +114,7 @@ case class DepositDir private(baseDir: File, user: String, id: UUID) extends Deb
    */
   def getDatasetMetadata: Try[DatasetMetadata] = {
     Try { datasetMetadataFile.fileInputStream }
-      .flatMap(_ (is => Json.getDatasetMetadata(StreamInput(is))))
+      .flatMap(_ (is => Json.getDatasetMetadata(is)))
       .recoverWith {
         case t: InvalidDocumentException => Failure(CorruptDepositException(user, id.toString, t))
         case _: FileNotFoundException => notFoundFailure()
@@ -156,12 +155,11 @@ case class DepositDir private(baseDir: File, user: String, id: UUID) extends Deb
     props <- getDepositProps
     maybeDOI = Option(props.getString("identifier.doi", null))
     _ <- doisMatch(dm, maybeDOI)
-    doi <- maybeDOI.map(Success(_)).getOrElse(pidRequester.requestPid(PidType.doi))
+    maybeTriedDOI = maybeDOI.map(Success(_))
+    doi <- maybeTriedDOI.getOrElse(pidRequester.requestPid(PidType.doi))
     _ = props.addProperty("identifier.doi", doi)
-    _ <- if (maybeDOI.isDefined) Success(())
-         else Try { props.save(depositPropertiesFile.toJava) }
-    _ <- if (maybeDOI.isDefined) Success(())
-         else setDatasetMetadata(dm.copy(doi = Some(doi)))
+    _ <- maybeTriedDOI.getOrElse(Try { props.save(depositPropertiesFile.toJava) })
+    _ <- maybeTriedDOI.getOrElse(setDatasetMetadata(dm.copy(doi = Some(doi))))
   } yield doi
 
   private def doisMatch(dm: DatasetMetadata, doi: Option[String]) = {

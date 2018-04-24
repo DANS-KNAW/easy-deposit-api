@@ -24,8 +24,9 @@ class DepositInfoSpec extends TestSupportFixture {
 
   private val now = "2018-03-22T21:43:01.576"
   private val nowUTC = "2018-03-22T20:43:01Z"
+  private val strict = true
   mockDateTimeNow(now)
-  DateTimeZone.getDefault.convertLocalToUTC(new DateTime(now).getMillis, true)
+  DateTimeZone.getDefault.convertLocalToUTC(new DateTime(now).getMillis, strict)
   val depositInfoObject = DepositInfo(title = "Lorum ipsum")
   val depositInfoString = s"""{"id":"$uuid","title":"Lorum ipsum","state":"DRAFT","stateDescription":"Deposit is open for changes.","date":"2018-03-22T21:43:01Z"}"""
 
