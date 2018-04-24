@@ -71,8 +71,6 @@ paths:
                 format: JWT
         401:
           $ref: "#/components/responses/Unauthorized"
-        403:
-          $ref: "#/components/responses/Forbidden"
         500:
           $ref: "#/components/responses/InternalServerError"
       security:
@@ -108,8 +106,6 @@ paths:
                 $ref: "#/components/schemas/UserInfo"
         401:
           $ref: "#/components/responses/Unauthorized"
-        403:
-          $ref: "#/components/responses/Forbidden"
         500:
           $ref: "#/components/responses/InternalServerError"
       security:
@@ -158,8 +154,6 @@ paths:
                   date: "2017-08-09T10:10:22Z"
         401:
           $ref: "#/components/responses/Unauthorized"
-        403:
-          $ref: "#/components/responses/Forbidden"
         500:
           $ref: "#/components/responses/InternalServerError"
       security:
@@ -186,8 +180,6 @@ paths:
                   "https://deposit.easy.dans.knaw.nl/deposit/c3155868-1898-493a-8805-53adbd269878"
         401:
           $ref: "#/components/responses/Unauthorized"
-        403:
-          $ref: "#/components/responses/Forbidden"
         500:
           $ref: "#/components/responses/InternalServerError"
       security:
@@ -212,8 +204,6 @@ paths:
                 $ref: "#/components/schemas/DatasetMetadata"
         401:
           $ref: "#/components/responses/Unauthorized"
-        403:
-          $ref: "#/components/responses/Forbidden"
         404:
           $ref: "#/components/responses/NotFoundContainingDepositDoesNotExist"
         410:
@@ -248,8 +238,6 @@ paths:
           $ref: "#/components/responses/MalformedMetadata"
         401:
           $ref: "#/components/responses/Unauthorized"
-        403:
-          $ref: "#/components/responses/Forbidden"
         404:
           $ref: "#/components/responses/NotFoundContainingDepositDoesNotExist"
         500:
@@ -274,8 +262,6 @@ paths:
                 $ref: "#/components/schemas/Doi"
         401:
           $ref: "#/components/responses/Unauthorized"
-        403:
-          $ref: "#/components/responses/Forbidden"
         404:
           $ref: "#/components/responses/NotFoundContainingDepositDoesNotExist"
         500:
@@ -300,8 +286,6 @@ paths:
                 $ref: "#/components/schemas/State"
         401:
           $ref: "#/components/responses/Unauthorized"
-        403:
-          $ref: "#/components/responses/Forbidden"
         404:
           $ref: "#/components/responses/NotFoundContainingDepositDoesNotExist"
         500:
@@ -393,8 +377,6 @@ paths:
 
         401:
           $ref: "#/components/responses/Unauthorized"
-        403:
-          $ref: "#/components/responses/Forbidden"
         404:
           $ref: "#/components/responses/NotFoundContainingDepositDoesNotExist"
         500:
@@ -431,8 +413,6 @@ paths:
           description: file or subdirectory added
         401:
           $ref: "#/components/responses/Unauthorized"
-        403:
-          $ref: "#/components/responses/Forbidden"
         404:
           $ref: "#/components/responses/NotFound"
         500:
@@ -451,8 +431,6 @@ paths:
           $ref: "#/components/responses/DeleteOk"
         401:
           $ref: "#/components/responses/Unauthorized"
-        403:
-          $ref: "#/components/responses/Forbidden"
         404:
           $ref: "#/components/responses/NotFound"
         500:
@@ -478,8 +456,6 @@ paths:
 
         401:
           $ref: "#/components/responses/Unauthorized"
-        403:
-          $ref: "#/components/responses/Forbidden"
         404:
           $ref: "#/components/responses/NotFound"
         500:
@@ -525,8 +501,6 @@ paths:
                 $ref: "#/components/schemas/FileInfo"
         401:
           $ref: "#/components/responses/Unauthorized"
-        403:
-          $ref: "#/components/responses/Forbidden"
         404:
           $ref: "#/components/responses/NotFound"
         500:
@@ -621,17 +595,13 @@ components:
     Unauthorized:
       description: Unauthorized.
 
-    Forbidden:
-      description: Forbidden. Invalid credentials.
-
     ForbiddenDelete:
       description: |
-        Forbidden. Insufficient credentials or  the resource cannot be deleted at this point.
-        (Deletion is only permitted when the deposit is in one of states: DRAFT, ARCHIVED, REJECTED.)
+        Forbidden. The resource cannot be deleted at this point. (Deletion is only permitted when the deposit is in one of states: DRAFT, ARCHIVED, REJECTED.)
 
     ForbiddenStateTransition:
       description: |
-        Forbidden. Insufficient credentials or illegal state transition. (Only allowed to transition from DRAFT to SUBMITTED and from REJECTED to DRAFT.)
+        Forbidden. Illegal state transition. (Only allowed to transition from DRAFT to SUBMITTED and from REJECTED to DRAFT.)
 
     NotFound:
       description: Not found.
