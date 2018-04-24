@@ -26,6 +26,8 @@ import gov.loc.repository.bagit.hash.StandardSupportedAlgorithms
 import nl.knaw.dans.easy.deposit.PidRequesterComponent.{ PidRequester, PidType }
 import nl.knaw.dans.easy.deposit.docs.Json.{ InvalidDocumentException, toJson }
 import nl.knaw.dans.easy.deposit.docs.{ DatasetMetadata, DepositInfo, Json }
+import nl.knaw.dans.easy.deposit.docs.Json.{ toJson, InvalidDocumentException }
+import nl.knaw.dans.easy.deposit.State.State
 import nl.knaw.dans.lib.error._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.apache.commons.configuration.PropertiesConfiguration
@@ -52,7 +54,13 @@ case class DepositDir private(baseDir: File, user: String, id: UUID) extends Deb
   /**
    * @return an information object about the current state of the desposit.
    */
-  def getStateInfo: Try[StateInfo] = ???
+  def getStateInfo: Try[StateInfo] = {
+    for {
+      props <- getDepositProps
+      state = State.withName(props.getString("state.label"))
+      description = props.getString("state.description")
+    } yield StateInfo(state, description)
+  }
 
   /**
    * Sets changes the state of the deposit. If the state transition is not allow a `Failure` containing
@@ -61,7 +69,24 @@ case class DepositDir private(baseDir: File, user: String, id: UUID) extends Deb
    * @param stateInfo the new state
    * @return success of failure
    */
-  def setStateInfo(stateInfo: StateInfo): Try[Unit] = ???
+  def setStateInfo(stateInfo: StateInfo): Try[Unit] = {
+    for {
+      props <- getDepositProps
+      currentState = State.withName(props.getString("state.label"))
+      _ <- checkStateTransition(currentState, stateInfo.state)
+      _ = props.setProperty("state.label", stateInfo.state.toString)
+      _ = props.setProperty("state.description", stateInfo.stateDescription.toString)
+      _ = props.save()
+    } yield ()
+  }
+
+  private def checkStateTransition(transition: (State, State)) = {
+    transition match {
+      case (State.DRAFT, State.SUBMITTED) => Success(())
+      case (State.REJECTED, State.DRAFT) => Success(())
+      case (oldState, newState) => Failure(IllegalStateTransitionException(user, id, oldState, newState))
+    }
+  }
 
   /**
    * Deletes the deposit.
@@ -102,11 +127,8 @@ case class DepositDir private(baseDir: File, user: String, id: UUID) extends Deb
       }
   }
 
-  private def getDepositProps = {
-    val props = new PropertiesConfiguration()
-    Try { depositPropertiesFile.fileReader }
-      .flatMap(_ (is => Try { props.load(is) }))
-      .map(_ => props)
+  private def getDepositProps = Try {
+    new PropertiesConfiguration(depositPropertiesFile.toJava)
   }
 
   /**
