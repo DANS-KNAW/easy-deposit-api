@@ -16,15 +16,14 @@
 package nl.knaw.dans.easy.deposit.servlets
 
 import nl.knaw.dans.easy.deposit.EasyDepositApiApp
-import nl.knaw.dans.easy.deposit.authentication.ServletEnhancedLogging
 import nl.knaw.dans.easy.deposit.authentication.ServletEnhancedLogging._
-import org.scalatra.Forbidden
+import org.scalatra.Unauthorized
 
 class ProtectedServlet(app: EasyDepositApiApp) extends AbstractAuthServlet(app) {
 
   before() {
     if (!isAuthenticated) {
-      halt(Forbidden("missing, invalid or expired credentials").logResponse)
+      halt(Unauthorized("missing, invalid or expired credentials").logResponse)
     }
   }
 }
