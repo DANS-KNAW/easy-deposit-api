@@ -164,7 +164,7 @@ case class DepositDir private(baseDir: File, user: String, id: UUID) extends Deb
          else setDatasetMetadata(dm.copy(doi = Some(doi)))
   } yield doi
 
-  private def doisMatch(dm: DatasetMetadata, doi: Option[String]) = Try {
+  private def doisMatch(dm: DatasetMetadata, doi: Option[String]) = {
     if (doi == dm.doi) Success(())
     else {
       val e = new Exception(s"DOI in dataset.xml [${ dm.doi }] does not equal DOI in deposit.properties [$doi]")

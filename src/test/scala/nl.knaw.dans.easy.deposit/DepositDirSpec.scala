@@ -85,7 +85,7 @@ class DepositDirSpec extends TestSupportFixture with MockFactory {
   }
 
   "get" should """return a specified deposit""" in {
-    val deposit = DepositDir.create(draftsDir, "user001").get
+    val deposit = createDepositAsPreparation("user001")
     val tryDeposit = DepositDir.get(draftsDir, "user001", deposit.id)
     tryDeposit shouldBe a[Success[_]]
     inside(tryDeposit) {
@@ -94,34 +94,45 @@ class DepositDirSpec extends TestSupportFixture with MockFactory {
   }
 
   "getDOI" should """return a new value""" in {
+    // set up
     val user = "user001"
     val doi = "12345"
-    val deposit = DepositDir.create(draftsDir, user).get
+    val deposit = createDepositAsPreparation(user)
     val mdFile = deposit.baseDir / user / deposit.id.toString / "bag" / "metadata" / "dataset.json"
-    mdFile.contentAsString shouldBe "{}"
+    val depositPropertiesFile = deposit.baseDir / user / deposit.id.toString / "deposit.properties"
+    val oldDepositProperties = depositPropertiesFile.contentAsString
 
+    // preconditions
+    mdFile.contentAsString shouldBe "{}"
+    oldDepositProperties should not include "identifier.doi"
     val pidMocker = mock[PidRequester]
     (pidMocker.requestPid(_: PidType)) expects * once() returning Success(doi)
 
+    // test
     deposit.getDOI(pidMocker) shouldBe Success(doi)
+
+    // post conditions
     mdFile.contentAsString should startWith(s"""{"doi":"$doi",""")
+    val newDepositProperties = depositPropertiesFile.contentAsString
+    newDepositProperties should include(oldDepositProperties)
+    newDepositProperties should include("identifier.doi")
   }
 
   it should """complain about an invalid dataset""" in {
     val user = "user001"
     val doi = "12345"
-    val deposit = DepositDir.create(draftsDir, user).get
-    (deposit.baseDir / user / deposit.id.toString / "bag" / "metadata" / "dataset.json").writeText("""{"doi":"$doi"}""")
+    val deposit = createDepositAsPreparation(user)
+    (deposit.baseDir / user / deposit.id.toString / "bag" / "metadata" / "dataset.json").writeText(s"""{"doi":"$doi"}""")
 
     val pidMocker = mock[PidRequester] // note that no pid is requested
 
-    deposit.getDOI(pidMocker) shouldBe a[Failure[_]]
+    deposit.getDOI(pidMocker) should matchPattern { case Failure(CorruptDepositException(_, _, _)) => }
   }
 
   it should """return the available DOI""" in {
     val user = "user001"
     val doi = "12345"
-    val deposit = DepositDir.create(draftsDir, user).get
+    val deposit = createDepositAsPreparation(user)
     val dd = deposit.baseDir / user / deposit.id.toString
     (dd / "bag" / "metadata" / "dataset.json").writeText(s"""{"doi":"$doi"}""")
     (dd / "deposit.properties").writeText(s"""identifier.doi = $doi""")
@@ -129,5 +140,11 @@ class DepositDirSpec extends TestSupportFixture with MockFactory {
     val pidMocker = mock[PidRequester] // note that no pid is requested
 
     deposit.getDOI(pidMocker) shouldBe Success(doi)
+  }
+
+  private def createDepositAsPreparation(user: String) = {
+    val triedDepositDir = DepositDir.create(draftsDir, user)
+    triedDepositDir should matchPattern { case Success(_) => }
+    triedDepositDir.getOrElse(null)
   }
 }
