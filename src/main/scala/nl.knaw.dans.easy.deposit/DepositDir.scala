@@ -54,17 +54,9 @@ case class DepositDir private(baseDir: File, user: String, id: UUID) extends Deb
   def getStateInfo: Try[StateInfo] = {
     for {
       props <- getDepositProps
-      state <- getState(props)
-      description <- getStateDescription(props)
+      state = State.withName(props.getString("state.label"))
+      description = props.getString("state.description")
     } yield StateInfo(state, description)
-  }
-
-  private def getState(props: PropertiesConfiguration) = Try {
-    State.withName(props.getString("state.label"))
-  }
-
-  private def getStateDescription(props: PropertiesConfiguration) = Try {
-    props.getString("state.description")
   }
 
   /**
@@ -77,14 +69,12 @@ case class DepositDir private(baseDir: File, user: String, id: UUID) extends Deb
   def setStateInfo(stateInfo: StateInfo): Try[Unit] = {
     for {
       props <- getDepositProps
-      currentState <- getState(props)
+      currentState = State.withName(props.getString("state.label"))
       _ <- checkStateTransition(currentState, stateInfo.state)
-      cc <- createCompositeConfiguration(props)
-      _ <- Try {
-        cc.setProperty("state.label", stateInfo.state.toString)
-        cc.setProperty("state.description", stateInfo.stateDescription.toString)
-      }
-      _ <- saveDepositProps(props)
+      cc = new CompositeConfiguration(props)
+      _ = cc.setProperty("state.label", stateInfo.state.toString)
+      _ = cc.setProperty("state.description", stateInfo.stateDescription.toString)
+      _ = props.save()
     } yield ()
   }
 
@@ -94,14 +84,6 @@ case class DepositDir private(baseDir: File, user: String, id: UUID) extends Deb
       case (State.REJECTED, State.DRAFT) => Success(())
       case (oldState, newState) => Failure(IllegalStateTransitionException(user, id, oldState, newState))
     }
-  }
-
-  private def createCompositeConfiguration(props: PropertiesConfiguration) = Try {
-    new CompositeConfiguration(props)
-  }
-
-  private def saveDepositProps(props: PropertiesConfiguration) = Try {
-    props.save()
   }
 
   /**
@@ -118,8 +100,8 @@ case class DepositDir private(baseDir: File, user: String, id: UUID) extends Deb
     for {
       title <- getDatasetTitle
       props <- getDepositProps
-      state <- Try { State.withName(props.getString("state.label")) }
-      created <- Try { new DateTime(props.getString("creation.timestamp")).withZone(UTC) }
+      state = State.withName(props.getString("state.label"))
+      created = new DateTime(props.getString("creation.timestamp")).withZone(UTC)
     } yield DepositInfo(
       id,
       title,
