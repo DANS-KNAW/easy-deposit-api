@@ -601,7 +601,7 @@ components:
 
     ForbiddenStateTransition:
       description: |
-        Forbidden. I  llegal state transition. (Only allowed to transition from DRAFT to SUBMITTED and from REJECTED to DRAFT.)
+        Forbidden. Illegal state transition. (Only allowed to transition from DRAFT to SUBMITTED and from REJECTED to DRAFT.)
 
     NotFound:
       description: Not found.
