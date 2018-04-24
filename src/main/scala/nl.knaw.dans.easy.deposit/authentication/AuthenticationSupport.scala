@@ -84,7 +84,7 @@ trait AuthenticationSupport extends ScentrySupport[AuthUser] {
   /** Halts request processing in case of trouble. */
   def login() {
     if (!isAuthenticated) {
-      halt(Forbidden("invalid credentials").logResponse)
+      halt(Unauthorized("invalid credentials").logResponse)
     }
   }
 }

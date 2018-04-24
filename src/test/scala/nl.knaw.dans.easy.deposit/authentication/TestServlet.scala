@@ -17,13 +17,13 @@ package nl.knaw.dans.easy.deposit.authentication
 
 import nl.knaw.dans.easy.deposit.authentication.ServletEnhancedLogging._
 import org.joda.time.DateTime
-import org.scalatra.{ Forbidden, Ok }
+import org.scalatra.{ Forbidden, Ok, Unauthorized }
 
 class TestServlet(authProvider: AuthenticationProvider) extends AbstractTestServlet(authProvider) {
 
   before() {
     if (!isAuthenticated) {
-      halt(Forbidden("missing, invalid or expired credentials").logResponse)
+      halt(Unauthorized("missing, invalid or expired credentials").logResponse)
     }
   }
 
