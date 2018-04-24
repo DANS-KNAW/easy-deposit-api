@@ -29,24 +29,24 @@ class TypicalSessionSpec extends TestSupportFixture with ServletFixture with Sca
   addServlet(new TestServlet(mockedAuthenticationProvider), "/deposit/*")
   addServlet(new AuthTestServlet(mockedAuthenticationProvider), "/auth/*")
 
-  "get /deposit without credentials" should "return 403 (forbidden)" in {
+  "get /deposit without credentials" should "return 401 (Unauthorized)" in {
     expectsNoUser
     get("/deposit") {
-      status shouldBe FORBIDDEN_403
+      status shouldBe UNAUTHORIZED_401
       body shouldBe "missing, invalid or expired credentials"
       header("Content-Type") shouldBe "text/plain;charset=UTF-8"
       response.headers should not contain key("Set-Cookie")
     }
   }
 
-  "post /auth/login with invalid credentials" should "return 403 (forbidden)" in {
+  "post /auth/login with invalid credentials" should "return 401 (Unauthorized)" in {
     expectsInvalidUser
     post(
       uri = "/auth/login",
       params = Seq(("login", "foo"), ("password", "bar"))
     ) {
       body shouldBe "invalid credentials"
-      status shouldBe FORBIDDEN_403
+      status shouldBe UNAUTHORIZED_401
       header("Content-Type") shouldBe "text/plain;charset=UTF-8"
       response.headers should not contain key("Set-Cookie")
     }
