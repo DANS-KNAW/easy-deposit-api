@@ -28,7 +28,7 @@ import nl.knaw.dans.easy.deposit.docs.Json.{ toJson, InvalidDocumentException }
 import nl.knaw.dans.easy.deposit.State.State
 import nl.knaw.dans.lib.error._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
-import org.apache.commons.configuration.{ CompositeConfiguration, PropertiesConfiguration }
+import org.apache.commons.configuration.PropertiesConfiguration
 import org.joda.time.DateTime
 import org.joda.time.DateTimeZone.UTC
 import org.json4s.StreamInput
@@ -71,9 +71,8 @@ case class DepositDir private(baseDir: File, user: String, id: UUID) extends Deb
       props <- getDepositProps
       currentState = State.withName(props.getString("state.label"))
       _ <- checkStateTransition(currentState, stateInfo.state)
-      cc = new CompositeConfiguration(props)
-      _ = cc.setProperty("state.label", stateInfo.state.toString)
-      _ = cc.setProperty("state.description", stateInfo.stateDescription.toString)
+      _ = props.setProperty("state.label", stateInfo.state.toString)
+      _ = props.setProperty("state.description", stateInfo.stateDescription.toString)
       _ = props.save()
     } yield ()
   }

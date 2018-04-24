@@ -92,8 +92,7 @@ class DepositDirSpec extends TestSupportFixture {
   "setStateInfo" should "result in Success when transitioning from DRAFT to SUBMITTED" in {
     val deposit = DepositDir.create(draftsDir, "user001").get
     val propsFile = draftsDir / "user001" / deposit.id.toString / "deposit.properties"
-    val result = deposit.setStateInfo(StateInfo(State.SUBMITTED, "Ready for processing"))
-    result shouldBe a[Success[_]]
+    deposit.setStateInfo(StateInfo(State.SUBMITTED, "Ready for processing")) shouldBe a[Success[_]]
     propsFile.contentAsString should include regex """state.label\s*=\s*SUBMITTED""".r
   }
 
@@ -102,19 +101,14 @@ class DepositDirSpec extends TestSupportFixture {
     val propsFile = draftsDir / "user001" / deposit.id.toString / "deposit.properties"
     val old = propsFile.contentAsString
     propsFile.write(old.replaceFirst("DRAFT", "REJECTED"))
-    val result = deposit.setStateInfo(StateInfo(State.DRAFT, "Open for changes"))
-    result shouldBe a[Success[_]]
+    deposit.setStateInfo(StateInfo(State.DRAFT, "Open for changes")) shouldBe a[Success[_]]
     propsFile.contentAsString should include regex """state.label\s*=\s*DRAFT""".r
   }
 
   it should "result in IllegalStateTransitionException when transitioning from DRAFT to ARCHIVED" in {
     val deposit = DepositDir.create(draftsDir, "user001").get
-    val result = deposit.setStateInfo(StateInfo(State.ARCHIVED, "Completed archival process"))
-    result shouldBe a[Failure[_]]
-    inside(result) {
-      case Failure(e) =>
-        e shouldBe a[IllegalStateTransitionException]
-        e.getMessage should include("Cannot transition")
+    deposit.setStateInfo(StateInfo(State.ARCHIVED, "Completed archival process")) should matchPattern {
+      case Failure(IllegalStateTransitionException("user001", _, State.DRAFT, State.ARCHIVED)) =>
     }
   }
 
@@ -123,12 +117,8 @@ class DepositDirSpec extends TestSupportFixture {
     val propsFile = draftsDir / "user001" / deposit.id.toString / "deposit.properties"
     val old = propsFile.contentAsString
     propsFile.write(old.replaceFirst("DRAFT", "REJECTED"))
-    val result = deposit.setStateInfo(StateInfo(State.ARCHIVED, "Completed archival process"))
-    result shouldBe a[Failure[_]]
-    inside(result) {
-      case Failure(e) =>
-        e shouldBe a[IllegalStateTransitionException]
-        e.getMessage should include("Cannot transition")
+    deposit.setStateInfo(StateInfo(State.ARCHIVED, "Completed archival process")) should matchPattern {
+      case Failure(IllegalStateTransitionException("user001", _, State.REJECTED, State.ARCHIVED)) =>
     }
   }
 }
