@@ -34,7 +34,7 @@ trait AuthenticationSupport extends ScentrySupport[AuthUser] {
     case token: String => decodeJWT(token)
       .doIfSuccess { user => scentry.store.set(encodeJWT(user)) } // refresh cookie
       .doIfFailure { case t => logger.info(s"invalid authentication: ${ t.getClass } ${ t.getMessage }") }
-      .getOrElse(null) // TODO a halt would allow to log the response, not sure about the internal workings, destroy the cookie?
+      .getOrElse(null)
   }
 
   /** read method name as: toCookie, see configured scentry.store */

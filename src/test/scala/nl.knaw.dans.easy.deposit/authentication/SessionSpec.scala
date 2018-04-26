@@ -105,6 +105,20 @@ class SessionSpec extends TestSupportFixture with ServletFixture with ScalatraSu
     }
   }
 
+  it should "fail with invalid cookie token" in {
+    expectsNoUser
+    val jwtCookie = "invalid cookie"
+
+    get(
+      uri = "/deposit",
+      headers = Seq(("Cookie", s"${ Scentry.scentryAuthKey }=$jwtCookie"))
+    ) {
+      status shouldBe UNAUTHORIZED_401
+      header("Content-Type") shouldBe "text/plain;charset=UTF-8"
+      response.headers should not contain key("Set-Cookie")
+    }
+  }
+
   it should "be ok when logging in on the flight with valid basic authentication" in {
     expectsUserFooBar
     get(
