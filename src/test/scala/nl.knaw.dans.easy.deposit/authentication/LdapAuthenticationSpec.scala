@@ -21,6 +21,7 @@ import javax.naming.AuthenticationException
 import javax.naming.directory.BasicAttributes
 import javax.naming.ldap.LdapContext
 import nl.knaw.dans.easy.deposit.TestSupportFixture
+import nl.knaw.dans.easy.deposit.authentication.LdapMocker._
 import org.scalamock.scalatest.MockFactory
 
 import scala.util.Success
@@ -28,7 +29,6 @@ import scala.util.Success
 class LdapAuthenticationSpec extends TestSupportFixture with MockFactory {
 
   val ldapMocker = LdapMocker()
-
   private def wiring = new LdapAuthentication {
     override val authentication: Authentication = new Authentication {
       override val ldapUserIdAttrName: String = ""
