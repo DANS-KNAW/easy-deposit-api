@@ -15,6 +15,7 @@
  */
 package nl.knaw.dans.easy.deposit.authentication
 
+import nl.knaw.dans.easy.deposit.authentication.AuthUser.UserState.UserState
 import org.json4s.native.JsonMethods.parse
 import org.json4s.{ DefaultFormats, Formats }
 
@@ -23,30 +24,43 @@ import scala.util.{ Failure, Try }
 /** A user with minimal properties: just for identification and authorisation */
 case class AuthUser(id: String,
                     groups: Seq[String] = Seq.empty,
-                    roles: Seq[String] = Seq.empty,
-                    isActive: Boolean // default false when from ldap, true when from token
+                    state: UserState
                    )
 
 object AuthUser {
+  object UserState extends Enumeration {
+    type UserState = Value
+    val
+
+    /** The user has successfully registered, but has not validated the registration; the account cannot be used (yet). */
+    REGISTERED,
+
+    /** The user has confirmed the registration and the confirmation was valid; the user has not logged in for the first time. */
+    CONFIRMED_REGISTRATION,
+
+    /** The user has a valid registration; the account can be used. */
+    ACTIVE,
+
+    /** The user is blocked; the account cannot be used. */
+    BLOCKED
+    = Value
+  }
 
   def apply(attributes: Map[String, Seq[String]]): AuthUser = {
-    // For possible attribute keys see:
-    // https://github.com/DANS-KNAW/dans.easy-test-users/blob/master/templates
     AuthUser(
       attributes.getOrElse("uid", Seq.empty)
         .headOption // mandatory: https://github.com/DANS-KNAW/dans.easy-ldap-dir/blob/f17c391/files/easy-schema.ldif#L83-L84
         .getOrElse(""),
       attributes.getOrElse("easyGroups", Seq.empty),
-      attributes.getOrElse("easyRoles", Seq.empty),
       attributes.getOrElse("dansState", Seq.empty)
-        .contains("ACTIVE")
+        .headOption.map(value => UserState.withName(value))
+        .getOrElse(UserState.BLOCKED)
     )
   }
 
   private class ActiveAuthUser(id: String,
-                               groups: Seq[String] = Seq.empty,
-                               roles: Seq[String] = Seq.empty
-                              ) extends AuthUser(id, groups, roles, true)
+                               groups: Seq[String] = Seq.empty
+                              ) extends AuthUser(id, groups, UserState.ACTIVE)
 
   private implicit val jsonFormats: Formats = new DefaultFormats {}
 

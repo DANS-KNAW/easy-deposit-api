@@ -20,6 +20,7 @@ import java.util
 import javax.naming.directory.{ Attribute, SearchControls, SearchResult }
 import javax.naming.ldap.{ InitialLdapContext, LdapContext }
 import javax.naming.{ AuthenticationException, Context }
+import nl.knaw.dans.easy.deposit.authentication.AuthUser.UserState.ACTIVE
 import nl.knaw.dans.lib.error.TryExtensions
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import resource.managed
@@ -54,8 +55,11 @@ trait LdapAuthentication extends DebugEnhancedLogging {
     def authenticate(userName: String, password: String): Option[AuthUser] = {
       findUser(userName, userContextProperties(userName, password))
         .doIfFailure { case t => logger.error(s"authentication of [$userName] failed with $t", t) }
-        .map(_.map(props => AuthUser(props)).find(_.isActive)) // TODO move filter to AuthenticationSupport.login to allows response.body hint: verify email
         .getOrElse(None)
+        .map(props => AuthUser(props))
+        // TODO moving filter to before(){authenticate()} is too late: cookie has been created
+        // but without halt we can't remind the user to verify the email
+        .find(_.state == ACTIVE)
     }
 
     private def findUser(searchedUserName: String, contextProperties: util.Hashtable[String, String]) = {

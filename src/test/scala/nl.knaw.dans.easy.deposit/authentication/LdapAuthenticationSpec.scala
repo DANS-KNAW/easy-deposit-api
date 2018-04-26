@@ -21,7 +21,7 @@ import javax.naming.AuthenticationException
 import javax.naming.directory.BasicAttributes
 import javax.naming.ldap.LdapContext
 import nl.knaw.dans.easy.deposit.TestSupportFixture
-import nl.knaw.dans.easy.deposit.authentication.LdapMocker._
+import nl.knaw.dans.easy.deposit.authentication.AuthUser.UserState
 import org.scalamock.scalatest.MockFactory
 
 import scala.util.Success
@@ -29,6 +29,7 @@ import scala.util.Success
 class LdapAuthenticationSpec extends TestSupportFixture with MockFactory {
 
   val ldapMocker = LdapMocker()
+
   private def wiring = new LdapAuthentication {
     override val authentication: Authentication = new Authentication {
       override val ldapUserIdAttrName: String = ""
@@ -50,13 +51,8 @@ class LdapAuthenticationSpec extends TestSupportFixture with MockFactory {
       put("easyGroups", "abc")
     })
 
-    inside(wiring.authentication.authenticate("someone", "somepassword")) {
-      case Some(user) =>
-        user.id shouldBe "someone"
-        user.groups shouldBe Stream("abc")
-        user.roles shouldBe empty
-        user.isActive shouldBe true
-      //user.toString shouldBe "AuthUser(someone,Stream(abc, ?),List(),true)"
+    wiring.authentication.authenticate("someone", "somepassword") should matchPattern {
+      case Some(AuthUser("someone", Seq("abc"), UserState.ACTIVE)) =>
     }
   }
 
