@@ -16,7 +16,7 @@
 package nl.knaw.dans.easy.deposit.authentication
 
 import nl.knaw.dans.easy.deposit._
-import nl.knaw.dans.easy.deposit.authentication.AuthUser.UserState.ACTIVE
+import nl.knaw.dans.easy.deposit.authentication.AuthUser.UserState.{ ACTIVE, BLOCKED, REGISTERED }
 import nl.knaw.dans.easy.deposit.authentication.AuthenticationMocker._
 import nl.knaw.dans.easy.deposit.servlets.ServletFixture
 import org.eclipse.jetty.http.HttpStatus._
@@ -97,6 +97,32 @@ class SessionSpec extends TestSupportFixture with ServletFixture with ScalatraSu
     }
   }
 
+  it should "return 401 (Unauthorized) when the user has not confirmed the email" in {
+    expectsUserFooBarWithStatus(REGISTERED)
+    post(
+      uri = "/auth/login",
+      params = Seq(("login", "foo"), ("password", "bar"))
+    ) {
+      body shouldBe "Please confirm your email."
+      status shouldBe UNAUTHORIZED_401
+      header("Content-Type") shouldBe "text/plain;charset=UTF-8"
+      response.headers should not contain key("Set-Cookie")
+    }
+  }
+
+  it should "return 401 (Unauthorized) when the user is blocked" in {
+    expectsUserFooBarWithStatus(BLOCKED)
+    post(
+      uri = "/auth/login",
+      params = Seq(("login", "foo"), ("password", "bar"))
+    ) {
+      body shouldBe "invalid credentials"
+      status shouldBe UNAUTHORIZED_401
+      header("Content-Type") shouldBe "text/plain;charset=UTF-8"
+      response.headers should not contain key("Set-Cookie")
+    }
+  }
+
   it should "create a protected cookie when proper user-name password params are provided" in {
     expectsUserFooBar
     post(
@@ -117,7 +143,7 @@ class SessionSpec extends TestSupportFixture with ServletFixture with ScalatraSu
   }
 
   it should "create a cookie when valid basic authentication is provided" in {
-    expectsUserFooBar
+    expectsUserFooBarWithStatus(ACTIVE)
     post(
       uri = "/auth/login",
       headers = Seq(("Authorization", fooBarBasicAuthHeader))

@@ -45,7 +45,7 @@ trait LdapAuthentication extends DebugEnhancedLogging {
      * @return
      */
     def getUser(userName: String): Try[Map[String, Seq[String]]] = {
-      findUser(userName, adminContextProperties) match { // TODO permanent connection with reconnect?
+      findUser(userName, adminContextProperties) match {
         case Success(Some(props)) => Success(props)
         case Success(None) => Failure(new Exception(s"User [$userName] not found by [$ldapAdminPrincipal] (deleted after login?)"))
         case Failure(t) => Failure(new Exception(s"Configuration error of ldap admin user: $t", t))
@@ -57,8 +57,6 @@ trait LdapAuthentication extends DebugEnhancedLogging {
         .doIfFailure { case t => logger.error(s"authentication of [$userName] failed with $t", t) }
         .getOrElse(None)
         .map(props => AuthUser(props))
-        // TODO moving filter to before(){authenticate()} is too late: cookie has been created
-        // but without halt we can't remind the user to verify the email
         .find(_.state == ACTIVE)
     }
 

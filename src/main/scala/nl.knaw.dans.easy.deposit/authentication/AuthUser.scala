@@ -35,9 +35,6 @@ object AuthUser {
     /** The user has successfully registered, but has not validated the registration; the account cannot be used (yet). */
     REGISTERED,
 
-    /** The user has confirmed the registration and the confirmation was valid; the user has not logged in for the first time. */
-    CONFIRMED_REGISTRATION,
-
     /** The user has a valid registration; the account can be used. */
     ACTIVE,
 

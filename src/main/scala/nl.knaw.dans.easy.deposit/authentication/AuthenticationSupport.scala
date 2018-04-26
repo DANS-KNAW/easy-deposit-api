@@ -17,6 +17,7 @@ package nl.knaw.dans.easy.deposit.authentication
 
 import java.net.URL
 
+import nl.knaw.dans.easy.deposit.authentication.AuthUser.UserState
 import nl.knaw.dans.easy.deposit.authentication.AuthenticationSupport._
 import nl.knaw.dans.easy.deposit.authentication.ServletEnhancedLogging._
 import nl.knaw.dans.lib.error._
@@ -37,7 +38,12 @@ trait AuthenticationSupport extends ScentrySupport[AuthUser] {
 
   /** read method name as: toCookie, see configured scentry.store */
   override protected def toSession: PartialFunction[AuthUser, String] = {
-    case user: AuthUser => encodeJWT(user)
+    case user: AuthUser =>
+      user.state match {
+        case UserState.REGISTERED => halt(Unauthorized("Please confirm your email.").logResponse)
+        case UserState.BLOCKED => halt(Unauthorized("invalid credentials").logResponse)
+        case UserState.ACTIVE => encodeJWT(user)
+      }
   }
 
   override protected val scentryConfig: ScentryConfiguration =
