@@ -24,7 +24,7 @@ import org.scalamock.scalatest.MockFactory
 import org.scalatra.auth.Scentry
 import org.scalatra.test.scalatest.ScalatraSuite
 
-class TypicalSessionSpec extends TestSupportFixture with ServletFixture with ScalatraSuite with MockFactory {
+class SessionSpec extends TestSupportFixture with ServletFixture with ScalatraSuite with MockFactory {
 
   addServlet(new TestServlet(mockedAuthenticationProvider), "/deposit/*")
   addServlet(new AuthTestServlet(mockedAuthenticationProvider), "/auth/*")
@@ -90,7 +90,7 @@ class TypicalSessionSpec extends TestSupportFixture with ServletFixture with Sca
     }
   }
 
-  "get /deposit with valid cookie token" should "be ok" in {
+  "get /deposit" should "be ok with valid cookie token" in {
     expectsNoUser
     val jwtCookie = createJWT(AuthUser("foo", isActive = true))
 
@@ -102,6 +102,21 @@ class TypicalSessionSpec extends TestSupportFixture with ServletFixture with Sca
       Option(header("REMOTE_USER")) shouldBe None
       body should startWith("AuthUser(foo,List(),List(),true) ")
       body should endWith(" EASY Deposit API Service running")
+    }
+  }
+
+  it should "be ok when logging in on the flight with valid basic authentication" in {
+    expectsUserFooBar
+    get(
+      uri = "/deposit",
+      headers = Seq(("Authorization", fooBarBasicAuthHeader))
+    ) {
+      body should startWith("AuthUser(foo,List(),List(),true) ")
+      body should endWith(" EASY Deposit API Service running")
+      header("REMOTE_USER") shouldBe "foo"
+      header("Set-Cookie") should startWith("scentry.auth.default.user=")
+      header("Set-Cookie") shouldNot startWith("scentry.auth.default.user=;") // note the empty value
+      status shouldBe OK_200
     }
   }
 
@@ -122,6 +137,19 @@ class TypicalSessionSpec extends TestSupportFixture with ServletFixture with Sca
       newCookie should include(";Path=/")
       newCookie should include(";Expires=")
       newCookie should include(";HttpOnly")
+    }
+  }
+
+  it should "not create a cookie if called with basic authentication" in {
+    expectsUserFooBar
+    put(
+      uri = "/auth/logout",
+      headers = Seq(("Authorization", fooBarBasicAuthHeader))
+    ) {
+      body shouldBe "you are signed out"
+      header("REMOTE_USER") shouldBe ""
+      header("Set-Cookie") should startWith("scentry.auth.default.user=;")
+      status shouldBe OK_200
     }
   }
 
