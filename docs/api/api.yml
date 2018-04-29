@@ -715,7 +715,7 @@ components:
           type: string
           example: "doi:10.17632/DANS.6wg5xccnjd.1"
         languageOfDescription:
-          type: string
+          $ref: "#/components/schemas/SchemedValue"
         titles:
           type: array
           items:
@@ -735,13 +735,13 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/Author"
-        dateCreated:
-          type: string
         audiences:
-          $ref: "#/components/schemas/StringArray"
+          $ref: "#/components/schemas/SchemedKeyValue"
         subjects:
-          $ref: "#/components/schemas/StringArray"
-        identifiers:
+          type: array
+          items:
+            $ref: "#/components/schemas/PossiblySchemedKeyValue"
+        relatedIdentifiers:
           type: array
           items:
             $ref: "#/components/schemas/SchemedValue"
@@ -749,26 +749,22 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/Relation"
-        languagesOfFilesIso639:
-          $ref: "#/components/schemas/StringArray"
         languagesOfFiles:
-          $ref: "#/components/schemas/StringArray"
-        datesIso8601:
-          type: array
-          items:
-            $ref: "#/components/schemas/SchemedValue"
+          $ref: "#/components/schemas/PossiblySchemedValue"
+        dateCreated:
+          $ref: "#/components/schemas/QualifiedDate"
+        dateAvailable:
+          $ref: "#/components/schemas/QualifiedDate"
         dates:
           type: array
           items:
-            $ref: "#/components/schemas/SchemedValue"
+            $ref: "#/components/schemas/Date"
         sources:
           $ref: "#/components/schemas/StringArray"
         instructionsForReuse:
           $ref: "#/components/schemas/StringArray"
 
         # Licence and access
-        rightsHolders:
-          $ref: "#/components/schemas/StringArray"
         publishers:
           $ref: "#/components/schemas/StringArray"
         accessRights:
@@ -776,34 +772,22 @@ components:
         license:
           type: string
           format: url
-        dateAvailable:
-          type: string
 
         # Upload type
-        typesDcmi:
-          $ref: "#/components/schemas/StringArray"
         types:
-          $ref: "#/components/schemas/StringArray"
-        formatsMediaType:
-          $ref: "#/components/schemas/StringArray"
+          type: array
+          items:
+            $ref: "#/components/schemas/PossiblySchemedValue"
         formats:
-          $ref: "#/components/schemas/StringArray"
-
-        # Archaeology specific metadata
-        archisNrs:
-          $ref: "#/components/schemas/StringArray"
-        subjectsAbrComplex:
-          $ref: "#/components/schemas/StringArray"
-        temporalCoveragesAbr:
-          $ref: "#/components/schemas/StringArray"
-
-        # Language and literature specific metadata
-        extraClarinMetadataPresent:
-          type: boolean
+          type: array
+          items:
+            $ref: "#/components/schemas/PossiblySchemedValue"
 
         # Temporal and spatial coverage
         temporalCoverages:
-          $ref: "#/components/schemas/StringArray"
+          type: array
+          items:
+            $ref: "#/components/schemas/PossiblySchemedKeyValue"
         spatialPoints:
           type: array
           items:
@@ -812,12 +796,10 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/SpatialBox"
-        spatialCoverageIso3166:
+        spatialCoverage:
           type: array
           items:
-            $ref: "#/components/schemas/SchemedValue"
-        spatialCoverages:
-          $ref: "#/components/schemas/StringArray"
+            $ref: "#/components/schemas/PossiblySchemedValue"
 
         # For the data manager
         messageForDataManager:
@@ -857,7 +839,10 @@ components:
         initials: { type: string }
         insertions: { type: string }
         surname: { type: string }
-        role: { type: string }
+        role:
+          type: array
+          items:
+            $ref: "#/components/schemas/SchemedKeyValue"
         ids:
           type: array
           items:
@@ -868,12 +853,32 @@ components:
         initials: A
         insertions:
         surname: Einstein
+        role:
+          - scheme: datacite:contributorType
+          - key: DataManager
+          - value: "Data Manager"
         ids:
           - scheme: DOI
             value: "1234/5678"
           - scheme: ISNI
             value: "ISNI|000000012281955X"
         organization: University of Zurich
+
+    Date:
+      type: object
+      required: [ value ]
+      properties:
+        scheme: { type: string }
+        value: { type: string }
+        qualifier: { type: string }
+
+    QualifiedDate:
+      type: object
+      required: [ qualifier, scheme, value ]
+      properties:
+        scheme: { type: string }
+        value: { type: string }
+        qualifier: { type: string }
 
     Relation:
       type: object
@@ -887,12 +892,37 @@ components:
 
     SchemedValue:
       type: object
+      required: [ scheme, value ]
       properties:
         scheme: { type: string }
         value: { type: string }
 
+    PossiblySchemedValue:
+      type: object
+      required: [ value ]
+      properties:
+        scheme: { type: string }
+        value: { type: string }
+
+    SchemedKeyValue:
+      type: object
+      required: [ scheme, key, value ]
+      properties:
+        scheme: { type: string }
+        value: { type: string }
+        key: { type: string }
+
+    PossiblySchemedKeyValue:
+      type: object
+      required: [ value ]
+      properties:
+        scheme: { type: string }
+        value: { type: string }
+        key: { type: string }
+
     SpatialBox:
       type: object
+      required: [ scheme, north, east, south, west ]
       properties:
         scheme:
           type: string
@@ -907,6 +937,7 @@ components:
 
     SpatialPoint:
       type: object
+      required: [ scheme, x, y ]
       properties:
         scheme:
           type: string
