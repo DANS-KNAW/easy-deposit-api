@@ -755,6 +755,8 @@ components:
           $ref: "#/components/schemas/QualifiedDate"
         dateAvailable:
           $ref: "#/components/schemas/QualifiedDate"
+        dateSubmitted:
+          $ref: "#/components/schemas/QualifiedDate"
         dates:
           type: array
           items:
