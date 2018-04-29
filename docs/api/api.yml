@@ -649,7 +649,9 @@ components:
         lastName:
           type: "string"
         groups:
-          type: "array"
+          type: array
+          items:
+            type: string
           description: "string array with group-names this user belongs to"
 
     Doi:
@@ -709,6 +711,7 @@ components:
 
     DatasetMetadata:
       type: object
+      additionalProperties: false
       properties:
         # Basic information
         doi:
@@ -736,7 +739,9 @@ components:
           items:
             $ref: "#/components/schemas/Author"
         audiences:
-          $ref: "#/components/schemas/SchemedKeyValue"
+          type: array
+          items:
+            $ref: "#/components/schemas/SchemedKeyValue"
         subjects:
           type: array
           items:
@@ -750,7 +755,9 @@ components:
           items:
             $ref: "#/components/schemas/Relation"
         languagesOfFiles:
-          $ref: "#/components/schemas/PossiblySchemedValue"
+          type: array
+          items:
+            $ref: "#/components/schemas/PossiblySchemedValue"
         dateCreated:
           $ref: "#/components/schemas/QualifiedDate"
         dateAvailable:
