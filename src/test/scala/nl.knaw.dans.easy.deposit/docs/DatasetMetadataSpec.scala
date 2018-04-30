@@ -17,10 +17,14 @@ package nl.knaw.dans.easy.deposit.docs
 
 import nl.knaw.dans.easy.deposit.TestSupportFixture
 import nl.knaw.dans.easy.deposit.docs.Json.InvalidDocumentException
+import org.json4s.Diff
+import org.json4s.JsonAST._
+import org.json4s.native.JsonMethods
 
 import scala.util.{ Failure, Success }
 
 class DatasetMetadataSpec extends TestSupportFixture {
+  private val defaults = JsonMethods.parse(Json.toJson(DatasetMetadata()))
   private val example =
     """{
       |  "doi": "doi:10.17632/DANS.6wg5xccnjd.1",
@@ -181,11 +185,11 @@ class DatasetMetadataSpec extends TestSupportFixture {
       |  "acceptLicenseAgreement": true
       |}""".stripMargin
 
-  "deserialization/serialisation" should "at most have different white space and different order of fields" in {
-    val expected = example.split("\n").map(_.trim.replaceAll(": ", ":")).mkString
-    val result = Json.toJson(Json.getDatasetMetadata(example).getOrElse(""))
-    //result shouldBe expected // might suffer from random order of fields, but can help debugging
-    result.length shouldBe expected.length
+  "deserialization/serialisation" should "produce the same json object structure" in {
+    val parsed = Json.getDatasetMetadata(example).getOrElse("")
+    inside(JsonMethods.parse(example) diff JsonMethods.parse(Json.toJson(parsed))) {
+      case Diff(JNothing, JNothing, JNothing) =>
+    }
   }
 
   it should "return defaults for omitted fields and omit null fields that don't have a default" in {
@@ -202,9 +206,21 @@ class DatasetMetadataSpec extends TestSupportFixture {
   }
 
   "deserialization" should "ignore additional info" in {
-    //JObject(List((x,JInt(1))))
-    inside(Json.getDatasetMetadata("""{"x":1}""")) {
-      case Success(_: DatasetMetadata) =>
+    val example ="""{"x":[1]}""".stripMargin
+    val parsed = Json.getDatasetMetadata(example).getOrElse("")
+    inside(JsonMethods.parse(example) diff JsonMethods.parse(Json.toJson(parsed))) {
+      case Diff(changed, added, deleted) =>
+        changed shouldBe JNothing
+        deleted shouldBe JObject(List(("x", JArray(List(JInt(1))))))
+        added shouldBe defaults
+    }
+  }
+
+  it should "report additional info when using validation" in {
+    val example ="""{"titles":["foo bar"],"x":[1]}""".stripMargin
+    inside(Json.getDatasetMetadata(example, validate = true)) {
+      case Failure(InvalidDocumentException(_, t)) => t.getCause.getMessage shouldBe
+        """don't recognize {"x":[1]}"""
     }
   }
 

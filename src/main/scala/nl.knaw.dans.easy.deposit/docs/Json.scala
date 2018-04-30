@@ -24,7 +24,7 @@ import org.json4s.JsonAST._
 import org.json4s.ext.{ EnumNameSerializer, JodaTimeSerializers, UUIDSerializer }
 import org.json4s.native.JsonMethods
 import org.json4s.native.Serialization.write
-import org.json4s.{ CustomSerializer, DefaultFormats, Formats, JsonInput }
+import org.json4s.{ CustomSerializer, DefaultFormats, Diff, Formats, JsonInput }
 
 import scala.util.{ Failure, Try }
 
@@ -64,8 +64,18 @@ object Json {
     parseObject(body).map(_.extract[StateInfo])
   }.recoverWith { case t: Throwable => Failure(InvalidDocumentException("StateInfo", t)) }
 
-  def getDatasetMetadata(body: JsonInput): Try[DatasetMetadata] = {
-    parseObject(body).map(_.extract[DatasetMetadata])
+  def getDatasetMetadata(body: JsonInput, validate: Boolean = false): Try[DatasetMetadata] = {
+    parseObject(body).map { parsed =>
+      val datasetMetadata = parsed.extract[DatasetMetadata]
+      if (validate) {
+        val backAndForth = JsonMethods.parse(Json.toJson(datasetMetadata))
+        backAndForth diff parsed match {
+          case Diff(_, JNothing, _) =>
+          case Diff(_, ignored, _) => throw InvalidDocumentException("DatasetMetadata", new Exception(s"don't recognize ${ write(ignored) }"))
+        }
+      }
+      datasetMetadata
+    }
   }.recoverWith { case t: Throwable => Failure(InvalidDocumentException("DatasetMetadata", t)) }
 
   def getDepositInfo(body: JsonInput): Try[DepositInfo] = {
