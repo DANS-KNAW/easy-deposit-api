@@ -46,11 +46,11 @@ trait TestSupportFixture extends FlatSpec with Matchers with Inside with BeforeA
 
   def minimalAppConfig: Configuration = {
     new Configuration("", new PropertiesConfiguration() {
-      addProperty("deposits.drafts", (testDir / "drafts")
+      private val draftDir: File = (testDir / "drafts")
         .delete(true)
         .createIfNotExists(asDirectory = true, createParents = true)
-        .toString()
-      )
+      addProperty("deposits.drafts", draftDir.toString())
+      addProperty("pids.generator-service", "http://hostDoesNotExist")
     })
   }
 

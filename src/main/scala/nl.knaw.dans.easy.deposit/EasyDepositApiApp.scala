@@ -16,10 +16,12 @@
 package nl.knaw.dans.easy.deposit
 
 import java.io.InputStream
+import java.net.URI
 import java.nio.file.{ Path, Paths }
 import java.util.UUID
 
 import better.files.File
+import nl.knaw.dans.easy.deposit.PidRequesterComponent.PidRequester
 import nl.knaw.dans.easy.deposit.authentication.LdapAuthentication
 import nl.knaw.dans.easy.deposit.docs.{ DatasetMetadata, DepositInfo }
 import nl.knaw.dans.lib.error._
@@ -29,9 +31,15 @@ import org.apache.commons.configuration.PropertiesConfiguration
 import scala.util.Try
 
 class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLogging
-  with LdapAuthentication {
+  with LdapAuthentication
+  with PidRequesterComponent {
 
   val properties: PropertiesConfiguration = configuration.properties
+
+  override val pidRequester: PidRequester = new PidRequester {
+    override val pidGeneratorService: URI = new URI(properties.getString("pids.generator-service"))
+    logger.info(s"pids.generator-service = $pidGeneratorService")
+  }
   override val authentication: Authentication = new Authentication {
     override val ldapUserIdAttrName: String = properties.getString("users.ldap-user-id-attr-name")
     override val ldapParentEntry: String = properties.getString("users.ldap-parent-entry")
@@ -42,7 +50,7 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
     logger.info(s"users.ldap-parent-entry = $ldapParentEntry")
     logger.info(s"users.ldap-user-id-attr-name = $ldapUserIdAttrName")
     logger.info(s"users.ldap-admin-principal = $ldapAdminPrincipal")
-    logger.info(s"users.ldap-admin-password = $ldapAdminPassword")// TODO configured in same security context as logged?
+    logger.info(s"users.ldap-admin-password = $ldapAdminPassword") // TODO configured in same security context as logged?
   }
 
   def getVersion: String = {
@@ -143,6 +151,18 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
     deposit <- DepositDir.get(draftsDir, user, id)
     _ <- deposit.delete()
   } yield ()
+
+  /**
+   * Returns the DOI as stored `dataset.xml` respective `deposit.properties`.
+   *
+   * @param user the user ID
+   * @param id   the deposit ID
+   * @return
+   */
+  def getDoi(user: String, id: UUID): Try[String] = for {
+    deposit <- DepositDir.get(draftsDir, user, id)
+    doi <- deposit.getDOI(pidRequester)
+  } yield doi
 
   /**
    * Returns the dataset metadata from `dataset.xml`.

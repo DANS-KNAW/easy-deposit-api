@@ -83,7 +83,7 @@ class HappyRoutesSpec extends TestSupportFixture with ServletFixture with Scalat
     expectsUserFooBar
     (mockedApp.getDeposits(_: String)) expects "foo" returning Success(Seq(
       DepositInfo(uuid1, "x", DRAFT, "a", DateTime.now),
-      DepositInfo(uuid2, "y", SUBMITTED, "b", DateTime.now )
+      DepositInfo(uuid2, "y", SUBMITTED, "b", DateTime.now)
     ))
 
     get(
@@ -92,7 +92,8 @@ class HappyRoutesSpec extends TestSupportFixture with ServletFixture with Scalat
     ) {
       status shouldBe OK_200
       // TODO IntegrationSpec seems to apply CEST consistently, should be Z anyway
-      val info1 = s"""{"id":"$uuid1","title":"x","state":"DRAFT","stateDescription":"a","date":"$nowUTC"}"""
+      val info1 =
+        s"""{"id":"$uuid1","title":"x","state":"DRAFT","stateDescription":"a","date":"$nowUTC"}"""
       val info2 = s"""{"id":"$uuid2","title":"y","state":"SUBMITTED","stateDescription":"b","date":"$nowUTC"}"""
       body shouldBe s"""[$info1,$info2]"""
     }

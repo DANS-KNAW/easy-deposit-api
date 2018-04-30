@@ -58,6 +58,7 @@ case class DatasetMetadata(doi: Option[String] = None,
                            privacySensitiveDataPresent: PrivacySensitiveDataPresent = unspecified,
                            acceptLicenseAgreement: Boolean = false,
                           )
+
 object DatasetMetadata {
 
   object PrivacySensitiveDataPresent extends Enumeration {

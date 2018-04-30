@@ -17,9 +17,13 @@ package nl.knaw.dans.easy.deposit
 
 import java.nio.file.attribute.PosixFilePermission
 
+import nl.knaw.dans.easy.deposit.PidRequesterComponent.PidRequester
+import nl.knaw.dans.easy.deposit.PidRequesterComponent.PidType.PidType
+import org.scalamock.scalatest.MockFactory
+
 import scala.util.{ Failure, Success }
 
-class DepositDirSpec extends TestSupportFixture {
+class DepositDirSpec extends TestSupportFixture with MockFactory {
   override def beforeEach(): Unit = {
     super.beforeEach()
     clearTestDir()
@@ -81,7 +85,7 @@ class DepositDirSpec extends TestSupportFixture {
   }
 
   "get" should """return a specified deposit""" in {
-    val deposit = DepositDir.create(draftsDir, "user001").get
+    val deposit = createDepositAsPreparation("user001")
     val tryDeposit = DepositDir.get(draftsDir, "user001", deposit.id)
     tryDeposit shouldBe a[Success[_]]
     inside(tryDeposit) {
@@ -90,14 +94,14 @@ class DepositDirSpec extends TestSupportFixture {
   }
 
   "setStateInfo" should "result in Success when transitioning from DRAFT to SUBMITTED" in {
-    val deposit = DepositDir.create(draftsDir, "user001").get
+    val deposit = createDepositAsPreparation("user001")
     val propsFile = draftsDir / "user001" / deposit.id.toString / "deposit.properties"
     deposit.setStateInfo(StateInfo(State.SUBMITTED, "Ready for processing")) shouldBe a[Success[_]]
     propsFile.contentAsString should include regex """state.label\s*=\s*SUBMITTED""".r
   }
 
   it should "result in Success when transitioning from REJECTED to DRAFT" in {
-    val deposit = DepositDir.create(draftsDir, "user001").get
+    val deposit = createDepositAsPreparation("user001")
     val propsFile = draftsDir / "user001" / deposit.id.toString / "deposit.properties"
     val old = propsFile.contentAsString
     propsFile.write(old.replaceFirst("DRAFT", "REJECTED"))
@@ -106,7 +110,7 @@ class DepositDirSpec extends TestSupportFixture {
   }
 
   it should "result in IllegalStateTransitionException when transitioning from DRAFT to ARCHIVED" in {
-    val deposit = DepositDir.create(draftsDir, "user001").get
+    val deposit = createDepositAsPreparation("user001")
     deposit.setStateInfo(StateInfo(State.ARCHIVED, "Completed archival process")) should matchPattern {
       case Failure(IllegalStateTransitionException("user001", _, State.DRAFT, State.ARCHIVED)) =>
     }
@@ -120,5 +124,60 @@ class DepositDirSpec extends TestSupportFixture {
     deposit.setStateInfo(StateInfo(State.ARCHIVED, "Completed archival process")) should matchPattern {
       case Failure(IllegalStateTransitionException("user001", _, State.REJECTED, State.ARCHIVED)) =>
     }
+  }
+
+  "getDOI" should """return a new value""" in {
+    // set up
+    val user = "user001"
+    val doi = "12345"
+    val deposit = createDepositAsPreparation(user)
+    val mdFile = deposit.baseDir / user / deposit.id.toString / "bag" / "metadata" / "dataset.json"
+    val depositPropertiesFile = deposit.baseDir / user / deposit.id.toString / "deposit.properties"
+    val oldDepositProperties = depositPropertiesFile.contentAsString
+
+    // preconditions
+    mdFile.contentAsString shouldBe "{}"
+    oldDepositProperties should not include "identifier.doi"
+    val pidMocker = mock[PidRequester]
+    (pidMocker.requestPid(_: PidType)) expects * once() returning Success(doi)
+
+    // test
+    deposit.getDOI(pidMocker) shouldBe Success(doi)
+
+    // post conditions
+    mdFile.contentAsString should startWith(s"""{"doi":"$doi",""")
+    val newDepositProperties = depositPropertiesFile.contentAsString
+    newDepositProperties should include(oldDepositProperties)
+    newDepositProperties should include("identifier.doi")
+  }
+
+  it should """complain about an invalid dataset""" in {
+    val user = "user001"
+    val doi = "12345"
+    val deposit = createDepositAsPreparation(user)
+    (deposit.baseDir / user / deposit.id.toString / "bag" / "metadata" / "dataset.json").writeText(s"""{"doi":"$doi"}""")
+
+    val pidMocker = mock[PidRequester] // note that no pid is requested
+
+    deposit.getDOI(pidMocker) should matchPattern { case Failure(CorruptDepositException(_, _, _)) => }
+  }
+
+  it should """return the available DOI""" in {
+    val user = "user001"
+    val doi = "12345"
+    val deposit = createDepositAsPreparation(user)
+    val dd = deposit.baseDir / user / deposit.id.toString
+    (dd / "bag" / "metadata" / "dataset.json").writeText(s"""{"doi":"$doi"}""")
+    (dd / "deposit.properties").writeText(s"""identifier.doi = $doi""")
+
+    val pidMocker = mock[PidRequester] // note that no pid is requested
+
+    deposit.getDOI(pidMocker) shouldBe Success(doi)
+  }
+
+  private def createDepositAsPreparation(user: String) = {
+    val triedDepositDir = DepositDir.create(draftsDir, user)
+    triedDepositDir should matchPattern { case Success(_) => }
+    triedDepositDir.getOrElse(null)
   }
 }

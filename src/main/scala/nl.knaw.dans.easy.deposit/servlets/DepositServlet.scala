@@ -47,6 +47,11 @@ class DepositServlet(app: EasyDepositApiApp) extends ProtectedServlet(app) {
       .map(datasetMetadata => Ok(body = toJson(datasetMetadata)))
       .getOrRecoverResponse(respond)
   }
+  get("/:uuid/doi") {
+    forDeposit(app.getDoi)
+      .map(doi => Ok(body = s"""{"doi":"$doi"}"""))
+      .getOrRecoverResponse(respond)
+  }
   put("/:uuid/metadata") {
     {
       for {

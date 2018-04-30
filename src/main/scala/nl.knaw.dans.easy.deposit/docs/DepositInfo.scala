@@ -26,12 +26,18 @@ import org.joda.time.format.ISODateTimeFormat
 
 /**
  * Summary information about a deposit.
+ *
+ * @param title            [[../DepositDir#getDepositInfo]] retrieves it form [[DatasetMetadata]]
+ * @param state            [[../DepositDir#create]] stores it in deposit.properties
+ * @param stateDescription stored in deposit.properties
+ * @param date             stored in [[../BagitMetadata]].Created
+ *                         and as creation.timestamp in deposit.properties
  */
 case class DepositInfo(id: UUID = UUID.randomUUID(),
                        title: String = "",
                        state: State = State.DRAFT,
                        stateDescription: String = "Deposit is open for changes.",
-                       date: DateTime = nowWithoutMillis // TODO is this creation time or last (status) change?
+                       date: DateTime = nowWithoutMillis
                       ) {
 
   def timestampString: String = date.toString(dateTimeFormatter)

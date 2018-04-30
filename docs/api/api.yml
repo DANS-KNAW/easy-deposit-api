@@ -245,7 +245,7 @@ paths:
       security:
       - BearerAuth: []
 
-  /deposit/{id}/metadata/doi:
+  /deposit/{id}/doi:
     description: |
       The reserved Digital Object Identifier for this deposit.
     get:
