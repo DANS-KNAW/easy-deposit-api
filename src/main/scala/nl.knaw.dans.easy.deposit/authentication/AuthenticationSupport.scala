@@ -17,14 +17,13 @@ package nl.knaw.dans.easy.deposit.authentication
 
 import java.net.URL
 
+import nl.knaw.dans.easy.deposit.authentication.AuthUser.UserState
 import nl.knaw.dans.easy.deposit.authentication.AuthenticationSupport._
 import nl.knaw.dans.easy.deposit.authentication.ServletEnhancedLogging._
 import nl.knaw.dans.lib.error._
 import org.scalatra._
 import org.scalatra.auth.ScentryAuthStore.CookieAuthStore
-import org.scalatra.auth.{ Scentry, ScentryConfig, ScentryStrategy, ScentrySupport }
-
-import scala.collection.JavaConverters._
+import org.scalatra.auth.{ ScentryConfig, ScentrySupport }
 
 trait AuthenticationSupport extends ScentrySupport[AuthUser] {
   self: ScalatraBase with TokenSupport with AuthConfig =>
@@ -34,12 +33,17 @@ trait AuthenticationSupport extends ScentrySupport[AuthUser] {
     case token: String => decodeJWT(token)
       .doIfSuccess { user => scentry.store.set(encodeJWT(user)) } // refresh cookie
       .doIfFailure { case t => logger.info(s"invalid authentication: ${ t.getClass } ${ t.getMessage }") }
-      .getOrElse(null) // TODO a halt would allow to log the response, not sure about the internal workings, destroy the cookie?
+      .getOrElse(null)
   }
 
   /** read method name as: toCookie, see configured scentry.store */
   override protected def toSession: PartialFunction[AuthUser, String] = {
-    case user: AuthUser => encodeJWT(user)
+    case user: AuthUser =>
+      user.state match {
+        case UserState.REGISTERED => halt(Unauthorized("Please confirm your email.").logResponse)
+        case UserState.BLOCKED => halt(Unauthorized("invalid credentials").logResponse)
+        case UserState.ACTIVE => encodeJWT(user)
+      }
   }
 
   override protected val scentryConfig: ScentryConfiguration =

@@ -17,6 +17,8 @@ package nl.knaw.dans.easy.deposit.servlets
 
 import java.util.UUID
 
+import nl.knaw.dans.easy.deposit._
+import nl.knaw.dans.easy.deposit.authentication.AuthUser.UserState.ACTIVE
 import nl.knaw.dans.easy.deposit.authentication.AuthenticationMocker._
 import nl.knaw.dans.easy.deposit.authentication.{ AuthUser, AuthenticationProvider }
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata
@@ -48,7 +50,7 @@ class DepositServletErrorSpec extends TestSupportFixture with ServletFixture wit
 
   it should "return 500 (Internal Server Error) on a not expected exception and a cookie" ignore {
     // TODO breaks tests in TypicalSessionSpec when running 'mvn clean install'
-    val jwtCookie = createJWT(AuthUser("foo", isActive = true))
+    val jwtCookie = createJWT(AuthUser("foo", state = ACTIVE))
     expectsUserFooBar
     post(uri = "/", headers = Seq(("Cookie", s"${ Scentry.scentryAuthKey }=$jwtCookie"))) {
       status shouldBe INTERNAL_SERVER_ERROR_500
