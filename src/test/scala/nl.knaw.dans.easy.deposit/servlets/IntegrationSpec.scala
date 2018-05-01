@@ -55,7 +55,7 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
     // create dataset metadata
     expectsUserFooBar
     put(metadataURI, headers = Seq(basicAuthentication),
-      body = """{"blabla":"blabla"}""" // more variations in DepositDirSpec
+      body = """{"titles":["blabla"]}""" // more variations in DepositDirSpec
     ) {
       status shouldBe NO_CONTENT_204
     }
@@ -65,7 +65,7 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
     expectsUserFooBar
     get(metadataURI, headers = Seq(basicAuthentication)) {
       status shouldBe OK_200
-      body shouldBe """{"privacySensitiveDataPresent":"unspecified","acceptLicenseAgreement":false}"""
+      body shouldBe """{"titles":["blabla"],"privacySensitiveDataPresent":"unspecified","acceptLicenseAgreement":false}"""
     }
 
     // invalidate the metadata and try again

@@ -192,31 +192,17 @@ class DatasetMetadataSpec extends TestSupportFixture {
     }
   }
 
-  it should "return defaults for omitted fields and omit null fields that don't have a default" in {
+  it should "return defaults for omitted fields" in {
     val example =
       """{
         |  "creators": [
-        |    {
-        |      "insertions": null,
-        |    }
         |  ]
         |}""".stripMargin
     Json.toJson(Json.getDatasetMetadata(example).getOrElse("")) shouldBe
-      """{"creators":[{}],"privacySensitiveDataPresent":"unspecified","acceptLicenseAgreement":false}"""
+      """{"creators":[],"privacySensitiveDataPresent":"unspecified","acceptLicenseAgreement":false}"""
   }
 
-  "deserialization" should "ignore additional info" in {
-    val example ="""{"x":[1]}""".stripMargin
-    val parsed = Json.getDatasetMetadata(example).getOrElse("")
-    inside(JsonMethods.parse(example) diff JsonMethods.parse(Json.toJson(parsed))) {
-      case Diff(changed, added, deleted) =>
-        changed shouldBe JNothing
-        deleted shouldBe JObject(List(("x", JArray(List(JInt(1))))))
-        added shouldBe defaults
-    }
-  }
-
-  it should "report additional info when using validation" in {
+  "deserialization" should "report additional json info" in {
     val example ="""{"titles":["foo bar"],"x":[1]}""".stripMargin
     inside(Json.getDatasetMetadata(example, validate = true)) {
       case Failure(InvalidDocumentException(docName, t)) =>
@@ -247,8 +233,9 @@ class DatasetMetadataSpec extends TestSupportFixture {
 
   it should "not accept a literal number" in {
     inside(Json.getDatasetMetadata("""123""")) { case Failure(InvalidDocumentException(_, t)) =>
-      t.getMessage shouldBe """expected field or array
-                              |Near: 12""".stripMargin
+      t.getMessage shouldBe
+        """expected field or array
+          |Near: 12""".stripMargin
     }
   }
 }

@@ -21,7 +21,7 @@ import java.util.UUID
 import nl.knaw.dans.easy.deposit.State._
 import nl.knaw.dans.easy.deposit._
 import nl.knaw.dans.easy.deposit.authentication.AuthenticationMocker._
-import nl.knaw.dans.easy.deposit.docs.{ DatasetMetadata, DepositInfo }
+import nl.knaw.dans.easy.deposit.docs.DepositInfo
 import org.eclipse.jetty.http.HttpStatus._
 import org.joda.time.DateTime
 import org.scalamock.scalatest.MockFactory
@@ -162,17 +162,16 @@ class HappyRoutesSpec extends TestSupportFixture with ServletFixture with Scalat
     }
   }
 
-  s"put /deposit/:uuid/metadata" should "ignore undefined json content" in {
+  "put /deposit/:uuid/metadata" should "report undefined json content" in {
     expectsUserFooBar
-    (mockedApp.writeDataMetadataToDeposit(_: DatasetMetadata)(_: String, _: UUID)) expects(*, "foo", uuid) returning
-      Success(())
 
     put(
       uri = s"/deposit/$uuid/metadata",
-      body = """{"blabla":"blabla"}""",
+      body = """{"title":"blabla"}""", // N.B: key should be plural
       headers = Seq(("Authorization", fooBarBasicAuthHeader))
     ) {
-      status shouldBe NO_CONTENT_204
+      status shouldBe BAD_REQUEST_400 // TODO message too cryptic
+      body shouldBe """Bad Request. invalid DatasetMetadata: class java.lang.Exception don't recognize {"title":"blabla"}"""
     }
   }
 }

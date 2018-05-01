@@ -58,27 +58,23 @@ object Json {
   }
 
   def getUser(body: JsonInput): Try[UserInfo] = {
-    parseObject(body).flatMap(parsed => validateDocument(parsed, parsed.extract[UserInfo]))
+    parseObject(body).flatMap(parsed => rejectNotExpectedContent(parsed, parsed.extract[UserInfo]))
   }.recoverWith { case t: Throwable => documentFailure("User", t) }
 
   def getStateInfo(body: JsonInput): Try[StateInfo] = {
-    parseObject(body).flatMap(parsed => validateDocument(parsed, parsed.extract[StateInfo]))
+    parseObject(body).flatMap(parsed => rejectNotExpectedContent(parsed, parsed.extract[StateInfo]))
   }.recoverWith { case t: Throwable => documentFailure("StateInfo", t) }
 
   def getDatasetMetadata(body: JsonInput, validate: Boolean = false): Try[DatasetMetadata] = {
-    parseObject(body).flatMap { parsed =>
-      val datasetMetadata = parsed.extract[DatasetMetadata]
-      if (validate) validateDocument(parsed, datasetMetadata)
-      else Success(datasetMetadata)
-    }
+    parseObject(body).flatMap(parsed => rejectNotExpectedContent(parsed, parsed.extract[DatasetMetadata]))
   }.recoverWith { case t: Throwable => documentFailure("DatasetMetadata", t) }
 
   def getDepositInfo(body: JsonInput): Try[DepositInfo] = {
-    parseObject(body).flatMap(parsed => validateDocument(parsed, parsed.extract[DepositInfo]))
+    parseObject(body).flatMap(parsed => rejectNotExpectedContent(parsed, parsed.extract[DepositInfo]))
   }.recoverWith { case t: Throwable => documentFailure("DepositInfo", t) }
 
-  /** checks for ignored content in json document */
-  private def validateDocument[T](parsed: json4s.JValue, extracted: T): Try[T] = {
+  /** @return `extracted` only if `parsed` contains nothing else */
+  private def rejectNotExpectedContent[T](parsed: json4s.JValue, extracted: T): Try[T] = {
     decompose(extracted) diff parsed match {
       case Diff(_, JNothing, _) => Success(extracted)
       case Diff(_, ignored, _) => Failure(new Exception(s"don't recognize ${ write(ignored) }"))
