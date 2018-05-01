@@ -58,12 +58,12 @@ object Json {
   }
 
   def getUser(body: JsonInput): Try[UserInfo] = {
-    parseObject(body).map(_.extract[UserInfo])
-  }.recoverWith { case t: Throwable => Failure(InvalidDocumentException("User", t)) }
+    parseObject(body).flatMap(parsed => validateDocument(parsed, parsed.extract[UserInfo]))
+  }.recoverWith { case t: Throwable => documentFailure("User", t) }
 
   def getStateInfo(body: JsonInput): Try[StateInfo] = {
-    parseObject(body).map(_.extract[StateInfo])
-  }.recoverWith { case t: Throwable => Failure(InvalidDocumentException("StateInfo", t)) }
+    parseObject(body).flatMap(parsed => validateDocument(parsed, parsed.extract[StateInfo]))
+  }.recoverWith { case t: Throwable => documentFailure("StateInfo", t) }
 
   def getDatasetMetadata(body: JsonInput, validate: Boolean = false): Try[DatasetMetadata] = {
     parseObject(body).flatMap { parsed =>
@@ -71,11 +71,11 @@ object Json {
       if (validate) validateDocument(parsed, datasetMetadata)
       else Success(datasetMetadata)
     }
-  }.recoverWith { case t: Throwable => Failure(InvalidDocumentException("DatasetMetadata", t)) }
+  }.recoverWith { case t: Throwable => documentFailure("DatasetMetadata", t) }
 
   def getDepositInfo(body: JsonInput): Try[DepositInfo] = {
-    parseObject(body).map(_.extract[DepositInfo])
-  }.recoverWith { case t: Throwable => Failure(InvalidDocumentException("DepositInfo", t)) }
+    parseObject(body).flatMap(parsed => validateDocument(parsed, parsed.extract[DepositInfo]))
+  }.recoverWith { case t: Throwable => documentFailure("DepositInfo", t) }
 
   /** checks for ignored content in json document */
   private def validateDocument[T](parsed: json4s.JValue, extracted: T): Try[T] = {
@@ -90,5 +90,9 @@ object Json {
   }.map {
     case jObject if jObject.isInstanceOf[JObject] => jObject
     case jValue => throw new Exception(s"expected an object, got a ${ jValue.getClass }")
+  }
+
+  private def documentFailure(documentClassName: String, t: Throwable) = {
+    Failure(InvalidDocumentException(documentClassName, t))
   }
 }
