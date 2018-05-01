@@ -219,8 +219,9 @@ class DatasetMetadataSpec extends TestSupportFixture {
   it should "report additional info when using validation" in {
     val example ="""{"titles":["foo bar"],"x":[1]}""".stripMargin
     inside(Json.getDatasetMetadata(example, validate = true)) {
-      case Failure(InvalidDocumentException(_, t)) => t.getCause.getMessage shouldBe
-        """don't recognize {"x":[1]}"""
+      case Failure(InvalidDocumentException(docName, t)) =>
+        docName shouldBe "DatasetMetadata"
+        t.getMessage shouldBe """don't recognize {"x":[1]}"""
     }
   }
 
@@ -239,10 +240,15 @@ class DatasetMetadataSpec extends TestSupportFixture {
 
   it should "fail on an empty array" in {
     // JArray(List())
-    inside(Json.getDatasetMetadata("""[]""")) { case Failure(_: InvalidDocumentException) => }
+    inside(Json.getDatasetMetadata("""[]""")) { case Failure(InvalidDocumentException(_, t)) =>
+      t.getMessage shouldBe "expected an object, got a class org.json4s.JsonAST$JArray"
+    }
   }
 
   it should "not accept a literal number" in {
-    inside(Json.getDatasetMetadata("""123""")) { case Failure(_: InvalidDocumentException) => }
+    inside(Json.getDatasetMetadata("""123""")) { case Failure(InvalidDocumentException(_, t)) =>
+      t.getMessage shouldBe """expected field or array
+                              |Near: 12""".stripMargin
+    }
   }
 }

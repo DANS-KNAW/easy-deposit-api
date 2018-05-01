@@ -20,13 +20,14 @@ import java.nio.file.{ Path, Paths }
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.{ AccessCategory, PrivacySensitiveDataPresent }
 import nl.knaw.dans.easy.deposit.{ State, StateInfo }
 import org.json4s
+import org.json4s.Extraction.decompose
 import org.json4s.JsonAST._
 import org.json4s.ext.{ EnumNameSerializer, JodaTimeSerializers, UUIDSerializer }
 import org.json4s.native.JsonMethods
 import org.json4s.native.Serialization.write
 import org.json4s.{ CustomSerializer, DefaultFormats, Diff, Formats, JsonInput }
 
-import scala.util.{ Failure, Try }
+import scala.util.{ Failure, Success, Try }
 
 object Json {
 
@@ -65,22 +66,24 @@ object Json {
   }.recoverWith { case t: Throwable => Failure(InvalidDocumentException("StateInfo", t)) }
 
   def getDatasetMetadata(body: JsonInput, validate: Boolean = false): Try[DatasetMetadata] = {
-    parseObject(body).map { parsed =>
+    parseObject(body).flatMap { parsed =>
       val datasetMetadata = parsed.extract[DatasetMetadata]
-      if (validate) {
-        val backAndForth = JsonMethods.parse(Json.toJson(datasetMetadata))
-        backAndForth diff parsed match {
-          case Diff(_, JNothing, _) =>
-          case Diff(_, ignored, _) => throw InvalidDocumentException("DatasetMetadata", new Exception(s"don't recognize ${ write(ignored) }"))
-        }
-      }
-      datasetMetadata
+      if (validate) validateDocument(parsed, datasetMetadata)
+      else Success(datasetMetadata)
     }
   }.recoverWith { case t: Throwable => Failure(InvalidDocumentException("DatasetMetadata", t)) }
 
   def getDepositInfo(body: JsonInput): Try[DepositInfo] = {
     parseObject(body).map(_.extract[DepositInfo])
   }.recoverWith { case t: Throwable => Failure(InvalidDocumentException("DepositInfo", t)) }
+
+  /** checks for ignored content in json document */
+  private def validateDocument[T](parsed: json4s.JValue, extracted: T): Try[T] = {
+    decompose(extracted) diff parsed match {
+      case Diff(_, JNothing, _) => Success(extracted)
+      case Diff(_, ignored, _) => Failure(new Exception(s"don't recognize ${ write(ignored) }"))
+    }
+  }
 
   private def parseObject(body: JsonInput): Try[json4s.JValue] = Try {
     JsonMethods.parse(body)
