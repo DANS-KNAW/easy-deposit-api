@@ -846,9 +846,7 @@ components:
         surname:
           type: string
         role:
-          type: array
-          items:
-            $ref: "#/components/schemas/SchemedKeyValue"
+          $ref: "#/components/schemas/SchemedKeyValue"
         ids:
           type: array
           items:
