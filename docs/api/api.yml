@@ -746,7 +746,7 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/PossiblySchemedKeyValue"
-        relatedIdentifiers:
+        alternativeIdentifiers:
           type: array
           items:
             $ref: "#/components/schemas/SchemedValue"
@@ -757,13 +757,7 @@ components:
         languagesOfFiles:
           type: array
           items:
-            $ref: "#/components/schemas/PossiblySchemedValue"
-        dateCreated:
-          $ref: "#/components/schemas/QualifiedDate"
-        dateAvailable:
-          $ref: "#/components/schemas/QualifiedDate"
-        dateSubmitted:
-          $ref: "#/components/schemas/QualifiedDate"
+            $ref: "#/components/schemas/PossiblySchemedKeyValue"
         dates:
           type: array
           items:
@@ -857,6 +851,9 @@ components:
           items:
             $ref: "#/components/schemas/SchemedValue"
         organization: { type: string }
+      oneOf:
+        - required: [ "surname", "initials" ]
+        - required: [ "organization" ]
       example:
         titles: Prof Dr
         initials: A
@@ -879,15 +876,10 @@ components:
       properties:
         scheme: { type: string }
         value: { type: string }
-        qualifier: { type: string }
-
-    QualifiedDate:
-      type: object
-      required: [ qualifier, scheme, value ]
-      properties:
-        scheme: { type: string }
-        value: { type: string }
-        qualifier: { type: string }
+        qualifier: {
+          type: string,
+          enum: ["created", "available", "dateAccepted", "dateCopyrighted", "dateSubmitted", "issued", "modified", "valid"]
+        }
 
     Relation:
       type: object
