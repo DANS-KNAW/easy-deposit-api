@@ -864,10 +864,10 @@ components:
           - key: DataManager
           - value: "Data Manager"
         ids:
-          - scheme: DOI
-            value: "1234/5678"
+          - scheme: DAI
+            value: "123456789x"
           - scheme: ISNI
-            value: "ISNI|000000012281955X"
+            value: "ISNI:000000012281955X"
         organization: University of Zurich
 
     Date:
