@@ -872,13 +872,13 @@ components:
 
     Date:
       type: object
-      required: [ value ]
+      required: [ value, qualifier ]
       properties:
         scheme: { type: string }
         value: { type: string }
         qualifier: {
           type: string,
-          enum: ["created", "available", "dateAccepted", "dateCopyrighted", "dateSubmitted", "issued", "modified", "valid"]
+          enum: ["created", "available", "date", "dateAccepted", "dateCopyrighted", "dateSubmitted", "issued", "modified", "valid"]
         }
 
     Relation:
