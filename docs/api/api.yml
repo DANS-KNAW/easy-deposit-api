@@ -715,8 +715,7 @@ components:
       properties:
         # Basic information
         doi:
-          type: string
-          example: "doi:10.17632/DANS.6wg5xccnjd.1"
+          $ref: "#/components/schemas/SchemedValue"
         languageOfDescription:
           $ref: "#/components/schemas/SchemedValue"
         titles:
@@ -838,10 +837,14 @@ components:
     Author:
       type: object
       properties:
-        titles: { type: string }
-        initials: { type: string }
-        insertions: { type: string }
-        surname: { type: string }
+        titles:
+          type: string
+        initials:
+          type: string
+        insertions:
+          type: string
+        surname:
+          type: string
         role:
           type: array
           items:
@@ -850,10 +853,14 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/SchemedValue"
-        organization: { type: string }
+        organization:
+          type: string
       oneOf:
-        - required: [ "surname", "initials" ]
-        - required: [ "organization" ]
+        - required:
+          - surname
+          - initials
+        - required:
+          - organization
       example:
         titles: Prof Dr
         initials: A
@@ -872,14 +879,26 @@ components:
 
     Date:
       type: object
-      required: [ value, qualifier ]
+      required:
+      - value
+      - qualifier
       properties:
-        scheme: { type: string }
-        value: { type: string }
-        qualifier: {
-          type: string,
-          enum: ["created", "available", "date", "dateAccepted", "dateCopyrighted", "dateSubmitted", "issued", "modified", "valid"]
-        }
+        scheme:
+          type: string
+        value:
+          type: string
+        qualifier:
+          type: string
+          enum:
+          - created
+          - available
+          - date
+          - dateAccepted
+          - dateCopyrighted
+          - dateSubmitted
+          - issued
+          - modified
+          - valid
 
     Relation:
       type: object
@@ -893,37 +912,59 @@ components:
 
     SchemedValue:
       type: object
-      required: [ scheme, value ]
+      required:
+      - scheme
+      - value
       properties:
-        scheme: { type: string }
-        value: { type: string }
+        scheme:
+          type: string
+        value:
+          type: string
 
     PossiblySchemedValue:
       type: object
-      required: [ value ]
+      required:
+      - value
       properties:
-        scheme: { type: string }
-        value: { type: string }
+        scheme:
+         type: string
+        value:
+         type: string
 
     SchemedKeyValue:
       type: object
-      required: [ scheme, key, value ]
+      required:
+      - scheme
+      - key
+      - value
       properties:
-        scheme: { type: string }
-        value: { type: string }
-        key: { type: string }
+        scheme:
+          type: string
+        value:
+          type: string
+        key:
+          type: string
 
     PossiblySchemedKeyValue:
       type: object
-      required: [ value ]
+      required:
+      - value
       properties:
-        scheme: { type: string }
-        value: { type: string }
-        key: { type: string }
+        scheme:
+          type: string
+        value:
+          type: string
+        key:
+          type: string
 
     SpatialBox:
       type: object
-      required: [ scheme, north, east, south, west ]
+      required:
+      - scheme
+      - north
+      - east
+      - south
+      - west
       properties:
         scheme:
           type: string
@@ -938,7 +979,10 @@ components:
 
     SpatialPoint:
       type: object
-      required: [ scheme, x, y ]
+      required:
+      - scheme
+      - x
+      - y
       properties:
         scheme:
           type: string
