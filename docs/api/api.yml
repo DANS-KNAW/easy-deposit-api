@@ -800,7 +800,7 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/SpatialBox"
-        spatialCoverage:
+        spatialCoverages:
           type: array
           items:
             $ref: "#/components/schemas/PossiblySchemedValue"
