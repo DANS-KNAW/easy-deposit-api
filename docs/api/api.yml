@@ -714,8 +714,10 @@ components:
       additionalProperties: false
       properties:
         # Basic information
-        doi:
-          $ref: "#/components/schemas/SchemedValue"
+        identifier:
+          type: array
+          items:
+            $ref: "#/components/schemas/SchemedValue"
         languageOfDescription:
           $ref: "#/components/schemas/SchemedValue"
         titles:
