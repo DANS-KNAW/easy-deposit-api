@@ -714,7 +714,7 @@ components:
       additionalProperties: false
       properties:
         # Basic information
-        identifier:
+        identifiers:
           type: array
           items:
             $ref: "#/components/schemas/SchemedValue"
@@ -800,7 +800,7 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/SpatialBox"
-        spatialCoverage:
+        spatialCoverages:
           type: array
           items:
             $ref: "#/components/schemas/PossiblySchemedValue"
