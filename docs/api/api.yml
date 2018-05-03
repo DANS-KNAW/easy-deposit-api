@@ -714,7 +714,7 @@ components:
       additionalProperties: false
       properties:
         # Basic information
-        identifier:
+        identifiers:
           type: array
           items:
             $ref: "#/components/schemas/SchemedValue"
