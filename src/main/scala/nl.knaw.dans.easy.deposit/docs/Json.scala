@@ -25,7 +25,7 @@ import org.json4s.JsonAST._
 import org.json4s.ext.{ EnumNameSerializer, JodaTimeSerializers, UUIDSerializer }
 import org.json4s.native.JsonMethods
 import org.json4s.native.Serialization.write
-import org.json4s.{ CustomSerializer, DefaultFormats, Diff, Formats, JsonInput }
+import org.json4s.{ CustomSerializer, DefaultFormats, Diff, Extraction, Formats, JsonInput }
 
 import scala.util.{ Failure, Success, Try }
 
@@ -44,7 +44,7 @@ object Json {
     )
   )
 
-  private implicit val jsonFormats: Formats = new DefaultFormats {} +
+  private val jsonFormats: Formats = new DefaultFormats {} +
     UUIDSerializer +
     new PathSerializer +
     new EnumNameSerializer(State) +
@@ -57,7 +57,7 @@ object Json {
       for {
         parsed <- Try { JsonMethods.parse(body) }
         _ <- acceptOnlyJObject(parsed)
-        result = parsed.extract[A]
+        result = Extraction.extract(parsed)(jsonFormats, mf)
         _ <- rejectNotExpectedContent(parsed, result)
       } yield result
     }.recoverWith {
@@ -65,9 +65,9 @@ object Json {
     }
 
     private def rejectNotExpectedContent[T](parsed: json4s.JValue, extracted: T): Try[Unit] = {
-      decompose(extracted) diff parsed match {
+      decompose(extracted)(jsonFormats) diff parsed match {
         case Diff(_, JNothing, _) => Success(())
-        case Diff(_, ignored, _) => Failure(new Exception(s"don't recognize ${ write(ignored) }"))
+        case Diff(_, ignored, _) => Failure(new Exception(s"don't recognize ${ write(ignored)(jsonFormats) }"))
       }
     }
 
@@ -79,7 +79,7 @@ object Json {
 
   def toJson[A <: AnyRef](a: A): String = {
     // seems not to need a try: while the date formatter wasn't in place it produced empty strings
-    write(a)
+    write(a)(jsonFormats)
   }
 
   def getUser(body: JsonInput): Try[UserInfo] = body.deserialize[UserInfo]("UserInfo")
