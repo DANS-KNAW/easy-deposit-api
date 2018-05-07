@@ -52,10 +52,11 @@ object Json {
     new EnumNameSerializer(PrivacySensitiveDataPresent) ++
     JodaTimeSerializers.all
 
-  implicit class RichJsonInput(body: JsonInput) {
+  private implicit class RichJsonInput(body: JsonInput) {
     def deserialize[A](docType: String)(implicit mf: scala.reflect.Manifest[A]): Try[A] = {
       for {
-        parsed <- parseObject(body)
+        parsed <- Try { JsonMethods.parse(body) }
+        _ <- acceptOnlyJObject(parsed)
         result = parsed.extract[A]
         _ <- rejectNotExpectedContent(parsed, result)
       } yield result
@@ -63,19 +64,16 @@ object Json {
       case t: Throwable => Failure(InvalidDocumentException(docType, t))
     }
 
-    /** @return `extracted` only if `parsed` contains nothing else */
-    private def rejectNotExpectedContent[T](parsed: json4s.JValue, extracted: T): Try[T] = {
+    private def rejectNotExpectedContent[T](parsed: json4s.JValue, extracted: T): Try[Unit] = {
       decompose(extracted) diff parsed match {
-        case Diff(_, JNothing, _) => Success(extracted)
+        case Diff(_, JNothing, _) => Success(())
         case Diff(_, ignored, _) => Failure(new Exception(s"don't recognize ${ write(ignored) }"))
       }
     }
 
-    private def parseObject(body: JsonInput): Try[json4s.JValue] = Try {
-      JsonMethods.parse(body)
-    }.map {
-      case jObject if jObject.isInstanceOf[JObject] => jObject
-      case jValue => throw new Exception(s"expected an object, got a ${ jValue.getClass }")
+    private def acceptOnlyJObject(parsed: JValue): Try[Unit] = {
+      if (parsed.isInstanceOf[JObject]) Success(())
+      else Failure(new Exception(s"expected an object, got a ${ parsed.getClass }"))
     }
   }
 
