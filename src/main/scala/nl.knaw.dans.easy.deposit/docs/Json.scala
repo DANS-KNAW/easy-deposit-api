@@ -25,7 +25,7 @@ import org.json4s.JsonAST._
 import org.json4s.ext.{ EnumNameSerializer, JodaTimeSerializers, UUIDSerializer }
 import org.json4s.native.JsonMethods
 import org.json4s.native.Serialization.write
-import org.json4s.{ CustomSerializer, DefaultFormats, Diff, Formats, JValue, JsonInput }
+import org.json4s.{ CustomSerializer, DefaultFormats, Diff, Formats, JsonInput }
 
 import scala.util.{ Failure, Success, Try }
 
@@ -54,8 +54,11 @@ object Json {
 
   implicit class RichJsonInput(body: JsonInput) {
     def deserialize[A](docType: String)(implicit mf: scala.reflect.Manifest[A]): Try[A] = {
-      parseObject(body)
-        .flatMap(parsed => rejectNotExpectedContent(parsed, parsed.extract[A]))
+      for {
+        parsed <- parseObject(body)
+        result = parsed.extract[A]
+        _ <- rejectNotExpectedContent(parsed, result)
+      } yield result
     }.recoverWith {
       case t: Throwable => Failure(InvalidDocumentException(docType, t))
     }
