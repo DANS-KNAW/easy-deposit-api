@@ -204,7 +204,7 @@ class DatasetMetadataSpec extends TestSupportFixture {
 
   "deserialization" should "report additional json info" in {
     val example ="""{"titles":["foo bar"],"x":[1]}""".stripMargin
-    inside(Json.getDatasetMetadata(example, validate = true)) {
+    inside(Json.getDatasetMetadata(example)) {
       case Failure(InvalidDocumentException(docName, t)) =>
         docName shouldBe "DatasetMetadata"
         t.getMessage shouldBe """don't recognize {"x":[1]}"""

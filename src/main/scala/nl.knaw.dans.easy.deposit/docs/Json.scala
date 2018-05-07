@@ -65,7 +65,7 @@ object Json {
     parseObject(body).flatMap(parsed => rejectNotExpectedContent(parsed, parsed.extract[StateInfo]))
   }.recoverWith { case t: Throwable => documentFailure("StateInfo", t) }
 
-  def getDatasetMetadata(body: JsonInput, validate: Boolean = false): Try[DatasetMetadata] = {
+  def getDatasetMetadata(body: JsonInput): Try[DatasetMetadata] = {
     parseObject(body).flatMap(parsed => rejectNotExpectedContent(parsed, parsed.extract[DatasetMetadata]))
   }.recoverWith { case t: Throwable => documentFailure("DatasetMetadata", t) }
 
