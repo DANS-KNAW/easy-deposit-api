@@ -27,6 +27,7 @@ import org.json4s.native.JsonMethods
 import org.json4s.native.Serialization.write
 import org.json4s.{ CustomSerializer, DefaultFormats, Diff, Extraction, Formats, JsonInput }
 
+import scala.reflect.runtime.universe.typeOf
 import scala.util.{ Failure, Success, Try }
 
 object Json {
@@ -44,7 +45,7 @@ object Json {
     )
   )
 
-  private val jsonFormats: Formats = new DefaultFormats {} +
+  private implicit val jsonFormats: Formats = new DefaultFormats {} +
     UUIDSerializer +
     new PathSerializer +
     new EnumNameSerializer(State) +
@@ -53,21 +54,21 @@ object Json {
     JodaTimeSerializers.all
 
   private implicit class RichJsonInput(body: JsonInput) {
-    def deserialize[A](docType: String)(implicit mf: scala.reflect.Manifest[A]): Try[A] = {
+    def deserialize[A: Manifest]: Try[A] = {
       for {
         parsed <- Try { JsonMethods.parse(body) }
         _ <- acceptOnlyJObject(parsed)
-        result = Extraction.extract(parsed)(jsonFormats, mf)
+        result = Extraction.extract(parsed)
         _ <- rejectNotExpectedContent(parsed, result)
       } yield result
     }.recoverWith {
-      case t: Throwable => Failure(InvalidDocumentException(docType, t))
+      case t: Throwable => Failure(InvalidDocumentException(typeOf[A].typeSymbol.name.toString, t))
     }
 
-    private def rejectNotExpectedContent[T](parsed: json4s.JValue, extracted: T): Try[Unit] = {
-      decompose(extracted)(jsonFormats) diff parsed match {
+    private def rejectNotExpectedContent[T](parsed: JValue, extracted: T): Try[Unit] = {
+      decompose(extracted) diff parsed match {
         case Diff(_, JNothing, _) => Success(())
-        case Diff(_, ignored, _) => Failure(new Exception(s"don't recognize ${ write(ignored)(jsonFormats) }"))
+        case Diff(_, ignored, _) => Failure(new Exception(s"don't recognize ${ write(ignored) }"))
       }
     }
 
@@ -79,14 +80,14 @@ object Json {
 
   def toJson[A <: AnyRef](a: A): String = {
     // seems not to need a try: while the date formatter wasn't in place it produced empty strings
-    write(a)(jsonFormats)
+    write(a)
   }
 
-  def getUser(body: JsonInput): Try[UserInfo] = body.deserialize[UserInfo]("UserInfo")
+  def getUser(body: JsonInput): Try[UserInfo] = body.deserialize[UserInfo]
 
-  def getStateInfo(body: JsonInput): Try[StateInfo] = body.deserialize[StateInfo]("StateInfo")
+  def getStateInfo(body: JsonInput): Try[StateInfo] = body.deserialize[StateInfo]
 
-  def getDatasetMetadata(body: JsonInput): Try[DatasetMetadata] = body.deserialize[DatasetMetadata]("DatasetMetadata")
+  def getDatasetMetadata(body: JsonInput): Try[DatasetMetadata] = body.deserialize[DatasetMetadata]
 
-  def getDepositInfo(body: JsonInput): Try[DepositInfo] = body.deserialize[DepositInfo]("DepositInfo")
+  def getDepositInfo(body: JsonInput): Try[DepositInfo] = body.deserialize[DepositInfo]
 }
