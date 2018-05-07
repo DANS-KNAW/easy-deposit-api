@@ -19,7 +19,6 @@ import java.nio.file.{ Path, Paths }
 
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.{ AccessCategory, PrivacySensitiveDataPresent }
 import nl.knaw.dans.easy.deposit.{ State, StateInfo }
-import org.json4s
 import org.json4s.Extraction.decompose
 import org.json4s.JsonAST._
 import org.json4s.ext.{ EnumNameSerializer, JodaTimeSerializers, UUIDSerializer }
@@ -61,8 +60,9 @@ object Json {
         result = Extraction.extract(parsed)
         _ <- rejectNotExpectedContent(parsed, result)
       } yield result
-    }.recoverWith {
-      case t: Throwable => Failure(InvalidDocumentException(typeOf[A].typeSymbol.name.toString, t))
+    }.recoverWith { case t: Throwable =>
+      val className = typeOf[A].typeSymbol.name.toString
+      Failure(InvalidDocumentException(className, t))
     }
 
     private def rejectNotExpectedContent[T](parsed: JValue, extracted: T): Try[Unit] = {
