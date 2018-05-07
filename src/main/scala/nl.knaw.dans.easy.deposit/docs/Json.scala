@@ -25,7 +25,7 @@ import org.json4s.JsonAST._
 import org.json4s.ext.{ EnumNameSerializer, JodaTimeSerializers, UUIDSerializer }
 import org.json4s.native.JsonMethods
 import org.json4s.native.Serialization.write
-import org.json4s.{ CustomSerializer, DefaultFormats, Diff, Formats, JsonInput }
+import org.json4s.{ CustomSerializer, DefaultFormats, Diff, Formats, JValue, JsonInput }
 
 import scala.util.{ Failure, Success, Try }
 
@@ -52,43 +52,40 @@ object Json {
     new EnumNameSerializer(PrivacySensitiveDataPresent) ++
     JodaTimeSerializers.all
 
+  implicit class RichJsonInput(body: JsonInput) {
+    def deserialize[A](docType: String)(implicit mf: scala.reflect.Manifest[A]): Try[A] = {
+      parseObject(body)
+        .flatMap(parsed => rejectNotExpectedContent(parsed, parsed.extract[A]))
+    }.recoverWith {
+      case t: Throwable => Failure(InvalidDocumentException(docType, t))
+    }
+
+    /** @return `extracted` only if `parsed` contains nothing else */
+    private def rejectNotExpectedContent[T](parsed: json4s.JValue, extracted: T): Try[T] = {
+      decompose(extracted) diff parsed match {
+        case Diff(_, JNothing, _) => Success(extracted)
+        case Diff(_, ignored, _) => Failure(new Exception(s"don't recognize ${ write(ignored) }"))
+      }
+    }
+
+    private def parseObject(body: JsonInput): Try[json4s.JValue] = Try {
+      JsonMethods.parse(body)
+    }.map {
+      case jObject if jObject.isInstanceOf[JObject] => jObject
+      case jValue => throw new Exception(s"expected an object, got a ${ jValue.getClass }")
+    }
+  }
+
   def toJson[A <: AnyRef](a: A): String = {
     // seems not to need a try: while the date formatter wasn't in place it produced empty strings
     write(a)
   }
 
-  def getUser(body: JsonInput): Try[UserInfo] = {
-    parseObject(body).flatMap(parsed => rejectNotExpectedContent(parsed, parsed.extract[UserInfo]))
-  }.recoverWith { case t: Throwable => documentFailure("User", t) }
+  def getUser(body: JsonInput): Try[UserInfo] = body.deserialize[UserInfo]("UserInfo")
 
-  def getStateInfo(body: JsonInput): Try[StateInfo] = {
-    parseObject(body).flatMap(parsed => rejectNotExpectedContent(parsed, parsed.extract[StateInfo]))
-  }.recoverWith { case t: Throwable => documentFailure("StateInfo", t) }
+  def getStateInfo(body: JsonInput): Try[StateInfo] = body.deserialize[StateInfo]("StateInfo")
 
-  def getDatasetMetadata(body: JsonInput): Try[DatasetMetadata] = {
-    parseObject(body).flatMap(parsed => rejectNotExpectedContent(parsed, parsed.extract[DatasetMetadata]))
-  }.recoverWith { case t: Throwable => documentFailure("DatasetMetadata", t) }
+  def getDatasetMetadata(body: JsonInput): Try[DatasetMetadata] = body.deserialize[DatasetMetadata]("DatasetMetadata")
 
-  def getDepositInfo(body: JsonInput): Try[DepositInfo] = {
-    parseObject(body).flatMap(parsed => rejectNotExpectedContent(parsed, parsed.extract[DepositInfo]))
-  }.recoverWith { case t: Throwable => documentFailure("DepositInfo", t) }
-
-  /** @return `extracted` only if `parsed` contains nothing else */
-  private def rejectNotExpectedContent[T](parsed: json4s.JValue, extracted: T): Try[T] = {
-    decompose(extracted) diff parsed match {
-      case Diff(_, JNothing, _) => Success(extracted)
-      case Diff(_, ignored, _) => Failure(new Exception(s"don't recognize ${ write(ignored) }"))
-    }
-  }
-
-  private def parseObject(body: JsonInput): Try[json4s.JValue] = Try {
-    JsonMethods.parse(body)
-  }.map {
-    case jObject if jObject.isInstanceOf[JObject] => jObject
-    case jValue => throw new Exception(s"expected an object, got a ${ jValue.getClass }")
-  }
-
-  private def documentFailure(documentClassName: String, t: Throwable) = {
-    Failure(InvalidDocumentException(documentClassName, t))
-  }
+  def getDepositInfo(body: JsonInput): Try[DepositInfo] = body.deserialize[DepositInfo]("DepositInfo")
 }
