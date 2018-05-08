@@ -1,0 +1,100 @@
+{
+  "type" : "object",
+  "properties" : {
+    "state" : {
+      "$ref" : "#/definitions/enumeration$value"
+    },
+    "stateDescription" : {
+      "type" : "string",
+      "minLength" : 1
+    }
+  },
+  "id" : "#stateinfo",
+  "additionalProperties" : false,
+  "title" : "State info",
+  "required" : [ "state", "stateDescription" ],
+  "definitions" : {
+    "choice" : {
+      "type" : "object",
+      "properties" : {
+        "name" : {
+          "type" : "string",
+          "minLength" : 1
+        },
+        "help" : {
+          "type" : "string",
+          "minLength" : 1
+        },
+        "expandsTo" : {
+          "type" : "array",
+          "items" : {
+            "$ref" : "#/definitions/mutablesettings$multichoiceenumeration$choice"
+          }
+        }
+      },
+      "id" : "#choice",
+      "additionalProperties" : false,
+      "title" : "Choice",
+      "required" : [ "name", "help", "expandsTo" ]
+    },
+    "lintwarning" : {
+      "type" : "object",
+      "properties" : {
+        "name" : {
+          "type" : "string",
+          "minLength" : 1
+        },
+        "help" : {
+          "type" : "string",
+          "minLength" : 1
+        },
+        "yAliased" : {
+          "type" : "boolean"
+        }
+      },
+      "id" : "#lintwarning",
+      "additionalProperties" : false,
+      "title" : "Lint warning",
+      "required" : [ "name", "help", "yAliased" ]
+    },
+    "severity" : {
+      "type" : "object",
+      "properties" : {
+        "id" : {
+          "type" : "number"
+        }
+      },
+      "id" : "#severity",
+      "additionalProperties" : false,
+      "title" : "Severity",
+      "required" : [ "id" ]
+    },
+    "val" : {
+      "type" : "object",
+      "properties" : {
+        "i" : {
+          "type" : "number"
+        },
+        "name" : {
+          "type" : "string",
+          "minLength" : 1
+        }
+      },
+      "id" : "#val",
+      "additionalProperties" : false,
+      "title" : "Val",
+      "required" : [ "i", "name" ]
+    },
+    "value" : {
+      "anyOf" : [ {
+        "$ref" : "#/definitions/enumeration$val"
+      }, {
+        "$ref" : "#/definitions/mutablesettings$multichoiceenumeration$choice"
+      }, {
+        "$ref" : "#/definitions/warnings$lintwarnings$lintwarning"
+      }, {
+        "$ref" : "#/definitions/frontend$severity"
+      } ]
+    }
+  }
+}

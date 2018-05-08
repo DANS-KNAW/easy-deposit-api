@@ -1,0 +1,1 @@
+schema's generated from object classes by https://github.com/Opetushallitus/scala-schema
