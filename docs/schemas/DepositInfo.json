@@ -1,0 +1,126 @@
+{
+  "type" : "object",
+  "properties" : {
+    "id" : {
+      "$ref" : "#/definitions/uuid"
+    },
+    "title" : {
+      "type" : "string",
+      "minLength" : 1
+    },
+    "state" : {
+      "$ref" : "#/definitions/enumeration$value"
+    },
+    "stateDescription" : {
+      "type" : "string",
+      "minLength" : 1
+    },
+    "date" : {
+      "type" : "string",
+      "format" : "date"
+    }
+  },
+  "id" : "#depositinfo",
+  "additionalProperties" : false,
+  "title" : "Deposit info",
+  "required" : [ "id", "title", "state", "stateDescription", "date" ],
+  "definitions" : {
+    "choice" : {
+      "type" : "object",
+      "properties" : {
+        "name" : {
+          "type" : "string",
+          "minLength" : 1
+        },
+        "help" : {
+          "type" : "string",
+          "minLength" : 1
+        },
+        "expandsTo" : {
+          "type" : "array",
+          "items" : {
+            "$ref" : "#/definitions/mutablesettings$multichoiceenumeration$choice"
+          }
+        }
+      },
+      "id" : "#choice",
+      "additionalProperties" : false,
+      "title" : "Choice",
+      "required" : [ "name", "help", "expandsTo" ]
+    },
+    "lintwarning" : {
+      "type" : "object",
+      "properties" : {
+        "name" : {
+          "type" : "string",
+          "minLength" : 1
+        },
+        "help" : {
+          "type" : "string",
+          "minLength" : 1
+        },
+        "yAliased" : {
+          "type" : "boolean"
+        }
+      },
+      "id" : "#lintwarning",
+      "additionalProperties" : false,
+      "title" : "Lint warning",
+      "required" : [ "name", "help", "yAliased" ]
+    },
+    "severity" : {
+      "type" : "object",
+      "properties" : {
+        "id" : {
+          "type" : "number"
+        }
+      },
+      "id" : "#severity",
+      "additionalProperties" : false,
+      "title" : "Severity",
+      "required" : [ "id" ]
+    },
+    "uuid" : {
+      "type" : "object",
+      "properties" : {
+        "x$1" : {
+          "type" : "number"
+        },
+        "x$2" : {
+          "type" : "number"
+        }
+      },
+      "id" : "#uuid",
+      "additionalProperties" : false,
+      "title" : "U u i d",
+      "required" : [ "x$1", "x$2" ]
+    },
+    "val" : {
+      "type" : "object",
+      "properties" : {
+        "i" : {
+          "type" : "number"
+        },
+        "name" : {
+          "type" : "string",
+          "minLength" : 1
+        }
+      },
+      "id" : "#val",
+      "additionalProperties" : false,
+      "title" : "Val",
+      "required" : [ "i", "name" ]
+    },
+    "value" : {
+      "anyOf" : [ {
+        "$ref" : "#/definitions/enumeration$val"
+      }, {
+        "$ref" : "#/definitions/mutablesettings$multichoiceenumeration$choice"
+      }, {
+        "$ref" : "#/definitions/warnings$lintwarnings$lintwarning"
+      }, {
+        "$ref" : "#/definitions/frontend$severity"
+      } ]
+    }
+  }
+}

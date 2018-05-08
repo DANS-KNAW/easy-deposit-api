@@ -1,4 +1,21 @@
+/**
+ * Copyright (C) 2018 DANS - Data Archiving and Networked Services (info@dans.knaw.nl)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package nl.knaw.dans.easy.deposit.docs
+
+import java.util.UUID
 
 import better.files.File
 import fi.oph.scalaschema.SchemaValidatingExtractor.extract
@@ -16,17 +33,19 @@ class SchemaSpec extends TestSupportFixture {
   private val docsSchemas = File("docs") / "schemas"
   private implicit val context: ExtractionContext = ExtractionContext(SchemaFactory.default)
 
+  // TODO needs: https://github.com/rvanheest/scala-schema/tree/remove-forName-calls
 
-  "schemas" should "have an up to date UserInfo.json" in {
+  "UserInfo" should "have an up to date schema file" in {
     verify(factory.createSchema[UserInfo], "UserInfo.json")
   }
-  it should "deserialize valid UserInfo" in {
-    val validInput = JsonMethods.parse("""{"userName": "john", "lastName": "Doe"}""")
-    extract[UserInfo](validInput) should matchPattern { case Right(UserInfo(_, _, _, _, _)) => }
+
+  it should "deserialize valid json input" in {
+    extract[UserInfo]("""{"userName": "john", "lastName": "Doe"}""") should
+      matchPattern { case Right(UserInfo(_, _, _, _, _)) => }
   }
-  it should "report invalid UserInfo" in {
-    val validInput = JsonMethods.parse("""{"userName": "john", "foo": "bar"}""")
-    inside(extract[UserInfo](validInput)) {
+
+  it should "report invalid json input" in {
+    inside(extract[UserInfo]("""{"userName": "john", "foo": "bar"}""")) {
       case Left(List(
       ValidationError(path1, JNothing, MissingProperty(_)),
       ValidationError(path2, JString(val2), UnexpectedProperty(_)),
@@ -37,29 +56,47 @@ class SchemaSpec extends TestSupportFixture {
     }
   }
 
-  it should "have an up to date StateInfo.json" ignore {
-    // package object causes java.lang.ClassNotFoundException: nl.knaw.dans.easy.deposit.StateInfo
-    // at fi.oph.scalaschema.SchemaFactory.typeByName(SchemaFactory.scala:48)
-    // TODO workaround: move StateInfo out of package object to docs package, is more consistent anyway
+  "StateInfo" should "have an up to date schema file" in {
     verify(factory.createSchema[StateInfo], "StateInfo.json")
   }
-  it should "have an up to date DepositInfo.json" ignore {
-    // enum causes java.lang.ClassNotFoundException: scala.Enumeration.Value
-    // at fi.oph.scalaschema.TraitImplementationFinder$.$anonfun$findTraitImplementations$1(SchemaFactory.scala:302)
+
+  it should "deserialize valid json input" ignore { // TODO DRAFT causes NotAnyOf
+
+    // compare with error message for EnumPoc
+    NotAnyOf(Map(
+      "mutablesettings$multichoiceenumeration$choice" -> ???,
+      "warnings$lintwarnings$lintwarning" -> ???,
+      "enumeration$val" -> ???,
+      "frontend$severity" -> ???
+    ))
+
+    extract[StateInfo]("""{"state": "DRAFT", "stateDescription": "rabarbera"}""") should
+      matchPattern { case Right(StateInfo(_, _)) => }
+  }
+
+  "DatasetMetadata" should "have an up to date schema file" in {
+    verify(factory.createSchema[StateInfo], "DatasetMetadata.json")
+  }
+
+  "DepositInfo" should "have an up to date schema file" in {
     verify(factory.createSchema[DepositInfo], "DepositInfo.json")
   }
 
-  it should "have an up to date EnumPoc.json" in {
+  it should "deserialize valid json input" ignore {
+    val uuid = UUID.randomUUID() // TODO causes UnexpectedType
+    extract[DepositInfo](s"""{"id": "$uuid"}""") should
+      matchPattern { case Right(DepositInfo(_, _, _, _, _)) => }
+  }
+
+  "EnumPoc" should "have an up to date schema file" in {
     verify(factory.createSchema[EnumPoc], "EnumPoc.json")
   }
-  it should "report invalid Enum value" in {
-    val validInput = JsonMethods.parse("""{"privacySensitiveDataPresent2": "foo"}""")
-    inside(extract[EnumPoc](validInput)) {
-      case Left(List(ValidationError(path1, JString(val1), NotAnyOf(m, _)))) =>
-        path1 shouldBe "privacySensitiveDataPresent2"
-        val1 shouldBe "foo"
-        m shouldBe Map("no" -> List("object expected"), "unspecified" -> List("object expected"), "yes" -> List("object expected"))
-    }
+
+  it should "report invalid json input" in {
+    val result = extract[EnumPoc]("""{"privacySensitiveDataPresent2": "foo"}""")
+    // TODO make readable for end user
+    result.left.getOrElse("").toString shouldBe
+      "List(ValidationError(privacySensitiveDataPresent2,JString(foo),NotAnyOf(Map(no -> List(object expected), unspecified -> List(object expected), yes -> List(object expected)),notAnyOf)))"
   }
 
   private def verify(schemaAsJson: Schema, file: String): Assertion = {
