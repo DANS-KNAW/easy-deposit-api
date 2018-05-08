@@ -1,0 +1,48 @@
+{
+  "type" : "object",
+  "properties" : {
+    "doi" : {
+      "type" : "string",
+      "minLength" : 1
+    },
+    "privacySensitiveDataPresent2" : {
+      "$ref" : "#/definitions/privacysensitivedatapresent2"
+    }
+  },
+  "id" : "#enumpoc",
+  "additionalProperties" : false,
+  "title" : "Enum poc",
+  "required" : [ "privacySensitiveDataPresent2" ],
+  "definitions" : {
+    "no" : {
+      "type" : "object",
+      "properties" : { },
+      "id" : "#no",
+      "additionalProperties" : false,
+      "title" : "N o"
+    },
+    "privacysensitivedatapresent2" : {
+      "anyOf" : [ {
+        "$ref" : "#/definitions/no"
+      }, {
+        "$ref" : "#/definitions/unspecified"
+      }, {
+        "$ref" : "#/definitions/yes"
+      } ]
+    },
+    "unspecified" : {
+      "type" : "object",
+      "properties" : { },
+      "id" : "#unspecified",
+      "additionalProperties" : false,
+      "title" : "U n s p e c i f i e d"
+    },
+    "yes" : {
+      "type" : "object",
+      "properties" : { },
+      "id" : "#yes",
+      "additionalProperties" : false,
+      "title" : "Y e s"
+    }
+  }
+}
