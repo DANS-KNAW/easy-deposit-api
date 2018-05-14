@@ -803,7 +803,7 @@ components:
         spatialCoverages:
           type: array
           items:
-            $ref: "#/components/schemas/PossiblySchemedValue"
+            $ref: "#/components/schemas/PossiblySchemedKeyValue"
 
         # For the data manager
         messageForDataManager:
