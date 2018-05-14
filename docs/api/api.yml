@@ -828,11 +828,11 @@ components:
         category:
           type: string
           enum:
-          - open
-          - open_for_registered_users
-          - restricted_group
-          - restricted_request
-          - other_access
+          - OPEN_ACCESS
+          - OPEN_ACCESS_FOR_REGISTERED_USERS
+          - GROUP_ACCESS
+          - REQUEST_PERMISSION
+          - NO_ACCESS
         group:
           type: string
 
