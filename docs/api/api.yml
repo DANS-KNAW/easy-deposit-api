@@ -754,7 +754,11 @@ components:
         relations:
           type: array
           items:
-            $ref: "#/components/schemas/Relation"
+            oneOf : [
+              {$ref: "#/components/schemas/Relation"},
+              {$ref: "#/components/schemas/PossiblyQualifiedSchemedValue"}
+              ]
+
         languagesOfFiles:
           type: array
           items:
@@ -930,6 +934,19 @@ components:
          type: string
         value:
          type: string
+
+    PossiblyQualifiedSchemedValue:
+      type: object
+      required:
+      - scheme
+      - value
+      properties:
+        scheme:
+          type: string
+        value:
+          type: string
+        qualifier:
+          type: string
 
     SchemedKeyValue:
       type: object
