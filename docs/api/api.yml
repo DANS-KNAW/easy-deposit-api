@@ -756,7 +756,7 @@ components:
           items:
             oneOf : [
               {$ref: "#/components/schemas/Relation"},
-              {$ref: "#/components/schemas/PossiblyQualifiedSchemedValue"}
+              {$ref: "#/components/schemas/QualifiedSchemedValue"}
               ]
 
         languagesOfFiles:
@@ -906,9 +906,25 @@ components:
 
     Relation:
       type: object
+      required:
+      - qualifier
       properties:
         qualifier:
           type: string
+          enum:
+          - dcterms:hasFormat
+          - dcterms:hasPart
+          - dcterms:hasVersion
+          - dcterms:isFormatOf
+          - dcterms:isPartOf
+          - dcterms:isReferencedBy
+          - dcterms:isReplacedBy
+          - dcterms:isRequiredBy
+          - dcterms:isVersionOf
+          - dcterms:references
+          - dcterms:relation
+          - dcterms:replaces
+          - dcterms:requires
         url:
           type: string
         title:
@@ -935,11 +951,12 @@ components:
         value:
          type: string
 
-    PossiblyQualifiedSchemedValue:
+    QualifiedSchemedValue:
       type: object
       required:
       - scheme
       - value
+      - qualifier
       properties:
         scheme:
           type: string
