@@ -719,7 +719,7 @@ components:
           items:
             $ref: "#/components/schemas/SchemedValue"
         languageOfDescription:
-          $ref: "#/components/schemas/SchemedValue"
+          $ref: "#/components/schemas/SchemedKeyValue"
         titles:
           type: array
           items:
@@ -890,15 +890,15 @@ components:
         qualifier:
           type: string
           enum:
-          - created
-          - available
-          - date
-          - dateAccepted
-          - dateCopyrighted
-          - dateSubmitted
-          - issued
-          - modified
-          - valid
+          - dcterms:created
+          - dcterms:available
+          - dcterms:date
+          - dcterms:dateAccepted
+          - dcterms:dateCopyrighted
+          - dcterms:dateSubmitted
+          - dcterms:issued
+          - dcterms:modified
+          - dcterms:valid
 
     Relation:
       type: object
