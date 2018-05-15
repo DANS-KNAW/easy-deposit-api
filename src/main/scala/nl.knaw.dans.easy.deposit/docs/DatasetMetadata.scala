@@ -60,7 +60,7 @@ case class DatasetMetadata(doi: Option[String] = None,
                            privacySensitiveDataPresent: PrivacySensitiveDataPresent = unspecified,
                            acceptLicenseAgreement: Boolean = false,
                           ) {
-  
+
   def writeDatasetXml(): Try[Unit] = ???
 
   def writeAgreementsXml(): Try[Unit] = ???

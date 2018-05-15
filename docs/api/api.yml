@@ -619,7 +619,7 @@ components:
       description: Internal Server Error.
 
     MalformedMetadata:
-      description: Bad request. The metadata document is malformed.
+      description: Bad request. The metadata document is not valid JSON or contains fields not defined in the metadata model.
 
     MalformedState:
       description: Bad request. State document is malformed.
