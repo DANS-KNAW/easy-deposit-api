@@ -719,7 +719,7 @@ components:
           items:
             $ref: "#/components/schemas/SchemedValue"
         languageOfDescription:
-          $ref: "#/components/schemas/SchemedValue"
+          $ref: "#/components/schemas/SchemedKeyValue"
         titles:
           type: array
           items:
@@ -754,7 +754,11 @@ components:
         relations:
           type: array
           items:
-            $ref: "#/components/schemas/Relation"
+            oneOf : [
+              {$ref: "#/components/schemas/Relation"},
+              {$ref: "#/components/schemas/QualifiedSchemedValue"}
+              ]
+
         languagesOfFiles:
           type: array
           items:
@@ -803,7 +807,7 @@ components:
         spatialCoverages:
           type: array
           items:
-            $ref: "#/components/schemas/PossiblySchemedValue"
+            $ref: "#/components/schemas/PossiblySchemedKeyValue"
 
         # For the data manager
         messageForDataManager:
@@ -828,11 +832,11 @@ components:
         category:
           type: string
           enum:
-          - open
-          - open_for_registered_users
-          - restricted_group
-          - restricted_request
-          - other_access
+          - OPEN_ACCESS
+          - OPEN_ACCESS_FOR_REGISTERED_USERS
+          - GROUP_ACCESS
+          - REQUEST_PERMISSION
+          - NO_ACCESS
         group:
           type: string
 
@@ -890,25 +894,46 @@ components:
         qualifier:
           type: string
           enum:
-          - created
-          - available
-          - date
-          - dateAccepted
-          - dateCopyrighted
-          - dateSubmitted
-          - issued
-          - modified
-          - valid
+          - dcterms:created
+          - dcterms:available
+          - dcterms:date
+          - dcterms:dateAccepted
+          - dcterms:dateCopyrighted
+          - dcterms:dateSubmitted
+          - dcterms:issued
+          - dcterms:modified
+          - dcterms:valid
 
     Relation:
       type: object
+      required:
+      - qualifier
       properties:
         qualifier:
           type: string
+          enum:
+          - dcterms:hasFormat
+          - dcterms:hasPart
+          - dcterms:hasVersion
+          - dcterms:isFormatOf
+          - dcterms:isPartOf
+          - dcterms:isReferencedBy
+          - dcterms:isReplacedBy
+          - dcterms:isRequiredBy
+          - dcterms:isVersionOf
+          - dcterms:references
+          - dcterms:relation
+          - dcterms:replaces
+          - dcterms:requires
         url:
           type: string
         title:
           type: string
+      oneOf:
+        - required:
+          - title
+        - required:
+          - url
 
     SchemedValue:
       type: object
@@ -930,6 +955,20 @@ components:
          type: string
         value:
          type: string
+
+    QualifiedSchemedValue:
+      type: object
+      required:
+      - scheme
+      - value
+      - qualifier
+      properties:
+        scheme:
+          type: string
+        value:
+          type: string
+        qualifier:
+          type: string
 
     SchemedKeyValue:
       type: object
