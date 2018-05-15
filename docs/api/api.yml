@@ -929,6 +929,11 @@ components:
           type: string
         title:
           type: string
+      oneOf:
+        - required:
+          - title
+        - required:
+          - url
 
     SchemedValue:
       type: object
