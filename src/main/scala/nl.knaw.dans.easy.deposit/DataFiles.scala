@@ -16,11 +16,11 @@
 package nl.knaw.dans.easy.deposit
 
 import java.io.InputStream
-import java.nio.file.{ Path, Paths }
+import java.nio.file.{ NoSuchFileException, Path, Paths }
 
 import better.files._
 
-import scala.util.Try
+import scala.util.{ Failure, Try }
 
 /**
  * Represents the data files of a deposit. The data files are the content files that the user uploads,
@@ -61,7 +61,10 @@ case class DataFiles(dataFilesBase: File, filesMetaData: File) {
    *
    * @param path the relative path of the file or directory to delete
    */
-  def delete(path: Path): Try[Unit] = ???
+  def delete(path: Path): Try[Unit] = Try {
+    // TODO when a sha was saved at upload, delete it
+    (dataFilesBase / path.toString).delete()
+  }
 
   /**
    * Write `files.xml`
