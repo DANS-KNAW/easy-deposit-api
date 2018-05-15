@@ -63,8 +63,5 @@ case class DataFiles(dataFilesBase: File, filesMetaData: File) {
    */
   def delete(path: Path): Try[Unit] = ???
 
-  /**
-   * Write `files.xml`
-   */
-  def writeFileMetadata(): Try[Unit] = ???
+  def writeFilesXml(): Try[Unit] = ???
 }

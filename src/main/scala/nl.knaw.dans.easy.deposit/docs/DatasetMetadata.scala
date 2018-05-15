@@ -16,8 +16,10 @@
 package nl.knaw.dans.easy.deposit.docs
 
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.AccessCategory.AccessCategory
-import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.PrivacySensitiveDataPresent.{ PrivacySensitiveDataPresent, unspecified }
+import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.PrivacySensitiveDataPresent.{ unspecified, PrivacySensitiveDataPresent }
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata._
+
+import scala.util.Try
 
 case class DatasetMetadata(doi: Option[String] = None,
                            languageOfDescription: Option[String] = None,
@@ -57,7 +59,12 @@ case class DatasetMetadata(doi: Option[String] = None,
                            messageForDataManager: Option[String] = None,
                            privacySensitiveDataPresent: PrivacySensitiveDataPresent = unspecified,
                            acceptLicenseAgreement: Boolean = false,
-                          )
+                          ) {
+  
+  def writeDatasetXml(): Try[Unit] = ???
+
+  def writeAgreementsXml(): Try[Unit] = ???
+}
 
 object DatasetMetadata {
 
