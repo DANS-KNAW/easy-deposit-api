@@ -99,7 +99,7 @@ class DepositServlet(app: EasyDepositApiApp) extends ProtectedServlet(app) {
 
   delete("/:uuid/file/*") { //dir and file
     forPath(app.deleteDepositFile)
-      .map(_ => Ok(???))
+      .map(_ => NoContent())
       .getOrRecoverResponse(respond)
   }
 
