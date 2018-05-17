@@ -15,7 +15,7 @@
  */
 package nl.knaw.dans.easy.deposit
 
-import java.io.{ ByteArrayInputStream, InputStream }
+import java.io.ByteArrayInputStream
 import java.nio.charset.StandardCharsets
 import java.nio.file.attribute.PosixFilePermission
 import java.nio.file.{ AccessDeniedException, NoSuchFileException, Paths }
@@ -77,7 +77,10 @@ class DataFilesSpec extends TestSupportFixture {
   }
 
   it should "report a non existing file" in {
-    dataFiles.delete(Paths.get("file.txt")).toString shouldBe
-      Failure(new NoSuchFileException((dataFiles.dataFilesBase / "file.txt").toString())).toString
+    val tried = dataFiles.delete(Paths.get("file.txt"))
+    tried shouldBe a[Failure[_]]
+    val thrown = tried.failed.getOrElse(new Exception)
+    thrown shouldBe a[NoSuchFileException]
+    thrown.getMessage shouldBe (dataFiles.dataFilesBase / "file.txt").toString()
   }
 }
