@@ -42,6 +42,7 @@ class DataFilesSpec extends TestSupportFixture {
     dataFiles.write(inputStream, Paths.get(fileInBag)) shouldBe Success(true)
 
     (dataFiles.dataFilesBase / fileInBag).contentAsString shouldBe content
+    inputStream.close()
   }
 
   it should "report write errors" in {
@@ -52,6 +53,7 @@ class DataFilesSpec extends TestSupportFixture {
 
     dataFiles.write(inputStream, Paths.get("location/in/data/dir/test.txt")).toString shouldBe
       Failure(new AccessDeniedException((dataFiles.dataFilesBase / "location").toString())).toString
+    inputStream.close()
   }
 
   "delete" should "delete a file" in {
