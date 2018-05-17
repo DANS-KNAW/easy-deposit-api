@@ -16,11 +16,11 @@
 package nl.knaw.dans.easy.deposit
 
 import java.io.InputStream
-import java.nio.file.{ NoSuchFileException, Path, Paths }
+import java.nio.file.{ Path, Paths }
 
 import better.files._
 
-import scala.util.{ Failure, Try }
+import scala.util.Try
 
 /**
  * Represents the data files of a deposit. The data files are the content files that the user uploads,
