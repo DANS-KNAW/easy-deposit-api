@@ -16,10 +16,13 @@
 package nl.knaw.dans.easy.deposit.docs
 
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.AccessCategory.AccessCategory
-import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.PrivacySensitiveDataPresent.{ unspecified, PrivacySensitiveDataPresent }
+import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.DateQualifier.{ DateQualifier, dateSubmitted }
+import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.PrivacySensitiveDataPresent.{ PrivacySensitiveDataPresent, unspecified }
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata._
+import nl.knaw.dans.easy.deposit.docs.Json.InvalidDocumentException
 
-import scala.util.Try
+import scala.util.{ Failure, Success, Try }
+import scala.xml.Elem
 
 case class DatasetMetadata(doi: Option[String] = None,
                            languageOfDescription: Option[String] = None,
@@ -36,7 +39,7 @@ case class DatasetMetadata(doi: Option[String] = None,
                            languagesOfFilesIso639: Option[Seq[String]] = None,
                            languagesOfFiles: Option[Seq[String]] = None,
                            datesIso8601: Option[Seq[SchemedValue]] = None,
-                           dates: Option[Seq[SchemedValue]] = None,
+                           dates: Option[Seq[QualifiedDate]] = None,
                            sources: Option[Seq[String]] = None,
                            instructionsForReuse: Option[Seq[String]] = None,
                            rightsHolders: Option[Seq[String]] = None,
@@ -61,9 +64,47 @@ case class DatasetMetadata(doi: Option[String] = None,
                            acceptLicenseAgreement: Boolean = false,
                           ) {
 
-  def writeDatasetXml(): Try[Unit] = ???
+  lazy val submitDate: Try[String] = { // TODO verify schema / convert to yyyy-MM-dd, or guaranteed by state change?
+    val maybeQualifiedDate = dates.flatMap(_.find(_.qualifier == dateSubmitted))
+    Try { maybeQualifiedDate.get }.map(_.value)
+  }
 
-  def writeAgreementsXml(): Try[Unit] = ???
+  def writeDatasetXml(): Try[Unit] = ??? // TODO move to DepositDir, it has the file location
+
+  def writeAgreementsXml(): Try[Unit] = ??? // TODO  move to DepositDir, it has the user and file location
+
+  def agreements(userId: String): Try[Elem] = {
+    for {
+      _ <- verify("AcceptLicenseAgreement", acceptLicenseAgreement)
+      _ <- verify("PrivacySensitiveDataPresent", privacySensitiveDataPresent != unspecified)
+      date <- submitDate
+    } yield
+      <agr:agreements
+          xmlns:agr="http://easy.dans.knaw.nl/schemas/bag/metadata/agreements/"
+          xmlns:dcterms="http://purl.org/dc/terms/"
+          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xsi:schemaLocation="http://easy.dans.knaw.nl/schemas/bag/metadata/agreements/ agreements.xsd">
+        <agr:licenseAgreement>
+          <agr:depositorId>{userId}</agr:depositorId>
+          <dateAccepted>{date}</dateAccepted>
+          <agr:licenseAgreementAccepted>{acceptLicenseAgreement}</agr:licenseAgreementAccepted>
+        </agr:licenseAgreement>
+        <agr:personalDataStatement>
+          <agr:signerId>{userId}</agr:signerId>
+          <agr:dateSigned>{date}</agr:dateSigned>
+          <agr:containsPrivacySensitiveData>{privacySensitiveDataPresent match {
+            case PrivacySensitiveDataPresent.no => false
+            case PrivacySensitiveDataPresent.yes => true
+            case _ => // should never happen because of verify call
+          }}</agr:containsPrivacySensitiveData>
+        </agr:personalDataStatement>
+      </agr:agreements>
+  }
+
+  private def verify(label: String, condition: Boolean) = {
+    if (condition) Success()
+    else Failure(InvalidDocumentException(s"please set $label in DatasetMetadata", new IllegalArgumentException()))
+  }
 }
 
 object DatasetMetadata {
@@ -78,9 +119,18 @@ object DatasetMetadata {
     val open, open_for_registered_users, restricted_group, restricted_request, other_access = Value
   }
 
+  object DateQualifier extends Enumeration {
+    type DateQualifier = Value
+    val created, available, date, dateAccepted, dateCopyrighted, dateSubmitted, issued, modified, valid = Value
+  }
+
   case class AccessRights(category: AccessCategory,
                           group: String,
                          )
+
+  case class QualifiedDate(scheme: Option[String],
+                           value: String,
+                           qualifier: DateQualifier)
 
   case class Author(titles: Option[String] = None,
                     initials: Option[String] = None,

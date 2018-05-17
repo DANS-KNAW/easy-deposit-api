@@ -17,7 +17,7 @@ package nl.knaw.dans.easy.deposit.docs
 
 import java.nio.file.{ Path, Paths }
 
-import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.{ AccessCategory, PrivacySensitiveDataPresent }
+import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.{ AccessCategory, DateQualifier, PrivacySensitiveDataPresent }
 import nl.knaw.dans.easy.deposit.{ State, StateInfo }
 import org.json4s.Extraction.decompose
 import org.json4s.JsonAST._
@@ -49,6 +49,7 @@ object Json {
     new PathSerializer +
     new EnumNameSerializer(State) +
     new EnumNameSerializer(AccessCategory) +
+    new EnumNameSerializer(DateQualifier) +
     new EnumNameSerializer(PrivacySensitiveDataPresent) ++
     JodaTimeSerializers.all
 
