@@ -77,10 +77,10 @@ class DataFilesSpec extends TestSupportFixture {
   }
 
   it should "report a non existing file" in {
-    val tried = dataFiles.delete(Paths.get("file.txt"))
-    tried shouldBe a[Failure[_]]
-    val thrown = tried.failed.getOrElse(new Exception)
-    thrown shouldBe a[NoSuchFileException]
-    thrown.getMessage shouldBe (dataFiles.dataFilesBase / "file.txt").toString()
+    val path = (dataFiles.dataFilesBase / "file.txt").toString()
+    inside(dataFiles.delete(Paths.get("file.txt"))) {
+      case Failure(e: NoSuchFileException) => e.getMessage shouldBe path
+      case other => fail(s"expecting Failure(NoSuchFileException($path)) but got $other")
+    }
   }
 }
