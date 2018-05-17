@@ -17,10 +17,14 @@ package nl.knaw.dans.easy.deposit.docs
 
 import nl.knaw.dans.easy.deposit.TestSupportFixture
 import nl.knaw.dans.easy.deposit.docs.Json.InvalidDocumentException
+import org.json4s.Diff
+import org.json4s.JsonAST._
+import org.json4s.native.JsonMethods
 
 import scala.util.{ Failure, Success }
 
 class DatasetMetadataSpec extends TestSupportFixture {
+  private val defaults = JsonMethods.parse(Json.toJson(DatasetMetadata()))
   private val example =
     """{
       |  "doi": "doi:10.17632/DANS.6wg5xccnjd.1",
@@ -181,30 +185,29 @@ class DatasetMetadataSpec extends TestSupportFixture {
       |  "acceptLicenseAgreement": true
       |}""".stripMargin
 
-  "deserialization/serialisation" should "at most have different white space and different order of fields" in {
-    val expected = example.split("\n").map(_.trim.replaceAll(": ", ":")).mkString
-    val result = Json.toJson(Json.getDatasetMetadata(example).getOrElse(""))
-    //result shouldBe expected // might suffer from random order of fields, but can help debugging
-    result.length shouldBe expected.length
+  "deserialization/serialisation" should "produce the same json object structure" in {
+    val parsed = Json.getDatasetMetadata(example).getOrElse("")
+    inside(JsonMethods.parse(example) diff JsonMethods.parse(Json.toJson(parsed))) {
+      case Diff(JNothing, JNothing, JNothing) =>
+    }
   }
 
-  it should "return defaults for omitted fields and omit null fields that don't have a default" in {
+  it should "return defaults for omitted fields" in {
     val example =
       """{
         |  "creators": [
-        |    {
-        |      "insertions": null,
-        |    }
         |  ]
         |}""".stripMargin
     Json.toJson(Json.getDatasetMetadata(example).getOrElse("")) shouldBe
-      """{"creators":[{}],"privacySensitiveDataPresent":"unspecified","acceptLicenseAgreement":false}"""
+      """{"creators":[],"privacySensitiveDataPresent":"unspecified","acceptLicenseAgreement":false}"""
   }
 
-  "deserialization" should "ignore additional info" in {
-    //JObject(List((x,JInt(1))))
-    inside(Json.getDatasetMetadata("""{"x":1}""")) {
-      case Success(_: DatasetMetadata) =>
+  "deserialization" should "report additional json info" in {
+    val example ="""{"titles":["foo bar"],"x":[1]}""".stripMargin
+    inside(Json.getDatasetMetadata(example)) {
+      case Failure(InvalidDocumentException(docName, t)) =>
+        docName shouldBe "DatasetMetadata"
+        t.getMessage shouldBe """don't recognize {"x":[1]}"""
     }
   }
 
@@ -223,10 +226,16 @@ class DatasetMetadataSpec extends TestSupportFixture {
 
   it should "fail on an empty array" in {
     // JArray(List())
-    inside(Json.getDatasetMetadata("""[]""")) { case Failure(_: InvalidDocumentException) => }
+    inside(Json.getDatasetMetadata("""[]""")) { case Failure(InvalidDocumentException(_, t)) =>
+      t.getMessage shouldBe "expected an object, got a class org.json4s.JsonAST$JArray"
+    }
   }
 
   it should "not accept a literal number" in {
-    inside(Json.getDatasetMetadata("""123""")) { case Failure(_: InvalidDocumentException) => }
+    inside(Json.getDatasetMetadata("""123""")) { case Failure(InvalidDocumentException(_, t)) =>
+      t.getMessage shouldBe
+        """expected field or array
+          |Near: 12""".stripMargin
+    }
   }
 }

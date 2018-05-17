@@ -27,7 +27,7 @@ package object servlets extends DebugEnhancedLogging {
   }
 
   def badDocResponse(t: InvalidDocumentException): ActionResult = {
-    logger.error(s"Invalid ${ t.getMessage }:${ t.getCause.getClass.getName } ${ t.getCause.getMessage }")
-    BadRequest(s"Bad Request. The ${ t.getMessage } document is malformed.")
+    logger.error(t.getMessage)
+    BadRequest(s"Bad Request. ${ t.getMessage }")
   }
 }

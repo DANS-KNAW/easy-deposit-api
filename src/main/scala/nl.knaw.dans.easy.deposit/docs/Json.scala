@@ -19,14 +19,15 @@ import java.nio.file.{ Path, Paths }
 
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.{ AccessCategory, PrivacySensitiveDataPresent }
 import nl.knaw.dans.easy.deposit.{ State, StateInfo }
-import org.json4s
+import org.json4s.Extraction.decompose
 import org.json4s.JsonAST._
 import org.json4s.ext.{ EnumNameSerializer, JodaTimeSerializers, UUIDSerializer }
 import org.json4s.native.JsonMethods
 import org.json4s.native.Serialization.write
-import org.json4s.{ CustomSerializer, DefaultFormats, Formats, JsonInput }
+import org.json4s.{ CustomSerializer, DefaultFormats, Diff, Extraction, Formats, JsonInput }
 
-import scala.util.{ Failure, Try }
+import scala.reflect.runtime.universe.typeOf
+import scala.util.{ Failure, Success, Try }
 
 object Json {
 
@@ -51,31 +52,42 @@ object Json {
     new EnumNameSerializer(PrivacySensitiveDataPresent) ++
     JodaTimeSerializers.all
 
+  private implicit class RichJsonInput(body: JsonInput) {
+    def deserialize[A: Manifest]: Try[A] = {
+      for {
+        parsed <- Try { JsonMethods.parse(body) }
+        _ <- acceptOnlyJObject(parsed)
+        result = Extraction.extract(parsed)
+        _ <- rejectNotExpectedContent(parsed, result)
+      } yield result
+    }.recoverWith { case t: Throwable =>
+      val className = typeOf[A].typeSymbol.name.toString
+      Failure(InvalidDocumentException(className, t))
+    }
+
+    private def rejectNotExpectedContent[T](parsed: JValue, extracted: T): Try[Unit] = {
+      decompose(extracted) diff parsed match {
+        case Diff(_, JNothing, _) => Success(())
+        case Diff(_, ignored, _) => Failure(new Exception(s"don't recognize ${ write(ignored) }"))
+      }
+    }
+
+    private def acceptOnlyJObject(parsed: JValue): Try[Unit] = {
+      if (parsed.isInstanceOf[JObject]) Success(())
+      else Failure(new Exception(s"expected an object, got a ${ parsed.getClass }"))
+    }
+  }
+
   def toJson[A <: AnyRef](a: A): String = {
     // seems not to need a try: while the date formatter wasn't in place it produced empty strings
     write(a)
   }
 
-  def getUser(body: JsonInput): Try[UserInfo] = {
-    parseObject(body).map(_.extract[UserInfo])
-  }.recoverWith { case t: Throwable => Failure(InvalidDocumentException("User", t)) }
+  def getUser(body: JsonInput): Try[UserInfo] = body.deserialize[UserInfo]
 
-  def getStateInfo(body: JsonInput): Try[StateInfo] = {
-    parseObject(body).map(_.extract[StateInfo])
-  }.recoverWith { case t: Throwable => Failure(InvalidDocumentException("StateInfo", t)) }
+  def getStateInfo(body: JsonInput): Try[StateInfo] = body.deserialize[StateInfo]
 
-  def getDatasetMetadata(body: JsonInput): Try[DatasetMetadata] = {
-    parseObject(body).map(_.extract[DatasetMetadata])
-  }.recoverWith { case t: Throwable => Failure(InvalidDocumentException("DatasetMetadata", t)) }
+  def getDatasetMetadata(body: JsonInput): Try[DatasetMetadata] = body.deserialize[DatasetMetadata]
 
-  def getDepositInfo(body: JsonInput): Try[DepositInfo] = {
-    parseObject(body).map(_.extract[DepositInfo])
-  }.recoverWith { case t: Throwable => Failure(InvalidDocumentException("DepositInfo", t)) }
-
-  private def parseObject(body: JsonInput): Try[json4s.JValue] = Try {
-    JsonMethods.parse(body)
-  }.map {
-    case jObject if jObject.isInstanceOf[JObject] => jObject
-    case jValue => throw new Exception(s"expected an object, got a ${ jValue.getClass }")
-  }
+  def getDepositInfo(body: JsonInput): Try[DepositInfo] = body.deserialize[DepositInfo]
 }
