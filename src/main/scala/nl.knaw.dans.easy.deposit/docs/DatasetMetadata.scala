@@ -64,14 +64,13 @@ case class DatasetMetadata(doi: Option[String] = None,
                            acceptLicenseAgreement: Boolean = false,
                           ) {
 
-  lazy val submitDate: Try[String] = { // TODO verify schema / convert to yyyy-MM-dd, or guaranteed by state change?
+  lazy val submitDate: Try[String] = {
+    // TODO as this is indirectly called by submit: can we assume state has been set to submitted and the date is valid?
     val maybeQualifiedDate = dates.flatMap(_.find(_.qualifier == dateSubmitted))
     Try { maybeQualifiedDate.get }.map(_.value)
   }
 
-  def writeDatasetXml(): Try[Unit] = ??? // TODO move to DepositDir, it has the file location
-
-  def writeAgreementsXml(): Try[Unit] = ??? // TODO  move to DepositDir, it has the user and file location
+  lazy val xml: Try[Elem] = <stub/> // TODO
 
   def agreements(userId: String): Try[Elem] = {
     for {
@@ -103,7 +102,7 @@ case class DatasetMetadata(doi: Option[String] = None,
 
   private def verify(label: String, condition: Boolean) = {
     if (condition) Success()
-    else Failure(InvalidDocumentException(s"please set $label in DatasetMetadata", new IllegalArgumentException()))
+    else Failure(InvalidDocumentException(s"Please set $label in DatasetMetadata", new IllegalArgumentException()))
   }
 }
 

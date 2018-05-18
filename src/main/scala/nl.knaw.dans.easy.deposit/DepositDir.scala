@@ -24,10 +24,9 @@ import gov.loc.repository.bagit.creator.BagCreator
 import gov.loc.repository.bagit.domain.{ Metadata => BagitMetadata }
 import gov.loc.repository.bagit.hash.StandardSupportedAlgorithms
 import nl.knaw.dans.easy.deposit.PidRequesterComponent.{ PidRequester, PidType }
+import nl.knaw.dans.easy.deposit.State.State
 import nl.knaw.dans.easy.deposit.docs.Json.{ InvalidDocumentException, toJson }
 import nl.knaw.dans.easy.deposit.docs.{ DatasetMetadata, DepositInfo, Json }
-import nl.knaw.dans.easy.deposit.docs.Json.{ toJson, InvalidDocumentException }
-import nl.knaw.dans.easy.deposit.State.State
 import nl.knaw.dans.lib.error._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.apache.commons.configuration.PropertiesConfiguration
@@ -155,11 +154,22 @@ case class DepositDir private(baseDir: File, user: String, id: UUID) extends Deb
    * @param md the metadata to write
    */
   def setDatasetMetadata(md: DatasetMetadata): Try[Unit] = Try {
-    // TODO EasyDepositApiApp.writeDataMetadataToDeposit says: should be complete
-    // TODO Who is responsible? I suppose also DOI should not change.
+    // TODO DOI should not change, only enforced by client calling getDOI. State and dateSubmitted should not change either.
     datasetMetadataFile.write(toJson(md))
     () // satisfy the compiler which doesn't want a File
   }.recoverWith { case _: NoSuchFileException => notFoundFailure() }
+
+  /** part of submit sequence */
+  def writeSplittedDatasetMetadata: Try[Unit] = {
+    for {
+      dm <- getDatasetMetadata
+      _ <- (metadataDir / "message-from-depositor.txt").write(dm.messageForDataManager.getOrElse(""))
+      agreements <- dm.agreements(user)
+      _ <- (metadataDir / "agreements.xml").write(agreements.toString())
+      xml <- dm.xml
+      _ <- (metadataDir / "dataset.xml").write(xml.toString())
+    } yield ()
+  }
 
   /**
    * @return object to access the data files of this deposit
