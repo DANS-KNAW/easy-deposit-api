@@ -101,16 +101,11 @@ class DatasetMetadataSpec extends TestSupportFixture {
       |  "languagesOfFiles": [
       |    "string"
       |  ],
-      |  "datesIso8601": [
-      |    {
-      |      "scheme": "string",
-      |      "value": "string"
-      |    }
-      |  ],
       |  "dates": [
       |    {
       |      "scheme": "string",
-      |      "value": "string"
+      |      "value": "string",
+      |      "qualifier": "dcterms:created"
       |    }
       |  ],
       |  "sources": [
@@ -189,6 +184,7 @@ class DatasetMetadataSpec extends TestSupportFixture {
     val parsed = Json.getDatasetMetadata(example).getOrElse("")
     inside(JsonMethods.parse(example) diff JsonMethods.parse(Json.toJson(parsed))) {
       case Diff(JNothing, JNothing, JNothing) =>
+      case x => fail(s"did not expect $x")
     }
   }
 

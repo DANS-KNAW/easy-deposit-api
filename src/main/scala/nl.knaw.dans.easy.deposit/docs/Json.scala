@@ -17,14 +17,16 @@ package nl.knaw.dans.easy.deposit.docs
 
 import java.nio.file.{ Path, Paths }
 
+import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.DateQualifier.DateQualifier
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.{ AccessCategory, DateQualifier, PrivacySensitiveDataPresent }
 import nl.knaw.dans.easy.deposit.{ State, StateInfo }
+import org.json4s
 import org.json4s.Extraction.decompose
 import org.json4s.JsonAST._
 import org.json4s.ext.{ EnumNameSerializer, JodaTimeSerializers, UUIDSerializer }
 import org.json4s.native.JsonMethods
 import org.json4s.native.Serialization.write
-import org.json4s.{ CustomSerializer, DefaultFormats, Diff, Extraction, Formats, JsonInput }
+import org.json4s.{ CustomSerializer, DefaultFormats, Diff, Extraction, Formats, JValue, JsonInput, MappingException, TypeInfo }
 
 import scala.reflect.runtime.universe.typeOf
 import scala.util.{ Failure, Success, Try }
@@ -49,7 +51,6 @@ object Json {
     new PathSerializer +
     new EnumNameSerializer(State) +
     new EnumNameSerializer(AccessCategory) +
-    new EnumNameSerializer(DateQualifier) +
     new EnumNameSerializer(PrivacySensitiveDataPresent) ++
     JodaTimeSerializers.all
 

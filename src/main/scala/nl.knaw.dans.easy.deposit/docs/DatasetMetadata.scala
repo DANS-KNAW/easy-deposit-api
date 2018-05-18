@@ -16,10 +16,12 @@
 package nl.knaw.dans.easy.deposit.docs
 
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.AccessCategory.AccessCategory
-import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.DateQualifier.{ DateQualifier, dateSubmitted }
+import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.DateQualifier.dateSubmitted
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.PrivacySensitiveDataPresent.{ PrivacySensitiveDataPresent, unspecified }
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata._
 import nl.knaw.dans.easy.deposit.docs.Json.InvalidDocumentException
+import org.joda.time.DateTime
+import org.joda.time.format.DateTimeFormat
 
 import scala.util.{ Failure, Success, Try }
 import scala.xml.Elem
@@ -38,7 +40,6 @@ case class DatasetMetadata(doi: Option[String] = None,
                            relations: Option[Seq[Relation]] = None,
                            languagesOfFilesIso639: Option[Seq[String]] = None,
                            languagesOfFiles: Option[Seq[String]] = None,
-                           datesIso8601: Option[Seq[SchemedValue]] = None,
                            dates: Option[Seq[QualifiedDate]] = None,
                            sources: Option[Seq[String]] = None,
                            instructionsForReuse: Option[Seq[String]] = None,
@@ -64,19 +65,31 @@ case class DatasetMetadata(doi: Option[String] = None,
                            acceptLicenseAgreement: Boolean = false,
                           ) {
 
-  lazy val submitDate: Try[String] = {
-    // TODO as this is indirectly called by submit: can we assume state has been set to submitted and the date is valid?
-    val maybeQualifiedDate = dates.flatMap(_.find(_.qualifier == dateSubmitted))
-    Try { maybeQualifiedDate.get }.map(_.value)
+  private lazy val submitDate: Option[String] = {
+    dates.flatMap(_.find(_.qualifier == s"dcterms:$dateSubmitted")).map(_.value)
   }
 
-  lazy val xml: Try[Elem] = <stub/> // TODO
+  lazy val xml: Try[Elem] = Success(<stub/>) // TODO
+
+  def setDateSubmitted(): Try[DatasetMetadata] = {
+    if (submitDate.isDefined)
+      Failure(new Exception("dateSubmitted should not be present"))
+    else {
+      val now = DateTimeFormat.forPattern("yyyy-MM-dd").print(DateTime.now())
+      val submitted = QualifiedDate(None, now, s"dcterms:$dateSubmitted")
+      val newDates = dates match {
+        case None => Seq(submitted)
+        case Some(d) => Seq(submitted) ++ d
+      }
+      Success(copy(dates = Some(newDates)))
+    }
+  }
 
   def agreements(userId: String): Try[Elem] = {
     for {
       _ <- verify("AcceptLicenseAgreement", acceptLicenseAgreement)
       _ <- verify("PrivacySensitiveDataPresent", privacySensitiveDataPresent != unspecified)
-      date <- submitDate
+      date <- Try { submitDate.get }
     } yield
       <agr:agreements
           xmlns:agr="http://easy.dans.knaw.nl/schemas/bag/metadata/agreements/"
@@ -101,7 +114,7 @@ case class DatasetMetadata(doi: Option[String] = None,
   }
 
   private def verify(label: String, condition: Boolean) = {
-    if (condition) Success()
+    if (condition) Success(())
     else Failure(InvalidDocumentException(s"Please set $label in DatasetMetadata", new IllegalArgumentException()))
   }
 }
@@ -119,6 +132,7 @@ object DatasetMetadata {
   }
 
   object DateQualifier extends Enumeration {
+    // TODO enum serializer that handles prefix "dcterms:", using String for now
     type DateQualifier = Value
     val created, available, date, dateAccepted, dateCopyrighted, dateSubmitted, issued, modified, valid = Value
   }
@@ -129,7 +143,7 @@ object DatasetMetadata {
 
   case class QualifiedDate(scheme: Option[String],
                            value: String,
-                           qualifier: DateQualifier)
+                           qualifier: String)
 
   case class Author(titles: Option[String] = None,
                     initials: Option[String] = None,

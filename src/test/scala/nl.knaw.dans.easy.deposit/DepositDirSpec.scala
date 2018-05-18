@@ -19,6 +19,8 @@ import java.nio.file.attribute.PosixFilePermission
 
 import nl.knaw.dans.easy.deposit.PidRequesterComponent.PidRequester
 import nl.knaw.dans.easy.deposit.PidRequesterComponent.PidType.PidType
+import nl.knaw.dans.easy.deposit.docs.DatasetMetadata
+import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.{ DateQualifier, PrivacySensitiveDataPresent, QualifiedDate }
 import org.scalamock.scalatest.MockFactory
 
 import scala.util.{ Failure, Success }
@@ -173,6 +175,27 @@ class DepositDirSpec extends TestSupportFixture with MockFactory {
     val pidMocker = mock[PidRequester] // note that no pid is requested
 
     deposit.getDOI(pidMocker) shouldBe Success(doi)
+  }
+
+  "writeSplittedDatasetMetadata" should "write 4 files" in {
+    val prologue = """<?xml version='1.0' encoding='UTF-8'?>"""
+    val message = "Lorum ipsum"
+    val datasetMetadata = DatasetMetadata(
+      privacySensitiveDataPresent = PrivacySensitiveDataPresent.yes,
+      acceptLicenseAgreement = true,
+      messageForDataManager = Some(message)
+    )
+    val deposit = createDepositAsPreparation("user001")
+    val mdDir = deposit.getDataFiles.getOrElse(fail("preconditions are not met"))
+      .filesMetaData.parent.createIfNotExists(asDirectory = true,createParents = true)
+    deposit.setDatasetMetadata(datasetMetadata)
+    val oldSize = (mdDir / "dataset.json").size
+
+    deposit.writeSplittedDatasetMetadata shouldBe Success(())
+    (mdDir / "dataset.json").size should be > oldSize
+    (mdDir / "message-from-depositor.txt").contentAsString shouldBe message
+    (mdDir / "agreements.xml").lineIterator.next() shouldBe prologue
+    (mdDir / "dataset.xml").lineIterator.next() shouldBe prologue
   }
 
   private def createDepositAsPreparation(user: String) = {

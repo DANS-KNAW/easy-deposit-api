@@ -15,10 +15,15 @@
  */
 package nl.knaw.dans.easy
 
+import java.nio.charset.Charset
 import java.nio.file.Path
 import java.util.UUID
 
+import better.files.File
 import nl.knaw.dans.easy.deposit.State.State
+
+import scala.util.Try
+import scala.xml.{ Elem, PrettyPrinter, Utility, XML }
 
 package object deposit {
 
@@ -50,4 +55,11 @@ package object deposit {
    * @param sha1sum  the SHA-1 checksum of the file data
    */
   case class FileInfo(fileName: String, dirPath: Path, sha1sum: String)
+
+  implicit class ElemExtensions(val elem: Elem) extends AnyVal {
+    def writePretty(file: File): Try[Unit] = Try {
+      val pretty = XML.loadString(new PrettyPrinter(160, 2).format(Utility.trim(elem)))
+      XML.save(file.toString, pretty, Charset.forName("UTF-8").toString, xmlDecl = true)
+    }
+  }
 }
