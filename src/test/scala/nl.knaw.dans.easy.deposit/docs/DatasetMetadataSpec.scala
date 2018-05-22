@@ -27,7 +27,6 @@ import org.json4s.native.JsonMethods
 import scala.util.{ Failure, Success }
 
 class DatasetMetadataSpec extends TestSupportFixture {
-  private val defaults = JsonMethods.parse(toJson(DatasetMetadata()))
   private val example =
     """{
       |  "doi": "doi:10.17632/DANS.6wg5xccnjd.1",
