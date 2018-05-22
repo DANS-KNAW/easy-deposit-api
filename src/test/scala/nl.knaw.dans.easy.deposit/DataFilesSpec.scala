@@ -63,7 +63,7 @@ class DataFilesSpec extends TestSupportFixture {
 
     dataFiles.delete(Paths.get("file.txt")) should matchPattern { case Success(()) => }
 
-    file.toJava should not(exist)
+    file.toJava shouldNot exist
   }
 
 
@@ -74,7 +74,7 @@ class DataFilesSpec extends TestSupportFixture {
 
     dataFiles.delete(Paths.get("path/to")) should matchPattern { case Success(()) => }
 
-    (dataFiles.dataFilesBase / "path" / "to").toJava should not(exist)
+    (dataFiles.dataFilesBase / "path" / "to").toJava shouldNot exist
     (dataFiles.dataFilesBase / "path").toJava should exist
   }
 
