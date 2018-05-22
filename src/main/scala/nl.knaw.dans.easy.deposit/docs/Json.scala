@@ -56,15 +56,21 @@ object Json {
     override def deserialize(implicit format: Formats):
     PartialFunction[(TypeInfo, JValue), E#Value] = {
       case (_ @ TypeInfo(EnumerationClass, _), json) if isValid(json) => json match {
-        case JString(value) => enum.withName(value.replace("dcterms:", ""))
+        case JString(value) => enum.withName(trimPrefix(value))
         case value => throw new MappingException(s"Can't convert $value to $EnumerationClass")
       }
     }
 
+    private[this] def throwMappingException(value: JValue) = {
+      throw new MappingException(s"Can't convert $value to $EnumerationClass")
+    }
+
     private[this] def isValid(json: JValue) = json match {
-      case JString(value) if enum.values.exists(_.toString == value.replace("dcterms:", "")) => true
+      case JString(value) if enum.values.exists(_.toString == trimPrefix(value)) => true
       case _ => false
     }
+
+    private[this] def trimPrefix(value: String) = value.replace("dcterms:", "")
 
     override def serialize(implicit format: Formats): PartialFunction[Any, JValue] = {
       case i: DateQualifier => "dcterms:" + i.toString
@@ -75,6 +81,7 @@ object Json {
   private implicit val jsonFormats: Formats = new DefaultFormats {} +
     UUIDSerializer +
     new PathSerializer +
+  // NB: values for all enums should be unique, see https://github.com/json4s/json4s/issues/142
     new EnumNameSerializer(State) +
     new EnumNameSerializer(AccessCategory) +
     new EnumNameSerializer(PrivacySensitiveDataPresent) +
