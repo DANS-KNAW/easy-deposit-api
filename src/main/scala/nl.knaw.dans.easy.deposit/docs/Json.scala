@@ -56,18 +56,18 @@ object Json {
     override def deserialize(implicit format: Formats):
     PartialFunction[(TypeInfo, JValue), E#Value] = {
       case (_ @ TypeInfo(EnumerationClass, _), json) if isValid(json) => json match {
-        case JString(value) => enum.withName(value.replace(":", "_"))
+        case JString(value) => enum.withName(value.replace("dcterms:", "dcterms_"))
         case value => throw new MappingException(s"Can't convert $value to $EnumerationClass")
       }
     }
 
     private[this] def isValid(json: JValue) = json match {
-      case JString(value) if enum.values.exists(_.toString == value.replace(":", "_")) => true
+      case JString(value) if enum.values.exists(_.toString == value.replace("dcterms:", "dcterms_")) => true
       case _ => false
     }
 
     override def serialize(implicit format: Formats): PartialFunction[Any, JValue] = {
-      case i: E#Value => i.toString.replace("_", ":")
+      case i: E#Value => i.toString.replace("dcterms_", "dcterms:")
     }
   }
 
