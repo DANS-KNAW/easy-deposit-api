@@ -22,7 +22,7 @@ import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.{ DateQualifier, _ }
 import nl.knaw.dans.easy.deposit.{ State, StateInfo }
 import org.json4s.Extraction.decompose
 import org.json4s.JsonAST._
-import org.json4s.ext.{ JodaTimeSerializers, UUIDSerializer }
+import org.json4s.ext.{ EnumNameSerializer, JodaTimeSerializers, UUIDSerializer }
 import org.json4s.native.JsonMethods
 import org.json4s.native.Serialization.write
 import org.json4s.{ CustomSerializer, DefaultFormats, Diff, Extraction, Formats, JValue, JsonDSL, JsonInput, MappingException, Serializer, TypeInfo }
@@ -46,7 +46,7 @@ object Json {
     )
   )
 
-  class MaybePrefixedEnumNameSerializer[E <: Enumeration : ClassTag](enum: E)
+  class PrefixedEnumNameSerializer[E <: Enumeration : ClassTag](enum: E)
     extends Serializer[E#Value] {
 
     import JsonDSL._
@@ -75,10 +75,10 @@ object Json {
   private implicit val jsonFormats: Formats = new DefaultFormats {} +
     UUIDSerializer +
     new PathSerializer +
-    new MaybePrefixedEnumNameSerializer(State) +
-    new MaybePrefixedEnumNameSerializer(AccessCategory) +
-    new MaybePrefixedEnumNameSerializer(PrivacySensitiveDataPresent) +
-    new MaybePrefixedEnumNameSerializer(DateQualifier) ++
+    new EnumNameSerializer(State) +
+    new EnumNameSerializer(AccessCategory) +
+    new EnumNameSerializer(PrivacySensitiveDataPresent) +
+    new PrefixedEnumNameSerializer(DateQualifier) ++
     JodaTimeSerializers.all
 
   private implicit class RichJsonInput(body: JsonInput) {

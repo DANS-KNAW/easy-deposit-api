@@ -162,14 +162,14 @@ case class DepositDir private(baseDir: File, user: String, id: UUID) extends Deb
   /** part of submit sequence */
   def writeSplittedDatasetMetadata: Try[Unit] = {
     for {
-      oldDM <- getDatasetMetadata
-      dm <- oldDM.setDateSubmitted()
-      _ <- setDatasetMetadata(dm)
-      _ <- Try { (metadataDir / "message-from-depositor.txt").write(dm.messageForDataManager.getOrElse("")) }
-      agreements <- dm.agreements(user)
+      oldDatasetMetadata <- getDatasetMetadata
+      datasetMetadata <- oldDatasetMetadata.setDateSubmitted()
+      _ <- setDatasetMetadata(datasetMetadata)
+      _ = (metadataDir / "message-from-depositor.txt").write(datasetMetadata.messageForDataManager.getOrElse(""))
+      agreements <- datasetMetadata.agreements(user)
       _ <- agreements.writePretty(metadataDir / "agreements.xml")
-      xml <- dm.xml
-      _ <- xml.writePretty(metadataDir / "dataset.xml")
+      datasetMetadataXML <- datasetMetadata.xml
+      _ <- datasetMetadataXML.writePretty(metadataDir / "dataset.xml")
     } yield ()
   }
 

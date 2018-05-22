@@ -254,4 +254,13 @@ class DatasetMetadataSpec extends TestSupportFixture {
     val result = getAccessRights("""{"category":"open_for_registered_users","group":""}""")
     result shouldBe a[Success[_]]
   }
+  it should "refeuse to deserialize a prefix on a non-prefixed enum" in {
+    val result = getAccessRights("""{"category":"dcterms:open_for_registered_users","group":""}""")
+    inside(result) {
+      case Failure(InvalidDocumentException(msg, cause)) =>
+        msg shouldBe "AccessRights"
+        cause.getMessage should startWith("No usable value for")
+        cause.getMessage should include("category")
+    }
+  }
 }
