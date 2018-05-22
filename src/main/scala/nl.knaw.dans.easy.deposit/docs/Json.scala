@@ -17,17 +17,18 @@ package nl.knaw.dans.easy.deposit.docs
 
 import java.nio.file.{ Path, Paths }
 
+import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.AccessCategory.AccessCategory
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.DateQualifier.DateQualifier
-import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.{ AccessCategory, DateQualifier, PrivacySensitiveDataPresent }
+import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.{ AccessCategory, DateQualifier, PrivacySensitiveDataPresent, QualifiedDate }
 import nl.knaw.dans.easy.deposit.{ State, StateInfo }
-import org.json4s
 import org.json4s.Extraction.decompose
 import org.json4s.JsonAST._
-import org.json4s.ext.{ EnumNameSerializer, JodaTimeSerializers, UUIDSerializer }
+import org.json4s.ext.{ JodaTimeSerializers, UUIDSerializer }
 import org.json4s.native.JsonMethods
 import org.json4s.native.Serialization.write
-import org.json4s.{ CustomSerializer, DefaultFormats, Diff, Extraction, Formats, JValue, JsonInput, MappingException, TypeInfo }
+import org.json4s.{ CustomSerializer, DefaultFormats, Diff, Extraction, Formats, JValue, JsonDSL, JsonInput, MappingException, Serializer, TypeInfo }
 
+import scala.reflect.ClassTag
 import scala.reflect.runtime.universe.typeOf
 import scala.util.{ Failure, Success, Try }
 
@@ -46,12 +47,43 @@ object Json {
     )
   )
 
+  class PrefixedEnumNameSerializer[E <: Enumeration : ClassTag](enum: E)
+    extends Serializer[E#Value] {
+
+    import JsonDSL._
+
+    private val EnumerationClass = classOf[E#Value]
+
+    override def deserialize(implicit format: Formats):
+    PartialFunction[(TypeInfo, JValue), E#Value] = {
+      case (_ @ TypeInfo(EnumerationClass, _), json) if isValid(json) => json match {
+        case JString(value) => enum.withName(value.replace(prefix, ""))
+        case value => throw new MappingException(s"Can't convert $value to $EnumerationClass")
+      }
+    }
+
+    private[this] val prefix = enum match {
+      case DateQualifier => "dcterms:"
+      case _ => ""
+    }
+
+    private[this] def isValid(json: JValue) = json match {
+      case JString(value) if enum.values.exists(_.toString == value.replace(prefix, "")) => true
+      case _ => false
+    }
+
+    override def serialize(implicit format: Formats): PartialFunction[Any, JValue] = {
+      case i: E#Value => prefix + i.toString
+    }
+  }
+
   private implicit val jsonFormats: Formats = new DefaultFormats {} +
     UUIDSerializer +
     new PathSerializer +
-    new EnumNameSerializer(State) +
-    new EnumNameSerializer(AccessCategory) +
-    new EnumNameSerializer(PrivacySensitiveDataPresent) ++
+    new PrefixedEnumNameSerializer(State) +
+    new PrefixedEnumNameSerializer(AccessCategory) +
+    new PrefixedEnumNameSerializer(PrivacySensitiveDataPresent) +
+    new PrefixedEnumNameSerializer(DateQualifier) ++ // must be after normal enums
     JodaTimeSerializers.all
 
   private implicit class RichJsonInput(body: JsonInput) {
@@ -92,4 +124,8 @@ object Json {
   def getDatasetMetadata(body: JsonInput): Try[DatasetMetadata] = body.deserialize[DatasetMetadata]
 
   def getDepositInfo(body: JsonInput): Try[DepositInfo] = body.deserialize[DepositInfo]
+
+  def getQualifiedDate(body: JsonInput): Try[QualifiedDate] = body.deserialize[QualifiedDate]
+
+  def getAccessCategory(body: JsonInput): Try[AccessCategory] = body.deserialize[AccessCategory]
 }

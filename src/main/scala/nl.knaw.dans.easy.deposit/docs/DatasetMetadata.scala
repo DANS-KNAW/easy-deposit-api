@@ -16,7 +16,7 @@
 package nl.knaw.dans.easy.deposit.docs
 
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.AccessCategory.AccessCategory
-import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.DateQualifier.dateSubmitted
+import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.DateQualifier.{ DateQualifier, dateSubmitted }
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.PrivacySensitiveDataPresent.{ PrivacySensitiveDataPresent, unspecified }
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata._
 import nl.knaw.dans.easy.deposit.docs.Json.InvalidDocumentException
@@ -66,7 +66,7 @@ case class DatasetMetadata(doi: Option[String] = None,
                           ) {
 
   private lazy val submitDate: Option[String] = {
-    dates.flatMap(_.find(_.qualifier == s"dcterms:$dateSubmitted")).map(_.value)
+    dates.flatMap(_.find(_.qualifier == dateSubmitted)).map(_.value)
   }
 
   lazy val xml: Try[Elem] = Success(<stub/>) // TODO
@@ -76,7 +76,7 @@ case class DatasetMetadata(doi: Option[String] = None,
       Failure(new Exception("dateSubmitted should not be present"))
     else {
       val now = DateTimeFormat.forPattern("yyyy-MM-dd").print(DateTime.now())
-      val submitted = QualifiedDate(None, now, s"dcterms:$dateSubmitted")
+      val submitted = QualifiedDate(None, now, dateSubmitted)
       val newDates = dates match {
         case None => Seq(submitted)
         case Some(d) => Seq(submitted) ++ d
@@ -132,7 +132,6 @@ object DatasetMetadata {
   }
 
   object DateQualifier extends Enumeration {
-    // TODO enum serializer that handles prefix "dcterms:", using String for now
     type DateQualifier = Value
     val created, available, date, dateAccepted, dateCopyrighted, dateSubmitted, issued, modified, valid = Value
   }
@@ -143,7 +142,7 @@ object DatasetMetadata {
 
   case class QualifiedDate(scheme: Option[String],
                            value: String,
-                           qualifier: String)
+                           qualifier: DateQualifier)
 
   case class Author(titles: Option[String] = None,
                     initials: Option[String] = None,
