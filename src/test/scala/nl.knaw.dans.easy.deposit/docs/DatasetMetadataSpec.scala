@@ -16,7 +16,8 @@
 package nl.knaw.dans.easy.deposit.docs
 
 import nl.knaw.dans.easy.deposit.TestSupportFixture
-import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.{ AccessCategory, DateQualifier, QualifiedDate }
+import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.AccessCategory.open
+import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.{ AccessRights, DateQualifier, QualifiedDate }
 import nl.knaw.dans.easy.deposit.docs.Json.{ InvalidDocumentException, getDatasetMetadata }
 import org.json4s.Diff
 import org.json4s.JsonAST._
@@ -237,7 +238,7 @@ class DatasetMetadataSpec extends TestSupportFixture {
   }
 
   "QualifiedDate" should "serialize with prefixed enum" in {
-    val date = QualifiedDate(None, "2018-05-22", DateQualifier.dateSubmitted)
+    val date = QualifiedDate(None, "2018-05-22", DateQualifier.dcterms_dateSubmitted)
     Json.toJson(date) shouldBe """{"value":"2018-05-22","qualifier":"dcterms:dateSubmitted"}"""
   }
   it should "deserialize a prefixed enum" in {
@@ -245,11 +246,11 @@ class DatasetMetadataSpec extends TestSupportFixture {
     result shouldBe a[Success[_]]
   }
 
-  "AccessCategory" should "serialize with prefixed-less enum" in {
-    Json.toJson(AccessCategory.open) shouldBe """{"open"}"""
+  "AccessCategory" should "serialize with prefix-less enum" in {
+    Json.toJson(AccessRights(open, "")) shouldBe """{"category":"open","group":""}"""
   }
   it should "deserialize a prefix-less enum" in {
-    val result = Json.getAccessCategory("""{"open"}""")
+    val result = Json.getAccessRights("""{"category":"open","group":""}""")
     result shouldBe a[Success[_]]
   }
 }

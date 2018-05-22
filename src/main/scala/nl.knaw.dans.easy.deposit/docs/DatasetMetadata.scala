@@ -16,7 +16,7 @@
 package nl.knaw.dans.easy.deposit.docs
 
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.AccessCategory.AccessCategory
-import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.DateQualifier.{ DateQualifier, dateSubmitted }
+import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.DateQualifier.{ DateQualifier, dcterms_dateSubmitted }
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.PrivacySensitiveDataPresent.{ PrivacySensitiveDataPresent, unspecified }
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata._
 import nl.knaw.dans.easy.deposit.docs.Json.InvalidDocumentException
@@ -66,7 +66,7 @@ case class DatasetMetadata(doi: Option[String] = None,
                           ) {
 
   private lazy val submitDate: Option[String] = {
-    dates.flatMap(_.find(_.qualifier == dateSubmitted)).map(_.value)
+    dates.flatMap(_.find(_.qualifier == dcterms_dateSubmitted)).map(_.value)
   }
 
   lazy val xml: Try[Elem] = Success(<stub/>) // TODO
@@ -76,7 +76,7 @@ case class DatasetMetadata(doi: Option[String] = None,
       Failure(new Exception("dateSubmitted should not be present"))
     else {
       val now = DateTimeFormat.forPattern("yyyy-MM-dd").print(DateTime.now())
-      val submitted = QualifiedDate(None, now, dateSubmitted)
+      val submitted = QualifiedDate(None, now, dcterms_dateSubmitted)
       val newDates = dates match {
         case None => Seq(submitted)
         case Some(d) => Seq(submitted) ++ d
@@ -133,7 +133,7 @@ object DatasetMetadata {
 
   object DateQualifier extends Enumeration {
     type DateQualifier = Value
-    val created, available, date, dateAccepted, dateCopyrighted, dateSubmitted, issued, modified, valid = Value
+    val dcterms_created, dcterms_available, dcterms_date, dcterms_dateAccepted, dcterms_dateCopyrighted, dcterms_dateSubmitted, dcterms_issued, dcterms_modified, dcterms_valid = Value
   }
 
   case class AccessRights(category: AccessCategory,
