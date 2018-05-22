@@ -16,9 +16,10 @@
 package nl.knaw.dans.easy.deposit.docs
 
 import nl.knaw.dans.easy.deposit.TestSupportFixture
-import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.AccessCategory.open
-import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.{ AccessCategory, AccessRights, DateQualifier, QualifiedDate }
-import nl.knaw.dans.easy.deposit.docs.Json.{ InvalidDocumentException, getAccessRights, getDatasetMetadata, getQualifiedDate }
+import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.AccessCategory.open_for_registered_users
+import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.DateQualifier.dateSubmitted
+import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.{ AccessRights, QualifiedDate }
+import nl.knaw.dans.easy.deposit.docs.Json.{ InvalidDocumentException, getAccessRights, getDatasetMetadata, getQualifiedDate, toJson }
 import org.json4s.Diff
 import org.json4s.JsonAST._
 import org.json4s.native.JsonMethods
@@ -26,7 +27,7 @@ import org.json4s.native.JsonMethods
 import scala.util.{ Failure, Success }
 
 class DatasetMetadataSpec extends TestSupportFixture {
-  private val defaults = JsonMethods.parse(Json.toJson(DatasetMetadata()))
+  private val defaults = JsonMethods.parse(toJson(DatasetMetadata()))
   private val example =
     """{
       |  "doi": "doi:10.17632/DANS.6wg5xccnjd.1",
@@ -184,7 +185,7 @@ class DatasetMetadataSpec extends TestSupportFixture {
 
   "deserialization/serialisation" should "produce the same json object structure" in {
     val parsed = getDatasetMetadata(example).getOrElse("")
-    inside(JsonMethods.parse(example) diff JsonMethods.parse(Json.toJson(parsed))) {
+    inside(JsonMethods.parse(example) diff JsonMethods.parse(toJson(parsed))) {
       case Diff(JNothing, JNothing, JNothing) =>
       case x => fail(s"did not expect $x")
     }
@@ -196,7 +197,7 @@ class DatasetMetadataSpec extends TestSupportFixture {
         |  "creators": [
         |  ]
         |}""".stripMargin
-    Json.toJson(getDatasetMetadata(example).getOrElse("")) shouldBe
+    toJson(getDatasetMetadata(example).getOrElse("")) shouldBe
       """{"creators":[],"privacySensitiveDataPresent":"unspecified","acceptLicenseAgreement":false}"""
   }
 
@@ -238,8 +239,8 @@ class DatasetMetadataSpec extends TestSupportFixture {
   }
 
   "QualifiedDate" should "serialize with prefixed enum" in {
-    val date = QualifiedDate(None, "2018-05-22", DateQualifier.dcterms_dateSubmitted)
-    Json.toJson(date) shouldBe """{"value":"2018-05-22","qualifier":"dcterms:dateSubmitted"}"""
+    val date = QualifiedDate(None, "2018-05-22", dateSubmitted)
+    toJson(date) shouldBe """{"value":"2018-05-22","qualifier":"dcterms:dateSubmitted"}"""
   }
   it should "deserialize a prefixed enum" in {
     val result = getQualifiedDate("""{"value":"2018-05-22","qualifier":"dcterms:dateSubmitted"}""")
@@ -247,7 +248,7 @@ class DatasetMetadataSpec extends TestSupportFixture {
   }
 
   "AccessCategory" should "serialize with prefix-less enum" in {
-    Json.toJson(AccessRights(AccessCategory.open_for_registered_users, "")) shouldBe """{"category":"open_for_registered_users","group":""}"""
+    toJson(AccessRights(open_for_registered_users, "")) shouldBe """{"category":"open_for_registered_users","group":""}"""
   }
   it should "deserialize a prefix-less enum" in {
     val result = getAccessRights("""{"category":"open_for_registered_users","group":""}""")

@@ -20,7 +20,7 @@ import java.nio.file.attribute.PosixFilePermission
 import nl.knaw.dans.easy.deposit.PidRequesterComponent.PidRequester
 import nl.knaw.dans.easy.deposit.PidRequesterComponent.PidType.PidType
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata
-import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.{ DateQualifier, PrivacySensitiveDataPresent, QualifiedDate }
+import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.PrivacySensitiveDataPresent
 import org.scalamock.scalatest.MockFactory
 
 import scala.util.{ Failure, Success }
@@ -187,7 +187,7 @@ class DepositDirSpec extends TestSupportFixture with MockFactory {
     )
     val deposit = createDepositAsPreparation("user001")
     val mdDir = deposit.getDataFiles.getOrElse(fail("preconditions are not met"))
-      .filesMetaData.parent.createIfNotExists(asDirectory = true,createParents = true)
+      .filesMetaData.parent.createIfNotExists(asDirectory = true, createParents = true)
     deposit.setDatasetMetadata(datasetMetadata)
     val oldSize = (mdDir / "dataset.json").size
 

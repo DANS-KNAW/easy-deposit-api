@@ -17,8 +17,8 @@ package nl.knaw.dans.easy.deposit.docs
 
 import java.nio.file.{ Path, Paths }
 
-import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.AccessCategory.AccessCategory
-import nl.knaw.dans.easy.deposit.docs.DatasetMetadata._
+import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.DateQualifier.DateQualifier
+import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.{ DateQualifier, _ }
 import nl.knaw.dans.easy.deposit.{ State, StateInfo }
 import org.json4s.Extraction.decompose
 import org.json4s.JsonAST._
@@ -46,7 +46,7 @@ object Json {
     )
   )
 
-  class PrefixedEnumNameSerializer[E <: Enumeration : ClassTag](enum: E)
+  class MaybePrefixedEnumNameSerializer[E <: Enumeration : ClassTag](enum: E)
     extends Serializer[E#Value] {
 
     import JsonDSL._
@@ -56,28 +56,29 @@ object Json {
     override def deserialize(implicit format: Formats):
     PartialFunction[(TypeInfo, JValue), E#Value] = {
       case (_ @ TypeInfo(EnumerationClass, _), json) if isValid(json) => json match {
-        case JString(value) => enum.withName(value.replace("dcterms:", "dcterms_"))
+        case JString(value) => enum.withName(value.replace("dcterms:", ""))
         case value => throw new MappingException(s"Can't convert $value to $EnumerationClass")
       }
     }
 
     private[this] def isValid(json: JValue) = json match {
-      case JString(value) if enum.values.exists(_.toString == value.replace("dcterms:", "dcterms_")) => true
+      case JString(value) if enum.values.exists(_.toString == value.replace("dcterms:", "")) => true
       case _ => false
     }
 
     override def serialize(implicit format: Formats): PartialFunction[Any, JValue] = {
-      case i: E#Value => i.toString.replace("dcterms_", "dcterms:")
+      case i: DateQualifier => "dcterms:" + i.toString
+      case i: E#Value => i.toString
     }
   }
 
   private implicit val jsonFormats: Formats = new DefaultFormats {} +
     UUIDSerializer +
     new PathSerializer +
-    new PrefixedEnumNameSerializer(State) +
-    new PrefixedEnumNameSerializer(AccessCategory) +
-    new PrefixedEnumNameSerializer(PrivacySensitiveDataPresent) +
-    new PrefixedEnumNameSerializer(DateQualifier) ++
+    new MaybePrefixedEnumNameSerializer(State) +
+    new MaybePrefixedEnumNameSerializer(AccessCategory) +
+    new MaybePrefixedEnumNameSerializer(PrivacySensitiveDataPresent) +
+    new MaybePrefixedEnumNameSerializer(DateQualifier) ++
     JodaTimeSerializers.all
 
   private implicit class RichJsonInput(body: JsonInput) {
