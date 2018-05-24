@@ -188,7 +188,7 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
    */
   def writeDataMetadataToDeposit(dm: DatasetMetadata)(user: String, id: UUID): Try[Unit] = for {
     deposit <- DepositDir.get(draftsDir, user, id)
-    _ <- deposit.setDatasetMetadata(dm)
+    _ <- deposit.writeDatasetMetadataJson(dm)
   } yield ()
 
   /**

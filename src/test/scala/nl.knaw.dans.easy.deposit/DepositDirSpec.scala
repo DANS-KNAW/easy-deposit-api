@@ -188,10 +188,10 @@ class DepositDirSpec extends TestSupportFixture with MockFactory {
     val deposit = createDepositAsPreparation("user001")
     val mdDir = deposit.getDataFiles.getOrElse(fail("preconditions are not met"))
       .filesMetaData.parent.createIfNotExists(asDirectory = true, createParents = true)
-    deposit.setDatasetMetadata(datasetMetadata)
+    deposit.writeDatasetMetadataJson(datasetMetadata)
     val oldSize = (mdDir / "dataset.json").size
 
-    deposit.writeSplittedDatasetMetadata shouldBe Success(())
+    deposit.splitDatasetMetadata shouldBe Success(())
     (mdDir / "dataset.json").size should be > oldSize
     (mdDir / "message-from-depositor.txt").contentAsString shouldBe message
     (mdDir / "agreements.xml").lineIterator.next() shouldBe prologue

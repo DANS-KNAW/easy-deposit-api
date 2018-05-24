@@ -48,7 +48,10 @@ case class DepositDir private(baseDir: File, user: String, id: UUID) extends Deb
   private val metadataDir = bagDir / "metadata"
   private val dataFilesDir = bagDir / "data"
   private val depositPropertiesFile = bagDir.parent / "deposit.properties"
-  private val datasetMetadataFile = metadataDir / "dataset.json"
+  private val datasetMetadataJsonFile = metadataDir / "dataset.json"
+  private val msgFromDepositorFile = metadataDir / "message-from-depositor.txt"
+  private val agreementsFile = metadataDir / "agreements.xml"
+  private val datasetXmlFile = metadataDir / "dataset.xml"
 
   /**
    * @return an information object about the current state of the desposit.
@@ -134,7 +137,7 @@ case class DepositDir private(baseDir: File, user: String, id: UUID) extends Deb
    * @return the dataset level metadata in this deposit
    */
   def getDatasetMetadata: Try[DatasetMetadata] = {
-    Try { datasetMetadataFile.fileInputStream }
+    Try { datasetMetadataJsonFile.fileInputStream }
       .flatMap(_ (is => Json.getDatasetMetadata(is)))
       .recoverWith {
         case t: InvalidDocumentException => Failure(CorruptDepositException(user, id.toString, t))
@@ -153,23 +156,23 @@ case class DepositDir private(baseDir: File, user: String, id: UUID) extends Deb
    *
    * @param md the metadata to write
    */
-  def setDatasetMetadata(md: DatasetMetadata): Try[Unit] = Try {
+  def writeDatasetMetadataJson(md: DatasetMetadata): Try[Unit] = Try {
     // TODO DOI should not change, only enforced by client calling getDOI. State and dateSubmitted should not change either.
-    datasetMetadataFile.write(toJson(md))
+    datasetMetadataJsonFile.write(toJson(md))
     () // satisfy the compiler which doesn't want a File
   }.recoverWith { case _: NoSuchFileException => notFoundFailure() }
 
   /** part of submit sequence */
-  def writeSplittedDatasetMetadata: Try[Unit] = {
+  def splitDatasetMetadata: Try[Unit] = {
     for {
-      oldDatasetMetadata <- getDatasetMetadata
+      oldDatasetMetadata <- getDatasetMetadata // TODO skip recover? Depends on to be implemented submit.
       datasetMetadata <- oldDatasetMetadata.setDateSubmitted()
-      _ <- setDatasetMetadata(datasetMetadata)
-      _ = (metadataDir / "message-from-depositor.txt").write(datasetMetadata.messageForDataManager.getOrElse(""))
-      agreements <- datasetMetadata.agreements(user)
-      _ <- agreements.writePretty(metadataDir / "agreements.xml")
-      datasetMetadataXML <- datasetMetadata.xml
-      _ <- datasetMetadataXML.writePretty(metadataDir / "dataset.xml")
+      _ = datasetMetadataJsonFile.write(toJson(datasetMetadata)) // no recover -> internal error
+      _ = msgFromDepositorFile.write(datasetMetadata.messageForDataManager.getOrElse(""))
+      agreementsXml <- datasetMetadata.agreements(user)
+      _ <- agreementsFile.writePretty(agreementsXml)
+      datasetXml <- datasetMetadata.xml
+      _ <- datasetXmlFile.writePretty(datasetXml)
     } yield ()
   }
 
@@ -193,7 +196,7 @@ case class DepositDir private(baseDir: File, user: String, id: UUID) extends Deb
     doi <- maybeTriedDOI.getOrElse(pidRequester.requestPid(PidType.doi))
     _ = props.addProperty("identifier.doi", doi)
     _ <- maybeTriedDOI.getOrElse(Try { props.save(depositPropertiesFile.toJava) })
-    _ <- maybeTriedDOI.getOrElse(setDatasetMetadata(dm.copy(doi = Some(doi))))
+    _ <- maybeTriedDOI.getOrElse(writeDatasetMetadataJson(dm.copy(doi = Some(doi))))
   } yield doi
 
   private def doisMatch(dm: DatasetMetadata, doi: Option[String]) = {
@@ -262,7 +265,7 @@ object DepositDir {
 
     // creating the following before the bag would move the metadata directory into bag/data
     depositDir.metadataDir.createIfNotExists(asDirectory = true)
-    depositDir.datasetMetadataFile.write("{}")
+    depositDir.datasetMetadataJsonFile.write("{}")
 
     new PropertiesConfiguration() {
       addProperty("creation.timestamp", depositInfo.date)

@@ -56,8 +56,8 @@ package object deposit {
    */
   case class FileInfo(fileName: String, dirPath: Path, sha1sum: String)
 
-  implicit class ElemExtensions(val elem: Elem) extends AnyVal {
-    def writePretty(file: File): Try[Unit] = Try {
+  implicit class FileExtensions(val file: File) extends AnyVal {
+    def writePretty(elem: Elem): Try[Unit] = Try {
       val pretty = XML.loadString(new PrettyPrinter(160, 2).format(Utility.trim(elem)))
       XML.save(file.toString, pretty, Charset.forName("UTF-8").toString, xmlDecl = true)
     }
