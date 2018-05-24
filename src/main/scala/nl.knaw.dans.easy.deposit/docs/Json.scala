@@ -17,7 +17,6 @@ package nl.knaw.dans.easy.deposit.docs
 
 import java.nio.file.{ Path, Paths }
 
-import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.DateQualifier.DateQualifier
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.{ DateQualifier, _ }
 import nl.knaw.dans.easy.deposit.{ State, StateInfo }
 import org.json4s.Extraction.decompose
@@ -25,9 +24,8 @@ import org.json4s.JsonAST._
 import org.json4s.ext.{ EnumNameSerializer, JodaTimeSerializers, UUIDSerializer }
 import org.json4s.native.JsonMethods
 import org.json4s.native.Serialization.write
-import org.json4s.{ CustomSerializer, DefaultFormats, Diff, Extraction, Formats, JValue, JsonDSL, JsonInput, MappingException, Serializer, TypeInfo }
+import org.json4s.{ CustomSerializer, DefaultFormats, Diff, Extraction, Formats, JValue, JsonInput }
 
-import scala.reflect.ClassTag
 import scala.reflect.runtime.universe.typeOf
 import scala.util.{ Failure, Success, Try }
 
@@ -46,46 +44,13 @@ object Json {
     )
   )
 
-  class PrefixedEnumNameSerializer[E <: Enumeration : ClassTag](enum: E)
-    extends Serializer[E#Value] {
-
-    import JsonDSL._
-
-    private val EnumerationClass = classOf[E#Value]
-
-    override def deserialize(implicit format: Formats):
-    PartialFunction[(TypeInfo, JValue), E#Value] = {
-      case (_ @ TypeInfo(EnumerationClass, _), json) if isValid(json) => json match {
-        case JString(value) => enum.withName(trimPrefix(value))
-        case value => throw new MappingException(s"Can't convert $value to $EnumerationClass")
-      }
-    }
-
-    private[this] def throwMappingException(value: JValue) = {
-      throw new MappingException(s"Can't convert $value to $EnumerationClass")
-    }
-
-    private[this] def isValid(json: JValue) = json match {
-      case JString(value) if enum.values.exists(_.toString == trimPrefix(value)) => true
-      case _ => false
-    }
-
-    private[this] def trimPrefix(value: String) = value.replace("dcterms:", "")
-
-    override def serialize(implicit format: Formats): PartialFunction[Any, JValue] = {
-      case i: DateQualifier => "dcterms:" + i.toString
-      case i: E#Value => i.toString
-    }
-  }
+  // NB: values for all enums should be unique, see https://github.com/json4s/json4s/issues/142
+  private val enumerations = List(DateQualifier, State, AccessCategory, PrivacySensitiveDataPresent)
 
   private implicit val jsonFormats: Formats = new DefaultFormats {} +
     UUIDSerializer +
-    new PathSerializer +
-  // NB: values for all enums should be unique, see https://github.com/json4s/json4s/issues/142
-    new EnumNameSerializer(State) +
-    new EnumNameSerializer(AccessCategory) +
-    new EnumNameSerializer(PrivacySensitiveDataPresent) +
-    new PrefixedEnumNameSerializer(DateQualifier) ++
+    new PathSerializer ++
+    enumerations.map(new EnumNameSerializer(_)) ++
     JodaTimeSerializers.all
 
   private implicit class RichJsonInput(body: JsonInput) {

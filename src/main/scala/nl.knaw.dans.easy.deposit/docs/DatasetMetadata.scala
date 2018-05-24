@@ -133,7 +133,15 @@ object DatasetMetadata {
 
   object DateQualifier extends Enumeration {
     type DateQualifier = Value
-    val created, available, date, dateAccepted, dateCopyrighted, dateSubmitted, issued, modified, valid = Value
+    val created: DateQualifier = Value("dcterms:created")
+    val available: DateQualifier = Value("dcterms:available")
+    val date: DateQualifier = Value("dcterms:date")
+    val dateAccepted: DateQualifier = Value("dcterms:dateAccepted")
+    val dateCopyrighted: DateQualifier = Value("dcterms:dateCopyrighted")
+    val dateSubmitted: DateQualifier = Value("dcterms:dateSubmitted")
+    val issued: DateQualifier = Value("dcterms:issued")
+    val modified: DateQualifier = Value("dcterms:modified")
+    val valid: DateQualifier = Value("dcterms:valid")
   }
 
   case class AccessRights(category: AccessCategory,
