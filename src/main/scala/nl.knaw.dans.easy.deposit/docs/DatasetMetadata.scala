@@ -86,7 +86,7 @@ case class DatasetMetadata(doi: Option[String] = None,
     for {
       _ <- verify("AcceptLicenseAgreement", acceptLicenseAgreement)
       _ <- verify("PrivacySensitiveDataPresent", privacySensitiveDataPresent != unspecified)
-      date <- Try { submitDate.get }
+      date = submitDate.getOrElse(throw new IllegalArgumentException("no submitDate"))
     } yield
       <agr:agreements
           xmlns:agr="http://easy.dans.knaw.nl/schemas/bag/metadata/agreements/"
