@@ -75,7 +75,7 @@ case class DatasetMetadata(doi: Option[String] = None,
     if (submitDate.isDefined)
       Failure(new Exception("dateSubmitted should not be present"))
     else {
-      val now = DateTimeFormat.forPattern("yyyy-MM-dd").print(DateTime.now())
+      val now = DateTime.now().toString("yyyy-MM-dd")
       val submitted = QualifiedDate(None, now, dateSubmitted)
       val newDates = dates match {
         case None => Seq(submitted)
