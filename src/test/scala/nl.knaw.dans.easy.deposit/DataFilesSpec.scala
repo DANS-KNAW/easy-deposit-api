@@ -66,7 +66,6 @@ class DataFilesSpec extends TestSupportFixture {
     file.toJava shouldNot exist
   }
 
-
   it should "recursively delete files" in {
     val dir = (dataFiles.dataFilesBase / "path" / "to" / "files").createIfNotExists(asDirectory = true, createParents = true)
     (0 until 105).foreach { n =>
