@@ -53,7 +53,7 @@ object Json {
     enumerations.map(new EnumNameSerializer(_)) ++
     JodaTimeSerializers.all
 
-  private implicit class RichJsonInput(body: JsonInput) {
+  implicit class RichJsonInput(body: JsonInput) {
     def deserialize[A: Manifest]: Try[A] = {
       for {
         parsed <- Try { JsonMethods.parse(body) }
@@ -91,8 +91,4 @@ object Json {
   def getDatasetMetadata(body: JsonInput): Try[DatasetMetadata] = body.deserialize[DatasetMetadata]
 
   def getDepositInfo(body: JsonInput): Try[DepositInfo] = body.deserialize[DepositInfo]
-
-  def getQualifiedDate(body: JsonInput): Try[QualifiedDate] = body.deserialize[QualifiedDate]
-
-  def getAccessRights(body: JsonInput): Try[AccessRights] = body.deserialize[AccessRights]
 }

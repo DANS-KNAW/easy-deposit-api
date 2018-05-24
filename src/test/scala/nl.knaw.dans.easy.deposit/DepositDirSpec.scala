@@ -78,7 +78,7 @@ class DepositDirSpec extends TestSupportFixture with MockFactory {
   }
 
   it should """show more than two deposits of "user001" user""" in {
-    for (i <- 1 to 3) DepositDir.create(draftsDir, "user001")
+    for (_ <- 1 to 3) DepositDir.create(draftsDir, "user001")
     val tryDeposits = DepositDir.list(draftsDir, "user001")
     tryDeposits shouldBe a[Success[_]]
     inside(tryDeposits) {
