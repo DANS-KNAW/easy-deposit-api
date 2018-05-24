@@ -83,6 +83,4 @@ object Json {
     // seems not to need a try: while the date formatter wasn't in place it produced empty strings
     write(a)
   }
-
-  def getStateInfo(body: JsonInput): Try[StateInfo] = body.deserialize[StateInfo]
 }

@@ -30,5 +30,5 @@ object StateInfo {
     val DRAFT, SUBMITTED, IN_PROGRESS, REJECTED, ARCHIVED = Value
   }
 
-  def apply(input: JsonInput): Try[UserInfo] = input.deserialize[UserInfo]
+  def apply(input: JsonInput): Try[StateInfo] = input.deserialize[StateInfo]
 }
