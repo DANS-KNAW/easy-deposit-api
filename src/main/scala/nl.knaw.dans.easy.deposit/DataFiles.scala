@@ -19,6 +19,7 @@ import java.io.InputStream
 import java.nio.file.{ Path, Paths }
 
 import better.files._
+import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 
 import scala.util.Try
 
@@ -30,7 +31,7 @@ import scala.util.Try
  * @param dataFilesBase the base directory of the data files
  * @param filesMetaData the file containing the file metadata
  */
-case class DataFiles(dataFilesBase: File, filesMetaData: File) {
+case class DataFiles(dataFilesBase: File, filesMetaData: File) extends DebugEnhancedLogging {
 
   /**
    * Lists information about the files the directory `path` and its subdirectories.
@@ -62,8 +63,14 @@ case class DataFiles(dataFilesBase: File, filesMetaData: File) {
    * @param path the relative path of the file or directory to delete
    */
   def delete(path: Path): Try[Unit] = Try {
-    // TODO when a sha was saved at upload, delete it
-    (dataFilesBase / path.toString).delete()
+
+    val file = dataFilesBase / path.toString
+    val files = if (file.isDirectory && file.children.hasNext)
+                  file.walk(maxDepth = 10).take(100).toList // without toList we log only the first
+                else Seq(file)
+    file.delete()
+    // TODO when upload (and write DatasetMetadata?) does it too: let the bag-it lib recalculate the manifest file
+    files.foreach(file => logger.info(s"deleted $file"))
   }
 
   /**

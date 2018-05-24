@@ -68,9 +68,10 @@ class DataFilesSpec extends TestSupportFixture {
 
 
   it should "recursively delete files" in {
-    val dir = (dataFiles.dataFilesBase / "path" / "to").createIfNotExists(asDirectory = true, createParents = true)
-    (dir / "file1.txt").writeText("Lorem ipsum est")
-    (dir / "file2.txt").writeText("Lorem ipsum dolor sit amet")
+    val dir = (dataFiles.dataFilesBase / "path" / "to" / "files").createIfNotExists(asDirectory = true, createParents = true)
+    (0 until 105).foreach { n =>
+      (dir / s"file$n.txt").writeText("Lorem ipsum est")
+    }
 
     dataFiles.delete(Paths.get("path/to")) should matchPattern { case Success(()) => }
 
