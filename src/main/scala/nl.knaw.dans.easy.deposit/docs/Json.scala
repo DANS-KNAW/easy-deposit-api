@@ -18,7 +18,7 @@ package nl.knaw.dans.easy.deposit.docs
 import java.nio.file.{ Path, Paths }
 
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.{ DateQualifier, _ }
-import nl.knaw.dans.easy.deposit.{ State, StateInfo }
+import nl.knaw.dans.easy.deposit.docs.StateInfo.State
 import org.json4s.Extraction.decompose
 import org.json4s.JsonAST._
 import org.json4s.ext.{ EnumNameSerializer, JodaTimeSerializers, UUIDSerializer }
@@ -84,11 +84,5 @@ object Json {
     write(a)
   }
 
-  def getUser(body: JsonInput): Try[UserInfo] = body.deserialize[UserInfo]
-
   def getStateInfo(body: JsonInput): Try[StateInfo] = body.deserialize[StateInfo]
-
-  def getDatasetMetadata(body: JsonInput): Try[DatasetMetadata] = body.deserialize[DatasetMetadata]
-
-  def getDepositInfo(body: JsonInput): Try[DepositInfo] = body.deserialize[DepositInfo]
 }

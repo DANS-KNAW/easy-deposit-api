@@ -24,9 +24,10 @@ import gov.loc.repository.bagit.creator.BagCreator
 import gov.loc.repository.bagit.domain.{ Metadata => BagitMetadata }
 import gov.loc.repository.bagit.hash.StandardSupportedAlgorithms
 import nl.knaw.dans.easy.deposit.PidRequesterComponent.{ PidRequester, PidType }
-import nl.knaw.dans.easy.deposit.State.State
 import nl.knaw.dans.easy.deposit.docs.Json.{ InvalidDocumentException, toJson }
-import nl.knaw.dans.easy.deposit.docs.{ DatasetMetadata, DepositInfo, Json }
+import nl.knaw.dans.easy.deposit.docs.StateInfo.State
+import nl.knaw.dans.easy.deposit.docs.StateInfo.State.State
+import nl.knaw.dans.easy.deposit.docs.{ DatasetMetadata, DepositInfo, StateInfo }
 import nl.knaw.dans.lib.error._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.apache.commons.configuration.PropertiesConfiguration
@@ -138,7 +139,7 @@ case class DepositDir private(baseDir: File, user: String, id: UUID) extends Deb
    */
   def getDatasetMetadata: Try[DatasetMetadata] = {
     Try { datasetMetadataJsonFile.fileInputStream }
-      .flatMap(_ (is => Json.getDatasetMetadata(is)))
+      .flatMap(_ (is => DatasetMetadata(is)))
       .recoverWith {
         case t: InvalidDocumentException => Failure(CorruptDepositException(user, id.toString, t))
         case _: FileNotFoundException => notFoundFailure()

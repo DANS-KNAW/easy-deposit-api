@@ -19,11 +19,10 @@ import nl.knaw.dans.easy.deposit.TestSupportFixture
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.AccessCategory.open_for_registered_users
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.DateQualifier.dateSubmitted
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.{ AccessRights, QualifiedDate }
-import nl.knaw.dans.easy.deposit.docs.Json.{ InvalidDocumentException, getDatasetMetadata, toJson }
-import org.json4s.{ Diff, JsonInput }
+import nl.knaw.dans.easy.deposit.docs.Json.{ InvalidDocumentException, RichJsonInput, toJson }
 import org.json4s.JsonAST._
 import org.json4s.native.JsonMethods
-import nl.knaw.dans.easy.deposit.docs.Json.RichJsonInput
+import org.json4s.{ Diff, JsonInput }
 
 import scala.util.{ Failure, Success }
 
@@ -184,7 +183,7 @@ class DatasetMetadataSpec extends TestSupportFixture {
       |}""".stripMargin
 
   "deserialization/serialisation" should "produce the same json object structure" in {
-    val parsed = getDatasetMetadata(example).getOrElse("")
+    val parsed = DatasetMetadata(example).getOrElse("")
     inside(JsonMethods.parse(example) diff JsonMethods.parse(toJson(parsed))) {
       case Diff(JNothing, JNothing, JNothing) =>
       case x => fail(s"did not expect $x")
@@ -197,13 +196,13 @@ class DatasetMetadataSpec extends TestSupportFixture {
         |  "creators": [
         |  ]
         |}""".stripMargin
-    toJson(getDatasetMetadata(example).getOrElse("")) shouldBe
+    toJson(DatasetMetadata(example).getOrElse("")) shouldBe
       """{"creators":[],"privacySensitiveDataPresent":"unspecified","acceptLicenseAgreement":false}"""
   }
 
   "deserialization" should "report additional json info" in {
     val example ="""{"titles":["foo bar"],"x":[1]}""".stripMargin
-    inside(getDatasetMetadata(example)) {
+    inside(DatasetMetadata(example)) {
       case Failure(InvalidDocumentException(docName, t)) =>
         docName shouldBe "DatasetMetadata"
         t.getMessage shouldBe """don't recognize {"x":[1]}"""
@@ -211,7 +210,7 @@ class DatasetMetadataSpec extends TestSupportFixture {
   }
 
   it should "extract just the last object" in {
-    inside(getDatasetMetadata("""{"languageOfDescription": "string"}{"doi": "doi:10.17632/DANS.6wg5xccnjd.1"}""")) {
+    inside(DatasetMetadata("""{"languageOfDescription": "string"}{"doi": "doi:10.17632/DANS.6wg5xccnjd.1"}""")) {
       case Success(dm: DatasetMetadata) =>
         dm.doi shouldBe Some("doi:10.17632/DANS.6wg5xccnjd.1")
         dm.languageOfDescription shouldBe None
@@ -220,18 +219,18 @@ class DatasetMetadataSpec extends TestSupportFixture {
 
   it should "be happy with empty objects" in {
     // JObject(List())
-    inside(getDatasetMetadata("""{}{}""")) { case Success(_: DatasetMetadata) => }
+    inside(DatasetMetadata("""{}{}""")) { case Success(_: DatasetMetadata) => }
   }
 
   it should "fail on an empty array" in {
     // JArray(List())
-    inside(getDatasetMetadata("""[]""")) { case Failure(InvalidDocumentException(_, t)) =>
+    inside(DatasetMetadata("""[]""")) { case Failure(InvalidDocumentException(_, t)) =>
       t.getMessage shouldBe "expected an object, got a class org.json4s.JsonAST$JArray"
     }
   }
 
   it should "not accept a literal number" in {
-    inside(getDatasetMetadata("""123""")) { case Failure(InvalidDocumentException(_, t)) =>
+    inside(DatasetMetadata("""123""")) { case Failure(InvalidDocumentException(_, t)) =>
       t.getMessage shouldBe
         """expected field or array
           |Near: 12""".stripMargin

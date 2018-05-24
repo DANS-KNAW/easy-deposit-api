@@ -19,8 +19,9 @@ import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.AccessCategory.AccessCateg
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.DateQualifier.{ DateQualifier, dateSubmitted }
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.PrivacySensitiveDataPresent.{ PrivacySensitiveDataPresent, unspecified }
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata._
-import nl.knaw.dans.easy.deposit.docs.Json.InvalidDocumentException
+import nl.knaw.dans.easy.deposit.docs.Json.{ InvalidDocumentException, RichJsonInput }
 import org.joda.time.DateTime
+import org.json4s.JsonInput
 
 import scala.util.{ Failure, Success, Try }
 import scala.xml.Elem
@@ -108,6 +109,8 @@ case class DatasetMetadata(doi: Option[String] = None,
 }
 
 object DatasetMetadata {
+  def apply(input: JsonInput): Try[DatasetMetadata] = input.deserialize[DatasetMetadata]
+
 
   private def missingValue(label: String) = {
     InvalidDocumentException(s"Please set $label in DatasetMetadata")

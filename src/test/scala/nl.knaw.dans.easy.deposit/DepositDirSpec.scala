@@ -19,8 +19,9 @@ import java.nio.file.attribute.PosixFilePermission
 
 import nl.knaw.dans.easy.deposit.PidRequesterComponent.PidRequester
 import nl.knaw.dans.easy.deposit.PidRequesterComponent.PidType.PidType
-import nl.knaw.dans.easy.deposit.docs.DatasetMetadata
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.PrivacySensitiveDataPresent
+import nl.knaw.dans.easy.deposit.docs.StateInfo.State
+import nl.knaw.dans.easy.deposit.docs.{ DatasetMetadata, StateInfo }
 import org.scalamock.scalatest.MockFactory
 
 import scala.util.{ Failure, Success }

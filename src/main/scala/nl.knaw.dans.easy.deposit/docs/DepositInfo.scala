@@ -17,12 +17,16 @@ package nl.knaw.dans.easy.deposit.docs
 
 import java.util.UUID
 
-import nl.knaw.dans.easy.deposit.State
-import nl.knaw.dans.easy.deposit.State.State
 import nl.knaw.dans.easy.deposit.docs.DepositInfo._
+import nl.knaw.dans.easy.deposit.docs.Json.RichJsonInput
+import nl.knaw.dans.easy.deposit.docs.StateInfo.State
+import nl.knaw.dans.easy.deposit.docs.StateInfo.State.State
 import org.joda.time.DateTime
 import org.joda.time.DateTimeZone.UTC
 import org.joda.time.format.ISODateTimeFormat
+import org.json4s.JsonInput
+
+import scala.util.Try
 
 /**
  * Summary information about a deposit.
@@ -43,7 +47,9 @@ case class DepositInfo(id: UUID = UUID.randomUUID(),
   def timestampString: String = date.toString(dateTimeFormatter)
 }
 object DepositInfo {
-  def nowWithoutMillis: DateTime = {
+  def apply(input: JsonInput): Try[DepositInfo] = input.deserialize[DepositInfo]
+
+  private def nowWithoutMillis: DateTime = {
     val now = DateTime.now(UTC)
     now.minusMillis(now.millisOfSecond().get())
   }

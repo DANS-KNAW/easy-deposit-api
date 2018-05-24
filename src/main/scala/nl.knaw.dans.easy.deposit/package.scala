@@ -20,7 +20,7 @@ import java.nio.file.Path
 import java.util.UUID
 
 import better.files.File
-import nl.knaw.dans.easy.deposit.State.State
+import nl.knaw.dans.easy.deposit.docs.StateInfo.State.State
 
 import scala.util.Try
 import scala.xml.{ Elem, PrettyPrinter, Utility, XML }
@@ -39,13 +39,6 @@ package object deposit {
     extends DepositException(s"Cannot transition from $oldState to $newState (deposit id: $id, user: $user)", null)
 
   case class ConfigurationException(msg: String) extends IllegalArgumentException(s"Configuration error: $msg")
-
-  object State extends Enumeration {
-    type State = Value
-    val DRAFT, SUBMITTED, IN_PROGRESS, REJECTED, ARCHIVED = Value
-  }
-
-  case class StateInfo(state: State, stateDescription: String)
 
   /**
    * Information about a file in the deposit
