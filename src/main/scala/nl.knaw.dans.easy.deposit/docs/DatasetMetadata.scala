@@ -21,7 +21,6 @@ import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.PrivacySensitiveDataPresen
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata._
 import nl.knaw.dans.easy.deposit.docs.Json.InvalidDocumentException
 import org.joda.time.DateTime
-import org.joda.time.format.DateTimeFormat
 
 import scala.util.{ Failure, Success, Try }
 import scala.xml.Elem
@@ -84,8 +83,9 @@ case class DatasetMetadata(doi: Option[String] = None,
 
   def agreements(userId: String): Try[Elem] = {
     for {
-      _ <- verify("AcceptLicenseAgreement", acceptLicenseAgreement)
-      _ <- verify("PrivacySensitiveDataPresent", privacySensitiveDataPresent != unspecified)
+      _ <- if (acceptLicenseAgreement) Success(())
+           else Failure(missingValue("AcceptLicenseAgreement"))
+      privacy <- toBoolean(privacySensitiveDataPresent)
       date = submitDate.getOrElse(throw new IllegalArgumentException("no submitDate"))
     } yield
       <agr:agreements
@@ -101,26 +101,29 @@ case class DatasetMetadata(doi: Option[String] = None,
         <agr:personalDataStatement>
           <agr:signerId>{userId}</agr:signerId>
           <agr:dateSigned>{date}</agr:dateSigned>
-          <agr:containsPrivacySensitiveData>{privacySensitiveDataPresent match {
-            case PrivacySensitiveDataPresent.no => false
-            case PrivacySensitiveDataPresent.yes => true
-            case _ => // should never happen because of verify call
-          }}</agr:containsPrivacySensitiveData>
+          <agr:containsPrivacySensitiveData>{privacy}</agr:containsPrivacySensitiveData>
         </agr:personalDataStatement>
       </agr:agreements>
-  }
-
-  private def verify(label: String, condition: Boolean) = {
-    if (condition) Success(())
-    else Failure(InvalidDocumentException(s"Please set $label in DatasetMetadata", new IllegalArgumentException()))
   }
 }
 
 object DatasetMetadata {
 
+  private def missingValue(label: String) = {
+    InvalidDocumentException(s"Please set $label in DatasetMetadata")
+  }
+
   object PrivacySensitiveDataPresent extends Enumeration {
     type PrivacySensitiveDataPresent = Value
     val yes, no, unspecified = Value
+  }
+
+  private def toBoolean(privacySensitiveDataPresent: PrivacySensitiveDataPresent): Try[Boolean] = {
+    privacySensitiveDataPresent match {
+      case PrivacySensitiveDataPresent.yes => Success(true)
+      case PrivacySensitiveDataPresent.no => Success(false)
+      case PrivacySensitiveDataPresent.unspecified => Failure(missingValue("PrivacySensitiveDataPresent"))
+    }
   }
 
   object AccessCategory extends Enumeration {
