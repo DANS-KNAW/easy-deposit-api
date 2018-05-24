@@ -77,7 +77,7 @@ case class DatasetMetadata(doi: Option[String] = None,
     else {
       val now = DateTime.now().toString("yyyy-MM-dd")
       val submitted = QualifiedDate(None, now, dateSubmitted)
-      val newDates = Seq(submitted) ++ dates.getOrElse(Seq.empty)
+      val newDates = submitted +: dates.getOrElse(Seq.empty)
       Success(copy(dates = Some(newDates)))
     }
   }
