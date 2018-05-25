@@ -17,21 +17,21 @@ package nl.knaw.dans.easy.deposit.docs
 
 import java.nio.file.{ Path, Paths }
 
-import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.{ AccessCategory, PrivacySensitiveDataPresent }
-import nl.knaw.dans.easy.deposit.{ State, StateInfo }
+import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.{ DateQualifier, _ }
+import nl.knaw.dans.easy.deposit.docs.StateInfo.State
 import org.json4s.Extraction.decompose
 import org.json4s.JsonAST._
 import org.json4s.ext.{ EnumNameSerializer, JodaTimeSerializers, UUIDSerializer }
 import org.json4s.native.JsonMethods
 import org.json4s.native.Serialization.write
-import org.json4s.{ CustomSerializer, DefaultFormats, Diff, Extraction, Formats, JsonInput }
+import org.json4s.{ CustomSerializer, DefaultFormats, Diff, Extraction, Formats, JValue, JsonInput }
 
 import scala.reflect.runtime.universe.typeOf
 import scala.util.{ Failure, Success, Try }
 
 object Json {
 
-  case class InvalidDocumentException(s: String, t: Throwable)
+  case class InvalidDocumentException(s: String, t: Throwable = null)
     extends Exception(s"invalid $s: ${ t.getClass } ${ t.getMessage }", t)
 
   class PathSerializer extends CustomSerializer[Path](_ =>
@@ -44,15 +44,16 @@ object Json {
     )
   )
 
+  // NB: values for all enums should be unique, see https://github.com/json4s/json4s/issues/142
+  private val enumerations = List(DateQualifier, State, AccessCategory, PrivacySensitiveDataPresent)
+
   private implicit val jsonFormats: Formats = new DefaultFormats {} +
     UUIDSerializer +
-    new PathSerializer +
-    new EnumNameSerializer(State) +
-    new EnumNameSerializer(AccessCategory) +
-    new EnumNameSerializer(PrivacySensitiveDataPresent) ++
+    new PathSerializer ++
+    enumerations.map(new EnumNameSerializer(_)) ++
     JodaTimeSerializers.all
 
-  private implicit class RichJsonInput(body: JsonInput) {
+  implicit class RichJsonInput(body: JsonInput) {
     def deserialize[A: Manifest]: Try[A] = {
       for {
         parsed <- Try { JsonMethods.parse(body) }
@@ -82,12 +83,4 @@ object Json {
     // seems not to need a try: while the date formatter wasn't in place it produced empty strings
     write(a)
   }
-
-  def getUser(body: JsonInput): Try[UserInfo] = body.deserialize[UserInfo]
-
-  def getStateInfo(body: JsonInput): Try[StateInfo] = body.deserialize[StateInfo]
-
-  def getDatasetMetadata(body: JsonInput): Try[DatasetMetadata] = body.deserialize[DatasetMetadata]
-
-  def getDepositInfo(body: JsonInput): Try[DepositInfo] = body.deserialize[DepositInfo]
 }

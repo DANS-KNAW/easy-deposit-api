@@ -25,9 +25,9 @@ import gov.loc.repository.bagit.domain.{ Metadata => BagitMetadata }
 import gov.loc.repository.bagit.hash.StandardSupportedAlgorithms
 import nl.knaw.dans.easy.deposit.PidRequesterComponent.{ PidRequester, PidType }
 import nl.knaw.dans.easy.deposit.docs.Json.{ InvalidDocumentException, toJson }
-import nl.knaw.dans.easy.deposit.docs.{ DatasetMetadata, DepositInfo, Json }
-import nl.knaw.dans.easy.deposit.docs.Json.{ toJson, InvalidDocumentException }
-import nl.knaw.dans.easy.deposit.State.State
+import nl.knaw.dans.easy.deposit.docs.StateInfo.State
+import nl.knaw.dans.easy.deposit.docs.StateInfo.State.State
+import nl.knaw.dans.easy.deposit.docs.{ DatasetMetadata, DepositInfo, StateInfo }
 import nl.knaw.dans.lib.error._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.apache.commons.configuration.PropertiesConfiguration
@@ -49,7 +49,10 @@ case class DepositDir private(baseDir: File, user: String, id: UUID) extends Deb
   private val metadataDir = bagDir / "metadata"
   private val dataFilesDir = bagDir / "data"
   private val depositPropertiesFile = bagDir.parent / "deposit.properties"
-  private val datasetMetadataFile = metadataDir / "dataset.json"
+  private val datasetMetadataJsonFile = metadataDir / "dataset.json"
+  private val msgFromDepositorFile = metadataDir / "message-from-depositor.txt"
+  private val agreementsFile = metadataDir / "agreements.xml"
+  private val datasetXmlFile = metadataDir / "dataset.xml"
 
   /**
    * @return an information object about the current state of the desposit.
@@ -135,8 +138,8 @@ case class DepositDir private(baseDir: File, user: String, id: UUID) extends Deb
    * @return the dataset level metadata in this deposit
    */
   def getDatasetMetadata: Try[DatasetMetadata] = {
-    Try { datasetMetadataFile.fileInputStream }
-      .flatMap(_ (is => Json.getDatasetMetadata(is)))
+    Try { datasetMetadataJsonFile.fileInputStream }
+      .flatMap(_ (is => DatasetMetadata(is)))
       .recoverWith {
         case t: InvalidDocumentException => Failure(CorruptDepositException(user, id.toString, t))
         case _: FileNotFoundException => notFoundFailure()
@@ -154,12 +157,25 @@ case class DepositDir private(baseDir: File, user: String, id: UUID) extends Deb
    *
    * @param md the metadata to write
    */
-  def setDatasetMetadata(md: DatasetMetadata): Try[Unit] = Try {
-    // TODO EasyDepositApiApp.writeDataMetadataToDeposit says: should be complete
-    // TODO Who is responsible? I suppose also DOI should not change.
-    datasetMetadataFile.write(toJson(md))
+  def writeDatasetMetadataJson(md: DatasetMetadata): Try[Unit] = Try {
+    // TODO DOI should not change, only enforced by client calling getDOI. State and dateSubmitted should not change either.
+    datasetMetadataJsonFile.write(toJson(md))
     () // satisfy the compiler which doesn't want a File
   }.recoverWith { case _: NoSuchFileException => notFoundFailure() }
+
+  /** part of submit sequence */
+  def splitDatasetMetadata: Try[Unit] = {
+    for {
+      oldDatasetMetadata <- getDatasetMetadata // TODO skip recover? Depends on to be implemented submit.
+      datasetMetadata <- oldDatasetMetadata.setDateSubmitted()
+      _ = datasetMetadataJsonFile.write(toJson(datasetMetadata)) // no recover -> internal error
+      _ = msgFromDepositorFile.write(datasetMetadata.messageForDataManager.getOrElse(""))
+      agreementsXml <- datasetMetadata.agreements(user)
+      _ <- agreementsFile.writePretty(agreementsXml)
+      datasetXml <- datasetMetadata.xml
+      _ <- datasetXmlFile.writePretty(datasetXml)
+    } yield ()
+  }
 
   /**
    * @return object to access the data files of this deposit
@@ -181,7 +197,7 @@ case class DepositDir private(baseDir: File, user: String, id: UUID) extends Deb
     doi <- maybeTriedDOI.getOrElse(pidRequester.requestPid(PidType.doi))
     _ = props.addProperty("identifier.doi", doi)
     _ <- maybeTriedDOI.getOrElse(Try { props.save(depositPropertiesFile.toJava) })
-    _ <- maybeTriedDOI.getOrElse(setDatasetMetadata(dm.copy(doi = Some(doi))))
+    _ <- maybeTriedDOI.getOrElse(writeDatasetMetadataJson(dm.copy(doi = Some(doi))))
   } yield doi
 
   private def doisMatch(dm: DatasetMetadata, doi: Option[String]) = {
@@ -250,7 +266,7 @@ object DepositDir {
 
     // creating the following before the bag would move the metadata directory into bag/data
     depositDir.metadataDir.createIfNotExists(asDirectory = true)
-    depositDir.datasetMetadataFile.write("{}")
+    depositDir.datasetMetadataJsonFile.write("{}")
 
     new PropertiesConfiguration() {
       addProperty("creation.timestamp", depositInfo.date)

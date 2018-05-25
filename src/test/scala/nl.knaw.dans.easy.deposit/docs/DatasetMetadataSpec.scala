@@ -16,15 +16,17 @@
 package nl.knaw.dans.easy.deposit.docs
 
 import nl.knaw.dans.easy.deposit.TestSupportFixture
-import nl.knaw.dans.easy.deposit.docs.Json.InvalidDocumentException
-import org.json4s.Diff
+import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.AccessCategory.open_for_registered_users
+import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.DateQualifier.dateSubmitted
+import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.{ AccessRights, QualifiedDate }
+import nl.knaw.dans.easy.deposit.docs.Json.{ InvalidDocumentException, RichJsonInput, toJson }
 import org.json4s.JsonAST._
 import org.json4s.native.JsonMethods
+import org.json4s.{ Diff, JsonInput }
 
 import scala.util.{ Failure, Success }
 
 class DatasetMetadataSpec extends TestSupportFixture {
-  private val defaults = JsonMethods.parse(Json.toJson(DatasetMetadata()))
   private val example =
     """{
       |  "doi": "doi:10.17632/DANS.6wg5xccnjd.1",
@@ -101,16 +103,11 @@ class DatasetMetadataSpec extends TestSupportFixture {
       |  "languagesOfFiles": [
       |    "string"
       |  ],
-      |  "datesIso8601": [
-      |    {
-      |      "scheme": "string",
-      |      "value": "string"
-      |    }
-      |  ],
       |  "dates": [
       |    {
       |      "scheme": "string",
-      |      "value": "string"
+      |      "value": "string",
+      |      "qualifier": "dcterms:created"
       |    }
       |  ],
       |  "sources": [
@@ -186,9 +183,10 @@ class DatasetMetadataSpec extends TestSupportFixture {
       |}""".stripMargin
 
   "deserialization/serialisation" should "produce the same json object structure" in {
-    val parsed = Json.getDatasetMetadata(example).getOrElse("")
-    inside(JsonMethods.parse(example) diff JsonMethods.parse(Json.toJson(parsed))) {
+    val parsed = DatasetMetadata(example).getOrElse("")
+    inside(JsonMethods.parse(example) diff JsonMethods.parse(toJson(parsed))) {
       case Diff(JNothing, JNothing, JNothing) =>
+      case x => fail(s"did not expect $x")
     }
   }
 
@@ -198,13 +196,13 @@ class DatasetMetadataSpec extends TestSupportFixture {
         |  "creators": [
         |  ]
         |}""".stripMargin
-    Json.toJson(Json.getDatasetMetadata(example).getOrElse("")) shouldBe
+    toJson(DatasetMetadata(example).getOrElse("")) shouldBe
       """{"creators":[],"privacySensitiveDataPresent":"unspecified","acceptLicenseAgreement":false}"""
   }
 
   "deserialization" should "report additional json info" in {
     val example ="""{"titles":["foo bar"],"x":[1]}""".stripMargin
-    inside(Json.getDatasetMetadata(example)) {
+    inside(DatasetMetadata(example)) {
       case Failure(InvalidDocumentException(docName, t)) =>
         docName shouldBe "DatasetMetadata"
         t.getMessage shouldBe """don't recognize {"x":[1]}"""
@@ -212,7 +210,7 @@ class DatasetMetadataSpec extends TestSupportFixture {
   }
 
   it should "extract just the last object" in {
-    inside(Json.getDatasetMetadata("""{"languageOfDescription": "string"}{"doi": "doi:10.17632/DANS.6wg5xccnjd.1"}""")) {
+    inside(DatasetMetadata("""{"languageOfDescription": "string"}{"doi": "doi:10.17632/DANS.6wg5xccnjd.1"}""")) {
       case Success(dm: DatasetMetadata) =>
         dm.doi shouldBe Some("doi:10.17632/DANS.6wg5xccnjd.1")
         dm.languageOfDescription shouldBe None
@@ -221,21 +219,48 @@ class DatasetMetadataSpec extends TestSupportFixture {
 
   it should "be happy with empty objects" in {
     // JObject(List())
-    inside(Json.getDatasetMetadata("""{}{}""")) { case Success(_: DatasetMetadata) => }
+    inside(DatasetMetadata("""{}{}""")) { case Success(_: DatasetMetadata) => }
   }
 
   it should "fail on an empty array" in {
     // JArray(List())
-    inside(Json.getDatasetMetadata("""[]""")) { case Failure(InvalidDocumentException(_, t)) =>
+    inside(DatasetMetadata("""[]""")) { case Failure(InvalidDocumentException(_, t)) =>
       t.getMessage shouldBe "expected an object, got a class org.json4s.JsonAST$JArray"
     }
   }
 
   it should "not accept a literal number" in {
-    inside(Json.getDatasetMetadata("""123""")) { case Failure(InvalidDocumentException(_, t)) =>
+    inside(DatasetMetadata("""123""")) { case Failure(InvalidDocumentException(_, t)) =>
       t.getMessage shouldBe
         """expected field or array
           |Near: 12""".stripMargin
+    }
+  }
+
+  "QualifiedDate" should "serialize with prefixed enum" in {
+    val date = QualifiedDate(None, "2018-05-22", dateSubmitted)
+    toJson(date) shouldBe """{"value":"2018-05-22","qualifier":"dcterms:dateSubmitted"}"""
+  }
+
+  it should "deserialize a prefixed enum" in {
+    val s: JsonInput = """{"value":"2018-05-22","qualifier":"dcterms:dateSubmitted"}"""
+    s.deserialize[QualifiedDate] shouldBe a[Success[_]]
+  }
+
+  "AccessCategory" should "serialize with prefix-less enum" in {
+    toJson(AccessRights(open_for_registered_users, "")) shouldBe """{"category":"open_for_registered_users","group":""}"""
+  }
+  it should "deserialize a prefix-less enum" in {
+    val s: JsonInput = """{"category":"open_for_registered_users","group":""}"""
+    s.deserialize[AccessRights] shouldBe a[Success[_]]
+  }
+  it should "refeuse to deserialize a prefix on a non-prefixed enum" in {
+    val s: JsonInput = """{"category":"dcterms:open_for_registered_users","group":""}"""
+    inside(s.deserialize[AccessRights]) {
+      case Failure(InvalidDocumentException(msg, cause)) =>
+        msg shouldBe "AccessRights"
+        cause.getMessage should startWith("No usable value for")
+        cause.getMessage should include("category")
     }
   }
 }

@@ -16,10 +16,15 @@
 package nl.knaw.dans.easy.deposit.docs
 
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.AccessCategory.AccessCategory
-import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.PrivacySensitiveDataPresent.{ unspecified, PrivacySensitiveDataPresent }
+import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.DateQualifier.{ DateQualifier, dateSubmitted }
+import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.PrivacySensitiveDataPresent.{ PrivacySensitiveDataPresent, unspecified }
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata._
+import nl.knaw.dans.easy.deposit.docs.Json.{ InvalidDocumentException, RichJsonInput }
+import org.joda.time.DateTime
+import org.json4s.JsonInput
 
-import scala.util.Try
+import scala.util.{ Failure, Success, Try }
+import scala.xml.Elem
 
 case class DatasetMetadata(doi: Option[String] = None,
                            languageOfDescription: Option[String] = None,
@@ -35,8 +40,7 @@ case class DatasetMetadata(doi: Option[String] = None,
                            relations: Option[Seq[Relation]] = None,
                            languagesOfFilesIso639: Option[Seq[String]] = None,
                            languagesOfFiles: Option[Seq[String]] = None,
-                           datesIso8601: Option[Seq[SchemedValue]] = None,
-                           dates: Option[Seq[SchemedValue]] = None,
+                           dates: Option[Seq[QualifiedDate]] = None,
                            sources: Option[Seq[String]] = None,
                            instructionsForReuse: Option[Seq[String]] = None,
                            rightsHolders: Option[Seq[String]] = None,
@@ -61,16 +65,68 @@ case class DatasetMetadata(doi: Option[String] = None,
                            acceptLicenseAgreement: Boolean = false,
                           ) {
 
-  def writeDatasetXml(): Try[Unit] = ???
+  private lazy val submitDate: Option[String] = {
+    dates.flatMap(_.find(_.qualifier == dateSubmitted)).map(_.value)
+  }
 
-  def writeAgreementsXml(): Try[Unit] = ???
+  lazy val xml: Try[Elem] = Success(<stub/>) // TODO
+
+  def setDateSubmitted(): Try[DatasetMetadata] = {
+    if (submitDate.isDefined)
+      Failure(new Exception("dateSubmitted should not be present"))
+    else {
+      val now = DateTime.now().toString("yyyy-MM-dd")
+      val submitted = QualifiedDate(None, now, dateSubmitted)
+      val newDates = submitted +: dates.getOrElse(Seq.empty)
+      Success(copy(dates = Some(newDates)))
+    }
+  }
+
+  def agreements(userId: String): Try[Elem] = {
+    for {
+      _ <- if (acceptLicenseAgreement) Success(())
+           else Failure(missingValue("AcceptLicenseAgreement"))
+      privacy <- toBoolean(privacySensitiveDataPresent)
+      date = submitDate.getOrElse(throw new IllegalArgumentException("no submitDate"))
+    } yield
+      <agr:agreements
+          xmlns:agr="http://easy.dans.knaw.nl/schemas/bag/metadata/agreements/"
+          xmlns:dcterms="http://purl.org/dc/terms/"
+          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xsi:schemaLocation="http://easy.dans.knaw.nl/schemas/bag/metadata/agreements/ agreements.xsd">
+        <agr:licenseAgreement>
+          <agr:depositorId>{userId}</agr:depositorId>
+          <dateAccepted>{date}</dateAccepted>
+          <agr:licenseAgreementAccepted>{acceptLicenseAgreement}</agr:licenseAgreementAccepted>
+        </agr:licenseAgreement>
+        <agr:personalDataStatement>
+          <agr:signerId>{userId}</agr:signerId>
+          <agr:dateSigned>{date}</agr:dateSigned>
+          <agr:containsPrivacySensitiveData>{privacy}</agr:containsPrivacySensitiveData>
+        </agr:personalDataStatement>
+      </agr:agreements>
+  }
 }
 
 object DatasetMetadata {
+  def apply(input: JsonInput): Try[DatasetMetadata] = input.deserialize[DatasetMetadata]
+
+
+  private def missingValue(label: String) = {
+    InvalidDocumentException(s"Please set $label in DatasetMetadata")
+  }
 
   object PrivacySensitiveDataPresent extends Enumeration {
     type PrivacySensitiveDataPresent = Value
     val yes, no, unspecified = Value
+  }
+
+  private def toBoolean(privacySensitiveDataPresent: PrivacySensitiveDataPresent): Try[Boolean] = {
+    privacySensitiveDataPresent match {
+      case PrivacySensitiveDataPresent.yes => Success(true)
+      case PrivacySensitiveDataPresent.no => Success(false)
+      case PrivacySensitiveDataPresent.unspecified => Failure(missingValue("PrivacySensitiveDataPresent"))
+    }
   }
 
   object AccessCategory extends Enumeration {
@@ -78,9 +134,26 @@ object DatasetMetadata {
     val open, open_for_registered_users, restricted_group, restricted_request, other_access = Value
   }
 
+  object DateQualifier extends Enumeration {
+    type DateQualifier = Value
+    val created: DateQualifier = Value("dcterms:created")
+    val available: DateQualifier = Value("dcterms:available")
+    val date: DateQualifier = Value("dcterms:date")
+    val dateAccepted: DateQualifier = Value("dcterms:dateAccepted")
+    val dateCopyrighted: DateQualifier = Value("dcterms:dateCopyrighted")
+    val dateSubmitted: DateQualifier = Value("dcterms:dateSubmitted")
+    val issued: DateQualifier = Value("dcterms:issued")
+    val modified: DateQualifier = Value("dcterms:modified")
+    val valid: DateQualifier = Value("dcterms:valid")
+  }
+
   case class AccessRights(category: AccessCategory,
                           group: String,
                          )
+
+  case class QualifiedDate(scheme: Option[String],
+                           value: String,
+                           qualifier: DateQualifier)
 
   case class Author(titles: Option[String] = None,
                     initials: Option[String] = None,

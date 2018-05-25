@@ -19,7 +19,8 @@ import java.nio.file.{ Path, Paths }
 import java.util.UUID
 
 import nl.knaw.dans.easy.deposit.authentication.ServletEnhancedLogging._
-import nl.knaw.dans.easy.deposit.docs.Json.{ InvalidDocumentException, getDatasetMetadata, getStateInfo, toJson }
+import nl.knaw.dans.easy.deposit.docs.{ DatasetMetadata, StateInfo }
+import nl.knaw.dans.easy.deposit.docs.Json.{ InvalidDocumentException, toJson }
 import nl.knaw.dans.easy.deposit.servlets.DepositServlet.InvalidResourceException
 import nl.knaw.dans.easy.deposit.{ EasyDepositApiApp, _ }
 import org.scalatra._
@@ -56,7 +57,7 @@ class DepositServlet(app: EasyDepositApiApp) extends ProtectedServlet(app) {
     {
       for {
         managedIS <- getRequestBodyAsManagedInputStream
-        datasetMetadata <- managedIS.apply(is => getDatasetMetadata(is))
+        datasetMetadata <- managedIS.apply(is => DatasetMetadata(is))
         _ <- forDeposit(app.writeDataMetadataToDeposit(datasetMetadata))
       } yield NoContent()
     }.getOrRecoverResponse(respond)
@@ -70,7 +71,7 @@ class DepositServlet(app: EasyDepositApiApp) extends ProtectedServlet(app) {
     {
       for {
         managedIS <- getRequestBodyAsManagedInputStream
-        stateInfo <- managedIS.apply(is => getStateInfo(is))
+        stateInfo <- managedIS.apply(is => StateInfo(is))
         _ <- forDeposit(app.setDepositState(stateInfo))
       } yield NoContent()
     }.getOrRecoverResponse(respond)

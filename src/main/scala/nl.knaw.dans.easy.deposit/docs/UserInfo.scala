@@ -15,6 +15,11 @@
  */
 package nl.knaw.dans.easy.deposit.docs
 
+import nl.knaw.dans.easy.deposit.docs.Json.RichJsonInput
+import org.json4s.JsonInput
+
+import scala.util.Try
+
 case class UserInfo(userName: String,
                     firstName: Option[String] = None,
                     prefix: Option[String] = None,
@@ -22,6 +27,8 @@ case class UserInfo(userName: String,
                     groups: Option[Seq[String]] = None
                    )
 object UserInfo {
+  def apply(input: JsonInput): Try[UserInfo] = input.deserialize[UserInfo]
+
   def apply(attributes: Map[String, Seq[String]]): UserInfo = {
     // For possible attribute keys see: https://github.com/DANS-KNAW/dans.easy-test-users/blob/master/templates
     new UserInfo(

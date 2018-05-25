@@ -18,10 +18,10 @@ package nl.knaw.dans.easy.deposit.servlets
 import java.nio.file.{ Path, Paths }
 import java.util.UUID
 
-import nl.knaw.dans.easy.deposit.State._
 import nl.knaw.dans.easy.deposit._
 import nl.knaw.dans.easy.deposit.authentication.AuthenticationMocker._
-import nl.knaw.dans.easy.deposit.docs.DepositInfo
+import nl.knaw.dans.easy.deposit.docs.StateInfo.State._
+import nl.knaw.dans.easy.deposit.docs.{ DepositInfo, StateInfo }
 import org.eclipse.jetty.http.HttpStatus._
 import org.joda.time.DateTime
 import org.scalamock.scalatest.MockFactory

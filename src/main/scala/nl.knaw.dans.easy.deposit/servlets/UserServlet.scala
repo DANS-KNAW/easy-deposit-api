@@ -32,7 +32,7 @@ class UserServlet(app: EasyDepositApiApp) extends ProtectedServlet(app) {
   }
   put("/") {
     (for {
-      user <- getUser(request.body)
+      user <- UserInfo(request.body)
       _ <- Try(???).flatten
     } yield Ok(???))
       .getOrRecoverResponse(respond)

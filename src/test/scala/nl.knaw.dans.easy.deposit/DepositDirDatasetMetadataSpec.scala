@@ -33,7 +33,7 @@ class DepositDirDatasetMetadataSpec extends TestSupportFixture {
     // prepare empty deposit
     metadataFile.parent.createIfNotExists(asDirectory = true, createParents = true)
 
-    dd.setDatasetMetadata(DatasetMetadata()) shouldBe Success(())
+    dd.writeDatasetMetadataJson(DatasetMetadata()) shouldBe Success(())
     metadataFile.contentAsString shouldBe
       """{"privacySensitiveDataPresent":"unspecified","acceptLicenseAgreement":false}"""
   }
@@ -43,14 +43,14 @@ class DepositDirDatasetMetadataSpec extends TestSupportFixture {
     metadataFile.parent.createIfNotExists(asDirectory = true, createParents = true)
     metadataFile.write("blabla")
 
-    dd.setDatasetMetadata(DatasetMetadata()) shouldBe Success(())
+    dd.writeDatasetMetadataJson(DatasetMetadata()) shouldBe Success(())
     metadataFile.contentAsString shouldBe
       """{"privacySensitiveDataPresent":"unspecified","acceptLicenseAgreement":false}"""
   }
 
   it should "report the deposit does not exist" in {
     // no preparations for a "lost" deposit
-    dd.setDatasetMetadata(DatasetMetadata()) should matchPattern {
+    dd.writeDatasetMetadataJson(DatasetMetadata()) should matchPattern {
       case Failure(NoSuchDepositException(_, _, _)) =>
     }
   }

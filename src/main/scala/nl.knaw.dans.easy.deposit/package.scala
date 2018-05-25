@@ -15,10 +15,15 @@
  */
 package nl.knaw.dans.easy
 
+import java.nio.charset.Charset
 import java.nio.file.Path
 import java.util.UUID
 
-import nl.knaw.dans.easy.deposit.State.State
+import better.files.File
+import nl.knaw.dans.easy.deposit.docs.StateInfo.State.State
+
+import scala.util.Try
+import scala.xml.{ Elem, PrettyPrinter, Utility, XML }
 
 package object deposit {
 
@@ -35,13 +40,6 @@ package object deposit {
 
   case class ConfigurationException(msg: String) extends IllegalArgumentException(s"Configuration error: $msg")
 
-  object State extends Enumeration {
-    type State = Value
-    val DRAFT, SUBMITTED, IN_PROGRESS, REJECTED, ARCHIVED = Value
-  }
-
-  case class StateInfo(state: State, stateDescription: String)
-
   /**
    * Information about a file in the deposit
    *
@@ -50,4 +48,11 @@ package object deposit {
    * @param sha1sum  the SHA-1 checksum of the file data
    */
   case class FileInfo(fileName: String, dirPath: Path, sha1sum: String)
+
+  implicit class FileExtensions(val file: File) extends AnyVal {
+    def writePretty(elem: Elem): Try[Unit] = Try {
+      val pretty = XML.loadString(new PrettyPrinter(160, 2).format(Utility.trim(elem)))
+      XML.save(file.toString, pretty, Charset.forName("UTF-8").toString, xmlDecl = true)
+    }
+  }
 }
