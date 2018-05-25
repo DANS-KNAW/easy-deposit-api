@@ -30,17 +30,15 @@ case class AuthUser(id: String,
 object AuthUser {
   object UserState extends Enumeration {
     type UserState = Value
-    val
 
     /** The user has successfully registered, but has not validated the registration; the account cannot be used (yet). */
-    REGISTERED,
+    val registered: AuthUser.UserState.Value = Value("REGISTERED")
 
     /** The user has a valid registration; the account can be used. */
-    ACTIVE,
+    val active: AuthUser.UserState.Value = Value("ACTIVE")
 
     /** The user is blocked; the account cannot be used. */
-    BLOCKED
-    = Value
+    val blocked: AuthUser.UserState.Value = Value("BLOCKED")
   }
 
   def apply(attributes: Map[String, Seq[String]]): AuthUser = {
@@ -51,13 +49,13 @@ object AuthUser {
       attributes.getOrElse("easyGroups", Seq.empty),
       attributes.getOrElse("dansState", Seq.empty)
         .headOption.map(value => UserState.withName(value))
-        .getOrElse(UserState.BLOCKED)
+        .getOrElse(UserState.blocked)
     )
   }
 
   private class ActiveAuthUser(id: String,
                                groups: Seq[String] = Seq.empty
-                              ) extends AuthUser(id, groups, UserState.ACTIVE)
+                              ) extends AuthUser(id, groups, UserState.active)
 
   private implicit val jsonFormats: Formats = new DefaultFormats {}
 

@@ -16,7 +16,7 @@
 package nl.knaw.dans.easy.deposit.authentication
 
 import nl.knaw.dans.easy.deposit._
-import nl.knaw.dans.easy.deposit.authentication.AuthUser.UserState.{ ACTIVE, BLOCKED, REGISTERED }
+import nl.knaw.dans.easy.deposit.authentication.AuthUser.UserState._
 import nl.knaw.dans.easy.deposit.authentication.AuthenticationMocker._
 import nl.knaw.dans.easy.deposit.servlets.ServletFixture
 import org.eclipse.jetty.http.HttpStatus._
@@ -57,7 +57,7 @@ class SessionSpec extends TestSupportFixture with ServletFixture with ScalatraSu
 
   it should "be ok with valid cookie token" in {
     expectsNoUser
-    val jwtCookie = createJWT(AuthUser("foo", state = ACTIVE))
+    val jwtCookie = createJWT(AuthUser("foo", state = active))
 
     get(
       uri = "/deposit",
@@ -98,7 +98,7 @@ class SessionSpec extends TestSupportFixture with ServletFixture with ScalatraSu
   }
 
   it should "return 401 (Unauthorized) when the user has not confirmed the email" in {
-    expectsUserFooBarWithStatus(REGISTERED)
+    expectsUserFooBarWithStatus(registered)
     post(
       uri = "/auth/login",
       params = Seq(("login", "foo"), ("password", "bar"))
@@ -111,7 +111,7 @@ class SessionSpec extends TestSupportFixture with ServletFixture with ScalatraSu
   }
 
   it should "return 401 (Unauthorized) when the user is blocked" in {
-    expectsUserFooBarWithStatus(BLOCKED)
+    expectsUserFooBarWithStatus(blocked)
     post(
       uri = "/auth/login",
       params = Seq(("login", "foo"), ("password", "bar"))
@@ -143,7 +143,7 @@ class SessionSpec extends TestSupportFixture with ServletFixture with ScalatraSu
   }
 
   it should "create a cookie when valid basic authentication is provided" in {
-    expectsUserFooBarWithStatus(ACTIVE)
+    expectsUserFooBarWithStatus(active)
     post(
       uri = "/auth/login",
       headers = Seq(("Authorization", fooBarBasicAuthHeader))
@@ -163,7 +163,7 @@ class SessionSpec extends TestSupportFixture with ServletFixture with ScalatraSu
 
   "put /auth/logout" should "clear the cookie" in {
     expectsNoUser
-    val jwtCookie = createJWT(AuthUser("foo", state = ACTIVE))
+    val jwtCookie = createJWT(AuthUser("foo", state = active))
 
     put(
       uri = "/auth/logout",

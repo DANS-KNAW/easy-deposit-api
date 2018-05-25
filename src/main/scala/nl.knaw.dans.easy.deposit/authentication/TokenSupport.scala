@@ -15,7 +15,7 @@
  */
 package nl.knaw.dans.easy.deposit.authentication
 
-import nl.knaw.dans.easy.deposit.authentication.AuthUser.UserState
+import nl.knaw.dans.easy.deposit.authentication.AuthUser.UserState.active
 import nl.knaw.dans.easy.deposit.authentication.TokenSupport._
 import nl.knaw.dans.lib.error._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
@@ -57,7 +57,7 @@ trait TokenSupport extends DebugEnhancedLogging {
     for {
       decoded <- Jwt.decode(token, tokenConfig.secretKey, Seq(tokenConfig.algorithm))
       parsed <- fromJson(decoded)
-    } yield AuthUser(parsed.uid, state = UserState.ACTIVE)
+    } yield AuthUser(parsed.uid, state = active)
     // TODO user status might have changed since sign-up, retrieve and check status from ldap
   }
 }

@@ -111,7 +111,6 @@ case class DatasetMetadata(doi: Option[String] = None,
 object DatasetMetadata {
   def apply(input: JsonInput): Try[DatasetMetadata] = input.deserialize[DatasetMetadata]
 
-
   private def missingValue(label: String) = {
     InvalidDocumentException(s"Please set $label in DatasetMetadata")
   }
@@ -131,7 +130,11 @@ object DatasetMetadata {
 
   object AccessCategory extends Enumeration {
     type AccessCategory = Value
-    val open, open_for_registered_users, restricted_group, restricted_request, other_access = Value
+    val open: AccessCategory = Value("open")
+    val openForRegisteredUsers: AccessCategory = Value("open_for_registered_users")
+    val restrictedGroup: AccessCategory = Value("restricted_group")
+    val restrictedRequest: AccessCategory = Value("restricted_request")
+    val otherAccess: AccessCategory = Value("other_access")
   }
 
   object DateQualifier extends Enumeration {

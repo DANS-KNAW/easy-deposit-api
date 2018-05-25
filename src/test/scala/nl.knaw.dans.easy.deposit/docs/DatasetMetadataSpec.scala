@@ -16,7 +16,7 @@
 package nl.knaw.dans.easy.deposit.docs
 
 import nl.knaw.dans.easy.deposit.TestSupportFixture
-import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.AccessCategory.open_for_registered_users
+import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.AccessCategory.openForRegisteredUsers
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.DateQualifier.dateSubmitted
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.{ AccessRights, QualifiedDate }
 import nl.knaw.dans.easy.deposit.docs.Json.{ InvalidDocumentException, RichJsonInput, toJson }
@@ -248,7 +248,7 @@ class DatasetMetadataSpec extends TestSupportFixture {
   }
 
   "AccessCategory" should "serialize with prefix-less enum" in {
-    toJson(AccessRights(open_for_registered_users, "")) shouldBe """{"category":"open_for_registered_users","group":""}"""
+    toJson(AccessRights(openForRegisteredUsers, "")) shouldBe """{"category":"open_for_registered_users","group":""}"""
   }
   it should "deserialize a prefix-less enum" in {
     val s: JsonInput = """{"category":"open_for_registered_users","group":""}"""

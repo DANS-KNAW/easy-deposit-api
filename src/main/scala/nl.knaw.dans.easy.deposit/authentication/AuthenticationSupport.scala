@@ -40,9 +40,9 @@ trait AuthenticationSupport extends ScentrySupport[AuthUser] {
   override protected def toSession: PartialFunction[AuthUser, String] = {
     case user: AuthUser =>
       user.state match {
-        case UserState.REGISTERED => halt(Unauthorized("Please confirm your email.").logResponse)
-        case UserState.BLOCKED => halt(Unauthorized("invalid credentials").logResponse)
-        case UserState.ACTIVE => encodeJWT(user)
+        case UserState.registered => halt(Unauthorized("Please confirm your email.").logResponse)
+        case UserState.blocked => halt(Unauthorized("invalid credentials").logResponse)
+        case UserState.active => encodeJWT(user)
       }
   }
 

@@ -27,7 +27,11 @@ object StateInfo {
 
   object State extends Enumeration {
     type State = Value
-    val DRAFT, SUBMITTED, IN_PROGRESS, REJECTED, ARCHIVED = Value
+    val draft: State = Value("DRAFT")
+    val submitted: State = Value("SUBMITTED")
+    val inProgress: State = Value("IN_PROGRESS")
+    val rejected: State = Value("REJECTED")
+    val archived: State = Value("ARCHIVED")
   }
 
   def apply(input: JsonInput): Try[StateInfo] = input.deserialize[StateInfo]

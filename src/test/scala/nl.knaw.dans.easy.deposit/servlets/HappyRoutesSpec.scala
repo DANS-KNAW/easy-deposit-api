@@ -82,8 +82,8 @@ class HappyRoutesSpec extends TestSupportFixture with ServletFixture with Scalat
     val uuid2 = UUID.randomUUID()
     expectsUserFooBar
     (mockedApp.getDeposits(_: String)) expects "foo" returning Success(Seq(
-      DepositInfo(uuid1, "x", DRAFT, "a", DateTime.now),
-      DepositInfo(uuid2, "y", SUBMITTED, "b", DateTime.now)
+      DepositInfo(uuid1, "x", draft, "a", DateTime.now),
+      DepositInfo(uuid2, "y", submitted, "b", DateTime.now)
     ))
 
     get(
@@ -137,7 +137,7 @@ class HappyRoutesSpec extends TestSupportFixture with ServletFixture with Scalat
     expectsUserFooBar
     // TODO how to define expects for the curried method called by the PUT variant?
     (mockedApp.getDepositState(_: String, _: UUID)) expects("foo", uuid) returning
-      Success(StateInfo(DRAFT, "x"))
+      Success(StateInfo(draft, "x"))
 
     get(
       uri = s"/deposit/$uuid/state",

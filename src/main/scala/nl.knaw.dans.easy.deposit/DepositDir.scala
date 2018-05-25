@@ -85,8 +85,8 @@ case class DepositDir private(baseDir: File, user: String, id: UUID) extends Deb
 
   private def checkStateTransition(transition: (State, State)) = {
     transition match {
-      case (State.DRAFT, State.SUBMITTED) => Success(())
-      case (State.REJECTED, State.DRAFT) => Success(())
+      case (State.draft, State.submitted) => Success(())
+      case (State.rejected, State.draft) => Success(())
       case (oldState, newState) => Failure(IllegalStateTransitionException(user, id, oldState, newState))
     }
   }

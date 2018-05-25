@@ -99,7 +99,7 @@ class DepositDirSpec extends TestSupportFixture with MockFactory {
   "setStateInfo" should "result in Success when transitioning from DRAFT to SUBMITTED" in {
     val deposit = createDepositAsPreparation("user001")
     val propsFile = draftsDir / "user001" / deposit.id.toString / "deposit.properties"
-    deposit.setStateInfo(StateInfo(State.SUBMITTED, "Ready for processing")) shouldBe a[Success[_]]
+    deposit.setStateInfo(StateInfo(State.submitted, "Ready for processing")) shouldBe a[Success[_]]
     propsFile.contentAsString should include regex """state.label\s*=\s*SUBMITTED""".r
   }
 
@@ -108,14 +108,14 @@ class DepositDirSpec extends TestSupportFixture with MockFactory {
     val propsFile = draftsDir / "user001" / deposit.id.toString / "deposit.properties"
     val old = propsFile.contentAsString
     propsFile.write(old.replaceFirst("DRAFT", "REJECTED"))
-    deposit.setStateInfo(StateInfo(State.DRAFT, "Open for changes")) shouldBe a[Success[_]]
+    deposit.setStateInfo(StateInfo(State.draft, "Open for changes")) shouldBe a[Success[_]]
     propsFile.contentAsString should include regex """state.label\s*=\s*DRAFT""".r
   }
 
   it should "result in IllegalStateTransitionException when transitioning from DRAFT to ARCHIVED" in {
     val deposit = createDepositAsPreparation("user001")
-    deposit.setStateInfo(StateInfo(State.ARCHIVED, "Completed archival process")) should matchPattern {
-      case Failure(IllegalStateTransitionException("user001", _, State.DRAFT, State.ARCHIVED)) =>
+    deposit.setStateInfo(StateInfo(State.archived, "Completed archival process")) should matchPattern {
+      case Failure(IllegalStateTransitionException("user001", _, State.draft, State.archived)) =>
     }
   }
 
@@ -124,8 +124,8 @@ class DepositDirSpec extends TestSupportFixture with MockFactory {
     val propsFile = draftsDir / "user001" / deposit.id.toString / "deposit.properties"
     val old = propsFile.contentAsString
     propsFile.write(old.replaceFirst("DRAFT", "REJECTED"))
-    deposit.setStateInfo(StateInfo(State.ARCHIVED, "Completed archival process")) should matchPattern {
-      case Failure(IllegalStateTransitionException("user001", _, State.REJECTED, State.ARCHIVED)) =>
+    deposit.setStateInfo(StateInfo(State.archived, "Completed archival process")) should matchPattern {
+      case Failure(IllegalStateTransitionException("user001", _, State.`rejected`, State.archived)) =>
     }
   }
 

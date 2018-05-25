@@ -30,7 +30,7 @@ class LdapAuthenticationSpec extends TestSupportFixture with MockFactory {
 
   val ldapMocker = LdapMocker()
 
-  private def wiring = new LdapAuthentication {
+  private def wiring: LdapAuthentication = new LdapAuthentication {
     override val authentication: Authentication = new Authentication {
       override val ldapUserIdAttrName: String = ""
       override val ldapParentEntry: String = ""
@@ -52,7 +52,7 @@ class LdapAuthenticationSpec extends TestSupportFixture with MockFactory {
     })
 
     wiring.authentication.authenticate("someone", "somepassword") should matchPattern {
-      case Some(AuthUser("someone", Seq("abc"), UserState.ACTIVE)) =>
+      case Some(AuthUser("someone", Seq("abc"), UserState.active)) =>
     }
   }
 

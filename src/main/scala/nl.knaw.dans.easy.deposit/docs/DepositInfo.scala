@@ -39,7 +39,7 @@ import scala.util.Try
  */
 case class DepositInfo(id: UUID = UUID.randomUUID(),
                        title: String = "",
-                       state: State = State.DRAFT,
+                       state: State = State.draft,
                        stateDescription: String = "Deposit is open for changes.",
                        date: DateTime = nowWithoutMillis
                       ) {
