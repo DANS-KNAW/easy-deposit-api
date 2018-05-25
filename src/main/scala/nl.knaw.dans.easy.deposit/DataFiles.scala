@@ -65,11 +65,19 @@ case class DataFiles(dataFilesBase: File, filesMetaData: File) extends DebugEnha
   def delete(path: Path): Try[Unit] = Try {
 
     val file = dataFilesBase / path.toString
-    val files = if (file.isDirectory && file.children.hasNext)
-                  file.walk(maxDepth = 10).take(100).toList // without toList we log only the first
+
+    // returns a StreamSupport.stream(???, false) deep down which has a close
+    val fileStream = file.walk(maxDepth = 10)
+
+    val files = if (file.isDirectory && fileStream.hasNext)
+                  fileStream.take(100).toList // without toList we'll only log the first
                 else Seq(file)
+
+    fileStream.dropWhile(_ => true) // deplete the stream to work around the no longer available close
+
     file.delete()
     // TODO when upload (and write DatasetMetadata?) does it too: let the bag-it lib recalculate the manifest file
+
     files.foreach(file => logger.info(s"deleted $file"))
   }
 
