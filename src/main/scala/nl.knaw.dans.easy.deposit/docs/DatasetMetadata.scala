@@ -76,7 +76,7 @@ case class DatasetMetadata(doi: Option[String] = None,
       Failure(new Exception("dateSubmitted should not be present"))
     else {
       val now = DateTime.now().toString("yyyy-MM-dd")
-      val submitted = QualifiedDate(None, now, dateSubmitted)
+      val submitted = QualifiedDate(Some("dcterms:W3CDTF"), now, dateSubmitted)
       val newDates = submitted +: dates.getOrElse(Seq.empty)
       Success(copy(dates = Some(newDates)))
     }
