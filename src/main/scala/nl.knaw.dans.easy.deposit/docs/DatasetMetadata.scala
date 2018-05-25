@@ -40,7 +40,7 @@ case class DatasetMetadata(doi: Option[String] = None,
                            relations: Option[Seq[Relation]] = None,
                            languagesOfFilesIso639: Option[Seq[String]] = None,
                            languagesOfFiles: Option[Seq[String]] = None,
-                           dates: Option[Seq[QualifiedDate]] = None,
+                           dates: Option[Seq[QualifiedSchemedValue]] = None,
                            sources: Option[Seq[String]] = None,
                            instructionsForReuse: Option[Seq[String]] = None,
                            rightsHolders: Option[Seq[String]] = None,
@@ -76,7 +76,7 @@ case class DatasetMetadata(doi: Option[String] = None,
       Failure(new Exception("dateSubmitted should not be present"))
     else {
       val now = DateTime.now().toString("yyyy-MM-dd")
-      val submitted = QualifiedDate(Some("dcterms:W3CDTF"), now, dateSubmitted)
+      val submitted = QualifiedSchemedValue(Some("dcterms:W3CDTF"), now, dateSubmitted)
       val newDates = submitted +: dates.getOrElse(Seq.empty)
       Success(copy(dates = Some(newDates)))
     }
@@ -115,17 +115,17 @@ object DatasetMetadata {
     InvalidDocumentException(s"Please set $label in DatasetMetadata")
   }
 
-  object PrivacySensitiveDataPresent extends Enumeration {
-    type PrivacySensitiveDataPresent = Value
-    val yes, no, unspecified = Value
-  }
-
   private def toBoolean(privacySensitiveDataPresent: PrivacySensitiveDataPresent): Try[Boolean] = {
     privacySensitiveDataPresent match {
       case PrivacySensitiveDataPresent.yes => Success(true)
       case PrivacySensitiveDataPresent.no => Success(false)
       case PrivacySensitiveDataPresent.unspecified => Failure(missingValue("PrivacySensitiveDataPresent"))
     }
+  }
+
+  object PrivacySensitiveDataPresent extends Enumeration {
+    type PrivacySensitiveDataPresent = Value
+    val yes, no, unspecified = PrivacySensitiveDataPresent.Value
   }
 
   object AccessCategory extends Enumeration {
@@ -150,22 +150,44 @@ object DatasetMetadata {
     val valid: DateQualifier = Value("dcterms:valid")
   }
 
+  object RelationQualifier extends Enumeration {
+    type RelationQualifier = Value
+    val hasFormat: RelationQualifier = Value("dcterms:hasFormat")
+    val hasPart: RelationQualifier = Value("dcterms:hasPart")
+    val hasVersion: RelationQualifier = Value("dcterms:hasVersion")
+    val isFormatOf: RelationQualifier = Value("dcterms:isFormatOf")
+    val isPartOf: RelationQualifier = Value("dcterms:isPartOf")
+    val isReferencedBy: RelationQualifier = Value("dcterms:isReferencedBy")
+    val isReplacedBy: RelationQualifier = Value("dcterms:isReplacedBy")
+    val isRequiredBy: RelationQualifier = Value("dcterms:isRequiredBy")
+    val isVersionOf: RelationQualifier = Value("dcterms:isVersionOf")
+    val references: RelationQualifier = Value("dcterms:references")
+    val relation: RelationQualifier = Value("dcterms:relation")
+    val replaces: RelationQualifier = Value("dcterms:replaces")
+    val requires: RelationQualifier = Value("dcterms:requires")
+  }
+
   case class AccessRights(category: AccessCategory,
                           group: String,
                          )
 
-  case class QualifiedDate(scheme: Option[String],
-                           value: String,
-                           qualifier: DateQualifier)
+  case class QualifiedSchemedValue(scheme: Option[String],
+                                   value: String,
+                                   qualifier: DateQualifier)
 
   case class Author(titles: Option[String] = None,
                     initials: Option[String] = None,
                     insertions: Option[String] = None,
                     surname: Option[String] = None,
-                    role: Option[String] = None,
+                    role: Option[SchemedKeyValue] = None,
                     ids: Option[Seq[SchemedValue]] = None,
                     organization: Option[String] = None,
-                   )
+                   ) {
+    def isValid: Boolean = {
+      organization.isDefined ||
+        (surname.isDefined && initials.isDefined)
+    }
+  }
 
   case class Date(scheme: Option[String] = None,
                   date: Option[String] = None,
@@ -186,6 +208,20 @@ object DatasetMetadata {
   case class SchemedValue(scheme: String,
                           value: String,
                          )
+
+  case class PossiblySchemedValue(scheme: Option[String],
+                                  value: String,
+                                 )
+
+  case class SchemedKeyValue(scheme: String,
+                             key: String,
+                             value: String,
+                            )
+
+  case class PossiblySchemedKeyValue(scheme: Option[String],
+                                     key: Option[String],
+                                     value: String,
+                                    )
 
   case class Identifier(scheme: String,
                         identifier: String,

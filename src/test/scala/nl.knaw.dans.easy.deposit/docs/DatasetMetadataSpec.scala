@@ -18,7 +18,7 @@ package nl.knaw.dans.easy.deposit.docs
 import nl.knaw.dans.easy.deposit.TestSupportFixture
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.AccessCategory.openForRegisteredUsers
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.DateQualifier.dateSubmitted
-import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.{ AccessRights, QualifiedDate }
+import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.{ AccessRights, QualifiedSchemedValue }
 import nl.knaw.dans.easy.deposit.docs.Json.{ InvalidDocumentException, RichJsonInput, toJson }
 import org.json4s.JsonAST._
 import org.json4s.native.JsonMethods
@@ -238,13 +238,13 @@ class DatasetMetadataSpec extends TestSupportFixture {
   }
 
   "QualifiedDate" should "serialize with prefixed enum" in {
-    val date = QualifiedDate(None, "2018-05-22", dateSubmitted)
+    val date = QualifiedSchemedValue(None, "2018-05-22", dateSubmitted)
     toJson(date) shouldBe """{"value":"2018-05-22","qualifier":"dcterms:dateSubmitted"}"""
   }
 
   it should "deserialize a prefixed enum" in {
     val s: JsonInput = """{"value":"2018-05-22","qualifier":"dcterms:dateSubmitted"}"""
-    s.deserialize[QualifiedDate] shouldBe a[Success[_]]
+    s.deserialize[QualifiedSchemedValue] shouldBe a[Success[_]]
   }
 
   "AccessCategory" should "serialize with prefix-less enum" in {
