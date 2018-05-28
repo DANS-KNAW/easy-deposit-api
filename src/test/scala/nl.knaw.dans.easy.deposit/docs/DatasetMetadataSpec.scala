@@ -132,13 +132,16 @@ class DatasetMetadataSpec extends TestSupportFixture {
       |    "string"
       |  ],
       |  "types": [
-      |    "string"
-      |  ],
-      |  "formatsMediaType": [
-      |    "string"
+      |    {
+      |      "scheme": "string",
+      |      "value": "string"
+      |    }
       |  ],
       |  "formats": [
-      |    "string"
+      |    {
+      |      "scheme": "string",
+      |      "value": "string"
+      |    }
       |  ],
       |  "temporalCoverages": [
       |    {
