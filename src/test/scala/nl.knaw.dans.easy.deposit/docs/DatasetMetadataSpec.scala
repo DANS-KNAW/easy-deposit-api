@@ -150,7 +150,11 @@ class DatasetMetadataSpec extends TestSupportFixture {
       |    "string"
       |  ],
       |  "temporalCoverages": [
-      |    "string"
+      |    {
+      |      "scheme": "string",
+      |      "value": "string",
+      |      "key": "string"
+      |    }
       |  ],
       |  "spatialPoints": [
       |    {
@@ -181,24 +185,27 @@ class DatasetMetadataSpec extends TestSupportFixture {
       |}""".stripMargin
 
   "deserialization/serialisation" should "produce the same json object structure" in {
-    val parsed = DatasetMetadata(example).getOrElse(fail("preconditions not as expected"))
+    val tried = DatasetMetadata(example)
+    val parsed = tried.getOrElse(fail("preconditions not as expected"))
     inside(JsonMethods.parse(example) diff JsonMethods.parse(toJson(parsed))) {
       case Diff(JNothing, JNothing, JNothing) =>
       case x => fail(s"did not expect $x")
     }
   }
 
-  "deserialization" should "return defaults for omitted fields" in {
+  it should "return defaults for omitted fields" in {
     val example =
       """{
         |  "creators": [
         |  ]
         |}""".stripMargin
-    toJson(DatasetMetadata(example).getOrElse("")) shouldBe
+    val tried = DatasetMetadata(example)
+    val parsed = tried.getOrElse(fail("preconditions not as expected"))
+    toJson(parsed) shouldBe
       """{"creators":[],"privacySensitiveDataPresent":"unspecified","acceptLicenseAgreement":false}"""
   }
 
-  it should "report additional json info" in {
+  "deserialization" should "report additional json info" in {
     val example ="""{"titles":["foo bar"],"x":[1]}""".stripMargin
     inside(DatasetMetadata(example)) {
       case Failure(InvalidDocumentException(docName, t)) =>
