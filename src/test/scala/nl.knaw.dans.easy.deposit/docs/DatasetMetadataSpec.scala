@@ -82,7 +82,11 @@ class DatasetMetadataSpec extends TestSupportFixture {
       |    "string"
       |  ],
       |  "subjects": [
-      |    "string"
+      |    {
+      |      "scheme": "string",
+      |      "value": "string",
+      |      "key": "string"
+      |    }
       |  ],
       |  "alternativeIdentifiers": [
       |    {
