@@ -30,7 +30,11 @@ class DatasetMetadataSpec extends TestSupportFixture {
   private val example =
     """{
       |  "doi": "doi:10.17632/DANS.6wg5xccnjd.1",
-      |  "languageOfDescription": "string",
+      |  "languageOfDescription": {
+      |    "scheme": "string",
+      |    "value": "string",
+      |    "key": "string"
+      |  },
       |  "titles": [
       |    "Title 1",
       |    "Title 2"

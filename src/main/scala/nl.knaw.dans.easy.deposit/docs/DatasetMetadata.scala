@@ -27,7 +27,7 @@ import scala.util.{ Failure, Success, Try }
 import scala.xml.Elem
 
 case class DatasetMetadata(doi: Option[String] = None,
-                           languageOfDescription: Option[String] = None,
+                           languageOfDescription: Option[SchemedKeyValue] = None,
                            titles: Option[Seq[String]] = None,
                            alternativeTitles: Option[Seq[String]] = None,
                            descriptions: Option[Seq[String]] = None,
