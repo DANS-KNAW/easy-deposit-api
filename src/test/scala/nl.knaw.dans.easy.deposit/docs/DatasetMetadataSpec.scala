@@ -116,9 +116,6 @@ class DatasetMetadataSpec extends TestSupportFixture {
       |  "instructionsForReuse": [
       |    "string"
       |  ],
-      |  "rightsHolders": [
-      |    "string"
-      |  ],
       |  "publishers": [
       |    "string"
       |  ],
