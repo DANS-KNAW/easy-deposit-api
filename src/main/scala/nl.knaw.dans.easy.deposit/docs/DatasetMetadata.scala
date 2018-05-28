@@ -38,13 +38,12 @@ case class DatasetMetadata(doi: Option[String] = None,
                            alternativeIdentifiers: Option[Seq[SchemedValue]] = None,
                            relations: Option[Seq[Relation]] = None,
                            languagesOfFiles: Option[Seq[PossiblySchemedKeyValue]] = None,
-                           dates: Option[Seq[QualifiedSchemedValue]] = None,
+                           dates: Option[Seq[Date]] = None,
                            sources: Option[Seq[String]] = None,
                            instructionsForReuse: Option[Seq[String]] = None,
                            publishers: Option[Seq[String]] = None,
                            accessRights: Option[AccessRights] = None,
                            license: Option[String] = None,
-                           dateAvailable: Option[String] = None,
                            typesDcmi: Option[Seq[String]] = None,
                            types: Option[Seq[PossiblySchemedValue]] = None,
                            formats: Option[Seq[PossiblySchemedValue]] = None,
@@ -68,7 +67,7 @@ case class DatasetMetadata(doi: Option[String] = None,
       Failure(new Exception("dateSubmitted should not be present"))
     else {
       val now = DateTime.now().toString("yyyy-MM-dd")
-      val submitted = QualifiedSchemedValue(Some("dcterms:W3CDTF"), now, dateSubmitted)
+      val submitted = Date(Some("dcterms:W3CDTF"), now, dateSubmitted)
       val newDates = submitted +: dates.getOrElse(Seq.empty)
       Success(copy(dates = Some(newDates)))
     }
@@ -165,7 +164,7 @@ object DatasetMetadata {
 
   case class QualifiedSchemedValue(scheme: Option[String],
                                    value: String,
-                                   qualifier: DateQualifier)
+                                   qualifier: String)
 
   case class Author(titles: Option[String] = None,
                     initials: Option[String] = None,
@@ -182,7 +181,8 @@ object DatasetMetadata {
   }
 
   case class Date(scheme: Option[String] = None,
-                  date: Option[String] = None,
+                  value: String,
+                  qualifier: DateQualifier,
                  )
 
   case class SpatialPoint(scheme: String,
