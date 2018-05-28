@@ -97,11 +97,12 @@ class DatasetMetadataSpec extends TestSupportFixture {
       |      "title": "string"
       |    }
       |  ],
-      |  "languagesOfFilesIso639": [
-      |    "string"
-      |  ],
       |  "languagesOfFiles": [
-      |    "string"
+      |    {
+      |      "scheme": "string",
+      |      "value": "string",
+      |      "key": "string"
+      |    }
       |  ],
       |  "dates": [
       |    {
