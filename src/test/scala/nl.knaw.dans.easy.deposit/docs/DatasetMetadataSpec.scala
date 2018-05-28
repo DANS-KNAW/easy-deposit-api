@@ -140,15 +140,6 @@ class DatasetMetadataSpec extends TestSupportFixture {
       |  "formats": [
       |    "string"
       |  ],
-      |  "archisNrs": [
-      |    "string"
-      |  ],
-      |  "subjectsAbrComplex": [
-      |    "string"
-      |  ],
-      |  "temporalCoveragesAbr": [
-      |    "string"
-      |  ],
       |  "temporalCoverages": [
       |    {
       |      "scheme": "string",
