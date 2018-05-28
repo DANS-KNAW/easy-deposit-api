@@ -77,7 +77,6 @@ class DatasetMetadataSpec extends TestSupportFixture {
       |      "organization": "University of Zurich"
       |    }
       |  ],
-      |  "dateCreated": "string",
       |  "audiences": [
       |    {
       |      "scheme": "string",
