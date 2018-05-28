@@ -79,7 +79,11 @@ class DatasetMetadataSpec extends TestSupportFixture {
       |  ],
       |  "dateCreated": "string",
       |  "audiences": [
-      |    "string"
+      |    {
+      |      "scheme": "string",
+      |      "value": "string",
+      |      "key": "string"
+      |    }
       |  ],
       |  "subjects": [
       |    {
