@@ -44,8 +44,13 @@ object JsonUtil {
     )
   )
 
-  // NB: values for all enums should be unique, see https://github.com/json4s/json4s/issues/142
-  val enumerations = List(DateQualifier, State, AccessCategory, PrivacySensitiveDataPresent)
+  val enumerations = List(
+    RelationQualifier,
+    DateQualifier,
+    State,
+    AccessCategory,
+    PrivacySensitiveDataPresent
+  )
 
   private implicit val jsonFormats: Formats = new DefaultFormats {} +
     UUIDSerializer +

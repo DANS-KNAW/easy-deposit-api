@@ -18,6 +18,7 @@ package nl.knaw.dans.easy.deposit.docs
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.AccessCategory.AccessCategory
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.DateQualifier.{ DateQualifier, dateSubmitted }
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.PrivacySensitiveDataPresent.{ PrivacySensitiveDataPresent, unspecified }
+import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.RelationQualifier.RelationQualifier
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata._
 import nl.knaw.dans.easy.deposit.docs.JsonUtil.{ InvalidDocumentException, RichJsonInput }
 import org.joda.time.DateTime
@@ -162,10 +163,6 @@ object DatasetMetadata {
                           group: String,
                          )
 
-  case class QualifiedSchemedValue(scheme: Option[String],
-                                   value: String,
-                                   qualifier: String)
-
   case class Author(titles: Option[String] = None,
                     initials: Option[String] = None,
                     insertions: Option[String] = None,
@@ -197,6 +194,17 @@ object DatasetMetadata {
                         west: Int,
                        )
 
+  trait RelationType
+
+  case class Relation(qualifier: RelationQualifier,
+                      url: Option[String] = None,
+                      title: Option[String] = None,
+                     ) //extends RelationType
+
+  case class QualifiedSchemedValue(scheme: Option[String],
+                                   value: String,
+                                   qualifier: String) //extends RelationType
+
   case class SchemedValue(scheme: String,
                           value: String,
                          )
@@ -218,10 +226,5 @@ object DatasetMetadata {
   case class Identifier(scheme: String,
                         identifier: String,
                        )
-
-  case class Relation(qualifier: Option[String] = None,
-                      url: Option[String] = None,
-                      title: Option[String] = None,
-                     )
 }
 

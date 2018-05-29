@@ -103,11 +103,11 @@ class DatasetMetadataSpec extends TestSupportFixture {
       |  ],
       |  "relations": [
       |    {
-      |      "qualifier": "string",
+      |      "qualifier": "dcterms:hasFormat",
       |      "url": "string",
       |      "title": "string"
       |    }
-      |  ],
+      |  ]
       |  "languagesOfFiles": [
       |    {
       |      "scheme": "string",
