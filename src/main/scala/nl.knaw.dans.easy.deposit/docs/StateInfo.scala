@@ -15,7 +15,7 @@
  */
 package nl.knaw.dans.easy.deposit.docs
 
-import nl.knaw.dans.easy.deposit.docs.Json.RichJsonInput
+import nl.knaw.dans.easy.deposit.docs.JsonUtil.RichJsonInput
 import nl.knaw.dans.easy.deposit.docs.StateInfo.State.State
 import org.json4s.JsonInput
 

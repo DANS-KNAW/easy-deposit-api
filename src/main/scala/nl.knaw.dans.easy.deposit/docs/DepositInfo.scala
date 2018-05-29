@@ -18,7 +18,7 @@ package nl.knaw.dans.easy.deposit.docs
 import java.util.UUID
 
 import nl.knaw.dans.easy.deposit.docs.DepositInfo._
-import nl.knaw.dans.easy.deposit.docs.Json.RichJsonInput
+import nl.knaw.dans.easy.deposit.docs.JsonUtil.RichJsonInput
 import nl.knaw.dans.easy.deposit.docs.StateInfo.State
 import nl.knaw.dans.easy.deposit.docs.StateInfo.State.State
 import org.joda.time.DateTime

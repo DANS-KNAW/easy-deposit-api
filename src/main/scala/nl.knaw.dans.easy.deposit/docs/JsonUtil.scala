@@ -29,7 +29,7 @@ import org.json4s.{ CustomSerializer, DefaultFormats, Diff, Extraction, Formats,
 import scala.reflect.runtime.universe.typeOf
 import scala.util.{ Failure, Success, Try }
 
-object Json {
+object JsonUtil {
 
   case class InvalidDocumentException(s: String, t: Throwable = null)
     extends Exception(s"invalid $s: ${ t.getClass } ${ t.getMessage }", t)

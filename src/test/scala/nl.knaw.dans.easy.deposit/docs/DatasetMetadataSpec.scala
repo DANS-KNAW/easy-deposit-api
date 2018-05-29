@@ -19,7 +19,7 @@ import nl.knaw.dans.easy.deposit.TestSupportFixture
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.AccessCategory.openForRegisteredUsers
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.AccessRights
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.DateQualifier.dateSubmitted
-import nl.knaw.dans.easy.deposit.docs.Json.{ InvalidDocumentException, RichJsonInput, toJson }
+import nl.knaw.dans.easy.deposit.docs.JsonUtil.{ InvalidDocumentException, RichJsonInput, toJson }
 import org.json4s.JsonAST._
 import org.json4s.native.JsonMethods
 import org.json4s.{ Diff, JsonInput }

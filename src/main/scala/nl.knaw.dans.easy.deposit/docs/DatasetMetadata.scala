@@ -19,7 +19,7 @@ import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.AccessCategory.AccessCateg
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.DateQualifier.{ DateQualifier, dateSubmitted }
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.PrivacySensitiveDataPresent.{ PrivacySensitiveDataPresent, unspecified }
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata._
-import nl.knaw.dans.easy.deposit.docs.Json.{ InvalidDocumentException, RichJsonInput }
+import nl.knaw.dans.easy.deposit.docs.JsonUtil.{ InvalidDocumentException, RichJsonInput }
 import org.joda.time.DateTime
 import org.json4s.JsonInput
 
