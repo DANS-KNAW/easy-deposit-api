@@ -16,7 +16,7 @@
 package nl.knaw.dans.easy.deposit
 
 import java.io.InputStream
-import java.nio.file.{ Path, Paths }
+import java.nio.file.{ Files, Path, Paths }
 
 import better.files._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
@@ -65,15 +65,11 @@ case class DataFiles(dataFilesBase: File, filesMetaData: File) extends DebugEnha
   def delete(path: Path): Try[Unit] = Try {
 
     val file = dataFilesBase / path.toString
-
-    // returns a StreamSupport.stream(???, false) deep down which has a close
-    val fileStream = file.walk(maxDepth = 10)
-
+    val fileStream = file.walk()
+    // TODO maximise depth/width? resource leaks: https://github.com/pathikrit/better-files/issues/241
     val files = if (file.isDirectory && fileStream.hasNext)
-                  fileStream.take(100).toList // without toList we'll only log the first
+                  fileStream.toList // without toList we would only log the first
                 else Seq(file)
-
-    fileStream.dropWhile(_ => true) // deplete the stream to work around the no longer available close
 
     file.delete()
     // TODO when upload (and write DatasetMetadata?) does it too: let the bag-it lib recalculate the manifest file
