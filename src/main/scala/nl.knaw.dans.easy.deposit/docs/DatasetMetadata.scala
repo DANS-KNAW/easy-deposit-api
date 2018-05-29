@@ -37,7 +37,7 @@ case class DatasetMetadata(doi: Option[String] = None,
                            audiences: Option[Seq[SchemedKeyValue]] = None,
                            subjects: Option[Seq[PossiblySchemedKeyValue]] = None,
                            alternativeIdentifiers: Option[Seq[SchemedValue]] = None,
-                           relations: Option[Seq[Relation]] = None,
+                           relations: Option[Seq[RelationType]] = None,
                            languagesOfFiles: Option[Seq[PossiblySchemedKeyValue]] = None,
                            dates: Option[Seq[Date]] = None,
                            sources: Option[Seq[String]] = None,
@@ -171,6 +171,7 @@ object DatasetMetadata {
                     ids: Option[Seq[SchemedValue]] = None,
                     organization: Option[String] = None,
                    ) {
+    require(isValid,"Author needs on of (organisation, surname and initials)")
     def isValid: Boolean = {
       organization.isDefined ||
         (surname.isDefined && initials.isDefined)
@@ -199,11 +200,16 @@ object DatasetMetadata {
   case class Relation(qualifier: RelationQualifier,
                       url: Option[String] = None,
                       title: Option[String] = None,
-                     ) //extends RelationType
+                     ) extends RelationType {
+    require(isValid,"Relation needs one of (title, url)")
+    def isValid: Boolean = {
+        title.isDefined || url.isDefined
+    }
+  }
 
   case class QualifiedSchemedValue(scheme: Option[String],
                                    value: String,
-                                   qualifier: String) //extends RelationType
+                                   qualifier: String) extends RelationType
 
   case class SchemedValue(scheme: String,
                           value: String,

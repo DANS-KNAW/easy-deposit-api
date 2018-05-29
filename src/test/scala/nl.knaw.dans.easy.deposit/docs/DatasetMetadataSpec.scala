@@ -106,6 +106,11 @@ class DatasetMetadataSpec extends TestSupportFixture {
       |      "qualifier": "dcterms:hasFormat",
       |      "url": "string",
       |      "title": "string"
+      |    },
+      |    {
+      |      "scheme": "string",
+      |      "value": "string",
+      |      "qualifier": "string"
       |    }
       |  ]
       |  "languagesOfFiles": [
@@ -188,7 +193,8 @@ class DatasetMetadataSpec extends TestSupportFixture {
 
   "deserialization/serialisation" should "produce the same json object structure" in {
     val parsed = prepareDatasetMetadata(example)
-    inside(JsonMethods.parse(example) diff JsonMethods.parse(toJson(parsed))) {
+    val serializedObject = JsonMethods.parse(toJson(parsed))
+    inside(JsonMethods.parse(example) diff serializedObject) {
       case Diff(JNothing, JNothing, JNothing) =>
       case x => fail(s"did not expect $x")
     }
