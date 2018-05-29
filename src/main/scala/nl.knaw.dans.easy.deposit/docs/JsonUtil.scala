@@ -23,7 +23,6 @@ import org.json4s.Extraction.decompose
 import org.json4s.JsonAST.{ JValue, _ }
 import org.json4s.JsonDSL._
 import org.json4s.ext.{ EnumNameSerializer, JodaTimeSerializers, UUIDSerializer }
-import org.json4s.jackson.Serialization
 import org.json4s.native.JsonMethods
 import org.json4s.native.Serialization.write
 import org.json4s.{ CustomSerializer, DefaultFormats, Diff, Extraction, Formats, JsonInput }
@@ -55,7 +54,7 @@ object JsonUtil {
             .getOrElse(null)
           )
     }, {
-      // case x: RelationType => JString(x.toString) // not enough for rejectNotExpectedContent
+      // case x: RelationType => JString(x.toString) // would break rejectNotExpectedContent
       case rel: Relation =>
         ("qualifier" -> rel.qualifier.toString) ~
           ("url" -> rel.url) ~
@@ -63,7 +62,7 @@ object JsonUtil {
       case rel: QualifiedSchemedValue =>
         ("scheme" -> rel.scheme) ~
           ("value" -> rel.value) ~
-          ("qualifier" -> rel.qualifier)// TODO needs swagger an enum?
+          ("qualifier" -> rel.qualifier) // TODO needs swagger an enum?
     }
     )
   )

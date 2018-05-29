@@ -29,7 +29,12 @@ import scala.util.{ Failure, Success }
 class DatasetMetadataSpec extends TestSupportFixture {
   private val example =
     """{
-      |  "doi": "doi:10.17632/DANS.6wg5xccnjd.1",
+      |  "identifiers": [
+      |    {
+      |      "scheme": "doi",
+      |      "value": "10.17632/DANS.6wg5xccnjd.1"
+      |    }
+      |  ],
       |  "languageOfDescription": {
       |    "scheme": "string",
       |    "value": "string",
@@ -226,9 +231,18 @@ class DatasetMetadataSpec extends TestSupportFixture {
   }
 
   it should "extract just the last object" in {
-    inside(DatasetMetadata("""{"languageOfDescription": "string"}{"doi": "doi:10.17632/DANS.6wg5xccnjd.1"}""")) {
+    val s =
+      """{"languageOfDescription": "string"}
+        |{  "identifiers": [
+        |    {
+        |      "scheme": "doi",
+        |      "value": "10.17632/DANS.6wg5xccnjd.1"
+        |    }
+        |  ]
+        |}""".stripMargin
+    inside(DatasetMetadata(s)) {
       case Success(dm: DatasetMetadata) =>
-        dm.doi shouldBe Some("doi:10.17632/DANS.6wg5xccnjd.1")
+        dm.doi shouldBe Some("10.17632/DANS.6wg5xccnjd.1")
         dm.languageOfDescription shouldBe None
     }
   }

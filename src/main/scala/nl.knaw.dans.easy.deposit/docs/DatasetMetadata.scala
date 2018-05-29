@@ -27,7 +27,7 @@ import org.json4s.JsonInput
 import scala.util.{ Failure, Success, Try }
 import scala.xml.Elem
 
-case class DatasetMetadata(doi: Option[String] = None,
+case class DatasetMetadata(identifiers: Option[Seq[SchemedValue]] = None,
                            languageOfDescription: Option[SchemedKeyValue] = None,
                            titles: Option[Seq[String]] = None,
                            alternativeTitles: Option[Seq[String]] = None,
@@ -56,6 +56,18 @@ case class DatasetMetadata(doi: Option[String] = None,
                            privacySensitiveDataPresent: PrivacySensitiveDataPresent = unspecified,
                            acceptLicenseAgreement: Boolean = false,
                           ) {
+  private val doiScheme = "doi"
+  lazy val doi: Option[String] = identifiers.flatMap(_.find {
+    identifier => identifier.scheme == doiScheme
+  }).map(_.value)
+
+  def addDoi (value: String): DatasetMetadata = {
+    identifiers match {
+      case None => Some(Seq(SchemedValue(doiScheme,value)))
+      case Some(ids) => Some(ids :+ SchemedValue(doiScheme,value))
+    }
+    this.copy(identifiers = identifiers)
+  }
 
   private lazy val submitDate: Option[String] = {
     dates.flatMap(_.find(_.qualifier == dateSubmitted)).map(_.value)
@@ -171,7 +183,8 @@ object DatasetMetadata {
                     ids: Option[Seq[SchemedValue]] = None,
                     organization: Option[String] = None,
                    ) {
-    require(isValid,"Author needs on of (organisation, surname and initials)")
+    require(isValid, "Author needs on of (organisation, surname and initials)")
+
     def isValid: Boolean = {
       organization.isDefined ||
         (surname.isDefined && initials.isDefined)
@@ -201,9 +214,10 @@ object DatasetMetadata {
                       url: Option[String] = None,
                       title: Option[String] = None,
                      ) extends RelationType {
-    require(isValid,"Relation needs one of (title, url)")
+    require(isValid, "Relation needs one of (title, url)")
+
     def isValid: Boolean = {
-        title.isDefined || url.isDefined
+      title.isDefined || url.isDefined
     }
   }
 
