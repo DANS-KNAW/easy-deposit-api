@@ -116,8 +116,4 @@ object JsonUtil {
   }
 
   def extract[T: Manifest](parsed: JValue): T = Extraction.extract(parsed)
-
-  def fromJsonString[T: Manifest](jsonString: String): Try[T] = Try(Serialization.read(jsonString))
-
-  def fromJsonInput[T: Manifest](jsonInput: JsonInput): Try[T] = Try(Serialization.read(jsonInput))
 }
