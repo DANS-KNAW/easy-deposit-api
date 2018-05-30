@@ -15,7 +15,7 @@
  */
 package nl.knaw.dans.easy.deposit
 
-import java.util.UUID
+import java.util.{ Base64, UUID }
 
 import better.files.File
 import better.files.File._
@@ -41,8 +41,12 @@ trait TestSupportFixture extends FlatSpec with Matchers with Inside with BeforeA
     DateTimeUtils.setCurrentMillisFixed(new DateTime(value).getMillis)
   }
 
-  /** Base64 encoded foo:bar */
-  val fooBarBasicAuthHeader = "Basic Zm9vOmJhcg=="
+  val fooBarBasicAuthHeader: String = authenticationHeader("foo","bar")
+
+  def authenticationHeader(username: String, password: String, authType: String = "Basic"): String = {
+    val encoded = Base64.getEncoder.encodeToString(s"$username:$password".getBytes())
+    s"$authType $encoded"
+  }
 
   def minimalAppConfig: Configuration = {
     new Configuration("", new PropertiesConfiguration() {

@@ -16,13 +16,13 @@
 package nl.knaw.dans.easy.deposit
 
 import java.io.InputStream
-import java.nio.file.{ Path, Paths }
-import java.util.UUID
+import java.nio.file.{ Files, Path, Paths }
 
 import scala.xml.Elem
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.AccessCategory.AccessCategory
 import better.files._
 import org.apache.tika.Tika
+import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 
 import scala.collection.Seq
 import scala.util.{ Failure, Try }
@@ -35,7 +35,7 @@ import scala.util.{ Failure, Try }
  * @param dataFilesBase the base directory of the data files
  * @param filesMetaData the file containing the file metadata
  */
-case class DataFiles(dataFilesBase: File, filesMetaData: File) {
+case class DataFiles(dataFilesBase: File, filesMetaData: File) extends DebugEnhancedLogging {
 
   /**
    * Lists information about the files the directory `path` and its subdirectories.
@@ -114,22 +114,20 @@ case class DataFiles(dataFilesBase: File, filesMetaData: File) {
    *
    * @param path the relative path of the file or directory to delete
    */
-  def delete(path: Path): Try[Unit] = ???
+  def delete(path: Path): Try[Unit] = Try {
+
+    val file = dataFilesBase / path.toString
+    val fileStream = file.walk()
+    // TODO maximise depth/width? resource leaks: https://github.com/pathikrit/better-files/issues/241
+    val files = if (file.isDirectory && fileStream.hasNext)
+                  fileStream.toList // without toList we would only log the first
+                else Seq(file)
+
+    file.delete()
+    // TODO when upload (and write DatasetMetadata?) does it too: let the bag-it lib recalculate the manifest file
+
+    files.foreach(file => logger.info(s"deleted $file"))
+  }
 
   def writeFilesXml(): Try[Unit] = ???
-}
-
-object AddFileMetadataToDeposit {
-  private val tika = new Tika
-  type MimeType = String
-
-  /**
-   * Identify the mimeType of a path.
-   *
-   * @param path the path to identify
-   * @return the mimeType of the path if the identification was successful; `Failure` otherwise
-   */
-  def getMimeType(path: Path): Try[MimeType] = Try {
-    tika.detect(path)
-  }
 }

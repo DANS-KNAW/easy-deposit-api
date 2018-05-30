@@ -15,7 +15,7 @@
  */
 package nl.knaw.dans.easy.deposit.servlets
 
-import java.nio.file.{ Path, Paths }
+import java.nio.file.{ NoSuchFileException, Path, Paths }
 import java.util.UUID
 
 import nl.knaw.dans.easy.deposit.authentication.ServletEnhancedLogging._
@@ -100,11 +100,11 @@ class DepositServlet(app: EasyDepositApiApp) extends ProtectedServlet(app) {
 
   delete("/:uuid/file/*") { //dir and file
     forPath(app.deleteDepositFile)
-      .map(_ => Ok(???))
+      .map(_ => NoContent())
       .getOrRecoverResponse(respond)
   }
 
-  private def forUser[T](callback: (String) => Try[T]
+  private def forUser[T](callback: String => Try[T]
                         ): Try[T] = {
     // shortest callBack signature
     // the signatures reflect the parameters in the route patterns and authenticated user
@@ -131,6 +131,7 @@ class DepositServlet(app: EasyDepositApiApp) extends ProtectedServlet(app) {
   private def respond(t: Throwable): ActionResult = t match {
     case e: IllegalStateTransitionException => Forbidden(e.getMessage)
     case e: NoSuchDepositException => NoSuchDespositResponse(e)
+    case e: NoSuchFileException => NotFound(body = s"${ e.getMessage } not found")
     case e: InvalidResourceException => InvalidResourceResponse(e)
     case e: InvalidDocumentException => badDocResponse(e)
     case _ => internalErrorResponse(t)
