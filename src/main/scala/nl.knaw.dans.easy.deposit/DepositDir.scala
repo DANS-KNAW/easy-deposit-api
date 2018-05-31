@@ -197,7 +197,7 @@ case class DepositDir private(baseDir: File, user: String, id: UUID) extends Deb
     doi <- maybeTriedDOI.getOrElse(pidRequester.requestPid(PidType.doi))
     _ = props.addProperty("identifier.doi", doi)
     _ <- maybeTriedDOI.getOrElse(Try { props.save(depositPropertiesFile.toJava) })
-    _ <- maybeTriedDOI.getOrElse(writeDatasetMetadataJson(dm.withDoi(doi)))
+    _ <- maybeTriedDOI.getOrElse(writeDatasetMetadataJson(dm.setDoi(doi)))
   } yield doi
 
   private def doisMatch(dm: DatasetMetadata, doi: Option[String]) = {

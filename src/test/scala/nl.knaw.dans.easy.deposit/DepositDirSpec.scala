@@ -148,7 +148,7 @@ class DepositDirSpec extends TestSupportFixture with MockFactory {
     deposit.getDOI(pidMocker) shouldBe Success(doi)
 
     // post conditions
-    mdFile.contentAsString should startWith(s"""{"doi":"$doi",""")
+    mdFile.contentAsString should startWith(s"""{"identifiers":[{"scheme":"id-type:doi","value":"12345"}]""")
     val newDepositProperties = depositPropertiesFile.contentAsString
     newDepositProperties should include(oldDepositProperties)
     newDepositProperties should include("identifier.doi")
@@ -170,7 +170,7 @@ class DepositDirSpec extends TestSupportFixture with MockFactory {
     val doi = "12345"
     val deposit = createDepositAsPreparation(user)
     val dd = deposit.baseDir / user / deposit.id.toString
-    (dd / "bag" / "metadata" / "dataset.json").writeText(s"""{"doi":"$doi"}""")
+    (dd / "bag" / "metadata" / "dataset.json").writeText(s"""{"identifiers":[{"scheme":"id-type:doi","value":"12345"}]}""")
     (dd / "deposit.properties").writeText(s"""identifier.doi = $doi""")
 
     val pidMocker = mock[PidRequester] // note that no pid is requested

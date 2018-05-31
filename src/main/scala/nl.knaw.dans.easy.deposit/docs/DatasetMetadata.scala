@@ -62,12 +62,9 @@ case class DatasetMetadata(identifiers: Option[Seq[SchemedValue]] = None,
     case SchemedValue(`doiScheme`, value) => value
   })
 
-  def withDoi(value: String): DatasetMetadata = {
-    identifiers match {
-      case None => Some(Seq(SchemedValue(doiScheme, value)))
-      case Some(ids) => Some(ids :+ SchemedValue(doiScheme, value))
-    }
-    this.copy(identifiers = identifiers)
+  def setDoi(value: String): DatasetMetadata = {
+    val ids = identifiers.getOrElse(Seq.empty).filter(_.scheme == doiScheme)
+    this.copy(identifiers = Some(ids :+ SchemedValue(doiScheme, value)))
   }
 
   private lazy val submitDate: Option[String] = {
