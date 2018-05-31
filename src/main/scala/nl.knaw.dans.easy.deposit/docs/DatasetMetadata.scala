@@ -17,6 +17,7 @@ package nl.knaw.dans.easy.deposit.docs
 
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.AccessCategory.AccessCategory
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.DateQualifier.{ DateQualifier, dateSubmitted }
+import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.DateScheme.DateScheme
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.PrivacySensitiveDataPresent.{ PrivacySensitiveDataPresent, unspecified }
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.RelationQualifier.RelationQualifier
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata._
@@ -29,17 +30,17 @@ import scala.util.{ Failure, Success, Try }
 import scala.xml.Elem
 
 case class DatasetMetadata(identifiers: Option[Seq[SchemedValue]] = None,
-                           languageOfDescription: Option[SchemedKeyValue] = None,
+                           languageOfDescription: Option[SchemedKeyValue[String]] = None,
                            titles: Option[Seq[String]] = None,
                            alternativeTitles: Option[Seq[String]] = None,
                            descriptions: Option[Seq[String]] = None,
                            creators: Option[Seq[Author]] = None,
                            contributors: Option[Seq[Author]] = None,
-                           audiences: Option[Seq[SchemedKeyValue]] = None,
-                           subjects: Option[Seq[PossiblySchemedKeyValue]] = None,
+                           audiences: Option[Seq[SchemedKeyValue[String]]] = None,
+                           subjects: Option[Seq[PossiblySchemedKeyValue[String]]] = None,
                            alternativeIdentifiers: Option[Seq[SchemedValue]] = None,
                            relations: Option[Seq[RelationType]] = None,
-                           languagesOfFiles: Option[Seq[PossiblySchemedKeyValue]] = None,
+                           languagesOfFiles: Option[Seq[PossiblySchemedKeyValue[String]]] = None,
                            dates: Option[Seq[Date]] = None,
                            sources: Option[Seq[String]] = None,
                            instructionsForReuse: Option[Seq[String]] = None,
@@ -47,12 +48,12 @@ case class DatasetMetadata(identifiers: Option[Seq[SchemedValue]] = None,
                            accessRights: Option[AccessRights] = None,
                            license: Option[String] = None,
                            typesDcmi: Option[Seq[String]] = None,
-                           types: Option[Seq[PossiblySchemedValue]] = None,
-                           formats: Option[Seq[PossiblySchemedValue]] = None,
-                           temporalCoverages: Option[Seq[PossiblySchemedKeyValue]] = None,
+                           types: Option[Seq[PossiblySchemedValue[String]]] = None,
+                           formats: Option[Seq[PossiblySchemedValue[String]]] = None,
+                           temporalCoverages: Option[Seq[PossiblySchemedKeyValue[String]]] = None,
                            spatialPoints: Option[Seq[SpatialPoint]] = None,
                            spatialBoxes: Option[Seq[SpatialBox]] = None,
-                           spatialCoverages: Option[Seq[PossiblySchemedKeyValue]] = None,
+                           spatialCoverages: Option[Seq[PossiblySchemedKeyValue[String]]] = None,
                            messageForDataManager: Option[String] = None,
                            privacySensitiveDataPresent: PrivacySensitiveDataPresent = unspecified,
                            acceptLicenseAgreement: Boolean = false,
@@ -78,7 +79,7 @@ case class DatasetMetadata(identifiers: Option[Seq[SchemedValue]] = None,
       Failure(new Exception("dateSubmitted should not be present"))
     else {
       val now = DateTime.now().toString(ISODateTimeFormat.date())
-      val submitted = Date(Some("W3CDTF"), now, dateSubmitted)
+      val submitted = Date(Some(DateScheme.W3CDTF), now, dateSubmitted)
       val newDates = submitted +: dates.getOrElse(Seq.empty)
       Success(copy(dates = Some(newDates)))
     }
@@ -182,7 +183,7 @@ object DatasetMetadata {
                     initials: Option[String],
                     insertions: Option[String],
                     surname: Option[String],
-                    role: Option[SchemedKeyValue],
+                    role: Option[SchemedKeyValue[String]],
                     ids: Option[Seq[SchemedValue]],
                     organization: Option[String],
                    ) {
@@ -194,7 +195,12 @@ object DatasetMetadata {
     }
   }
 
-  case class Date(scheme: Option[String],
+  // this causes class cast exceptions, possibly related to compiler warning on
+  //    case rel: QualifiedSchemedValue[String, String] =>
+  // in JsonUtil.RelationTypeSerializer
+  // type Date = QualifiedSchemedValue[DateScheme, DateQualifier]
+
+  case class Date(scheme: Option[DateScheme],
                   value: String,
                   qualifier: DateQualifier,
                  )
@@ -224,30 +230,30 @@ object DatasetMetadata {
     }
   }
 
-  case class QualifiedSchemedValue(scheme: Option[String],
-                                   value: String,
-                                   qualifier: String) extends RelationType
+  case class QualifiedSchemedValue[S, A](scheme: Option[S],
+                                         value: String,
+                                         qualifier: A) extends RelationType
 
   case class SchemedValue(scheme: String,
                           value: String,
                          )
 
-  case class PossiblySchemedValue(scheme: Option[String],
-                                  value: String,
-                                 )
-
-  case class SchemedKeyValue(scheme: String,
-                             key: String,
-                             value: String,
-                            )
-
-  case class PossiblySchemedKeyValue(scheme: Option[String],
-                                     key: Option[String],
+  case class PossiblySchemedValue[S](scheme: Option[S],
                                      value: String,
                                     )
 
-  case class Identifier(scheme: String,
-                        identifier: String,
-                       )
+  case class SchemedKeyValue[S](scheme: S,
+                                key: String,
+                                value: String,
+                               )
+
+  case class PossiblySchemedKeyValue[S](scheme: Option[S],
+                                        key: Option[String],
+                                        value: String,
+                                       )
+
+  case class Identifier[S](scheme: S,
+                           identifier: String,
+                          )
 }
 

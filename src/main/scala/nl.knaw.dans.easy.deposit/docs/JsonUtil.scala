@@ -50,7 +50,7 @@ object JsonUtil {
       case JNull => null
       case s: JValue =>
         Try { Extraction.extract[Relation](s) }
-          .getOrElse(Try { Extraction.extract[QualifiedSchemedValue](s) }
+          .getOrElse(Try { Extraction.extract[QualifiedSchemedValue[String, String]](s) }
             .getOrElse(null)
           )
     }, {
@@ -59,7 +59,7 @@ object JsonUtil {
         ("qualifier" -> rel.qualifier.toString) ~
           ("url" -> rel.url) ~
           ("title" -> rel.title)
-      case rel: QualifiedSchemedValue =>
+      case rel: QualifiedSchemedValue[String, String] =>
         ("scheme" -> rel.scheme) ~
           ("value" -> rel.value) ~
           ("qualifier" -> rel.qualifier) // TODO needs swagger an enum?
