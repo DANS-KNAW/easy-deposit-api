@@ -117,7 +117,7 @@ class DatasetMetadataSpec extends TestSupportFixture {
       |      "value": "string",
       |      "qualifier": "string"
       |    }
-      |  ]
+      |  ],
       |  "languagesOfFiles": [
       |    {
       |      "scheme": "string",
@@ -142,13 +142,10 @@ class DatasetMetadataSpec extends TestSupportFixture {
       |    "string"
       |  ],
       |  "accessRights": {
-      |    "category": "open",
+      |    "category": "OPEN_ACCESS",
       |    "group": "string"
       |  },
       |  "license": "string",
-      |  "typesDcmi": [
-      |    "string"
-      |  ],
       |  "types": [
       |    {
       |      "scheme": "string",
@@ -278,10 +275,10 @@ class DatasetMetadataSpec extends TestSupportFixture {
   }
 
   "AccessCategory" should "serialize with prefix-less enum" in {
-    toJson(AccessRights(openForRegisteredUsers, "")) shouldBe """{"category":"open_for_registered_users","group":""}"""
+    toJson(AccessRights(openForRegisteredUsers, "")) shouldBe """{"category":"OPEN_ACCESS_FOR_REGISTERED_USERS","group":""}"""
   }
   it should "deserialize a prefix-less enum" in {
-    val s: JsonInput = """{"category":"open_for_registered_users","group":""}"""
+    val s: JsonInput = """{"category":"OPEN_ACCESS_FOR_REGISTERED_USERS","group":""}"""
     s.deserialize[AccessRights] shouldBe a[Success[_]]
   }
   it should "refeuse to deserialize a prefix on a non-prefixed enum" in {

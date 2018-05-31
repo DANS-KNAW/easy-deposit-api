@@ -134,11 +134,11 @@ object DatasetMetadata {
 
   object AccessCategory extends Enumeration {
     type AccessCategory = Value
-    val open: AccessCategory = Value("open")
-    val openForRegisteredUsers: AccessCategory = Value("open_for_registered_users")
-    val restrictedGroup: AccessCategory = Value("restricted_group")
-    val restrictedRequest: AccessCategory = Value("restricted_request")
-    val otherAccess: AccessCategory = Value("other_access")
+    val open: AccessCategory = Value("OPEN_ACCESS")
+    val openForRegisteredUsers: AccessCategory = Value("OPEN_ACCESS_FOR_REGISTERED_USERS")
+    val restrictedGroup: AccessCategory = Value("GROUP_ACCESS")
+    val restrictedRequest: AccessCategory = Value("REQUEST_PERMISSION")
+    val otherAccess: AccessCategory = Value("NO_ACCESS")
   }
 
   object DateQualifier extends Enumeration {
