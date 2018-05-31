@@ -176,13 +176,13 @@ object DatasetMetadata {
                           group: String,
                          )
 
-  case class Author(titles: Option[String] = None,
-                    initials: Option[String] = None,
-                    insertions: Option[String] = None,
-                    surname: Option[String] = None,
-                    role: Option[SchemedKeyValue] = None,
-                    ids: Option[Seq[SchemedValue]] = None,
-                    organization: Option[String] = None,
+  case class Author(titles: Option[String],
+                    initials: Option[String],
+                    insertions: Option[String],
+                    surname: Option[String],
+                    role: Option[SchemedKeyValue],
+                    ids: Option[Seq[SchemedValue]],
+                    organization: Option[String],
                    ) {
     require(isValid, "Author needs one of (organisation | surname and initials)")
 
@@ -192,7 +192,7 @@ object DatasetMetadata {
     }
   }
 
-  case class Date(scheme: Option[String] = None,
+  case class Date(scheme: Option[String],
                   value: String,
                   qualifier: DateQualifier,
                  )
@@ -212,8 +212,8 @@ object DatasetMetadata {
   trait RelationType
 
   case class Relation(qualifier: RelationQualifier,
-                      url: Option[String] = None,
-                      title: Option[String] = None,
+                      url: Option[String],
+                      title: Option[String],
                      ) extends RelationType {
     require(isValid, "Relation needs one of (title | url)")
 
