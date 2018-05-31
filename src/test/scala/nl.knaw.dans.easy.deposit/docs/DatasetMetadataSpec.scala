@@ -16,13 +16,10 @@
 package nl.knaw.dans.easy.deposit.docs
 
 import nl.knaw.dans.easy.deposit.TestSupportFixture
-import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.AccessCategory.openForRegisteredUsers
-import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.AccessRights
-import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.DateQualifier.dateSubmitted
-import nl.knaw.dans.easy.deposit.docs.JsonUtil.{ InvalidDocumentException, RichJsonInput, toJson }
+import nl.knaw.dans.easy.deposit.docs.JsonUtil.{ InvalidDocumentException, toJson }
+import org.json4s.Diff
 import org.json4s.JsonAST._
 import org.json4s.native.JsonMethods
-import org.json4s.{ Diff, JsonInput }
 
 import scala.util.{ Failure, Success }
 
@@ -127,8 +124,8 @@ class DatasetMetadataSpec extends TestSupportFixture {
       |  ],
       |  "dates": [
       |    {
-      |      "scheme": "string",
-      |      "value": "string",
+      |      "scheme": "dcterms:W3CDTF",
+      |      "value": "2018-05-31",
       |      "qualifier": "dcterms:created"
       |    }
       |  ],
@@ -261,33 +258,6 @@ class DatasetMetadataSpec extends TestSupportFixture {
       t.getMessage shouldBe
         """expected field or array
           |Near: 12""".stripMargin
-    }
-  }
-
-  "QualifiedDate" should "serialize with prefixed enum" in {
-    val date = DatasetMetadata.Date(None, "2018-05-22", dateSubmitted)
-    toJson(date) shouldBe """{"value":"2018-05-22","qualifier":"dcterms:dateSubmitted"}"""
-  }
-
-  it should "deserialize a prefixed enum" in {
-    val s: JsonInput = """{"value":"2018-05-22","qualifier":"dcterms:dateSubmitted"}"""
-    s.deserialize[DatasetMetadata.Date] shouldBe a[Success[_]]
-  }
-
-  "AccessCategory" should "serialize with prefix-less enum" in {
-    toJson(AccessRights(openForRegisteredUsers, "")) shouldBe """{"category":"OPEN_ACCESS_FOR_REGISTERED_USERS","group":""}"""
-  }
-  it should "deserialize a prefix-less enum" in {
-    val s: JsonInput = """{"category":"OPEN_ACCESS_FOR_REGISTERED_USERS","group":""}"""
-    s.deserialize[AccessRights] shouldBe a[Success[_]]
-  }
-  it should "refeuse to deserialize a prefix on a non-prefixed enum" in {
-    val s: JsonInput = """{"category":"dcterms:open_for_registered_users","group":""}"""
-    inside(s.deserialize[AccessRights]) {
-      case Failure(InvalidDocumentException(msg, cause)) =>
-        msg shouldBe "AccessRights"
-        cause.getMessage should startWith("No usable value for")
-        cause.getMessage should include("category")
     }
   }
 }

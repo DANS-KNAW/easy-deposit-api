@@ -78,7 +78,7 @@ case class DatasetMetadata(identifiers: Option[Seq[SchemedValue]] = None,
       Failure(new Exception("dateSubmitted should not be present"))
     else {
       val now = DateTime.now().toString(ISODateTimeFormat.date())
-      val submitted = Date(Some("dcterms:W3CDTF"), now, dateSubmitted)
+      val submitted = Date(Some("W3CDTF"), now, dateSubmitted)
       val newDates = submitted +: dates.getOrElse(Seq.empty)
       Success(copy(dates = Some(newDates)))
     }
@@ -167,6 +167,11 @@ object DatasetMetadata {
     val relation: RelationQualifier = Value("dcterms:relation")
     val replaces: RelationQualifier = Value("dcterms:replaces")
     val requires: RelationQualifier = Value("dcterms:requires")
+  }
+
+  object DateScheme extends Enumeration {
+    type DateScheme = Value
+    val W3CDTF: DateScheme = Value("dcterms:W3CDTF")
   }
 
   case class AccessRights(category: AccessCategory,

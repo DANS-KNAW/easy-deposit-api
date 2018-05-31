@@ -69,6 +69,7 @@ object JsonUtil {
 
   val enumerations = List(
     RelationQualifier,
+    DateScheme,
     DateQualifier,
     State,
     AccessCategory,
