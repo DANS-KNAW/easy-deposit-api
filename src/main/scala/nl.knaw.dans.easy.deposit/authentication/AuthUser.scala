@@ -32,13 +32,13 @@ object AuthUser {
     type UserState = Value
 
     /** The user has successfully registered, but has not validated the registration; the account cannot be used (yet). */
-    val registered: AuthUser.UserState.Value = Value("REGISTERED")
+    val registered: Value = Value("REGISTERED")
 
     /** The user has a valid registration; the account can be used. */
-    val active: AuthUser.UserState.Value = Value("ACTIVE")
+    val active: Value = Value("ACTIVE")
 
     /** The user is blocked; the account cannot be used. */
-    val blocked: AuthUser.UserState.Value = Value("BLOCKED")
+    val blocked: Value = Value("BLOCKED")
   }
 
   def apply(attributes: Map[String, Seq[String]]): AuthUser = {

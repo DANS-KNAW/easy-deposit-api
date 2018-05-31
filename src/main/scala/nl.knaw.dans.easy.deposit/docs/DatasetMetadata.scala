@@ -22,6 +22,7 @@ import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.RelationQualifier.Relation
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata._
 import nl.knaw.dans.easy.deposit.docs.JsonUtil.{ InvalidDocumentException, RichJsonInput }
 import org.joda.time.DateTime
+import org.joda.time.format.ISODateTimeFormat
 import org.json4s.JsonInput
 
 import scala.util.{ Failure, Success, Try }
@@ -56,15 +57,15 @@ case class DatasetMetadata(identifiers: Option[Seq[SchemedValue]] = None,
                            privacySensitiveDataPresent: PrivacySensitiveDataPresent = unspecified,
                            acceptLicenseAgreement: Boolean = false,
                           ) {
-  private val doiScheme = "doi"
-  lazy val doi: Option[String] = identifiers.flatMap(_.find {
-    identifier => identifier.scheme == doiScheme
-  }).map(_.value)
+  private val doiScheme = "id-type:doi"
+  lazy val doi: Option[String] = identifiers.flatMap(_.collectFirst {
+    case SchemedValue(`doiScheme`, value) => value
+  })
 
-  def addDoi (value: String): DatasetMetadata = {
+  def withDoi(value: String): DatasetMetadata = {
     identifiers match {
-      case None => Some(Seq(SchemedValue(doiScheme,value)))
-      case Some(ids) => Some(ids :+ SchemedValue(doiScheme,value))
+      case None => Some(Seq(SchemedValue(doiScheme, value)))
+      case Some(ids) => Some(ids :+ SchemedValue(doiScheme, value))
     }
     this.copy(identifiers = identifiers)
   }
@@ -79,7 +80,7 @@ case class DatasetMetadata(identifiers: Option[Seq[SchemedValue]] = None,
     if (submitDate.isDefined)
       Failure(new Exception("dateSubmitted should not be present"))
     else {
-      val now = DateTime.now().toString("yyyy-MM-dd")
+      val now = DateTime.now().toString(ISODateTimeFormat.date())
       val submitted = Date(Some("dcterms:W3CDTF"), now, dateSubmitted)
       val newDates = submitted +: dates.getOrElse(Seq.empty)
       Success(copy(dates = Some(newDates)))
@@ -183,7 +184,7 @@ object DatasetMetadata {
                     ids: Option[Seq[SchemedValue]] = None,
                     organization: Option[String] = None,
                    ) {
-    require(isValid, "Author needs on of (organisation, surname and initials)")
+    require(isValid, "Author needs one of (organisation | surname and initials)")
 
     def isValid: Boolean = {
       organization.isDefined ||
@@ -214,7 +215,7 @@ object DatasetMetadata {
                       url: Option[String] = None,
                       title: Option[String] = None,
                      ) extends RelationType {
-    require(isValid, "Relation needs one of (title, url)")
+    require(isValid, "Relation needs one of (title | url)")
 
     def isValid: Boolean = {
       title.isDefined || url.isDefined

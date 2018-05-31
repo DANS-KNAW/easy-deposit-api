@@ -87,7 +87,7 @@ object JsonUtil {
       for {
         parsed <- Try { JsonMethods.parse(body) }
         _ <- acceptOnlyJObject(parsed)
-        result = extract[A](parsed)
+        result = Extraction.extract(parsed)
         _ <- rejectNotExpectedContent(parsed, result)
       } yield result
     }.recoverWith { case t: Throwable =>
@@ -113,6 +113,4 @@ object JsonUtil {
     // seems not to need a try: while the date formatter wasn't in place it produced empty strings
     write(a)
   }
-
-  def extract[T: Manifest](parsed: JValue): T = Extraction.extract(parsed)
 }

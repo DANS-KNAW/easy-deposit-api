@@ -232,7 +232,7 @@ class DatasetMetadataSpec extends TestSupportFixture {
       """{"languageOfDescription": "string"}
         |{  "identifiers": [
         |    {
-        |      "scheme": "doi",
+        |      "scheme": "id-type:doi",
         |      "value": "10.17632/DANS.6wg5xccnjd.1"
         |    }
         |  ]
