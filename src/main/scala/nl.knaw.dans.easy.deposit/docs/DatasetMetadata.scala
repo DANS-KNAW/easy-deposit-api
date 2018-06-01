@@ -59,7 +59,7 @@ case class DatasetMetadata(identifiers: Option[Seq[SchemedValue[String]]] = None
                            privacySensitiveDataPresent: PrivacySensitiveDataPresent = PrivacySensitiveDataPresent.unspecified,
                            acceptLicenseAgreement: Boolean = false,
                           ) {
-  private val doiScheme = "id-type:doi"
+  private val doiScheme = "id-type:DOI"
   lazy val doi: Option[String] = identifiers.flatMap(_.collectFirst {
     case SchemedValue(`doiScheme`, value) => value
   })
