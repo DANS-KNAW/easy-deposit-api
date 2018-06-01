@@ -17,14 +17,24 @@ package nl.knaw.dans.easy.deposit.docs
 
 import better.files.File
 import nl.knaw.dans.easy.deposit.TestSupportFixture
+import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.{ Date, DateQualifier, DateScheme }
 import nl.knaw.dans.easy.deposit.docs.JsonUtil.{ InvalidDocumentException, toJson }
+import org.joda.time.DateTime
 import org.json4s.Diff
 import org.json4s.JsonAST._
 import org.json4s.native.JsonMethods
 
-import scala.util.{ Failure, Success }
+import scala.util.{ Failure, Success, Try }
 
 class DatasetMetadataSpec extends TestSupportFixture {
+
+  "Date" should "implement all DateScheme values" in {
+    val now = DateTime.now()
+    val triedDates = DateScheme.values.toList.map(scheme => Try {
+      DatasetMetadata.Date(scheme, now, DateQualifier.available)
+    })
+    every(triedDates) shouldBe a[Success[_]]
+  }
 
   "deserialization/serialisation" should "produce the same json object structure" in {
     roundTripTest("datasetmetadata.json")

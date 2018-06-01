@@ -182,11 +182,6 @@ object DatasetMetadata {
     val conformsTo: RelationQualifier = Value("dcterms:conformsTo")
   }
 
-  object DateScheme extends Enumeration {
-    type DateScheme = Value
-    val W3CDTF: DateScheme = Value("dcterms:W3CDTF")
-  }
-
   case class AccessRights(category: AccessCategory,
                           group: Option[String],
                          )
@@ -207,6 +202,11 @@ object DatasetMetadata {
     }
   }
 
+  object DateScheme extends Enumeration {
+    type DateScheme = Value
+    val W3CDTF: DateScheme = Value("dcterms:W3CDTF")
+  }
+
   type Date = QualifiedSchemedValue[DateScheme, DateQualifier]
 
   def Date(value: String, qualifier: DateQualifier): Date = {
@@ -219,6 +219,7 @@ object DatasetMetadata {
           ): Date = {
     val stringValue: String = scheme match {
       case DateScheme.W3CDTF => value.toString(ISODateTimeFormat.date())
+      // unit test check that the next case never applies
       case s => throw new NotImplementedError(s"date formatter for $s")
     }
     QualifiedSchemedValue[DateScheme, DateQualifier](Some(scheme), stringValue, qualifier)
@@ -253,9 +254,9 @@ object DatasetMetadata {
                                value: String,
                                qualifier: RelationQualifier) extends RelationType
 
-  case class QualifiedSchemedValue[S, A](scheme: Option[S],
+  case class QualifiedSchemedValue[S, Q](scheme: Option[S],
                                          value: String,
-                                         qualifier: A)
+                                         qualifier: Q)
 
   case class SchemedValue[S](scheme: S,
                              value: String,
