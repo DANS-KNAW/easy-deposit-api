@@ -230,9 +230,13 @@ object DatasetMetadata {
     }
   }
 
+  case class RelatedIdentifier(scheme: Option[String],
+                               value: String,
+                               qualifier: RelationQualifier) extends RelationType
+
   case class QualifiedSchemedValue[S, A](scheme: Option[S],
                                          value: String,
-                                         qualifier: A) extends RelationType
+                                         qualifier: A)
 
   case class SchemedValue(scheme: String,
                           value: String,

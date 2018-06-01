@@ -50,7 +50,7 @@ object JsonUtil {
       case JNull => null
       case s: JValue =>
         Try { Extraction.extract[Relation](s) }
-          .getOrElse(Try { Extraction.extract[QualifiedSchemedValue[String, String]](s) }
+          .getOrElse(Try { Extraction.extract[RelatedIdentifier](s) } // TODO use orElse?
             .getOrElse(null)
           )
     }, {
@@ -59,10 +59,10 @@ object JsonUtil {
         ("qualifier" -> rel.qualifier.toString) ~
           ("url" -> rel.url) ~
           ("title" -> rel.title)
-      case rel: QualifiedSchemedValue[String, String] =>
-        ("scheme" -> rel.scheme) ~
-          ("value" -> rel.value) ~
-          ("qualifier" -> rel.qualifier) // TODO needs swagger an enum?
+      case RelatedIdentifier(scheme, value, qualifier) =>
+        ("scheme" -> scheme.map(_.toString)) ~
+          ("value" -> value) ~
+          ("qualifier" -> qualifier.toString) // TODO needs swagger an enum?
     }
     )
   )

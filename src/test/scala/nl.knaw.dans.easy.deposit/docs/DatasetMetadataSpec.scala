@@ -15,6 +15,7 @@
  */
 package nl.knaw.dans.easy.deposit.docs
 
+import better.files.File
 import nl.knaw.dans.easy.deposit.TestSupportFixture
 import nl.knaw.dans.easy.deposit.docs.JsonUtil.{ InvalidDocumentException, toJson }
 import org.json4s.Diff
@@ -24,182 +25,22 @@ import org.json4s.native.JsonMethods
 import scala.util.{ Failure, Success }
 
 class DatasetMetadataSpec extends TestSupportFixture {
-  private val example =
-    """{
-      |  "identifiers": [
-      |    {
-      |      "scheme": "doi",
-      |      "value": "10.17632/DANS.6wg5xccnjd.1"
-      |    }
-      |  ],
-      |  "languageOfDescription": {
-      |    "scheme": "string",
-      |    "value": "string",
-      |    "key": "string"
-      |  },
-      |  "titles": [
-      |    "Title 1",
-      |    "Title 2"
-      |  ],
-      |  "alternativeTitles": [
-      |    "string"
-      |  ],
-      |  "descriptions": [
-      |    "string"
-      |  ],
-      |  "creators": [
-      |    {
-      |      "titles": "Prof Dr",
-      |      "initials": "A",
-      |      "surname": "Einstein",
-      |      "ids": [
-      |        {
-      |          "scheme": "DOI",
-      |          "value": "1234/5678"
-      |        },
-      |        {
-      |          "scheme": "ISNI",
-      |          "value": "ISNI|000000012281955X"
-      |        }
-      |      ],
-      |      "organization": "University of Zurich"
-      |    }
-      |  ],
-      |  "contributors": [
-      |    {
-      |      "titles": "Prof Dr",
-      |      "initials": "A",
-      |      "surname": "Einstein",
-      |      "ids": [
-      |        {
-      |          "scheme": "DOI",
-      |          "value": "1234/5678"
-      |        },
-      |        {
-      |          "scheme": "ISNI",
-      |          "value": "ISNI|000000012281955X"
-      |        }
-      |      ],
-      |      "organization": "University of Zurich"
-      |    }
-      |  ],
-      |  "audiences": [
-      |    {
-      |      "scheme": "string",
-      |      "value": "string",
-      |      "key": "string"
-      |    }
-      |  ],
-      |  "subjects": [
-      |    {
-      |      "scheme": "string",
-      |      "value": "string",
-      |      "key": "string"
-      |    }
-      |  ],
-      |  "alternativeIdentifiers": [
-      |    {
-      |      "scheme": "string",
-      |      "value": "string"
-      |    }
-      |  ],
-      |  "relations": [
-      |    {
-      |      "qualifier": "dcterms:hasFormat",
-      |      "url": "string",
-      |      "title": "string"
-      |    },
-      |    {
-      |      "scheme": "string",
-      |      "value": "string",
-      |      "qualifier": "string"
-      |    }
-      |  ],
-      |  "languagesOfFiles": [
-      |    {
-      |      "scheme": "string",
-      |      "value": "string",
-      |      "key": "string"
-      |    }
-      |  ],
-      |  "dates": [
-      |    {
-      |      "scheme": "dcterms:W3CDTF",
-      |      "value": "2018-05-31",
-      |      "qualifier": "dcterms:created"
-      |    }
-      |  ],
-      |  "sources": [
-      |    "string"
-      |  ],
-      |  "instructionsForReuse": [
-      |    "string"
-      |  ],
-      |  "publishers": [
-      |    "string"
-      |  ],
-      |  "accessRights": {
-      |    "category": "OPEN_ACCESS",
-      |    "group": "string"
-      |  },
-      |  "license": "string",
-      |  "types": [
-      |    {
-      |      "scheme": "string",
-      |      "value": "string"
-      |    }
-      |  ],
-      |  "formats": [
-      |    {
-      |      "scheme": "string",
-      |      "value": "string"
-      |    }
-      |  ],
-      |  "temporalCoverages": [
-      |    {
-      |      "scheme": "string",
-      |      "value": "string",
-      |      "key": "string"
-      |    }
-      |  ],
-      |  "spatialPoints": [
-      |    {
-      |      "scheme": "string",
-      |      "x": 0,
-      |      "y": 0
-      |    }
-      |  ],
-      |  "spatialBoxes": [
-      |    {
-      |      "scheme": "string",
-      |      "north": 0,
-      |      "east": 0,
-      |      "south": 0,
-      |      "west": 0
-      |    }
-      |  ],
-      |  "spatialCoverages": [
-      |    {
-      |      "scheme": "string",
-      |      "value": "string",
-      |      "key": "string"
-      |    }
-      |  ],
-      |  "messageForDataManager": "string",
-      |  "privacySensitiveDataPresent": "yes",
-      |  "acceptLicenseAgreement": true
-      |}""".stripMargin
 
   "deserialization/serialisation" should "produce the same json object structure" in {
+    val example = (File("src") / "test" / "resources" / "manual-test" / "datasetmetadata.json").contentAsString
     val parsed = prepareDatasetMetadata(example)
     val serializedObject = JsonMethods.parse(toJson(parsed))
     inside(JsonMethods.parse(example) diff serializedObject) {
       case Diff(JNothing, JNothing, JNothing) =>
-      case x => fail(s"did not expect $x")
+      case Diff(changed, added, deleted) => reportFailure(parsed, changed, added, deleted)
     }
   }
 
-  it should "return defaults for omitted fields" in {
+  private def reportFailure(parsed: DatasetMetadata, changed: JValue, added: JValue, deleted: JValue) = {
+    fail(s"serialized parsed object not equal to original json object: changed=[$changed] added=[$added] deleted=[$deleted]; re-serialized json=[${ toJson(parsed) }]")
+  }
+
+  it should "return defaults for omitted mandatory fields" in {
     val example =
       """{
         |  "creators": [
