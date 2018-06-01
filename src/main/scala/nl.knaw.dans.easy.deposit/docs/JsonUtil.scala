@@ -17,6 +17,7 @@ package nl.knaw.dans.easy.deposit.docs
 
 import java.nio.file.{ Path, Paths }
 
+import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.ExternalIdentifierScheme.ExternalIdentifierScheme
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata._
 import nl.knaw.dans.easy.deposit.docs.StateInfo.State
 import org.json4s.Extraction.decompose
@@ -73,7 +74,8 @@ object JsonUtil {
     DateQualifier,
     State,
     AccessCategory,
-    PrivacySensitiveDataPresent
+    PrivacySensitiveDataPresent,
+    ExternalIdentifierScheme
   )
 
   private implicit val jsonFormats: Formats = new DefaultFormats {} +

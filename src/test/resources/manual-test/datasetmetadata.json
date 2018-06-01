@@ -72,7 +72,7 @@
   ],
   "alternativeIdentifiers": [
     {
-      "scheme": "string",
+      "scheme": "id-type:NWO-PROJECTNR",
       "value": "string"
     }
   ],
@@ -83,7 +83,7 @@
       "title": "string"
     },
     {
-      "scheme": "string",
+      "scheme": "id-type:URN",
       "value": "string",
       "qualifier": "dcterms:hasFormat"
     }

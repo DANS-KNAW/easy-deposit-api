@@ -18,7 +18,7 @@ package nl.knaw.dans.easy.deposit.docs
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.AccessCategory.AccessCategory
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.DateQualifier.DateQualifier
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.DateScheme.DateScheme
-import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.ExternalIdentifierScheme.{ DOI, ExternalIdentifierScheme }
+import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.ExternalIdentifierScheme.ExternalIdentifierScheme
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.PrivacySensitiveDataPresent.PrivacySensitiveDataPresent
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.RelationQualifier.RelationQualifier
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata._
@@ -39,7 +39,7 @@ case class DatasetMetadata(identifiers: Option[Seq[SchemedValue[String]]] = None
                            contributors: Option[Seq[Author]] = None,
                            audiences: Option[Seq[SchemedKeyValue[String]]] = None,
                            subjects: Option[Seq[PossiblySchemedKeyValue[String]]] = None,
-                           alternativeIdentifiers: Option[Seq[SchemedValue[String]]] = None,
+                           alternativeIdentifiers: Option[Seq[SchemedValue[ExternalIdentifierScheme]]] = None,
                            relations: Option[Seq[RelationType]] = None,
                            languagesOfFiles: Option[Seq[PossiblySchemedKeyValue[String]]] = None,
                            dates: Option[Seq[Date]] = None,
@@ -249,7 +249,7 @@ object DatasetMetadata {
     }
   }
 
-  case class RelatedIdentifier(scheme: Option[String],
+  case class RelatedIdentifier(scheme: Option[ExternalIdentifierScheme],
                                value: String,
                                qualifier: RelationQualifier) extends RelationType
 

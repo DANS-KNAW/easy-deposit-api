@@ -30,12 +30,12 @@ class DatasetMetadataSpec extends TestSupportFixture {
     roundTripTest("datasetmetadata.json")
   }
 
-  it should "not fail for uit test data (all fields)" in {
+  it should "not fail for UI test data (all fields)" in {
     // https://github.com/DANS-KNAW/easy-deposit-ui/blob/81b21a08ce1a8a3d86ef74148c1e024188080e10/src/test/typescript/mockserver/metadata.ts#L255-L585
     roundTripTest("datasetmetadata-from-ui-all.json")
   }
 
-  it should "not fail for uit test data (some fields)" in {
+  it should "not fail for UI test data (some fields)" in {
     // https://github.com/DANS-KNAW/easy-deposit-ui/blob/81b21a08ce1a8a3d86ef74148c1e024188080e10/src/test/typescript/mockserver/metadata.ts#L586-L642
     roundTripTest("datasetmetadata-from-ui-some.json")
   }
