@@ -18,6 +18,7 @@ package nl.knaw.dans.easy.deposit.docs
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.AccessCategory.AccessCategory
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.DateQualifier.DateQualifier
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.DateScheme.DateScheme
+import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.ExternalIdentifierScheme.{ DOI, ExternalIdentifierScheme }
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.PrivacySensitiveDataPresent.PrivacySensitiveDataPresent
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.RelationQualifier.RelationQualifier
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata._
@@ -29,7 +30,7 @@ import org.json4s.JsonInput
 import scala.util.{ Failure, Success, Try }
 import scala.xml.Elem
 
-case class DatasetMetadata(identifiers: Option[Seq[SchemedValue]] = None,
+case class DatasetMetadata(identifiers: Option[Seq[SchemedValue[String]]] = None,
                            languageOfDescription: Option[SchemedKeyValue[String]] = None,
                            titles: Option[Seq[String]] = None,
                            alternativeTitles: Option[Seq[String]] = None,
@@ -38,7 +39,7 @@ case class DatasetMetadata(identifiers: Option[Seq[SchemedValue]] = None,
                            contributors: Option[Seq[Author]] = None,
                            audiences: Option[Seq[SchemedKeyValue[String]]] = None,
                            subjects: Option[Seq[PossiblySchemedKeyValue[String]]] = None,
-                           alternativeIdentifiers: Option[Seq[SchemedValue]] = None,
+                           alternativeIdentifiers: Option[Seq[SchemedValue[String]]] = None,
                            relations: Option[Seq[RelationType]] = None,
                            languagesOfFiles: Option[Seq[PossiblySchemedKeyValue[String]]] = None,
                            dates: Option[Seq[Date]] = None,
@@ -152,6 +153,17 @@ object DatasetMetadata {
     val valid: DateQualifier = Value("dcterms:valid")
   }
 
+  object ExternalIdentifierScheme extends Enumeration {
+    type ExternalIdentifierScheme = Value
+    val DOI: ExternalIdentifierScheme = Value("id-type:DOI")
+    val URN: ExternalIdentifierScheme = Value("id-type:URN")
+    val MENDELEY_DATA: ExternalIdentifierScheme = Value("id-type:MENDELEY-DATA")
+    val ISBN: ExternalIdentifierScheme = Value("id-type:ISBN")
+    val ISSN: ExternalIdentifierScheme = Value("id-type:ISSN")
+    val NWO_PROJECTNR: ExternalIdentifierScheme = Value("id-type:NWO-PROJECTNR")
+    val ARCHIS_ZAAK_IDENTIFICATIE: ExternalIdentifierScheme = Value("id-type:ARCHIS-ZAAK-IDENTIFICATIE")
+  }
+
   object RelationQualifier extends Enumeration {
     type RelationQualifier = Value
     val hasFormat: RelationQualifier = Value("dcterms:hasFormat")
@@ -184,7 +196,7 @@ object DatasetMetadata {
                     insertions: Option[String],
                     surname: Option[String],
                     role: Option[SchemedKeyValue[String]],
-                    ids: Option[Seq[SchemedValue]],
+                    ids: Option[Seq[SchemedValue[String]]],
                     organization: Option[String],
                    ) {
     require(isValid, "Author needs one of (organisation | surname and initials)")
@@ -245,9 +257,9 @@ object DatasetMetadata {
                                          value: String,
                                          qualifier: A)
 
-  case class SchemedValue(scheme: String,
-                          value: String,
-                         )
+  case class SchemedValue[S](scheme: S,
+                             value: String,
+                            )
 
   case class PossiblySchemedValue[S](scheme: Option[S],
                                      value: String,
@@ -262,9 +274,5 @@ object DatasetMetadata {
                                         key: Option[String],
                                         value: String,
                                        )
-
-  case class Identifier[S](scheme: S,
-                           identifier: String,
-                          )
 }
 
