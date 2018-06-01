@@ -167,6 +167,7 @@ object DatasetMetadata {
     val relation: RelationQualifier = Value("dcterms:relation")
     val replaces: RelationQualifier = Value("dcterms:replaces")
     val requires: RelationQualifier = Value("dcterms:requires")
+    val conformsTo: RelationQualifier = Value("dcterms:conformsTo")
   }
 
   object DateScheme extends Enumeration {
