@@ -21,6 +21,7 @@ import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.DateScheme.DateScheme
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.ExternalIdentifierScheme.ExternalIdentifierScheme
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.PrivacySensitiveDataPresent.PrivacySensitiveDataPresent
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.RelationQualifier.RelationQualifier
+import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.SpatialScheme.SpatialScheme
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata._
 import nl.knaw.dans.easy.deposit.docs.JsonUtil.{ InvalidDocumentException, RichJsonInput }
 import org.joda.time.DateTime
@@ -225,7 +226,13 @@ object DatasetMetadata {
     QualifiedSchemedValue[DateScheme, DateQualifier](Some(scheme), stringValue, qualifier)
   }
 
-  case class SpatialPoint(scheme: String,
+  object SpatialScheme extends Enumeration {
+    type SpatialScheme = Value
+    val degrees: SpatialScheme = Value("http://www.opengis.net/def/crs/EPSG/0/4326")
+    val RD: SpatialScheme = Value("http://www.opengis.net/def/crs/EPSG/0/28992")
+  }
+
+  case class SpatialPoint(scheme: SpatialScheme,
                           x: Int,
                           y: Int,
                          )

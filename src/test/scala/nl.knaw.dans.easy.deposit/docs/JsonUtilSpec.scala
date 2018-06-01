@@ -16,6 +16,10 @@
 package nl.knaw.dans.easy.deposit.docs
 
 import nl.knaw.dans.easy.deposit.TestSupportFixture
+import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.{ DateQualifier, DateScheme }
+import org.joda.time.DateTime
+
+import scala.util.{ Success, Try }
 
 class JsonUtilSpec extends TestSupportFixture {
 
@@ -24,5 +28,15 @@ class JsonUtilSpec extends TestSupportFixture {
 
     val values = JsonUtil.enumerations.flatMap(_.values.map(_.toString))
     values shouldBe values.distinct
+  }
+
+  "JsonUtil.enumerations" should "should have all enums defined in DatasetMetatadata" ignore {
+    val enums: List[Enumeration] = ??? // TODO DatasetMetadata.enums
+    val checkedEnums = enums.map { e =>
+      (e, JsonUtil.enumerations.contains(e))
+    }
+//    every(checkedEnums) shouldBe fullyMatch {
+//      case (_, true) =>
+//    }
   }
 }

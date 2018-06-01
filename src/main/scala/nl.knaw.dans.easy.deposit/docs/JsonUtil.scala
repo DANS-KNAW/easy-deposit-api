@@ -74,7 +74,8 @@ object JsonUtil {
     State,
     AccessCategory,
     PrivacySensitiveDataPresent,
-    ExternalIdentifierScheme
+    ExternalIdentifierScheme,
+    SpatialScheme
   )
 
   private implicit val jsonFormats: Formats = new DefaultFormats {} +
