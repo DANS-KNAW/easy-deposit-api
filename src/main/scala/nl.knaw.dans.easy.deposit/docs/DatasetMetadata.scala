@@ -237,7 +237,7 @@ object DatasetMetadata {
                           y: Int,
                          )
 
-  case class SpatialBox(scheme: String,
+  case class SpatialBox(scheme: SpatialScheme,
                         north: Int,
                         east: Int,
                         south: Int,

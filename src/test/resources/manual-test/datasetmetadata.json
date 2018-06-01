@@ -144,7 +144,7 @@
   ],
   "spatialBoxes": [
     {
-      "scheme": "string",
+      "scheme": "http://www.opengis.net/def/crs/EPSG/0/4326",
       "north": 0,
       "east": 0,
       "south": 0,
