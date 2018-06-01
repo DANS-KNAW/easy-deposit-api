@@ -149,9 +149,11 @@
       "url": "http://y"
     },
     {
+      "qualifier": "dcterms:relation",
       "url": "http://z"
     },
     {
+      "qualifier": "dcterms:relation",
       "title": "title3"
     }
   ],
