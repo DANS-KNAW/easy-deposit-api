@@ -17,7 +17,7 @@ package nl.knaw.dans.easy.deposit.docs
 
 import java.nio.file.{ Path, Paths }
 
-import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.{ DateQualifier, _ }
+import nl.knaw.dans.easy.deposit.docs.DatasetMetadata._
 import nl.knaw.dans.easy.deposit.docs.StateInfo.State
 import org.json4s.Extraction.decompose
 import org.json4s.JsonAST.{ JValue, _ }

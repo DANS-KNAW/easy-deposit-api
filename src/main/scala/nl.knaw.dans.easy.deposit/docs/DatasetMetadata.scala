@@ -16,9 +16,9 @@
 package nl.knaw.dans.easy.deposit.docs
 
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.AccessCategory.AccessCategory
-import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.DateQualifier.{ DateQualifier, dateSubmitted }
-import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.DateScheme.{ DateScheme, W3CDTF }
-import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.PrivacySensitiveDataPresent.{ PrivacySensitiveDataPresent, unspecified }
+import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.DateQualifier.DateQualifier
+import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.DateScheme.DateScheme
+import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.PrivacySensitiveDataPresent.PrivacySensitiveDataPresent
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.RelationQualifier.RelationQualifier
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata._
 import nl.knaw.dans.easy.deposit.docs.JsonUtil.{ InvalidDocumentException, RichJsonInput }
@@ -55,7 +55,7 @@ case class DatasetMetadata(identifiers: Option[Seq[SchemedValue]] = None,
                            spatialBoxes: Option[Seq[SpatialBox]] = None,
                            spatialCoverages: Option[Seq[PossiblySchemedKeyValue[String]]] = None,
                            messageForDataManager: Option[String] = None,
-                           privacySensitiveDataPresent: PrivacySensitiveDataPresent = unspecified,
+                           privacySensitiveDataPresent: PrivacySensitiveDataPresent = PrivacySensitiveDataPresent.unspecified,
                            acceptLicenseAgreement: Boolean = false,
                           ) {
   private val doiScheme = "id-type:doi"
@@ -69,7 +69,7 @@ case class DatasetMetadata(identifiers: Option[Seq[SchemedValue]] = None,
   }
 
   private lazy val submitDate: Option[String] = {
-    dates.flatMap(_.find(_.qualifier == dateSubmitted)).map(_.value)
+    dates.flatMap(_.find(_.qualifier == DateQualifier.dateSubmitted)).map(_.value)
   }
 
   lazy val xml: Try[Elem] = Success(<stub/>) // TODO
@@ -78,7 +78,7 @@ case class DatasetMetadata(identifiers: Option[Seq[SchemedValue]] = None,
     if (submitDate.isDefined)
       Failure(new Exception("dateSubmitted should not be present"))
     else {
-      val submitted = Date(W3CDTF, DateTime.now(), dateSubmitted)
+      val submitted = Date(DateScheme.W3CDTF, DateTime.now(), DateQualifier.dateSubmitted)
       val newDates = submitted +: dates.getOrElse(Seq.empty)
       Success(copy(dates = Some(newDates)))
     }
@@ -206,7 +206,7 @@ object DatasetMetadata {
            qualifier: DateQualifier
           ): Date = {
     val stringValue: String = scheme match {
-      case W3CDTF => value.toString(ISODateTimeFormat.date())
+      case DateScheme.W3CDTF => value.toString(ISODateTimeFormat.date())
       case s => throw new NotImplementedError(s"date formatter for $s")
     }
     QualifiedSchemedValue[DateScheme, DateQualifier](Some(scheme), stringValue, qualifier)
