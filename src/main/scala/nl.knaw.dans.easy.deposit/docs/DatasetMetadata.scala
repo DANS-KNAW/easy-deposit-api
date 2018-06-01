@@ -17,7 +17,7 @@ package nl.knaw.dans.easy.deposit.docs
 
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.AccessCategory.AccessCategory
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.DateQualifier.{ DateQualifier, dateSubmitted }
-import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.DateScheme.DateScheme
+import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.DateScheme.{ DateScheme, W3CDTF }
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.PrivacySensitiveDataPresent.{ PrivacySensitiveDataPresent, unspecified }
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.RelationQualifier.RelationQualifier
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata._
@@ -78,8 +78,7 @@ case class DatasetMetadata(identifiers: Option[Seq[SchemedValue]] = None,
     if (submitDate.isDefined)
       Failure(new Exception("dateSubmitted should not be present"))
     else {
-      val now = DateTime.now().toString(ISODateTimeFormat.date())
-      val submitted = Date(Some(DateScheme.W3CDTF), now, dateSubmitted)
+      val submitted = Date(W3CDTF, DateTime.now(), dateSubmitted)
       val newDates = submitted +: dates.getOrElse(Seq.empty)
       Success(copy(dates = Some(newDates)))
     }
@@ -195,15 +194,22 @@ object DatasetMetadata {
     }
   }
 
-  // this causes class cast exceptions, possibly related to compiler warning on
-  //    case rel: QualifiedSchemedValue[String, String] =>
-  // in JsonUtil.RelationTypeSerializer
-  // type Date = QualifiedSchemedValue[DateScheme, DateQualifier]
+  type Date = QualifiedSchemedValue[DateScheme, DateQualifier]
 
-  case class Date(scheme: Option[DateScheme],
-                  value: String,
-                  qualifier: DateQualifier,
-                 )
+  def Date(value: String, qualifier: DateQualifier): Date = {
+    QualifiedSchemedValue[DateScheme, DateQualifier](None, value, qualifier)
+  }
+
+  def Date(scheme: DateScheme,
+           value: DateTime,
+           qualifier: DateQualifier
+          ): Date = {
+    val stringValue: String = scheme match {
+      case W3CDTF => value.toString(ISODateTimeFormat.date())
+      case s => throw new NotImplementedError(s"date formatter for $s")
+    }
+    QualifiedSchemedValue[DateScheme, DateQualifier](Some(scheme), stringValue, qualifier)
+  }
 
   case class SpatialPoint(scheme: String,
                           x: Int,
