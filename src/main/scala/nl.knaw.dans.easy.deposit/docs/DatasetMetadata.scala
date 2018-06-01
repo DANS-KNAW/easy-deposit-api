@@ -175,7 +175,7 @@ object DatasetMetadata {
   }
 
   case class AccessRights(category: AccessCategory,
-                          group: String,
+                          group: Option[String],
                          )
 
   case class Author(titles: Option[String],

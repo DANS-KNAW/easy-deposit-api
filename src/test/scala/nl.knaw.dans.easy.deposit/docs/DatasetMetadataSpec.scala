@@ -27,7 +27,21 @@ import scala.util.{ Failure, Success }
 class DatasetMetadataSpec extends TestSupportFixture {
 
   "deserialization/serialisation" should "produce the same json object structure" in {
-    val example = (File("src") / "test" / "resources" / "manual-test" / "datasetmetadata.json").contentAsString
+    roundTripTest("datasetmetadata.json")
+  }
+
+  it should "not fail for uit test data (all fields)" in {
+    // https://github.com/DANS-KNAW/easy-deposit-ui/blob/81b21a08ce1a8a3d86ef74148c1e024188080e10/src/test/typescript/mockserver/metadata.ts#L255-L585
+    roundTripTest("datasetmetadata-from-ui-all.json")
+  }
+
+  it should "not fail for uit test data (some fields)" in {
+    // https://github.com/DANS-KNAW/easy-deposit-ui/blob/81b21a08ce1a8a3d86ef74148c1e024188080e10/src/test/typescript/mockserver/metadata.ts#L586-L642
+    roundTripTest("datasetmetadata-from-ui-some.json")
+  }
+
+  private def roundTripTest(value: String): Unit = {
+    val example = (File("src") / "test" / "resources" / "manual-test" / value).contentAsString
     val parsed = prepareDatasetMetadata(example)
     val serializedObject = JsonMethods.parse(toJson(parsed))
     inside(JsonMethods.parse(example) diff serializedObject) {

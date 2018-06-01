@@ -1,0 +1,320 @@
+{
+  "identifiers": [
+    {
+      "scheme": "id-type:DOI",
+      "value": "doi:10.17632/DANS.6wg5xccnjd.1"
+    }
+  ],
+  "languageOfDescription": {
+    "scheme": "dcterms:ISO639-2",
+    "key": "nld",
+    "value": "Dutch"
+  },
+  "titles": [
+    "title 1",
+    "title2"
+  ],
+  "alternativeTitles": [
+    "alternative title 1",
+    "alternative title2"
+  ],
+  "descriptions": [
+    "description1",
+    "description2"
+  ],
+  "creators": [
+    {
+      "titles": "Drs.",
+      "initials": "D.A.",
+      "insertions": "",
+      "surname": "NS",
+      "ids": [
+        {
+          "scheme": "id-type:DAI",
+          "value": "123456"
+        },
+        {
+          "scheme": "id-type:ORCID",
+          "value": "abcdef"
+        }
+      ],
+      "role": {
+        "scheme": "datacite:contributorType",
+        "key": "ContactPerson",
+        "value": "Contact Person"
+      },
+      "organization": "KNAW"
+    },
+    {
+      "initials": "Foo",
+      "insertions": "van",
+      "surname": "Bar"
+    }
+  ],
+  "contributors": [
+    {
+      "titles": "Dr.",
+      "initials": "O.",
+      "insertions": "van",
+      "surname": "Belix"
+    },
+    {
+      "organization": "my organization"
+    },
+    {
+      "organization": "rightsHolder1",
+      "role": {
+        "scheme": "datacite:contributorType",
+        "key": "RightsHolder",
+        "value": "rightsholder"
+      }
+    },
+    {
+      "titles": "Dr.",
+      "initials": "A.S.",
+      "insertions": "van",
+      "surname": "Terix",
+      "role": {
+        "scheme": "datacite:contributorType",
+        "key": "RightsHolder",
+        "value": "rightsholder"
+      }
+    }
+  ],
+  "audiences": [
+    {
+      "scheme": "narcis:DisciplineType",
+      "key": "D35200",
+      "value": "Musicology"
+    },
+    {
+      "scheme": "narcis:DisciplineType",
+      "key": "D33000",
+      "value": "Theology and religious studies"
+    }
+  ],
+  "subjects": [
+    {
+      "value": "subject1"
+    },
+    {
+      "value": "subject2"
+    },
+    {
+      "scheme": "abr:ABRcomplex",
+      "key": "RKER",
+      "value": "Religie - Kerk"
+    },
+    {
+      "scheme": "abr:ABRcomplex",
+      "key": "VK",
+      "value": "Versterking - Kasteel"
+    }
+  ],
+  "alternativeIdentifiers": [
+    {
+      "scheme": "id-type:ISBN",
+      "value": "test identifier 1"
+    },
+    {
+      "scheme": "id-type:NWO-PROJECTNR",
+      "value": "test identifier 2"
+    },
+    {
+      "scheme": "id-type:ARCHIS-ZAAK-IDENTIFICATIE",
+      "value": "archis nr. 1"
+    },
+    {
+      "scheme": "id-type:ARCHIS-ZAAK-IDENTIFICATIE",
+      "value": "archis nr. 2"
+    }
+  ],
+  "relations": [
+    {
+      "qualifier": "dcterms:isReferencedBy",
+      "scheme": "id-type:ISSN",
+      "value": "2123-34X"
+    },
+    {
+      "qualifier": "dcterms:conformsTo",
+      "url": "http://x",
+      "title": "title1"
+    },
+    {
+      "qualifier": "dcterms:requires",
+      "title": "title2"
+    },
+    {
+      "qualifier": "dcterms:isReplacedBy",
+      "url": "http://y"
+    },
+    {
+      "url": "http://z"
+    },
+    {
+      "title": "title3"
+    }
+  ],
+  "languagesOfFiles": [
+    {
+      "scheme": "dcterms:ISO639-2",
+      "key": "eng",
+      "value": "English"
+    },
+    {
+      "scheme": "dcterms:ISO639-2",
+      "key": "nld",
+      "value": "Dutch"
+    },
+    {
+      "value": "Flakkees"
+    },
+    {
+      "value": "Goerees"
+    }
+  ],
+  "dates": [
+    {
+      "scheme": "dcterms:W3CDTF",
+      "value": "2018-03-18",
+      "qualifier": "dcterms:dateCopyrighted"
+    },
+    {
+      "scheme": "dcterms:W3CDTF",
+      "value": "2018-03-17",
+      "qualifier": "dcterms:valid"
+    },
+    {
+      "scheme": "dcterms:W3CDTF",
+      "value": "2018-03-19",
+      "qualifier": "dcterms:created"
+    },
+    {
+      "value": "2018-02-02",
+      "qualifier": "dcterms:modified"
+    },
+    {
+      "scheme": "dcterms:W3CDTF",
+      "value": "2018-03-14",
+      "qualifier": "dcterms:available"
+    },
+    {
+      "value": "Groundhog day",
+      "qualifier": "dcterms:issued"
+    }
+  ],
+  "sources": [
+    "source1",
+    "source2"
+  ],
+  "instructionsForReuse": [
+    "remark1",
+    "remark2"
+  ],
+  "publishers": [
+    "pub1",
+    "pub2"
+  ],
+  "accessRights": {
+    "category": "OPEN_ACCESS"
+  },
+  "license": "http://creativecommons.org/publicdomain/zero/1.0",
+  "types": [
+    {
+      "scheme": "dcterms:DCMIType",
+      "value": "Dataset"
+    },
+    {
+      "scheme": "dcterms:DCMIType",
+      "value": "Software"
+    },
+    {
+      "value": "drawings"
+    },
+    {
+      "value": "paintings"
+    }
+  ],
+  "formats": [
+    {
+      "scheme": "dcterms:IMT",
+      "value": "text/plain"
+    },
+    {
+      "scheme": "dcterms:IMT",
+      "value": "image/tiff"
+    },
+    {
+      "value": "paperback"
+    },
+    {
+      "value": "audiobook"
+    },
+    {
+      "scheme": "dcterms:IMT",
+      "value": "application/x-cmdi+xml"
+    }
+  ],
+  "temporalCoverages": [
+    {
+      "scheme": "abr:ABRperiode",
+      "key": "ROMLA",
+      "value": "Romeinse tijd laat A: 270 - 350 nC"
+    },
+    {
+      "scheme": "abr:ABRperiode",
+      "key": "ROMLB",
+      "value": "Romeinse tijd laat B: 350 - 450 nC"
+    },
+    {
+      "value": "temp1"
+    },
+    {
+      "value": "temp2"
+    }
+  ],
+  "spatialPoints": [
+    {
+      "scheme": "http://www.opengis.net/def/crs/EPSG/0/28992",
+      "x": 12,
+      "y": 34
+    },
+    {
+      "scheme": "http://www.opengis.net/def/crs/EPSG/0/4326",
+      "x": 56,
+      "y": 78
+    }
+  ],
+  "spatialBoxes": [
+    {
+      "scheme": "http://www.opengis.net/def/crs/EPSG/0/28992",
+      "north": 1,
+      "east": 2,
+      "south": 3,
+      "west": 4
+    },
+    {
+      "scheme": "http://www.opengis.net/def/crs/EPSG/0/4326",
+      "north": 5,
+      "east": 6,
+      "south": 7,
+      "west": 8
+    }
+  ],
+  "spatialCoverages": [
+    {
+      "scheme": "dcterms:ISO3166",
+      "key": "NLD",
+      "value": "Nederland"
+    },
+    {
+      "value": "Haringvliet"
+    },
+    {
+      "value": "Grevelingenmeer"
+    }
+  ],
+  "messageForDataManager": "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Proin a neque ac sapien tincidunt consequat. Praesent accumsan arcu vel risus viverra, at hendrerit augue tincidunt. Phasellus vestibulum quis lacus quis consectetur. Class aptent taciti sociosqu ad litora torquent per conubia nostra, per inceptos himenaeos. Duis eu lorem pulvinar, porttitor lorem at, commodo nibh. Aliquam fringilla enim et lobortis vulputate. Integer id sagittis ligula, eget venenatis erat. Praesent urna lorem, commodo eget vestibulum quis, tincidunt non massa. Aliquam eget elit felis. Donec libero sem, tempor quis egestas nec, tempor ut nibh. Cras porttitor ex sed dolor pulvinar, nec vehicula dolor mollis. Fusce ex urna, semper at auctor vel, varius vitae ligula. Mauris dolor urna, luctus eget facilisis non, interdum quis tellus.\n\nCras at molestie velit. Aliquam nec lectus sed magna iaculis consectetur. Integer faucibus mauris non gravida feugiat. Suspendisse mollis euismod felis et maximus. Donec lacus lectus, euismod vulputate consequat ut, consequat sed lacus. Sed hendrerit dui orci, vitae pulvinar libero ullamcorper a. Fusce aliquet feugiat lacinia. Nam erat diam, malesuada id porta ut, lacinia id ligula. Ut faucibus in nisi eu malesuada. Curabitur quis condimentum nulla, finibus facilisis est. Nulla convallis, est ac scelerisque ultrices, orci est aliquet eros, vel feugiat lectus orci non leo. Mauris dolor nulla, convallis fermentum consectetur non, volutpat convallis purus. Fusce a semper neque. Suspendisse ornare quis nunc sit amet tristique. Nam sed libero mauris. Duis scelerisque tortor non purus porttitor interdum.",
+  "privacySensitiveDataPresent": "no",
+  "acceptLicenseAgreement": true
+}
