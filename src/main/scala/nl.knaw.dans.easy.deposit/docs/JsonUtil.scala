@@ -50,9 +50,9 @@ object JsonUtil {
       case JNull => null
       case s: JValue =>
         Try { Extraction.extract[Relation](s) }
-          .getOrElse(Try { Extraction.extract[RelatedIdentifier](s) } // TODO use orElse?
-            .getOrElse(null)
-          )
+          .orElse(Try { Extraction.extract[RelatedIdentifier](s) })
+          .getOrElse(null)
+
     }, {
       // case x: RelationType => JString(x.toString) // would break rejectNotExpectedContent
       case rel: Relation =>
