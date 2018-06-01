@@ -21,6 +21,7 @@ import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.DateScheme.DateScheme
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.ExternalIdentifierScheme.ExternalIdentifierScheme
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.PrivacySensitiveDataPresent.PrivacySensitiveDataPresent
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.RelationQualifier.RelationQualifier
+import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.SpatialCoverageScheme.SpatialCoverageScheme
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.SpatialScheme.SpatialScheme
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata._
 import nl.knaw.dans.easy.deposit.docs.JsonUtil.{ InvalidDocumentException, RichJsonInput }
@@ -55,7 +56,7 @@ case class DatasetMetadata(identifiers: Option[Seq[SchemedValue[String]]] = None
                            temporalCoverages: Option[Seq[PossiblySchemedKeyValue[String]]] = None,
                            spatialPoints: Option[Seq[SpatialPoint]] = None,
                            spatialBoxes: Option[Seq[SpatialBox]] = None,
-                           spatialCoverages: Option[Seq[PossiblySchemedKeyValue[String]]] = None,
+                           spatialCoverages: Option[Seq[PossiblySchemedKeyValue[SpatialCoverageScheme]]] = None,
                            messageForDataManager: Option[String] = None,
                            privacySensitiveDataPresent: PrivacySensitiveDataPresent = PrivacySensitiveDataPresent.unspecified,
                            acceptLicenseAgreement: Boolean = false,
@@ -139,6 +140,12 @@ object DatasetMetadata {
     val restrictedGroup: AccessCategory = Value("GROUP_ACCESS")
     val restrictedRequest: AccessCategory = Value("REQUEST_PERMISSION")
     val otherAccess: AccessCategory = Value("NO_ACCESS")
+  }
+
+
+  object SpatialCoverageScheme extends Enumeration {
+    type SpatialCoverageScheme = Value
+    val open: SpatialCoverageScheme = Value("dcterms:ISO3166")
   }
 
   object DateQualifier extends Enumeration {

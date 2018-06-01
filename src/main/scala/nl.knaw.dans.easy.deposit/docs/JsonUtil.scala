@@ -75,6 +75,7 @@ object JsonUtil {
     AccessCategory,
     PrivacySensitiveDataPresent,
     ExternalIdentifierScheme,
+    SpatialCoverageScheme,
     SpatialScheme
   )
 
