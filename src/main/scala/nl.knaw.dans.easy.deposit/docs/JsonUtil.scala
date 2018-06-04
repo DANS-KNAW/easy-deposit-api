@@ -56,14 +56,14 @@ object JsonUtil {
           .getOrElse(throw new IllegalArgumentException(s"expected one of (Relation | RelatedIdentifier) got: ${ toJson(s) }"))
     }, {
       // case x: RelationType => JString(x.toString) // would break rejectNotExpectedContent
-      case rel: Relation =>
-        ("qualifier" -> rel.qualifier.toString) ~
-          ("url" -> rel.url) ~
-          ("title" -> rel.title)
+      case Relation(qualifier, url, title) =>
+        ("qualifier" -> qualifier.toString) ~
+          ("url" -> url) ~
+          ("title" -> title)
       case RelatedIdentifier(scheme, value, qualifier) =>
         ("scheme" -> scheme.map(_.toString)) ~
           ("value" -> value) ~
-          ("qualifier" -> qualifier.toString) // TODO needs swagger an enum?
+          ("qualifier" -> qualifier.toString)
     }
     )
   )
