@@ -17,12 +17,8 @@ package nl.knaw.dans.easy.deposit.docs
 
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.AccessCategory.AccessCategory
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.DateQualifier.DateQualifier
-import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.DateScheme.DateScheme
-import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.ExternalIdentifierScheme.ExternalIdentifierScheme
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.PrivacySensitiveDataPresent.PrivacySensitiveDataPresent
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.RelationQualifier.RelationQualifier
-import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.SpatialCoverageScheme.SpatialCoverageScheme
-import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.SpatialScheme.SpatialScheme
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata._
 import nl.knaw.dans.easy.deposit.docs.JsonUtil.{ InvalidDocumentException, RichJsonInput, toJson }
 import org.joda.time.DateTime
@@ -41,7 +37,7 @@ case class DatasetMetadata(identifiers: Option[Seq[SchemedValue[String]]] = None
                            contributors: Option[Seq[Author]] = None,
                            audiences: Option[Seq[SchemedKeyValue[String]]] = None,
                            subjects: Option[Seq[PossiblySchemedKeyValue[String]]] = None,
-                           alternativeIdentifiers: Option[Seq[SchemedValue[ExternalIdentifierScheme]]] = None,
+                           alternativeIdentifiers: Option[Seq[SchemedValue[String]]] = None,
                            relations: Option[Seq[RelationType]] = None,
                            languagesOfFiles: Option[Seq[PossiblySchemedKeyValue[String]]] = None,
                            dates: Option[Seq[Date]] = None,
@@ -56,12 +52,11 @@ case class DatasetMetadata(identifiers: Option[Seq[SchemedValue[String]]] = None
                            temporalCoverages: Option[Seq[PossiblySchemedKeyValue[String]]] = None,
                            spatialPoints: Option[Seq[SpatialPoint]] = None,
                            spatialBoxes: Option[Seq[SpatialBox]] = None,
-                           spatialCoverages: Option[Seq[PossiblySchemedKeyValue[SpatialCoverageScheme]]] = None,
+                           spatialCoverages: Option[Seq[PossiblySchemedKeyValue[String]]] = None,
                            messageForDataManager: Option[String] = None,
                            privacySensitiveDataPresent: PrivacySensitiveDataPresent = PrivacySensitiveDataPresent.unspecified,
                            acceptLicenseAgreement: Boolean = false,
                           ) {
-  private val doiScheme = "id-type:DOI"
   lazy val doi: Option[String] = identifiers.flatMap(_.collectFirst {
     case SchemedValue(`doiScheme`, value) => value
   })
@@ -81,7 +76,7 @@ case class DatasetMetadata(identifiers: Option[Seq[SchemedValue[String]]] = None
     if (submitDate.isDefined)
       Failure(new Exception("dateSubmitted should not be present"))
     else {
-      val submitted = Date(DateScheme.W3CDTF, DateTime.now(), DateQualifier.dateSubmitted)
+      val submitted = Date(DateTime.now(), DateQualifier.dateSubmitted)
       val newDates = submitted +: dates.getOrElse(Seq.empty)
       Success(copy(dates = Some(newDates)))
     }
@@ -116,6 +111,21 @@ case class DatasetMetadata(identifiers: Option[Seq[SchemedValue[String]]] = None
 object DatasetMetadata {
   def apply(input: JsonInput): Try[DatasetMetadata] = input.deserialize[DatasetMetadata]
 
+  private val doiScheme = "id-type:DOI"
+  private val dateScheme = "dcterms:W3CDTF"
+
+  type Date = QualifiedSchemedValue[String, DateQualifier]
+
+  def Date(value: DateTime,
+           qualifier: DateQualifier
+          ): Date = {
+    QualifiedSchemedValue[String, DateQualifier](
+      Some(dateScheme),
+      value.toString(ISODateTimeFormat.date()),
+      qualifier
+    )
+  }
+
   private def missingValue(label: String) = {
     InvalidDocumentException(s"Please set $label in DatasetMetadata")
   }
@@ -142,12 +152,6 @@ object DatasetMetadata {
     val otherAccess: AccessCategory = Value("NO_ACCESS")
   }
 
-
-  object SpatialCoverageScheme extends Enumeration {
-    type SpatialCoverageScheme = Value
-    val open: SpatialCoverageScheme = Value("dcterms:ISO3166")
-  }
-
   object DateQualifier extends Enumeration {
     type DateQualifier = Value
     val created: DateQualifier = Value("dcterms:created")
@@ -159,17 +163,6 @@ object DatasetMetadata {
     val issued: DateQualifier = Value("dcterms:issued")
     val modified: DateQualifier = Value("dcterms:modified")
     val valid: DateQualifier = Value("dcterms:valid")
-  }
-
-  object ExternalIdentifierScheme extends Enumeration {
-    type ExternalIdentifierScheme = Value
-    val DOI: ExternalIdentifierScheme = Value("id-type:DOI")
-    val URN: ExternalIdentifierScheme = Value("id-type:URN")
-    val MENDELEY_DATA: ExternalIdentifierScheme = Value("id-type:MENDELEY-DATA")
-    val ISBN: ExternalIdentifierScheme = Value("id-type:ISBN")
-    val ISSN: ExternalIdentifierScheme = Value("id-type:ISSN")
-    val NWO_PROJECTNR: ExternalIdentifierScheme = Value("id-type:NWO-PROJECTNR")
-    val ARCHIS_ZAAK_IDENTIFICATIE: ExternalIdentifierScheme = Value("id-type:ARCHIS-ZAAK-IDENTIFICATIE")
   }
 
   object RelationQualifier extends Enumeration {
@@ -210,41 +203,12 @@ object DatasetMetadata {
     }
   }
 
-  object DateScheme extends Enumeration {
-    type DateScheme = Value
-    val W3CDTF: DateScheme = Value("dcterms:W3CDTF")
-  }
-
-  type Date = QualifiedSchemedValue[DateScheme, DateQualifier]
-
-  def Date(value: String, qualifier: DateQualifier): Date = {
-    QualifiedSchemedValue[DateScheme, DateQualifier](None, value, qualifier)
-  }
-
-  def Date(scheme: DateScheme,
-           value: DateTime,
-           qualifier: DateQualifier
-          ): Date = {
-    val stringValue: String = scheme match {
-      case DateScheme.W3CDTF => value.toString(ISODateTimeFormat.date())
-      // unit test check that the next case never applies
-      case s => throw new NotImplementedError(s"date formatter for $s")
-    }
-    QualifiedSchemedValue[DateScheme, DateQualifier](Some(scheme), stringValue, qualifier)
-  }
-
-  object SpatialScheme extends Enumeration {
-    type SpatialScheme = Value
-    val degrees: SpatialScheme = Value("http://www.opengis.net/def/crs/EPSG/0/4326")
-    val RD: SpatialScheme = Value("http://www.opengis.net/def/crs/EPSG/0/28992")
-  }
-
-  case class SpatialPoint(scheme: SpatialScheme,
+  case class SpatialPoint(scheme: String,
                           x: Int,
                           y: Int,
                          )
 
-  case class SpatialBox(scheme: SpatialScheme,
+  case class SpatialBox(scheme: String,
                         north: Int,
                         east: Int,
                         south: Int,
@@ -264,7 +228,7 @@ object DatasetMetadata {
     }
   }
 
-  case class RelatedIdentifier(scheme: Option[ExternalIdentifierScheme],
+  case class RelatedIdentifier(scheme: Option[String],
                                value: String,
                                qualifier: RelationQualifier) extends RelationType
 
