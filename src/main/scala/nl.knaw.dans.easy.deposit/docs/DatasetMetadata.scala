@@ -24,7 +24,7 @@ import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.RelationQualifier.Relation
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.SpatialCoverageScheme.SpatialCoverageScheme
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.SpatialScheme.SpatialScheme
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata._
-import nl.knaw.dans.easy.deposit.docs.JsonUtil.{ InvalidDocumentException, RichJsonInput }
+import nl.knaw.dans.easy.deposit.docs.JsonUtil.{ InvalidDocumentException, RichJsonInput, toJson }
 import org.joda.time.DateTime
 import org.joda.time.format.ISODateTimeFormat
 import org.json4s.JsonInput
@@ -202,7 +202,7 @@ object DatasetMetadata {
                     ids: Option[Seq[SchemedValue[String]]],
                     organization: Option[String],
                    ) {
-    require(isValid, "Author needs one of (organisation | surname and initials)")
+    require(isValid, s"Author needs one of (organisation | surname and initials) got: ${ toJson(this) }")
 
     def isValid: Boolean = {
       organization.isDefined ||
@@ -257,7 +257,7 @@ object DatasetMetadata {
                       url: Option[String],
                       title: Option[String],
                      ) extends RelationType {
-    require(isValid, "Relation needs one of (title | url)")
+    require(isValid, "Relation needs at least one of (title | url) got: ${toJson(this)}")
 
     def isValid: Boolean = {
       title.isDefined || url.isDefined

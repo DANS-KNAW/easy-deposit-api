@@ -15,6 +15,7 @@
  */
 package nl.knaw.dans.easy.deposit.docs
 
+import java.lang.reflect.InvocationTargetException
 import java.nio.file.{ Path, Paths }
 
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata._
@@ -49,10 +50,10 @@ object JsonUtil {
     ( {
       case JNull => null
       case s: JValue =>
-        Try { Extraction.extract[Relation](s) }
-          .orElse(Try { Extraction.extract[RelatedIdentifier](s) })
-          .getOrElse(null)
-
+        // the first class should have a mandatory field that distinguishes it from the rest
+        Try { Extraction.extract[RelatedIdentifier](s) }
+          .orElse(Try { Extraction.extract[Relation](s) })
+          .getOrElse(throw new IllegalArgumentException(s"expected one of (Relation | RelatedIdentifier) got: ${ toJson(s) }"))
     }, {
       // case x: RelationType => JString(x.toString) // would break rejectNotExpectedContent
       case rel: Relation =>
@@ -95,10 +96,16 @@ object JsonUtil {
         _ <- rejectNotExpectedContent(parsed, result)
       } yield result
     }.recoverWith { case t: Throwable =>
+      val cause = t.getCause match {
+        // caused by require clauses of member classes
+        case cause: InvocationTargetException if t.getMessage == "unknown error" => cause.getTargetException
+        // when a a serializer of a superclass doesn't recognise any of the possibilities
+        case cause: IllegalArgumentException if t.getMessage == "unknown error" => cause
+        case _ => t
+      }
       val className = typeOf[A].typeSymbol.name.toString
-      Failure(InvalidDocumentException(className, t))
+      Failure(InvalidDocumentException(className, cause))
     }
-
 
     private def rejectNotExpectedContent[T](parsed: JValue, extracted: T): Try[Unit] = {
       decompose(extracted) diff parsed match {

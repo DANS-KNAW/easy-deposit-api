@@ -17,12 +17,12 @@ package nl.knaw.dans.easy.deposit.docs
 
 import better.files.File
 import nl.knaw.dans.easy.deposit.TestSupportFixture
-import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.{ Date, DateQualifier, DateScheme }
+import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.{ DateQualifier, DateScheme }
 import nl.knaw.dans.easy.deposit.docs.JsonUtil.{ InvalidDocumentException, toJson }
 import org.joda.time.DateTime
-import org.json4s.Diff
 import org.json4s.JsonAST._
 import org.json4s.native.JsonMethods
+import org.json4s.{ Diff, JsonInput }
 
 import scala.util.{ Failure, Success, Try }
 
@@ -123,6 +123,85 @@ class DatasetMetadataSpec extends TestSupportFixture {
       t.getMessage shouldBe
         """expected field or array
           |Near: 12""".stripMargin
+    }
+  }
+
+  "DatasetMetadata.relations" should "accept complete relations" in {
+    val s: JsonInput =
+      """{
+        |  "relations": [
+        |    { "qualifier": "dcterms:hasFormat", "url": "string", "title": "string" },
+        |    { "scheme": "id-type:URN", "value": "string", "qualifier": "dcterms:hasFormat" }
+        |  ]
+        |}""".stripMargin
+    DatasetMetadata(s) shouldBe a[Success[_]]
+  }
+
+  it should "accept incomplete relations" in {
+    val s: JsonInput =
+      """{
+        |  "relations": [
+        |    { "qualifier": "dcterms:hasFormat", "url": "string" },
+        |    { "value": "string", "qualifier": "dcterms:hasFormat" }
+        |  ]
+        |}""".stripMargin
+    DatasetMetadata(s) shouldBe a[Success[_]]
+  }
+
+  it should "accept incomplete relations in a different order" in {
+    val s: JsonInput =
+      """{
+        |  "relations": [
+        |    { "value": "string", "qualifier": "dcterms:hasFormat" },
+        |    { "qualifier": "dcterms:hasFormat", "url": "string" }
+        |  ]
+        |}""".stripMargin
+    DatasetMetadata(s) shouldBe a[Success[_]]
+  }
+
+  it should "accept a RelatedIdentifier without scheme" in {
+    val s: JsonInput = """{ "relations": [ { "value": "string", "qualifier": "dcterms:hasFormat" } ] }"""
+    DatasetMetadata(s) shouldBe a[Success[_]]
+  }
+
+  it should "accept a Relation without title" in {
+    val s: JsonInput = """{ "relations": [ { "qualifier": "dcterms:hasFormat", "url": "string" } ] }"""
+    DatasetMetadata(s) shouldBe a[Success[_]]
+  }
+
+  it should "accept a Relation without url" in {
+    val s: JsonInput = """{ "relations": [ { "qualifier": "dcterms:hasFormat", "title": "string" } ] }"""
+    DatasetMetadata(s) shouldBe a[Success[_]]
+  }
+
+  it should "reject a relation with just a qualifier" in {
+    val s: JsonInput = """{ "relations": [ { "qualifier": "dcterms:hasFormat" } ] }"""
+    shouldReturnInvalidDocumentException(s, """expected one of (Relation | RelatedIdentifier) got: {"qualifier":"dcterms:hasFormat"}""")
+  }
+
+  "DatasetMetadata.Author" should "accept an author with initials and surname" in {
+    val s: JsonInput = """{ "contributors": [ { "organization": "University of Zurich" } ] }"""
+    DatasetMetadata(s) shouldBe a[Success[_]]
+  }
+
+  it should "accept an organisation as author" in {
+    val s: JsonInput = """{ "creators": [ { "initials": "A", "surname": "Einstein" } ] }"""
+    DatasetMetadata(s) shouldBe a[Success[_]]
+  }
+
+  it should "reject an author without initials" in {
+    val s: JsonInput = """{ "contributors": [ { "surname": "Einstein" } ] }"""
+    shouldReturnInvalidDocumentException(s, """requirement failed: Author needs one of (organisation | surname and initials) got: {"surname":"Einstein"}""")
+  }
+
+  it should "reject an author without surname" in {
+    val s: JsonInput = """{ "contributors": [ { "initials": "A" } ] }"""
+    shouldReturnInvalidDocumentException(s, """requirement failed: Author needs one of (organisation | surname and initials) got: {"initials":"A"}""")
+  }
+
+  private def shouldReturnInvalidDocumentException(s: JsonInput, expectedMessage: String) = {
+    inside(DatasetMetadata(s)) { case Failure(InvalidDocumentException(_, t)) =>
+      t.getMessage shouldBe expectedMessage
     }
   }
 }
