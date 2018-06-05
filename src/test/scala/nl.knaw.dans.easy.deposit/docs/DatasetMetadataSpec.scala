@@ -97,12 +97,11 @@ class DatasetMetadataSpec extends TestSupportFixture {
   }
 
   it should "be happy with empty objects" in {
-    // JObject(List())
-    inside(DatasetMetadata("""{}{}""")) { case Success(_: DatasetMetadata) => }
+    // this is not desired behaviour but is documenting what actually happens
+    DatasetMetadata("""{}{}""") shouldBe a[Success[_]]
   }
 
   it should "fail on an empty array" in {
-    // JArray(List())
     inside(DatasetMetadata("""[]""")) { case Failure(InvalidDocumentException(_, t)) =>
       t.getMessage shouldBe "expected an object, got a class org.json4s.JsonAST$JArray"
     }
@@ -166,7 +165,7 @@ class DatasetMetadataSpec extends TestSupportFixture {
 
   it should "reject a relation with just a qualifier" in {
     val s: JsonInput = """{ "relations": [ { "qualifier": "dcterms:hasFormat" } ] }"""
-    shouldReturnInvalidDocumentException(s, """expected one of (Relation | RelatedIdentifier) got: {"qualifier":"dcterms:hasFormat"}""")
+    shouldReturnCustomMessage(s, """expected one of (Relation | RelatedIdentifier) got: {"qualifier":"dcterms:hasFormat"}""")
   }
 
   "DatasetMetadata.Author" should "accept an author with initials and surname" in {
@@ -181,15 +180,23 @@ class DatasetMetadataSpec extends TestSupportFixture {
 
   it should "reject an author without initials" in {
     val s: JsonInput = """{ "contributors": [ { "surname": "Einstein" } ] }"""
-    shouldReturnInvalidDocumentException(s, """requirement failed: Author needs one of (organisation | surname and initials) got: {"surname":"Einstein"}""")
+    shouldReturnCustomMessage(s, """requirement failed: Author needs one of (organisation | surname and initials) got: {"surname":"Einstein"}""")
   }
 
   it should "reject an author without surname" in {
     val s: JsonInput = """{ "contributors": [ { "initials": "A" } ] }"""
-    shouldReturnInvalidDocumentException(s, """requirement failed: Author needs one of (organisation | surname and initials) got: {"initials":"A"}""")
+    shouldReturnCustomMessage(s, """requirement failed: Author needs one of (organisation | surname and initials) got: {"initials":"A"}""")
   }
 
-  private def shouldReturnInvalidDocumentException(s: JsonInput, expectedMessage: String) = {
+  /** Performs a test that (among others) might break after an upgrade of the json4s library
+   *
+   * @param s               json string to be deserialized
+   * @param expectedMessage messages of exceptions thrown by a require clause of a de-serialized component
+   *                        or by custom serializers in JsonUtil
+   * @return assertion whether [[JsonUtil.RichJsonInput()]].deserialize.recoverWith
+   *         properly un-wrapped the expected custom exception
+   */
+  private def shouldReturnCustomMessage(s: JsonInput, expectedMessage: String) = {
     inside(DatasetMetadata(s)) { case Failure(InvalidDocumentException(_, t)) =>
       t.getMessage shouldBe expectedMessage
     }
