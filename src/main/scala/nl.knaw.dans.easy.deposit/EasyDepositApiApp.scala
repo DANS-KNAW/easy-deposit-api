@@ -117,12 +117,12 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
   /**
    * Sets the deposit state. The only legal transitions are:
    *
-   * - from [[State.DRAFT]] to [[State.SUBMITTED]]
-   * - from [[State.REJECTED]] to [[State.DRAFT]]
+   * - from [[State.draft]] to [[State.submitted]]
+   * - from [[State.rejected]] to [[State.draft]]
    *
    * Any attempt at another transition will result in an [[nl.knaw.dans.easy.deposit.IllegalStateTransitionException]].
    *
-   * When transitioning to [[State.SUBMITTED]] the following steps will be executed:
+   * When transitioning to [[State.submitted]] the following steps will be executed:
    *
    * 1. The `files.xml` of the bag will be written.
    * 2. The SHA-1 payload manifest will be calculated and written.
@@ -137,7 +137,7 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
   // TODO: do post processing described above in a worker thread so that submit can return fast for large deposits.
   def setDepositState(state: StateInfo)(user: String, id: UUID): Try[Unit] = for {
     deposit <- DepositDir.get(draftsDir, user, id)
-    _ <- if (state.state == State.SUBMITTED) submitter.submit(deposit)
+    _ <- if (state.state == State.submitted) submitter.submit(deposit)
          else deposit.setStateInfo(state)
   } yield ()
 

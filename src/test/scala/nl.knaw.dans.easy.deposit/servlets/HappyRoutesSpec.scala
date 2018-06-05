@@ -21,7 +21,7 @@ import java.util.UUID
 import nl.knaw.dans.easy.deposit._
 import nl.knaw.dans.easy.deposit.authentication.AuthenticationMocker._
 import nl.knaw.dans.easy.deposit.docs.StateInfo.State._
-import nl.knaw.dans.easy.deposit.docs.{ DepositInfo, StateInfo }
+import nl.knaw.dans.easy.deposit.docs.{ DatasetMetadata, DepositInfo, StateInfo }
 import org.eclipse.jetty.http.HttpStatus._
 import org.joda.time.DateTime
 import org.scalamock.scalatest.MockFactory
@@ -82,8 +82,8 @@ class HappyRoutesSpec extends TestSupportFixture with ServletFixture with Scalat
     val uuid2 = UUID.randomUUID()
     expectsUserFooBar
     (mockedApp.getDeposits(_: String)) expects "foo" returning Success(Seq(
-      DepositInfo(uuid1, "x", DRAFT, "a", DateTime.now),
-      DepositInfo(uuid2, "y", SUBMITTED, "b", DateTime.now)
+      DepositInfo(uuid1, "x", draft, "a", DateTime.now),
+      DepositInfo(uuid2, "y", submitted, "b", DateTime.now)
     ))
 
     get(
@@ -137,7 +137,7 @@ class HappyRoutesSpec extends TestSupportFixture with ServletFixture with Scalat
     expectsUserFooBar
     // TODO how to define expects for the curried method called by the PUT variant?
     (mockedApp.getDepositState(_: String, _: UUID)) expects("foo", uuid) returning
-      Success(StateInfo(DRAFT, "x"))
+      Success(StateInfo(draft, "x"))
 
     get(
       uri = s"/deposit/$uuid/state",
@@ -162,7 +162,7 @@ class HappyRoutesSpec extends TestSupportFixture with ServletFixture with Scalat
     }
   }
 
-  "put /deposit/:uuid/metadata" should "report undefined json content" in {
+  "put /deposit/:uuid/metadata" should "reject invalid datasetmetadata.json" in {
     expectsUserFooBar
 
     put(
@@ -170,7 +170,7 @@ class HappyRoutesSpec extends TestSupportFixture with ServletFixture with Scalat
       body = """{"title":"blabla"}""", // N.B: key should be plural
       headers = Seq(("Authorization", fooBarBasicAuthHeader))
     ) {
-      status shouldBe BAD_REQUEST_400 // TODO message too cryptic
+      status shouldBe BAD_REQUEST_400
       body shouldBe """Bad Request. invalid DatasetMetadata: class java.lang.Exception don't recognize {"title":"blabla"}"""
     }
   }

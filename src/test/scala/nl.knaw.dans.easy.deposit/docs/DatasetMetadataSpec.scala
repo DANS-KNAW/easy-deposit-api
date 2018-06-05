@@ -15,11 +15,9 @@
  */
 package nl.knaw.dans.easy.deposit.docs
 
+import better.files.File
 import nl.knaw.dans.easy.deposit.TestSupportFixture
-import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.AccessCategory.open_for_registered_users
-import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.DateQualifier.dateSubmitted
-import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.{ AccessRights, QualifiedDate }
-import nl.knaw.dans.easy.deposit.docs.Json.{ InvalidDocumentException, RichJsonInput, toJson }
+import nl.knaw.dans.easy.deposit.docs.JsonUtil.{ InvalidDocumentException, toJson }
 import org.json4s.JsonAST._
 import org.json4s.native.JsonMethods
 import org.json4s.{ Diff, JsonInput }
@@ -27,177 +25,49 @@ import org.json4s.{ Diff, JsonInput }
 import scala.util.{ Failure, Success }
 
 class DatasetMetadataSpec extends TestSupportFixture {
-  private val example =
-    """{
-      |  "doi": "doi:10.17632/DANS.6wg5xccnjd.1",
-      |  "languageOfDescription": "string",
-      |  "titles": [
-      |    "Title 1",
-      |    "Title 2"
-      |  ],
-      |  "alternativeTitles": [
-      |    "string"
-      |  ],
-      |  "descriptions": [
-      |    "string"
-      |  ],
-      |  "creators": [
-      |    {
-      |      "titles": "Prof Dr",
-      |      "initials": "A",
-      |      "surname": "Einstein",
-      |      "ids": [
-      |        {
-      |          "scheme": "DOI",
-      |          "value": "1234/5678"
-      |        },
-      |        {
-      |          "scheme": "ISNI",
-      |          "value": "ISNI|000000012281955X"
-      |        }
-      |      ],
-      |      "organization": "University of Zurich"
-      |    }
-      |  ],
-      |  "contributors": [
-      |    {
-      |      "titles": "Prof Dr",
-      |      "initials": "A",
-      |      "surname": "Einstein",
-      |      "ids": [
-      |        {
-      |          "scheme": "DOI",
-      |          "value": "1234/5678"
-      |        },
-      |        {
-      |          "scheme": "ISNI",
-      |          "value": "ISNI|000000012281955X"
-      |        }
-      |      ],
-      |      "organization": "University of Zurich"
-      |    }
-      |  ],
-      |  "dateCreated": "string",
-      |  "audiences": [
-      |    "string"
-      |  ],
-      |  "subjects": [
-      |    "string"
-      |  ],
-      |  "identifiers": [
-      |    {
-      |      "scheme": "string",
-      |      "value": "string"
-      |    }
-      |  ],
-      |  "relations": [
-      |    {
-      |      "qualifier": "string",
-      |      "url": "string",
-      |      "title": "string"
-      |    }
-      |  ],
-      |  "languagesOfFilesIso639": [
-      |    "string"
-      |  ],
-      |  "languagesOfFiles": [
-      |    "string"
-      |  ],
-      |  "dates": [
-      |    {
-      |      "scheme": "string",
-      |      "value": "string",
-      |      "qualifier": "dcterms:created"
-      |    }
-      |  ],
-      |  "sources": [
-      |    "string"
-      |  ],
-      |  "instructionsForReuse": [
-      |    "string"
-      |  ],
-      |  "rightsHolders": [
-      |    "string"
-      |  ],
-      |  "publishers": [
-      |    "string"
-      |  ],
-      |  "accessRights": {
-      |    "category": "open",
-      |    "group": "string"
-      |  },
-      |  "license": "string",
-      |  "dateAvailable": "string",
-      |  "typesDcmi": [
-      |    "string"
-      |  ],
-      |  "types": [
-      |    "string"
-      |  ],
-      |  "formatsMediaType": [
-      |    "string"
-      |  ],
-      |  "formats": [
-      |    "string"
-      |  ],
-      |  "archisNrs": [
-      |    "string"
-      |  ],
-      |  "subjectsAbrComplex": [
-      |    "string"
-      |  ],
-      |  "temporalCoveragesAbr": [
-      |    "string"
-      |  ],
-      |  "temporalCoverages": [
-      |    "string"
-      |  ],
-      |  "spatialPoints": [
-      |    {
-      |      "scheme": "string",
-      |      "x": 0,
-      |      "y": 0
-      |    }
-      |  ],
-      |  "spatialBoxes": [
-      |    {
-      |      "scheme": "string",
-      |      "north": 0,
-      |      "east": 0,
-      |      "south": 0,
-      |      "west": 0
-      |    }
-      |  ],
-      |  "spatialCoverageIso3166": [
-      |    {
-      |      "scheme": "string",
-      |      "value": "string"
-      |    }
-      |  ],
-      |  "spatialCoverages": [
-      |    "string"
-      |  ],
-      |  "messageForDataManager": "string",
-      |  "privacySensitiveDataPresent": "yes",
-      |  "acceptLicenseAgreement": true
-      |}""".stripMargin
 
   "deserialization/serialisation" should "produce the same json object structure" in {
-    val parsed = DatasetMetadata(example).getOrElse("")
-    inside(JsonMethods.parse(example) diff JsonMethods.parse(toJson(parsed))) {
+    roundTripTest("datasetmetadata.json")
+  }
+
+  it should "not fail for UI test data (all fields)" in {
+    // https://github.com/DANS-KNAW/easy-deposit-ui/blob/81b21a08ce1a8a3d86ef74148c1e024188080e10/src/test/typescript/mockserver/metadata.ts#L255-L585
+    roundTripTest("datasetmetadata-from-ui-all.json")
+  }
+
+  it should "not fail for UI test data (some fields)" in {
+    // https://github.com/DANS-KNAW/easy-deposit-ui/blob/81b21a08ce1a8a3d86ef74148c1e024188080e10/src/test/typescript/mockserver/metadata.ts#L586-L642
+    roundTripTest("datasetmetadata-from-ui-some.json")
+  }
+
+  private def roundTripTest(value: String): Unit = {
+    val example = (File("src") / "test" / "resources" / "manual-test" / value).contentAsString
+    val parsed = prepareDatasetMetadata(example)
+    val serializedObject = JsonMethods.parse(toJson(parsed))
+    inside(JsonMethods.parse(example) diff serializedObject) {
       case Diff(JNothing, JNothing, JNothing) =>
-      case x => fail(s"did not expect $x")
+      case Diff(changed, added, deleted) => reportFailure(parsed, changed, added, deleted)
     }
   }
 
-  it should "return defaults for omitted fields" in {
+  private def reportFailure(parsed: DatasetMetadata, changed: JValue, added: JValue, deleted: JValue) = {
+    fail(s"serialized parsed object not equal to original json object: changed=[$changed] added=[$added] deleted=[$deleted]; re-serialized json=[${ toJson(parsed) }]")
+  }
+
+  it should "return defaults for omitted mandatory fields" in {
     val example =
       """{
         |  "creators": [
         |  ]
         |}""".stripMargin
-    toJson(DatasetMetadata(example).getOrElse("")) shouldBe
+    val parsed = prepareDatasetMetadata(example)
+    toJson(parsed) shouldBe
       """{"creators":[],"privacySensitiveDataPresent":"unspecified","acceptLicenseAgreement":false}"""
+  }
+
+  private def prepareDatasetMetadata(example: String) = {
+    val tried = DatasetMetadata(example)
+    tried.getOrElse(fail(s"preparation failed with: $tried"))
   }
 
   "deserialization" should "report additional json info" in {
@@ -210,20 +80,28 @@ class DatasetMetadataSpec extends TestSupportFixture {
   }
 
   it should "extract just the last object" in {
-    inside(DatasetMetadata("""{"languageOfDescription": "string"}{"doi": "doi:10.17632/DANS.6wg5xccnjd.1"}""")) {
+    val s =
+      """{"languageOfDescription": "string"}
+        |{  "identifiers": [
+        |    {
+        |      "scheme": "id-type:DOI",
+        |      "value": "10.17632/DANS.6wg5xccnjd.1"
+        |    }
+        |  ]
+        |}""".stripMargin
+    inside(DatasetMetadata(s)) {
       case Success(dm: DatasetMetadata) =>
-        dm.doi shouldBe Some("doi:10.17632/DANS.6wg5xccnjd.1")
+        dm.doi shouldBe Some("10.17632/DANS.6wg5xccnjd.1")
         dm.languageOfDescription shouldBe None
     }
   }
 
   it should "be happy with empty objects" in {
-    // JObject(List())
-    inside(DatasetMetadata("""{}{}""")) { case Success(_: DatasetMetadata) => }
+    // this is not desired behaviour but is documenting what actually happens
+    DatasetMetadata("""{}{}""") shouldBe a[Success[_]]
   }
 
   it should "fail on an empty array" in {
-    // JArray(List())
     inside(DatasetMetadata("""[]""")) { case Failure(InvalidDocumentException(_, t)) =>
       t.getMessage shouldBe "expected an object, got a class org.json4s.JsonAST$JArray"
     }
@@ -237,30 +115,90 @@ class DatasetMetadataSpec extends TestSupportFixture {
     }
   }
 
-  "QualifiedDate" should "serialize with prefixed enum" in {
-    val date = QualifiedDate(None, "2018-05-22", dateSubmitted)
-    toJson(date) shouldBe """{"value":"2018-05-22","qualifier":"dcterms:dateSubmitted"}"""
+  "DatasetMetadata.relations" should "accept complete relations" in {
+    val s: JsonInput =
+      """{
+        |  "relations": [
+        |    { "qualifier": "dcterms:hasFormat", "url": "string", "title": "string" },
+        |    { "scheme": "id-type:URN", "value": "string", "qualifier": "dcterms:hasFormat" }
+        |  ]
+        |}""".stripMargin
+    DatasetMetadata(s) shouldBe a[Success[_]]
   }
 
-  it should "deserialize a prefixed enum" in {
-    val s: JsonInput = """{"value":"2018-05-22","qualifier":"dcterms:dateSubmitted"}"""
-    s.deserialize[QualifiedDate] shouldBe a[Success[_]]
+  it should "accept incomplete relations" in {
+    val s: JsonInput =
+      """{
+        |  "relations": [
+        |    { "qualifier": "dcterms:hasFormat", "url": "string" },
+        |    { "value": "string", "qualifier": "dcterms:hasFormat" }
+        |  ]
+        |}""".stripMargin
+    DatasetMetadata(s) shouldBe a[Success[_]]
   }
 
-  "AccessCategory" should "serialize with prefix-less enum" in {
-    toJson(AccessRights(open_for_registered_users, "")) shouldBe """{"category":"open_for_registered_users","group":""}"""
+  it should "accept incomplete relations in a different order" in {
+    val s: JsonInput =
+      """{
+        |  "relations": [
+        |    { "value": "string", "qualifier": "dcterms:hasFormat" },
+        |    { "qualifier": "dcterms:hasFormat", "url": "string" }
+        |  ]
+        |}""".stripMargin
+    DatasetMetadata(s) shouldBe a[Success[_]]
   }
-  it should "deserialize a prefix-less enum" in {
-    val s: JsonInput = """{"category":"open_for_registered_users","group":""}"""
-    s.deserialize[AccessRights] shouldBe a[Success[_]]
+
+  it should "accept a RelatedIdentifier without scheme" in {
+    val s: JsonInput = """{ "relations": [ { "value": "string", "qualifier": "dcterms:hasFormat" } ] }"""
+    DatasetMetadata(s) shouldBe a[Success[_]]
   }
-  it should "refeuse to deserialize a prefix on a non-prefixed enum" in {
-    val s: JsonInput = """{"category":"dcterms:open_for_registered_users","group":""}"""
-    inside(s.deserialize[AccessRights]) {
-      case Failure(InvalidDocumentException(msg, cause)) =>
-        msg shouldBe "AccessRights"
-        cause.getMessage should startWith("No usable value for")
-        cause.getMessage should include("category")
+
+  it should "accept a Relation without title" in {
+    val s: JsonInput = """{ "relations": [ { "qualifier": "dcterms:hasFormat", "url": "string" } ] }"""
+    DatasetMetadata(s) shouldBe a[Success[_]]
+  }
+
+  it should "accept a Relation without url" in {
+    val s: JsonInput = """{ "relations": [ { "qualifier": "dcterms:hasFormat", "title": "string" } ] }"""
+    DatasetMetadata(s) shouldBe a[Success[_]]
+  }
+
+  it should "reject a relation with just a qualifier" in {
+    val s: JsonInput = """{ "relations": [ { "qualifier": "dcterms:hasFormat" } ] }"""
+    shouldReturnCustomMessage(s, """expected one of (Relation | RelatedIdentifier) got: {"qualifier":"dcterms:hasFormat"}""")
+  }
+
+  "DatasetMetadata.Author" should "accept an author with initials and surname" in {
+    val s: JsonInput = """{ "contributors": [ { "organization": "University of Zurich" } ] }"""
+    DatasetMetadata(s) shouldBe a[Success[_]]
+  }
+
+  it should "accept an organisation as author" in {
+    val s: JsonInput = """{ "creators": [ { "initials": "A", "surname": "Einstein" } ] }"""
+    DatasetMetadata(s) shouldBe a[Success[_]]
+  }
+
+  it should "reject an author without initials" in {
+    val s: JsonInput = """{ "contributors": [ { "surname": "Einstein" } ] }"""
+    shouldReturnCustomMessage(s, """requirement failed: Author needs one of (organisation | surname and initials) got: {"surname":"Einstein"}""")
+  }
+
+  it should "reject an author without surname" in {
+    val s: JsonInput = """{ "contributors": [ { "initials": "A" } ] }"""
+    shouldReturnCustomMessage(s, """requirement failed: Author needs one of (organisation | surname and initials) got: {"initials":"A"}""")
+  }
+
+  /** Performs a test that (among others) might break after an upgrade of the json4s library
+   *
+   * @param s               json string to be deserialized
+   * @param expectedMessage messages of exceptions thrown by a require clause of a de-serialized component
+   *                        or by custom serializers in JsonUtil
+   * @return assertion whether [[JsonUtil.RichJsonInput()]].deserialize.recoverWith
+   *         properly un-wrapped the expected custom exception
+   */
+  private def shouldReturnCustomMessage(s: JsonInput, expectedMessage: String) = {
+    inside(DatasetMetadata(s)) { case Failure(InvalidDocumentException(_, t)) =>
+      t.getMessage shouldBe expectedMessage
     }
   }
 }

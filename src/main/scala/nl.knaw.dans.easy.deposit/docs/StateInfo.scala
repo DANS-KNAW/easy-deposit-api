@@ -15,7 +15,7 @@
  */
 package nl.knaw.dans.easy.deposit.docs
 
-import nl.knaw.dans.easy.deposit.docs.Json.RichJsonInput
+import nl.knaw.dans.easy.deposit.docs.JsonUtil.RichJsonInput
 import nl.knaw.dans.easy.deposit.docs.StateInfo.State.State
 import org.json4s.JsonInput
 
@@ -27,7 +27,11 @@ object StateInfo {
 
   object State extends Enumeration {
     type State = Value
-    val DRAFT, SUBMITTED, IN_PROGRESS, REJECTED, ARCHIVED = Value
+    val draft: State = Value("DRAFT")
+    val submitted: State = Value("SUBMITTED")
+    val inProgress: State = Value("IN_PROGRESS")
+    val rejected: State = Value("REJECTED")
+    val archived: State = Value("ARCHIVED")
   }
 
   def apply(input: JsonInput): Try[StateInfo] = input.deserialize[StateInfo]

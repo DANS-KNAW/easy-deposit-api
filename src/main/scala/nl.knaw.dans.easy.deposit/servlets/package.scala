@@ -15,7 +15,7 @@
  */
 package nl.knaw.dans.easy.deposit
 
-import nl.knaw.dans.easy.deposit.docs.Json.InvalidDocumentException
+import nl.knaw.dans.easy.deposit.docs.JsonUtil.InvalidDocumentException
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.scalatra.{ ActionResult, BadRequest, InternalServerError }
 
