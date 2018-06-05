@@ -22,6 +22,7 @@ import nl.knaw.dans.easy.deposit.PidRequesterComponent.PidType.PidType
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.PrivacySensitiveDataPresent
 import nl.knaw.dans.easy.deposit.docs.StateInfo.State
 import nl.knaw.dans.easy.deposit.docs.{ DatasetMetadata, StateInfo }
+import org.joda.time.DateTime
 import org.scalamock.scalatest.MockFactory
 
 import scala.util.{ Failure, Success }
@@ -192,8 +193,8 @@ class DepositDirSpec extends TestSupportFixture with MockFactory {
     deposit.writeDatasetMetadataJson(datasetMetadata)
     val oldSize = (mdDir / "dataset.json").size
 
-    deposit.splitDatasetMetadata shouldBe Success(())
-    (mdDir / "dataset.json").size should be > oldSize
+    deposit.splitDatasetMetadata(DateTime.now) shouldBe Success(())
+    (mdDir / "dataset.json").size shouldBe oldSize // date submitted is no longer addededd
     (mdDir / "message-from-depositor.txt").contentAsString shouldBe message
     (mdDir / "agreements.xml").lineIterator.next() shouldBe prologue
     (mdDir / "dataset.xml").lineIterator.next() shouldBe prologue

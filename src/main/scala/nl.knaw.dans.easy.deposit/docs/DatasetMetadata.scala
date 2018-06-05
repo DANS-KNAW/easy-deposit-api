@@ -21,12 +21,9 @@ import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.PrivacySensitiveDataPresen
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.RelationQualifier.RelationQualifier
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata._
 import nl.knaw.dans.easy.deposit.docs.JsonUtil.{ InvalidDocumentException, RichJsonInput, toJson }
-import org.joda.time.DateTime
-import org.joda.time.format.ISODateTimeFormat
 import org.json4s.JsonInput
 
 import scala.util.{ Failure, Success, Try }
-import scala.xml.Elem
 
 case class DatasetMetadata(identifiers: Option[Seq[SchemedValue[String]]] = None,
                            languageOfDescription: Option[SchemedKeyValue[String]] = None,
@@ -40,7 +37,7 @@ case class DatasetMetadata(identifiers: Option[Seq[SchemedValue[String]]] = None
                            alternativeIdentifiers: Option[Seq[SchemedValue[String]]] = None,
                            relations: Option[Seq[RelationType]] = None,
                            languagesOfFiles: Option[Seq[PossiblySchemedKeyValue[String]]] = None,
-                           dates: Option[Seq[Date]] = None,
+                           dates: Option[Seq[QualifiedSchemedValue[String, DateQualifier]]] = None,
                            sources: Option[Seq[String]] = None,
                            instructionsForReuse: Option[Seq[String]] = None,
                            publishers: Option[Seq[String]] = None,
@@ -61,50 +58,18 @@ case class DatasetMetadata(identifiers: Option[Seq[SchemedValue[String]]] = None
     case SchemedValue(`doiScheme`, value) => value
   })
 
+  lazy val privacyBoolean: Try[Boolean] = privacySensitiveDataPresent match {
+    case PrivacySensitiveDataPresent.yes => Success(true)
+    case PrivacySensitiveDataPresent.no => Success(false)
+    case PrivacySensitiveDataPresent.unspecified => Failure(missingValue("PrivacySensitiveDataPresent"))
+  }
+
+  lazy val licenceAccepted: Try[Unit] = if (acceptLicenseAgreement) Success(())
+                                        else Failure(DatasetMetadata.missingValue("AcceptLicenseAgreement"))
+
   def setDoi(value: String): DatasetMetadata = {
     val ids = identifiers.getOrElse(Seq.empty).filter(_.scheme == doiScheme)
     this.copy(identifiers = Some(ids :+ SchemedValue(doiScheme, value)))
-  }
-
-  private lazy val submitDate: Option[String] = {
-    dates.flatMap(_.find(_.qualifier == DateQualifier.dateSubmitted)).map(_.value)
-  }
-
-  lazy val xml: Try[Elem] = Success(<stub/>) // TODO
-
-  def setDateSubmitted(): Try[DatasetMetadata] = {
-    if (submitDate.isDefined)
-      Failure(new Exception("dateSubmitted should not be present"))
-    else {
-      val submitted = Date(DateTime.now(), DateQualifier.dateSubmitted)
-      val newDates = submitted +: dates.getOrElse(Seq.empty)
-      Success(copy(dates = Some(newDates)))
-    }
-  }
-
-  def agreements(userId: String): Try[Elem] = {
-    for {
-      _ <- if (acceptLicenseAgreement) Success(())
-           else Failure(missingValue("AcceptLicenseAgreement"))
-      privacy <- toBoolean(privacySensitiveDataPresent)
-      date = submitDate.getOrElse(throw new IllegalArgumentException("no submitDate"))
-    } yield
-      <agr:agreements
-          xmlns:agr="http://easy.dans.knaw.nl/schemas/bag/metadata/agreements/"
-          xmlns:dcterms="http://purl.org/dc/terms/"
-          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-          xsi:schemaLocation="http://easy.dans.knaw.nl/schemas/bag/metadata/agreements/ agreements.xsd">
-        <agr:licenseAgreement>
-          <agr:depositorId>{userId}</agr:depositorId>
-          <dateAccepted>{date}</dateAccepted>
-          <agr:licenseAgreementAccepted>{acceptLicenseAgreement}</agr:licenseAgreementAccepted>
-        </agr:licenseAgreement>
-        <agr:personalDataStatement>
-          <agr:signerId>{userId}</agr:signerId>
-          <agr:dateSigned>{date}</agr:dateSigned>
-          <agr:containsPrivacySensitiveData>{privacy}</agr:containsPrivacySensitiveData>
-        </agr:personalDataStatement>
-      </agr:agreements>
   }
 }
 
@@ -112,30 +77,9 @@ object DatasetMetadata {
   def apply(input: JsonInput): Try[DatasetMetadata] = input.deserialize[DatasetMetadata]
 
   private val doiScheme = "id-type:DOI"
-  private val dateScheme = "dcterms:W3CDTF"
 
-  type Date = QualifiedSchemedValue[String, DateQualifier]
-
-  def Date(value: DateTime,
-           qualifier: DateQualifier
-          ): Date = {
-    QualifiedSchemedValue[String, DateQualifier](
-      Some(dateScheme),
-      value.toString(ISODateTimeFormat.date()),
-      qualifier
-    )
-  }
-
-  private def missingValue(label: String) = {
+  def missingValue(label: String): InvalidDocumentException = {
     InvalidDocumentException(s"Please set $label in DatasetMetadata")
-  }
-
-  private def toBoolean(privacySensitiveDataPresent: PrivacySensitiveDataPresent): Try[Boolean] = {
-    privacySensitiveDataPresent match {
-      case PrivacySensitiveDataPresent.yes => Success(true)
-      case PrivacySensitiveDataPresent.no => Success(false)
-      case PrivacySensitiveDataPresent.unspecified => Failure(missingValue("PrivacySensitiveDataPresent"))
-    }
   }
 
   object PrivacySensitiveDataPresent extends Enumeration {

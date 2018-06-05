@@ -27,7 +27,7 @@ import nl.knaw.dans.easy.deposit.PidRequesterComponent.{ PidRequester, PidType }
 import nl.knaw.dans.easy.deposit.docs.JsonUtil.{ InvalidDocumentException, toJson }
 import nl.knaw.dans.easy.deposit.docs.StateInfo.State
 import nl.knaw.dans.easy.deposit.docs.StateInfo.State.State
-import nl.knaw.dans.easy.deposit.docs.{ DatasetMetadata, DepositInfo, StateInfo }
+import nl.knaw.dans.easy.deposit.docs._
 import nl.knaw.dans.lib.error._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.apache.commons.configuration.PropertiesConfiguration
@@ -164,15 +164,13 @@ case class DepositDir private(baseDir: File, user: String, id: UUID) extends Deb
   }.recoverWith { case _: NoSuchFileException => notFoundFailure() }
 
   /** part of submit sequence */
-  def splitDatasetMetadata: Try[Unit] = {
+  def splitDatasetMetadata(dateSubmitted: DateTime): Try[Unit] = {
     for {
-      oldDatasetMetadata <- getDatasetMetadata // TODO skip recover? Depends on to be implemented submit.
-      datasetMetadata <- oldDatasetMetadata.setDateSubmitted()
-      _ = datasetMetadataJsonFile.write(toJson(datasetMetadata)) // no recover -> internal error
+      datasetMetadata <- getDatasetMetadata // TODO skip recover? Depends on to be implemented submit.
       _ = msgFromDepositorFile.write(datasetMetadata.messageForDataManager.getOrElse(""))
-      agreementsXml <- datasetMetadata.agreements(user)
+      agreementsXml <- AgreementsXml(user, dateSubmitted, datasetMetadata)
       _ <- agreementsFile.writePretty(agreementsXml)
-      datasetXml <- datasetMetadata.xml
+      datasetXml <- DatasetXml(dateSubmitted, datasetMetadata)
       _ <- datasetXmlFile.writePretty(datasetXml)
     } yield ()
   }
