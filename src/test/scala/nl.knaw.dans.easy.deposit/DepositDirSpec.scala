@@ -17,9 +17,9 @@ package nl.knaw.dans.easy.deposit
 
 import java.nio.file.attribute.PosixFilePermission
 
+import better.files.File
 import nl.knaw.dans.easy.deposit.PidRequesterComponent.PidRequester
 import nl.knaw.dans.easy.deposit.PidRequesterComponent.PidType.PidType
-import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.PrivacySensitiveDataPresent
 import nl.knaw.dans.easy.deposit.docs.StateInfo.State
 import nl.knaw.dans.easy.deposit.docs.{ DatasetMetadata, StateInfo }
 import org.joda.time.DateTime
@@ -182,11 +182,9 @@ class DepositDirSpec extends TestSupportFixture with MockFactory {
   "writeSplittedDatasetMetadata" should "write 4 files" in {
     val prologue = """<?xml version='1.0' encoding='UTF-8'?>"""
     val message = "Lorum ipsum"
-    val datasetMetadata = DatasetMetadata(
-      privacySensitiveDataPresent = PrivacySensitiveDataPresent.yes,
-      acceptLicenseAgreement = true,
-      messageForDataManager = Some(message)
-    )
+    val datasetMetadata = DatasetMetadata((File("src") / "test" / "resources" / "manual-test" / "datasetmetadata-from-ui-all.json").contentAsString)
+      .getOrElse(fail("preparing a valid json failed"))
+      .copy(messageForDataManager = Some(message))
     val deposit = createDepositAsPreparation("user001")
     val mdDir = deposit.getDataFiles.getOrElse(fail("preconditions are not met"))
       .filesMetaData.parent.createIfNotExists(asDirectory = true, createParents = true)

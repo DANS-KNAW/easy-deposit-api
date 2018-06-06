@@ -170,7 +170,7 @@ case class DepositDir private(baseDir: File, user: String, id: UUID) extends Deb
       _ = msgFromDepositorFile.write(datasetMetadata.messageForDataManager.getOrElse(""))
       agreementsXml <- AgreementsXml(user, dateSubmitted, datasetMetadata)
       _ <- agreementsFile.writePretty(agreementsXml)
-      datasetXml <- DatasetXml(dateSubmitted, datasetMetadata)
+      datasetXml <- DatasetXml(datasetMetadata)
       _ <- datasetXmlFile.writePretty(datasetXml)
     } yield ()
   }
