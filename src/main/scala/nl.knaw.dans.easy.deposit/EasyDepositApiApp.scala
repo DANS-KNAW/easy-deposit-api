@@ -117,12 +117,12 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
   /**
    * Sets the deposit state. The only legal transitions are:
    *
-   * - from [[State.draft]] to [[State.submitted]]
-   * - from [[State.rejected]] to [[State.draft]]
+   * - from [[nl.knaw.dans.easy.deposit.docs.StateInfo.State.draft]] to [[nl.knaw.dans.easy.deposit.docs.StateInfo.State.submitted]]
+   * - from [[nl.knaw.dans.easy.deposit.docs.StateInfo.State.rejected]] to [[nl.knaw.dans.easy.deposit.docs.StateInfo.State.draft]]
    *
    * Any attempt at another transition will result in an [[nl.knaw.dans.easy.deposit.IllegalStateTransitionException]].
    *
-   * When transitioning to [[State.submitted]] the following steps will be executed:
+   * When transitioning to [[nl.knaw.dans.easy.deposit.docs.StateInfo.State.submitted]] the following steps will be executed:
    *
    * 1. The `files.xml` of the bag will be written.
    * 2. The SHA-1 payload manifest will be calculated and written.

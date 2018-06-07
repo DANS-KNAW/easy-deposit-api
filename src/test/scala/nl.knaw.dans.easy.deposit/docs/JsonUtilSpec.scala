@@ -16,7 +16,7 @@
 package nl.knaw.dans.easy.deposit.docs
 
 import nl.knaw.dans.easy.deposit.TestSupportFixture
-import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.{ DateQualifier, DateScheme }
+import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.{ DateQualifier }
 import org.joda.time.DateTime
 
 import scala.util.{ Success, Try }
