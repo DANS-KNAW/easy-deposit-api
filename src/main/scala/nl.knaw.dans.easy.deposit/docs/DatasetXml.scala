@@ -32,8 +32,6 @@ object DatasetXml {
       <ddm:dcmiMetadata>
         { elems(dm.contributors, "dcx-dai:creatorDetails") }
         { elems(dm.dates.map(filter(_, otherDates)), "otherDate") }
-        { elems(dm.subjects, "ddm:subject") }
-        { elems(dm.relations, "ddm:relation", dm.languageOfDescription) }
         { optionalElem(dm.license, "dct:license") /* TODO xsi:type="dct:URI" not supported by json */ }
       </ddm:dcmiMetadata>
       <ddm:additional-xml>
@@ -44,18 +42,12 @@ object DatasetXml {
   // called by requiredElems, elems, optionalElem
   private def elem[T](target: String, lang: Lang)(source: T): Elem = {
     (source match {
-      case _ if target == "ddm:subject" => subjectDetails(source)
       case a: Author => <key>{authorDetails(a, lang)}</key>
       case QualifiedSchemedValue(Some(scheme), value, _) => <key scheme={scheme.toString}>{value}</key>
       case QualifiedSchemedValue(None, value, _) => <key>{value}</key>
       case SchemedKeyValue(scheme, key, _) => <key scheme={scheme.toString}>{key}</key> // e.g. role, audience
       case PossiblySchemedKeyValue(Some(scheme), key, _) => <key scheme={scheme.toString}>{key}</key>
       case PossiblySchemedKeyValue(None, key, _) => <key>{key}</key>
-      case Relation(_, Some(url), Some(title)) => <key href={url}>{title}</key>
-      case Relation(_, None, Some(title)) => <key>{title}</key>
-      case Relation(_, Some(url), None) => <key href={url}>{url}</key>
-      case RelatedIdentifier(Some(scheme), value, _) => <key scheme={scheme}>{value}</key> // TODO ?
-      case RelatedIdentifier(None, value, _) => <key>{value}</key> // TODO ?
       case a: AccessRights => <key>{a.category.toString}</key>
       case v => <key>{v}</key>
     }).copy(label = elemLabel(target, source)) // TODO attribute lang if available, for relations if it has a title, for authors to titles/organisation-name, otherwise to root
@@ -63,27 +55,15 @@ object DatasetXml {
 
   /**
    * @param target the default label
-   * @param source may have some property that determines the label
+   * @param source may have a qualifier or some other property that determines the label
    */
   private def elemLabel[T](target: String, source: T) = {
     val rightsholder = "rightsholder"
     source match {
       case QualifiedSchemedValue(_, _, q: DateQualifier) if target == "otherDate" => q.toString
       case Author(_, _, _, _, Some(SchemedKeyValue(_, _, `rightsholder`)), _, _) => "dcterms:rightsholder"
-      case Relation(qualifier, _, _) => qualifier.toString.replace("dcterms", "ddm")
-      case RelatedIdentifier(_, _, qualifier) => qualifier.toString.replace("dcterms", "ddm")
       case _ => target
     }
-  }
-
-  private def subjectDetails[T](source: T) = source match {
-    case PossiblySchemedKeyValue(Some(scheme), Some(key), value) =>
-      // TODO subjectScheme or schemeURI?
-      <key valueURI={key} xml:lang="en" subjectScheme={scheme.toString} schemeURI="???">{value}</key>
-    case PossiblySchemedKeyValue(None, Some(key), value) =>
-      <key valueURI={key} xml:lang="en">{value}</key>
-    case PossiblySchemedKeyValue(None, None, value) =>
-      <key xml:lang="en">{value}</key>
   }
 
   private def authorDetails(a: Author, lang: Lang) =

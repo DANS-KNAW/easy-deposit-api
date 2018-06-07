@@ -87,16 +87,6 @@ class DatasetXmlSpec extends TestSupportFixture {
           <dcterms:valid scheme="dcterms:W3CDTF">2018-03-17</dcterms:valid>
           <dcterms:modified>2018-02-02</dcterms:modified>
           <dcterms:issued>Groundhog day</dcterms:issued>
-          <ddm:subject xml:lang="en">subject1</ddm:subject>
-          <ddm:subject xml:lang="en">subject2</ddm:subject>
-          <ddm:subject valueURI="RKER" xml:lang="en" subjectScheme="abr:ABRcomplex" schemeURI="???">Religie - Kerk</ddm:subject>
-          <ddm:subject valueURI="VK" xml:lang="en" subjectScheme="abr:ABRcomplex" schemeURI="???">Versterking - Kasteel</ddm:subject>
-          <ddm:isReferencedBy scheme="id-type:ISSN">2123-34X</ddm:isReferencedBy>
-          <ddm:conformsTo href="http://x">title1</ddm:conformsTo>
-          <ddm:requires>title2</ddm:requires>
-          <ddm:isReplacedBy href="http://y">http://y</ddm:isReplacedBy>
-          <ddm:relation href="http://z">http://z</ddm:relation>
-          <ddm:relation>title3</ddm:relation>
           <dct:license>http://creativecommons.org/publicdomain/zero/1.0</dct:license>
         </ddm:dcmiMetadata>
         <ddm:additional-xml>
