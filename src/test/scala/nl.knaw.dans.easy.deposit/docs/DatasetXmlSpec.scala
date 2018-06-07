@@ -3,39 +3,69 @@ package nl.knaw.dans.easy.deposit.docs
 import better.files.File
 import nl.knaw.dans.easy.deposit.TestSupportFixture
 
+import scala.util.{ Failure, Success, Try }
+
 class DatasetXmlSpec extends TestSupportFixture {
 
-  val prettyPrinter = new scala.xml.PrettyPrinter(1024, 2)
+  private val prettyPrinter = new scala.xml.PrettyPrinter(1024, 2)
+  private val minimal = DatasetMetadata(
+    """{
+      |  "titles": [""],
+      |  "descriptions": [""],
+      |  "dates": [
+      |    { "scheme": "", "value": "", "qualifier": "dcterms:created" },
+      |    { "scheme": "", "value": "", "qualifier": "dcterms:available" },
+      |  ],
+      |  "creators": [ { "initials": "", "surname": "" } ],
+      |  "accessRights": { "category": "OPEN_ACCESS" },
+      |  "audiences": [ { "scheme": "", "key": "", "value": ""} ]
+      |}""".stripMargin).getOrElse(fail("parsing minimal json failed"))
 
-  "apply" should "produce a minimal DDM" in {
-    val datasetMetadata = DatasetMetadata((File("src") / "test" / "resources" / "manual-test" / "datasetmetadata-from-ui-all.json").contentAsString)
-      .getOrElse(fail("preparing a valid json failed"))
+  "apply" should "produce DDM from  minimal json" in {
+    DatasetXml(minimal) shouldBe a[Success[_]]
+  }
+
+  it should "report a missing title" in {
+    DatasetXml(minimal.copy(titles = None)) should matchPattern {
+      case Failure(e) if e.getMessage == "no content for mandatory dcterms:title" =>
+    }
+  }
+
+  it should "report a missing description" in {
+    DatasetXml(minimal.copy(descriptions = None)) should matchPattern {
+      case Failure(e) if e.getMessage == "no content for mandatory dc:description" =>
+    }
+  }
+  // TODO further variations on minimal should test the specifications line by line
+
+  "datasetmetadata-from-ui-all.json" should "produce expected DDM" in {
     val expected =
       <ddm:DDM
         xmlns:dc="http://purl.org/dc/elements/1.1/"
         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-        xmlns:dct="http://purl.org/dc/terms/"
+        xmlns:dcterms="http://purl.org/dc/terms/"
         xmlns:dcx-dai="http://easy.dans.knaw.nl/schemas/dcx/dai/"
         xmlns:ddm="http://easy.dans.knaw.nl/schemas/md/ddm/"
         xsi:schemaLocation="http://easy.dans.knaw.nl/schemas/md/ddm/ http://easy.dans.knaw.nl/schemas/md/2017/09/ddm.xsd"
       >
         <ddm:profile>
-          <dct:title>title 1</dct:title>
-          <dct:title>title2</dct:title>
-          <dct:alternative>alternative title 1</dct:alternative>
-          <dct:alternative>alternative title2</dct:alternative>
-          <dc:description>description1</dc:description>
-          <dc:description>description2</dc:description>
+          <dcterms:title xml:lang="nld">title 1</dcterms:title>
+          <dcterms:title xml:lang="nld">title2</dcterms:title>
+          <dcterms:alternative xml:lang="nld">alternative title 1</dcterms:alternative>
+          <dcterms:alternative xml:lang="nld">alternative title2</dcterms:alternative>
+          <dc:description xml:lang="nld">description1</dc:description>
+          <dc:description xml:lang="nld">description2</dc:description>
           <dcx-dai:creatorDetails>
             <dcx-dai:author>
-              <dcx-dai:titles>Drs.</dcx-dai:titles>
+              <dcx-dai:titles xml:lang="nld">Drs.</dcx-dai:titles>
               <dcx-dai:initials>D.A.</dcx-dai:initials>
               <dcx-dai:insertions></dcx-dai:insertions>
               <dcx-dai:surname>NS</dcx-dai:surname>
               <dcx-dai:role scheme="datacite:contributorType">ContactPerson</dcx-dai:role>
               <dcx-dai:organization>
-                <dcx-dai:name>KNAW</dcx-dai:name>
-              </dcx-dai:organization></dcx-dai:author>
+                <dcx-dai:name xml:lang="nld">KNAW</dcx-dai:name>
+              </dcx-dai:organization>
+            </dcx-dai:author>
           </dcx-dai:creatorDetails>
           <dcx-dai:creatorDetails>
             <dcx-dai:author>
@@ -53,7 +83,7 @@ class DatasetXmlSpec extends TestSupportFixture {
         <ddm:dcmiMetadata>
           <dcx-dai:creatorDetails>
             <dcx-dai:author>
-            <dcx-dai:titles>Dr.</dcx-dai:titles>
+            <dcx-dai:titles xml:lang="nld">Dr.</dcx-dai:titles>
             <dcx-dai:initials>O.</dcx-dai:initials>
             <dcx-dai:insertions>van</dcx-dai:insertions>
             <dcx-dai:surname>Belix</dcx-dai:surname>
@@ -61,39 +91,48 @@ class DatasetXmlSpec extends TestSupportFixture {
           </dcx-dai:creatorDetails>
           <dcx-dai:creatorDetails>
             <dcx-dai:author>
-            <dcx-dai:organization>
-                  <dcx-dai:name>my organization</dcx-dai:name>
-            </dcx-dai:organization>
+              <dcx-dai:organization>
+                <dcx-dai:name xml:lang="nld">my organization</dcx-dai:name>
+              </dcx-dai:organization>
             </dcx-dai:author>
           </dcx-dai:creatorDetails>
           <dcterms:rightsholder>
             <dcx-dai:author>
               <dcx-dai:role scheme="datacite:contributorType">RightsHolder</dcx-dai:role>
               <dcx-dai:organization>
-                <dcx-dai:name>rightsHolder1</dcx-dai:name>
+                <dcx-dai:name xml:lang="nld">rightsHolder1</dcx-dai:name>
               </dcx-dai:organization>
             </dcx-dai:author>
           </dcterms:rightsholder>
           <dcterms:rightsholder>
             <dcx-dai:author>
-              <dcx-dai:titles>Dr.</dcx-dai:titles>
+              <dcx-dai:titles xml:lang="nld">Dr.</dcx-dai:titles>
               <dcx-dai:initials>A.S.</dcx-dai:initials>
               <dcx-dai:insertions>van</dcx-dai:insertions>
               <dcx-dai:surname>Terix</dcx-dai:surname>
               <dcx-dai:role scheme="datacite:contributorType">RightsHolder</dcx-dai:role>
             </dcx-dai:author>
           </dcterms:rightsholder>
+          <dcterms:publisher xml:lang="nld">pub1</dcterms:publisher>
+          <dcterms:publisher xml:lang="nld">pub2</dcterms:publisher>
+          <dc:source xml:lang="nld">source1</dc:source>
+          <dc:source xml:lang="nld">source2</dc:source>
           <dcterms:dateCopyrighted scheme="dcterms:W3CDTF">2018-03-18</dcterms:dateCopyrighted>
           <dcterms:valid scheme="dcterms:W3CDTF">2018-03-17</dcterms:valid>
           <dcterms:modified>2018-02-02</dcterms:modified>
           <dcterms:issued>Groundhog day</dcterms:issued>
-          <dct:license>http://creativecommons.org/publicdomain/zero/1.0</dct:license>
+          <dcterms:license>http://creativecommons.org/publicdomain/zero/1.0</dcterms:license>
         </ddm:dcmiMetadata>
         <ddm:additional-xml>
         </ddm:additional-xml>
       </ddm:DDM>
-    val actual = DatasetXml(datasetMetadata).getOrElse(fail("conversion failed"))
-    println(prettyPrinter.format(actual))
+
+    val json = Try {
+      (File("src") / "test" / "resources" / "manual-test" / "datasetmetadata-from-ui-all.json").contentAsString
+    }.getOrElse(fail("could not read test data"))
+    val datasetMetadata = DatasetMetadata(json).getOrElse(fail("could not parse test data"))
+    val actual = DatasetXml(datasetMetadata).getOrElse(fail("conversion to DDM failed"))
+
     prettyPrinter.format(actual) shouldBe prettyPrinter.format(expected)
   }
 }
