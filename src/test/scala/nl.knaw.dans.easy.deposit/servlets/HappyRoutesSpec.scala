@@ -16,14 +16,14 @@
 package nl.knaw.dans.easy.deposit.servlets
 
 import java.nio.file.{ Path, Paths }
-import java.util.UUID
+import java.util.{ TimeZone, UUID }
 
 import nl.knaw.dans.easy.deposit._
 import nl.knaw.dans.easy.deposit.authentication.AuthenticationMocker._
 import nl.knaw.dans.easy.deposit.docs.StateInfo.State._
 import nl.knaw.dans.easy.deposit.docs.{ DatasetMetadata, DepositInfo, StateInfo }
 import org.eclipse.jetty.http.HttpStatus._
-import org.joda.time.DateTime
+import org.joda.time.{ DateTime, DateTimeZone }
 import org.scalamock.scalatest.MockFactory
 import org.scalatra.test.scalatest.ScalatraSuite
 
@@ -36,6 +36,7 @@ class HappyRoutesSpec extends TestSupportFixture with ServletFixture with Scalat
   mountServlets(mockedApp, mockedAuthenticationProvider)
   private val now = "2018-03-22T21:43:01.576"
   private val nowUTC = "2018-03-22T20:43:01Z"
+  DateTimeZone.setDefault(DateTimeZone.forTimeZone(TimeZone.getTimeZone("Europe/Amsterdam")))
   mockDateTimeNow(now)
 
   "get /" should "be ok" in {
@@ -70,9 +71,9 @@ class HappyRoutesSpec extends TestSupportFixture with ServletFixture with Scalat
       headers = Seq(("Authorization", fooBarBasicAuthHeader))
     ) {
       status shouldBe CREATED_201
-      body should startWith (s"""{"id":"$uuid","title":"just a test","state":"DRAFT","stateDescription":"Deposit is open for changes.","date":""")
+      body shouldBe s"""{"id":"$uuid","title":"just a test","state":"DRAFT","stateDescription":"Deposit is open for changes.","date":"$nowUTC"}"""
       status shouldBe CREATED_201
-      body should startWith (s"""{"id":"$uuid","title":"just a test","state":"DRAFT","stateDescription":"Deposit is open for changes.","date":""")
+      body shouldBe s"""{"id":"$uuid","title":"just a test","state":"DRAFT","stateDescription":"Deposit is open for changes.","date":"$nowUTC"}"""
       header("Location") should (fullyMatch regex s"http://localhost:[0-9]+/deposit/$uuid")
     }
   }
@@ -91,8 +92,11 @@ class HappyRoutesSpec extends TestSupportFixture with ServletFixture with Scalat
       headers = Seq(("Authorization", fooBarBasicAuthHeader))
     ) {
       status shouldBe OK_200
-      body should include(s"""{"id":"$uuid1","title":"x","state":"DRAFT","stateDescription":"a","date":""")
-      body should include(s"""{"id":"$uuid2","title":"y","state":"SUBMITTED","stateDescription":"b","date":""")
+      // TODO IntegrationSpec seems to apply CEST consistently, should be Z anyway
+      val info1 =
+        s"""{"id":"$uuid1","title":"x","state":"DRAFT","stateDescription":"a","date":"$nowUTC"}"""
+      val info2 = s"""{"id":"$uuid2","title":"y","state":"SUBMITTED","stateDescription":"b","date":"$nowUTC"}"""
+      body shouldBe s"""[$info1,$info2]"""
     }
   }
 
