@@ -58,10 +58,6 @@ case class DatasetMetadata(identifiers: Option[Seq[SchemedValue[String]]] = None
     case SchemedValue(`doiScheme`, value) => value
   })
 
-  lazy val dateCreated: Option[String] = dates.flatMap(_.collectFirst {
-    case QualifiedSchemedValue(Some(`dateCreatedQualifier`), value, _) => value
-  })
-
   lazy val privacyBoolean: Try[Boolean] = privacySensitiveDataPresent match {
     case PrivacySensitiveDataPresent.yes => Success(true)
     case PrivacySensitiveDataPresent.no => Success(false)
