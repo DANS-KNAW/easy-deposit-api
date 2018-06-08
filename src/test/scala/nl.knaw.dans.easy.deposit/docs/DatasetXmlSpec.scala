@@ -136,6 +136,7 @@ class DatasetXmlSpec extends TestSupportFixture {
           <dcterms:valid scheme="dcterms:W3CDTF">2018-03-17</dcterms:valid>
           <dcterms:modified>2018-02-02</dcterms:modified>
           <dcterms:issued>Groundhog day</dcterms:issued>
+          <dcterms:dateSubmitted scheme="dcterms:W3CDTF">2018-03-22</dcterms:dateSubmitted>
           <dcterms:license>http://creativecommons.org/publicdomain/zero/1.0</dcterms:license>
         </ddm:dcmiMetadata>
         <ddm:additional-xml>

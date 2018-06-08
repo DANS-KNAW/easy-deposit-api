@@ -15,8 +15,10 @@
  */
 package nl.knaw.dans.easy.deposit.docs
 
-import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.DateQualifier.{ available, created }
+import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.DateQualifier.{ DateQualifier, available, created }
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata._
+import org.joda.time.DateTime
+import org.joda.time.format.ISODateTimeFormat
 
 import scala.util.Try
 import scala.xml.{ Attribute, Elem, Null, PrefixedAttribute }
@@ -29,6 +31,11 @@ object DatasetXml {
 
   def apply(dm: DatasetMetadata): Try[Elem] = Try {
     val lang = dm.languageOfDescription.map(l => new PrefixedAttribute("xml", "lang", l.key, Null))
+    val dateSubmitted = QualifiedSchemedValue[String, DateQualifier](
+      Some("dcterms:W3CDTF"),
+      DateTime.now().toString(ISODateTimeFormat.date()),
+      DateQualifier.dateSubmitted
+    )
     <ddm:DDM
       xmlns:dc="http://purl.org/dc/elements/1.1/"
       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
@@ -52,6 +59,7 @@ object DatasetXml {
         { elems(dm.publishers, "dcterms:publisher").addAttr(lang) }
         { elems(dm.sources, "dc:source").addAttr(lang) }
         { elems(dm.dates.map(filter(_, otherDates)), qualifier) }
+        { optionalElem(Some(dateSubmitted), qualifier) }
         { optionalElem(dm.license, "dcterms:license") /* TODO xsi:type="dcterms:URI" not supported by json */ }
       </ddm:dcmiMetadata>
       <ddm:additional-xml>
