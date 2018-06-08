@@ -16,7 +16,7 @@
 package nl.knaw.dans.easy.deposit.docs
 
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.DateQualifier.{ DateQualifier, available, created }
-import nl.knaw.dans.easy.deposit.docs.DatasetMetadata._
+import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.{ DateQualifier, _ }
 import org.joda.time.DateTime
 import org.joda.time.format.ISODateTimeFormat
 
@@ -24,9 +24,9 @@ import scala.util.Try
 import scala.xml.{ Attribute, Elem, Null, PrefixedAttribute }
 
 object DatasetXml {
-  private type MaybeAttribute = Option[Attribute]
-
-  private val otherDates = DateQualifier.values.filter(d => d != created && d != available).toSeq
+  private val otherDateQualifiers = DateQualifier.values.filter(qualifier =>
+    qualifier != DateQualifier.created && qualifier != DateQualifier.available
+  ).toSeq
   private val qualifier = "qualifier"
 
   def apply(dm: DatasetMetadata): Try[Elem] = Try {
@@ -46,7 +46,6 @@ object DatasetXml {
     >
       <ddm:profile>
         { requiredElems(dm.titles, "dcterms:title").addAttr(lang) }
-        { elems(dm.alternativeTitles, "dcterms:alternative").addAttr(lang) }
         { requiredElems(dm.descriptions, "dc:description").addAttr(lang) }
         { requiredElems(dm.creators, "dcx-dai:creatorDetails", lang) }
         { requiredElems(dm.dates.map(filter(_, Seq(created))), "ddm:created") }
@@ -55,24 +54,24 @@ object DatasetXml {
         { requiredElems(dm.accessRights.map(Seq(_)), "ddm:accessRights") }
       </ddm:profile>
       <ddm:dcmiMetadata>
+        { elems(dm.alternativeTitles, "dcterms:alternative").addAttr(lang) }
         { elems(dm.contributors, "dcx-dai:creatorDetails", lang) }
         { elems(dm.publishers, "dcterms:publisher").addAttr(lang) }
         { elems(dm.sources, "dc:source").addAttr(lang) }
-        { elems(dm.dates.map(filter(_, otherDates)), qualifier) }
+        { elems(dm.dates.map(filter(_, otherDateQualifiers)), qualifier) }
         { optionalElem(Some(dateSubmitted), qualifier) }
         { optionalElem(dm.license, "dcterms:license") /* TODO xsi:type="dcterms:URI" not supported by json */ }
       </ddm:dcmiMetadata>
-      <ddm:additional-xml>
-      </ddm:additional-xml>
     </ddm:DDM>
   }
 
   // called by requiredElems, elems, optionalElem
-  private def elem[T](target: String, lang: MaybeAttribute)(source: T): Elem = (source match {
+  private def elem[T](target: String, lang: Option[Attribute])(source: T): Elem = (source match {
     case a: Author => <key>{authorDetails(a, lang)}</key>
     case a: AccessRights => <key>{a.category.toString}</key>
-    case SchemedKeyValue(scheme, key, _) => <key scheme={scheme.toString}>{key}</key> // e.g. role, audience
+    case SchemedKeyValue(_, key, _) => <key>{key}</key> // e.g. role, audience
     case QualifiedSchemedValue(None, value, _) => <key>{value}</key>
+    case QualifiedSchemedValue(Some(scheme), value, _) if scheme == "dcterms:W3CDTF" => <key>{value}</key>
     case QualifiedSchemedValue(Some(scheme), value, _) => <key scheme={scheme.toString}>{value}</key>
     case PossiblySchemedKeyValue(Some(scheme), key, _) => <key scheme={scheme.toString}>{key}</key>
     case PossiblySchemedKeyValue(None, key, _) => <key>{key}</key>
@@ -92,7 +91,7 @@ object DatasetXml {
     }
   }
 
-  private def authorDetails(author: Author, lang: MaybeAttribute) =
+  private def authorDetails(author: Author, lang: Option[Attribute]) =
     <dcx-dai:author>
       { optionalElem(author.titles, "dcx-dai:titles").addAttr(lang) }
       { optionalElem(author.initials, "dcx-dai:initials") }
@@ -109,22 +108,22 @@ object DatasetXml {
     </dcx-dai:author>
 
   private implicit class RichElem(elem: Elem) extends Object {
-    def addAttr(maybeAttribute: MaybeAttribute): Elem = maybeAttribute.map(elem % _).getOrElse(elem)
+    def addAttr(maybeAttribute: Option[Attribute]): Elem = maybeAttribute.map(elem % _).getOrElse(elem)
   }
 
   private implicit class RichElems(elems: Seq[Elem]) extends Object {
-    def addAttr(lang: MaybeAttribute): Seq[Elem] = elems.map(_.addAttr(lang))
+    def addAttr(lang: Option[Attribute]): Seq[Elem] = elems.map(_.addAttr(lang))
   }
 
-  private def requiredElems[T](source: Option[Seq[T]], target: String, lang: MaybeAttribute = None): Seq[Elem] = {
+  private def requiredElems[T](source: Option[Seq[T]], target: String, lang: Option[Attribute] = None): Seq[Elem] = {
     source.map(_.map(elem(target, lang))).getOrElse(throwMandatory(target))
   }
 
-  private def elems[T](source: Option[Seq[T]], target: String, lang: MaybeAttribute = None): Seq[Elem] = {
+  private def elems[T](source: Option[Seq[T]], target: String, lang: Option[Attribute] = None): Seq[Elem] = {
     source.map(_.map(elem(target, lang))).getOrElse(Seq.empty)
   }
 
-  private def optionalElem[T](source: Option[T], target: String, lang: MaybeAttribute = None): Seq[Elem] = {
+  private def optionalElem[T](source: Option[T], target: String, lang: Option[Attribute] = None): Seq[Elem] = {
     source.map(elem(target, lang)).toSeq
   }
 

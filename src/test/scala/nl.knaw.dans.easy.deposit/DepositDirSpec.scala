@@ -192,7 +192,7 @@ class DepositDirSpec extends TestSupportFixture with MockFactory {
     val oldSize = (mdDir / "dataset.json").size
 
     deposit.splitDatasetMetadata(DateTime.now) shouldBe Success(())
-    (mdDir / "dataset.json").size shouldBe oldSize // date submitted is no longer addededd
+    (mdDir / "dataset.json").size shouldBe oldSize // date submitted is no longer added
     (mdDir / "message-from-depositor.txt").contentAsString shouldBe message
     (mdDir / "agreements.xml").lineIterator.next() shouldBe prologue
     (mdDir / "dataset.xml").lineIterator.next() shouldBe prologue
