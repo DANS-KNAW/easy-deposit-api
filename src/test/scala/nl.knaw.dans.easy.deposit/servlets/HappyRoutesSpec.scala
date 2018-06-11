@@ -34,10 +34,6 @@ class HappyRoutesSpec extends TestSupportFixture with ServletFixture with Scalat
   private class MockedApp extends EasyDepositApiApp(minimalAppConfig)
   private val mockedApp = mock[MockedApp]
   mountServlets(mockedApp, mockedAuthenticationProvider)
-  private val now = "2018-03-22T21:43:01.576"
-  private val nowUTC = "2018-03-22T20:43:01Z"
-  DateTimeZone.setDefault(DateTimeZone.forTimeZone(TimeZone.getTimeZone("Europe/Amsterdam")))
-  mockDateTimeNow(now)
 
   "get /" should "be ok" in {
     mockedApp.getVersion _ expects() returning "test"

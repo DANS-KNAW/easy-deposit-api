@@ -15,7 +15,7 @@
  */
 package nl.knaw.dans.easy.deposit
 
-import java.util.{ Base64, UUID }
+import java.util.{ Base64, TimeZone, UUID }
 
 import better.files.File
 import better.files.File._
@@ -23,7 +23,7 @@ import nl.knaw.dans.easy.deposit.authentication.AuthenticationMocker.mockedAuthe
 import nl.knaw.dans.easy.deposit.authentication.TokenSupport.TokenConfig
 import nl.knaw.dans.easy.deposit.authentication.{ AuthConfig, AuthUser, AuthenticationProvider, TokenSupport }
 import org.apache.commons.configuration.PropertiesConfiguration
-import org.joda.time.{ DateTime, DateTimeUtils }
+import org.joda.time.{ DateTime, DateTimeUtils, DateTimeZone }
 import org.scalatest._
 
 trait TestSupportFixture extends FlatSpec with Matchers with Inside with BeforeAndAfterEach {
@@ -36,10 +36,11 @@ trait TestSupportFixture extends FlatSpec with Matchers with Inside with BeforeA
       testDir.delete().createDirectories()
   }
 
+  val now = "2018-03-22T21:43:01.576"
+  val nowUTC = "2018-03-22T20:43:01Z"
   /** Causes DateTime.now() to return a predefined value. */
-  def mockDateTimeNow(value: String): Unit = {
-    DateTimeUtils.setCurrentMillisFixed(new DateTime(value).getMillis)
-  }
+  DateTimeUtils.setCurrentMillisFixed(new DateTime(nowUTC).getMillis)
+  DateTimeZone.setDefault(DateTimeZone.forTimeZone(TimeZone.getTimeZone("Europe/Amsterdam")))
 
   val fooBarBasicAuthHeader: String = authenticationHeader("foo","bar")
 

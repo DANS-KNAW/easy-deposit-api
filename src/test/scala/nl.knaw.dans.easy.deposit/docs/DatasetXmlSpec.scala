@@ -29,7 +29,6 @@ import resource.Using
 import scala.util.{ Failure, Success, Try }
 
 class DatasetXmlSpec extends TestSupportFixture {
-  mockDateTimeNow("2018-06-08T21:43:01.576")
 
   private val triedSchema = Try {
     val factory = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI)
@@ -151,7 +150,7 @@ class DatasetXmlSpec extends TestSupportFixture {
           <dcterms:valid>2018-03-17</dcterms:valid>
           <dcterms:modified>2018-02-02</dcterms:modified>
           <dcterms:issued>Groundhog day</dcterms:issued>
-          <dcterms:dateSubmitted>2018-06-08</dcterms:dateSubmitted>
+          <dcterms:dateSubmitted>2018-03-22</dcterms:dateSubmitted>
           <dcterms:license>http://creativecommons.org/publicdomain/zero/1.0</dcterms:license>
         </ddm:dcmiMetadata>
       </ddm:DDM>
@@ -163,7 +162,7 @@ class DatasetXmlSpec extends TestSupportFixture {
     prettyPrinter.format(actual) shouldBe prettyPrinter.format(expected)
   }
 
-  "DDM validation" should "succeed for the minimal json" ignore {
+  "DDM validation" should "succeed for the minimal json" in {
     assume(triedSchema.isSuccess)
     convertAndValidate(minimal) shouldBe a[Success[_]]
   }
