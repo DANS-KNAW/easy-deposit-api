@@ -27,6 +27,7 @@ import nl.knaw.dans.easy.deposit.TestSupportFixture
 import resource.Using
 
 import scala.util.{ Failure, Success, Try }
+import scala.xml.Elem
 
 class DatasetXmlSpec extends TestSupportFixture {
 
@@ -50,8 +51,26 @@ class DatasetXmlSpec extends TestSupportFixture {
       |  "audiences": [ { "scheme": "", "key": "D35200", "value": ""} ]
       |}""".stripMargin).getOrElse(fail("parsing minimal json failed"))
 
-  "apply" should "produce DDM from  minimal json" in {
-    DatasetXml(minimal) shouldBe a[Success[_]]
+  "apply" should "produce expected DDM from  minimal json" in {
+    shouldEqual(DatasetXml(minimal), Seq(
+        <ddm:profile>
+          <dcterms:title></dcterms:title>
+          <dc:description></dc:description>
+          <dcx-dai:creatorDetails>
+            <dcx-dai:author>
+              <dcx-dai:initials></dcx-dai:initials>
+              <dcx-dai:surname></dcx-dai:surname>
+            </dcx-dai:author>
+          </dcx-dai:creatorDetails>
+          <ddm:created>2018</ddm:created>
+          <ddm:available>2018</ddm:available>
+          <ddm:audience>D35200</ddm:audience>
+          <ddm:accessRights>OPEN_ACCESS</ddm:accessRights>
+        </ddm:profile>,
+        <ddm:dcmiMetadata>
+          <dcterms:dateSubmitted>2018-03-22</dcterms:dateSubmitted>
+        </ddm:dcmiMetadata>
+    ))
   }
 
   it should "report a missing title" in {
@@ -68,15 +87,7 @@ class DatasetXmlSpec extends TestSupportFixture {
   // TODO further variations on minimal should test the specifications line by line
 
   "datasetmetadata-from-ui-all.json" should "produce expected DDM" in {
-    val expected =
-      <ddm:DDM
-        xmlns:dc="http://purl.org/dc/elements/1.1/"
-        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-        xmlns:dcterms="http://purl.org/dc/terms/"
-        xmlns:dcx-dai="http://easy.dans.knaw.nl/schemas/dcx/dai/"
-        xmlns:ddm="http://easy.dans.knaw.nl/schemas/md/ddm/"
-        xsi:schemaLocation="http://easy.dans.knaw.nl/schemas/md/ddm/ http://easy.dans.knaw.nl/schemas/md/2017/09/ddm.xsd"
-      >
+    shouldEqual(DatasetXml(parseTestResource("datasetmetadata-from-ui-all.json")), Seq(
         <ddm:profile>
           <dcterms:title xml:lang="nld">title 1</dcterms:title>
           <dcterms:title xml:lang="nld">title2</dcterms:title>
@@ -106,7 +117,7 @@ class DatasetXmlSpec extends TestSupportFixture {
           <ddm:audience>D35200</ddm:audience>
           <ddm:audience>D33000</ddm:audience>
           <ddm:accessRights>OPEN_ACCESS</ddm:accessRights>
-        </ddm:profile>
+        </ddm:profile>,
         <ddm:dcmiMetadata>
           <dcterms:alternative xml:lang="nld">alternative title 1</dcterms:alternative>
           <dcterms:alternative xml:lang="nld">alternative title2</dcterms:alternative>
@@ -153,37 +164,33 @@ class DatasetXmlSpec extends TestSupportFixture {
           <dcterms:dateSubmitted>2018-03-22</dcterms:dateSubmitted>
           <dcterms:license>http://creativecommons.org/publicdomain/zero/1.0</dcterms:license>
         </ddm:dcmiMetadata>
-      </ddm:DDM>
-
-    val datasetMetadata = DatasetMetadata(readTestData("datasetmetadata-from-ui-all.json"))
-      .getOrElse(fail("could not parse test data"))
-    val actual = DatasetXml(datasetMetadata).getOrElse(fail("conversion to DDM failed"))
-
-    prettyPrinter.format(actual) shouldBe prettyPrinter.format(expected)
+    ))
   }
 
   "DDM validation" should "succeed for the minimal json" in {
-    assume(triedSchema.isSuccess)
     convertAndValidate(minimal) shouldBe a[Success[_]]
   }
 
-  it should "succeed for datasetmetadata-from-ui-all.json" ignore {
-    assume(triedSchema.isSuccess)
-    parseConvertAndValidate(readTestData("datasetmetadata-from-ui-all.json")) shouldBe a[Success[_]]
-  }
-
-  private def parseConvertAndValidate(jsonString: String) = {
-    val datasetMetadata = DatasetMetadata(jsonString)
-      .getOrElse(fail("could not parse test data"))
-    convertAndValidate(datasetMetadata)
+  private def shouldEqual(input: Try[Elem], expected: Seq[Elem]) = {
+    val emptyDDM = <ddm:DDM
+        xmlns:dc="http://purl.org/dc/elements/1.1/"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xmlns:dcterms="http://purl.org/dc/terms/"
+        xmlns:dcx-dai="http://easy.dans.knaw.nl/schemas/dcx/dai/"
+        xmlns:ddm="http://easy.dans.knaw.nl/schemas/md/ddm/"
+        xsi:schemaLocation="http://easy.dans.knaw.nl/schemas/md/ddm/ http://easy.dans.knaw.nl/schemas/md/2017/09/ddm.xsd"
+      />
+    prettyPrinter.format(input.getOrElse(fail("conversion to DDM failed"))) shouldBe
+      prettyPrinter.format(emptyDDM.copy(child = expected))
   }
 
   private def convertAndValidate(datasetMetadata: DatasetMetadata) = {
+    assume(triedSchema.isSuccess)
+    val validator = triedSchema.getOrElse(fail("no schema available despite assume")).newValidator()
     val xmlString = prettyPrinter.format(
       DatasetXml(datasetMetadata)
         .getOrElse(fail("conversion to DDM failed"))
     )
-    val validator = triedSchema.getOrElse(fail("no schema available")).newValidator()
     val inputStream = new ByteArrayInputStream(xmlString.getBytes(StandardCharsets.UTF_8))
     Using.bufferedInputStream(inputStream)
       .map(inputStream => validator.validate(new StreamSource(inputStream)))
@@ -194,9 +201,12 @@ class DatasetXmlSpec extends TestSupportFixture {
       }
   }
 
-  private def readTestData(value: String) = {
-    Try {
-      (File(getClass.getResource("/manual-test")) / value).contentAsString
+  private def parseTestResource(file: String) = {
+    val str = Try {
+      (File(getClass.getResource("/manual-test")) / file).contentAsString
     }.getOrElse(fail("could not read test data"))
+
+    DatasetMetadata(str)
+      .getOrElse(fail("could not parse test data"))
   }
 }

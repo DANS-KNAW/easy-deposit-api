@@ -69,7 +69,7 @@ object DatasetXml {
   private def elem[T](target: String, lang: Option[Attribute])(source: T): Elem = (source match {
     case a: Author => <key>{authorDetails(a, lang)}</key>
     case a: AccessRights => <key>{a.category.toString}</key>
-    case SchemedKeyValue(_, key, _) => <key>{key}</key> // e.g. role, audience
+    case x: SchemedKeyValue[_] => <key>{x.key}</key> // e.g. role, audience
     case QualifiedSchemedValue(None, value, _) => <key>{value}</key>
     case QualifiedSchemedValue(Some(scheme), value, _) if scheme == "dcterms:W3CDTF" => <key>{value}</key>
     case QualifiedSchemedValue(Some(scheme), value, _) => <key scheme={scheme.toString}>{value}</key>
