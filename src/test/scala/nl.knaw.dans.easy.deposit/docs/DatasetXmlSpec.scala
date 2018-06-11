@@ -163,12 +163,12 @@ class DatasetXmlSpec extends TestSupportFixture {
     prettyPrinter.format(actual) shouldBe prettyPrinter.format(expected)
   }
 
-  "DDM validation" should "succeed for the minimal json" in {
+  "DDM validation" should "succeed for the minimal json" ignore {
     assume(triedSchema.isSuccess)
     convertAndValidate(minimal) shouldBe a[Success[_]]
   }
 
-  it should "succeed for datasetmetadata-from-ui-all.json" in {
+  it should "succeed for datasetmetadata-from-ui-all.json" ignore {
     assume(triedSchema.isSuccess)
     parseConvertAndValidate(readTestData("datasetmetadata-from-ui-all.json")) shouldBe a[Success[_]]
   }
@@ -190,7 +190,7 @@ class DatasetXmlSpec extends TestSupportFixture {
       .map(inputStream => validator.validate(new StreamSource(inputStream)))
       .tried
       .recoverWith { case e =>
-        println(xmlString)
+        println(xmlString) // to trouble shoot reported line numbers
         Failure(e)
       }
   }
