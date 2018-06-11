@@ -899,7 +899,6 @@ components:
           - dcterms:date
           - dcterms:dateAccepted
           - dcterms:dateCopyrighted
-          - dcterms:dateSubmitted
           - dcterms:issued
           - dcterms:modified
           - dcterms:valid
