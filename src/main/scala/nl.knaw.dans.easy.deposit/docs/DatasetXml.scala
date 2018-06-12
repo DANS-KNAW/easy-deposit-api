@@ -17,6 +17,7 @@ package nl.knaw.dans.easy.deposit.docs
 
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.DateQualifier.{ DateQualifier, available, created, dateSubmitted }
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.{ DateQualifier, _ }
+import nl.knaw.dans.easy.deposit.docs.JsonUtil.InvalidDocumentException
 import org.joda.time.DateTime
 
 import scala.util.Try
@@ -107,10 +108,12 @@ object DatasetXml {
         case x: QualifiedSchemedValue[_, _] if target == targetFromQualifier => x.qualifier.toString
         case Author(_, _, _, _, Some(SchemedKeyValue(_, _, `rightsholder`)), _, _) => "dcterms:rightsholder"
         case _ => target
-      }).split(":") match{
+      }).split(":") match {
         case Array(label) => elem.copy(label = label)
-        case Array(prefix, label) => elem.copy(prefix= prefix, label = label)
-        case a => throw new Exception(s"expecting (label) or (prefix:label); got [${a.mkString(":")}] to adjust the <key> of ${Utility.trim(elem)}")
+        case Array(prefix, label) => elem.copy(prefix = prefix, label = label)
+        case a => throw InvalidDocumentException("DatasetMetadata", new Exception(
+          s"expecting (label) or (prefix:label); got [${ a.mkString(":") }] to adjust the <key> of ${ Utility.trim(elem) } created from: $source"
+        ))
       }
     }
 

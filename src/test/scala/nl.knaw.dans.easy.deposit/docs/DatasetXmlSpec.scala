@@ -24,7 +24,6 @@ import javax.xml.transform.Source
 import javax.xml.transform.stream.StreamSource
 import javax.xml.validation.SchemaFactory
 import nl.knaw.dans.easy.deposit.TestSupportFixture
-import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.DateQualifier.DateQualifier
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.{ DateQualifier, QualifiedSchemedValue }
 import resource.Using
 
@@ -203,16 +202,34 @@ class DatasetXmlSpec extends TestSupportFixture {
     convertAndValidate(minimal) shouldBe a[Success[_]]
   }
 
-  it should "succeed for manual test resources" ignore {
-    convertAndValidate(parseTestResource("datasetmetadata.json")) shouldBe a[Success[_]]
-    convertAndValidate(parseTestResource("datasetmetadata-from-ui-all.json")) shouldBe a[Success[_]]
-    convertAndValidate(parseTestResource("datasetmetadata-from-ui-some.json")) shouldBe a[Success[_]]
+  it should "document which parts of the manual test resources are valid" in {
+    // drop what does not validate // TODO possibly fix conversion
+
+    convertAndValidate(
+      parseTestResource("datasetmetadata.json")
+    ) shouldBe a[Success[_]]
+
+    // TODO keep the following resources in sync with UI module
+    // https://github.com/DANS-KNAW/easy-deposit-ui/blob/784fdc5/src/test/typescript/mockserver/metadata.ts#L246
+    convertAndValidate(
+      parseTestResource("datasetmetadata-from-ui-some.json")
+    ) shouldBe a[Success[_]]
+
+    convertAndValidate {
+      val metadata = parseTestResource("datasetmetadata-from-ui-all.json")
+      val validContributors = metadata.contributors.map(_.filter(_ match {
+        case author if author.organization.getOrElse("") == "my organization" => false
+        case author if author.organization.getOrElse("") == "rightsHolder1" => false
+        case author if author.surname.getOrElse("") == "Terix" => false
+        case _ => true
+      }))
+      metadata.copy(contributors = validContributors)
+    } shouldBe a[Success[_]]
   }
 
   it should "succeed with some accumulated variations on minimal" in {
-    val dates = DateQualifier.values.toSeq.map { q =>
-      QualifiedSchemedValue[String, DateQualifier](Some("dcterms:W3CDTF"), "2018", q)
-    }
+    val dates = DateQualifier.values.toSeq.map { q => DatasetMetadata.Date("2018", q) } :+
+      DatasetMetadata.Date("2017", DateQualifier.modified)
     convertAndValidate(minimal.copy(
       titles = Some(Seq("Lorum", "ipsum")),
       descriptions = Some(Seq("Lorum", "ipsum")),
@@ -226,13 +243,13 @@ class DatasetXmlSpec extends TestSupportFixture {
   "RichElem.setTag" should "report an error" in {
     // TODO had to make targetFromQualifier and RichElem public for this test
     // can't cause this error through the apply method
-    // because it does not use targetFromQualifier for a non-enum
+    // because it does not yet use targetFromQualifier for a non-enum
     import DatasetXml.RichElem
     val source = new QualifiedSchemedValue[String, String](None, "", "a:b:c")
-    Try{
+    Try {
       <key>Lorum Ipsum</key>.setTag(DatasetXml.targetFromQualifier, source)
-    } should matchPattern{
-      case Failure(e: Exception) if e.getMessage == "expecting (label) or (prefix:label); got [a:b:c] to adjust the <key> of <key>Lorum Ipsum</key>" =>
+    } should matchPattern {
+      case Failure(e: Exception) if e.getMessage == "invalid DatasetMetadata: class java.lang.Exception expecting (label) or (prefix:label); got [a:b:c] to adjust the <key> of <key>Lorum Ipsum</key> created from: QualifiedSchemedValue(None,,a:b:c)" =>
     }
   }
 
