@@ -89,7 +89,7 @@ class DatasetXmlSpec extends TestSupportFixture {
 
   it should "produce multiple titles" in {
     val ddm = toDDM(minimal.copy(titles = Some(Seq("Lorum", "ipsum"))))
-    (ddm \ "profile" \ "dcterms:title").iterator.toList.map(prettyPrinter.format(_)) shouldBe
+    (ddm \ "profile" \ "title").iterator.toList.map(prettyPrinter.format(_)) shouldBe
       List(
         <dcterms:title>Lorum</dcterms:title>,
         <dcterms:title>ipsum</dcterms:title>
@@ -104,15 +104,15 @@ class DatasetXmlSpec extends TestSupportFixture {
 
     // need namespace because DatasetXml generates these labels with plain strings
     val ddm = toDDM(minimal.copy(dates = Some(dates)))
-    (ddm \ "dcmiMetadata" \ "dcterms:date").text shouldBe date
-    (ddm \ "dcmiMetadata" \ "dcterms:dateAccepted").text shouldBe date
-    (ddm \ "dcmiMetadata" \ "dcterms:dateCopyrighted").text shouldBe date
-    (ddm \ "dcmiMetadata" \ "dcterms:issued").text shouldBe date
-    (ddm \ "dcmiMetadata" \ "dcterms:modified").text shouldBe date + "2018-01-01"
-    (ddm \ "dcmiMetadata" \ "dcterms:valid").text shouldBe date
+    (ddm \ "dcmiMetadata" \ "date").text shouldBe date
+    (ddm \ "dcmiMetadata" \ "dateAccepted").text shouldBe date
+    (ddm \ "dcmiMetadata" \ "dateCopyrighted").text shouldBe date
+    (ddm \ "dcmiMetadata" \ "issued").text shouldBe date
+    (ddm \ "dcmiMetadata" \ "modified").text shouldBe date + "2018-01-01"
+    (ddm \ "dcmiMetadata" \ "valid").text shouldBe date
 
     // generated: "now" as set by fixture
-    (ddm \ "dcmiMetadata" \ "dcterms:dateSubmitted").text shouldBe "2018-03-22"
+    (ddm \ "dcmiMetadata" \ "dateSubmitted").text shouldBe "2018-03-22"
 
     // ddm:created and ddm:available are generated in ddm:profile as shown with plain minimal test
   }

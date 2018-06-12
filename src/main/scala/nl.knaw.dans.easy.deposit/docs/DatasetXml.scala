@@ -75,23 +75,7 @@ object DatasetXml {
     case PossiblySchemedKeyValue(Some(scheme), key, _) => <key scheme={scheme.toString}>{key}</key>
     case PossiblySchemedKeyValue(None, key, _) => <key>{key}</key>
     case v => <key>{v}</key>
-  }).copy(label = elemTag(target, source))
-
-  /**
-   *
-   * @param target the default label
-   * @param source may have a qualifier or some other property that determines the label
-   * @return a complete xml tag: a string with both namespace prefix and label,
-   *         after serialization it doesn't make a difference
-   */
-  private def elemTag[T](target: String, source: T) = {
-    val rightsholder = "rightsholder"
-    source match {
-      case x: QualifiedSchemedValue[_, _] if target == targetFromQualifier => x.qualifier.toString
-      case Author(_, _, _, _, Some(SchemedKeyValue(_, _, `rightsholder`)), _, _) => "dcterms:rightsholder"
-      case _ => target
-    }
-  }
+  }).setTag(target, source)
 
   private def authorDetails(author: Author, lang: Option[Attribute]) =
     <dcx-dai:author>
@@ -109,10 +93,29 @@ object DatasetXml {
       }
     </dcx-dai:author>
 
+  /** @param elem XML element to be adjusted */
   private implicit class RichElem(elem: Elem) extends Object {
+    /**
+     * @param target the default tag (namespace:label)
+     * @param source may have a qualifier or some other property that determines the tag
+     */
+    def setTag[T](target: String, source: T): Elem = {
+      val rightsholder = "rightsholder"
+      (source match {
+        case x: QualifiedSchemedValue[_, _] if target == targetFromQualifier => x.qualifier.toString
+        case Author(_, _, _, _, Some(SchemedKeyValue(_, _, `rightsholder`)), _, _) => "dcterms:rightsholder"
+        case _ => target
+      }).split(":") match{
+        case Array(label) => elem.copy(label = label)
+        case Array(prefix, label) => elem.copy(prefix= prefix, label = label)
+        case a => throw new Exception(s"expecting (label) or (prefix,label); got [$a] to change the <key...> of $elem")
+      }
+    }
+
     def addAttr(maybeAttribute: Option[Attribute]): Elem = maybeAttribute.map(elem % _).getOrElse(elem)
   }
 
+  /** @param elems the sequence of elements to adjust */
   private implicit class RichElems(elems: Seq[Elem]) extends Object {
     def addAttr(lang: Option[Attribute]): Seq[Elem] = elems.map(_.addAttr(lang))
   }
