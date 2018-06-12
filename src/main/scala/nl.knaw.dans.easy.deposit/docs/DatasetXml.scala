@@ -15,12 +15,12 @@
  */
 package nl.knaw.dans.easy.deposit.docs
 
-import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.DateQualifier.{ available, created, dateSubmitted }
+import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.DateQualifier.{ DateQualifier, available, created, dateSubmitted }
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.{ DateQualifier, _ }
 import org.joda.time.DateTime
 
 import scala.util.Try
-import scala.xml.{ Attribute, Elem, Null, PrefixedAttribute }
+import scala.xml._
 
 object DatasetXml {
   private val otherDateQualifiers = DateQualifier.values.filter { qualifier =>
@@ -30,7 +30,9 @@ object DatasetXml {
       dateSubmitted // generated, ignore if in input
     ).contains(qualifier)
   }.toSeq
-  private val targetFromQualifier = "qualifier"
+
+  // TODO see unit test for error handling why this is not private
+  val targetFromQualifier = "qualifier"
 
   def apply(dm: DatasetMetadata): Try[Elem] = Try {
     val lang = dm.languageOfDescription.map(l => new PrefixedAttribute("xml", "lang", l.key, Null))
@@ -70,7 +72,7 @@ object DatasetXml {
     case a: AccessRights => <key>{a.category.toString}</key>
     case x: SchemedKeyValue[_] => <key>{x.key}</key> // e.g. role, audience
     case QualifiedSchemedValue(None, value, _) => <key>{value}</key>
-    case QualifiedSchemedValue(Some(scheme), value, _) if scheme == "dcterms:W3CDTF" => <key>{value}</key>
+    case QualifiedSchemedValue(_, value, _: DateQualifier) => <key>{value}</key>
     case QualifiedSchemedValue(Some(scheme), value, _) => <key scheme={scheme.toString}>{value}</key>
     case PossiblySchemedKeyValue(Some(scheme), key, _) => <key scheme={scheme.toString}>{key}</key>
     case PossiblySchemedKeyValue(None, key, _) => <key>{key}</key>
@@ -94,7 +96,7 @@ object DatasetXml {
     </dcx-dai:author>
 
   /** @param elem XML element to be adjusted */
-  private implicit class RichElem(elem: Elem) extends Object {
+  implicit class RichElem(elem: Elem) extends Object {
     /**
      * @param target the default tag (namespace:label)
      * @param source may have a qualifier or some other property that determines the tag
@@ -108,7 +110,7 @@ object DatasetXml {
       }).split(":") match{
         case Array(label) => elem.copy(label = label)
         case Array(prefix, label) => elem.copy(prefix= prefix, label = label)
-        case a => throw new Exception(s"expecting (label) or (prefix,label); got [$a] to change the <key...> of $elem")
+        case a => throw new Exception(s"expecting (label) or (prefix:label); got [${a.mkString(":")}] to adjust the <key> of ${Utility.trim(elem)}")
       }
     }
 

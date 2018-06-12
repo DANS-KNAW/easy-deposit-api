@@ -96,7 +96,6 @@ class DatasetXmlSpec extends TestSupportFixture {
       ).map(prettyPrinter.format(_))
   }
 
-  type Date = QualifiedSchemedValue[String, DateQualifier]
   it should "produce all types of dates" in {
     val date = "2018-06-14"
     val dates = DateQualifier.values.toSeq.map { q => DatasetMetadata.Date(date, q) } :+
@@ -199,11 +198,18 @@ class DatasetXmlSpec extends TestSupportFixture {
     ))
   }
 
+  // expected XML is tested with individual tests so these tests won't look ignored when running offline
   "DDM validation" should "succeed for the minimal json" in {
     convertAndValidate(minimal) shouldBe a[Success[_]]
   }
 
-  it should "succeed when accumulating the variations on minimal" in {
+  it should "succeed for manual test resources" ignore {
+    convertAndValidate(parseTestResource("datasetmetadata.json")) shouldBe a[Success[_]]
+    convertAndValidate(parseTestResource("datasetmetadata-from-ui-all.json")) shouldBe a[Success[_]]
+    convertAndValidate(parseTestResource("datasetmetadata-from-ui-some.json")) shouldBe a[Success[_]]
+  }
+
+  it should "succeed with some accumulated variations on minimal" in {
     val dates = DateQualifier.values.toSeq.map { q =>
       QualifiedSchemedValue[String, DateQualifier](Some("dcterms:W3CDTF"), "2018", q)
     }
@@ -215,6 +221,19 @@ class DatasetXmlSpec extends TestSupportFixture {
       dates = Some(dates),
       license = Some("rabarbera")
     )) shouldBe a[Success[_]]
+  }
+
+  "RichElem.setTag" should "report an error" in {
+    // TODO had to make targetFromQualifier and RichElem public for this test
+    // can't cause this error through the apply method
+    // because it does not use targetFromQualifier for a non-enum
+    import DatasetXml.RichElem
+    val source = new QualifiedSchemedValue[String, String](None, "", "a:b:c")
+    Try{
+      <key>Lorum Ipsum</key>.setTag(DatasetXml.targetFromQualifier, source)
+    } should matchPattern{
+      case Failure(e: Exception) if e.getMessage == "expecting (label) or (prefix:label); got [a:b:c] to adjust the <key> of <key>Lorum Ipsum</key>" =>
+    }
   }
 
   private def toDDM(variant: DatasetMetadata) = {
