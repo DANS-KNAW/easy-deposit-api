@@ -28,17 +28,16 @@ import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.{ DateQualifier, Qualified
 import resource.Using
 
 import scala.util.{ Failure, Success, Try }
-import scala.xml.Elem
+import scala.xml.{ Node, Utility }
 
 class DatasetXmlSpec extends TestSupportFixture {
 
-  private val triedSchema = Try {
+  private lazy val triedSchema = Try { // loading postponed until we actually start validating
     val factory = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI)
     val schemas = "http://dublincore.org/schemas/xmls/qdc/2008/02/11/dcterms.xsd" ::
       "https://easy.dans.knaw.nl/schemas/md/ddm/ddm.xsd" :: Nil
     factory.newSchema(schemas.map(xsd => new StreamSource(xsd)).toArray[Source])
   }
-  private val prettyPrinter = new scala.xml.PrettyPrinter(1024, 2)
   private val minimal = DatasetMetadata(
     """{
       |  "titles": [""],
@@ -52,25 +51,31 @@ class DatasetXmlSpec extends TestSupportFixture {
       |  "audiences": [ { "scheme": "", "key": "D35200", "value": ""} ]
       |}""".stripMargin).getOrElse(fail("parsing minimal json failed"))
 
+  // pretty provides friendlier trouble shooting for complex XML's than Utility.trim
+  private val prettyPrinter = new scala.xml.PrettyPrinter(1024, 2)
+  private val emptyDDM = toDDM(minimal).copy(child = Seq())
+
+  private def wrapInPrettyDDM(seq: Seq[Node]) = prettyPrinter.format(emptyDDM.copy(child = seq))
+
   "apply" should "produce expected DDM from  minimal json" in {
-    shouldEqual(DatasetXml(minimal), Seq(
-        <ddm:profile>
-          <dcterms:title></dcterms:title>
-          <dc:description></dc:description>
-          <dcx-dai:creatorDetails>
-            <dcx-dai:author>
-              <dcx-dai:initials></dcx-dai:initials>
-              <dcx-dai:surname></dcx-dai:surname>
-            </dcx-dai:author>
-          </dcx-dai:creatorDetails>
-          <ddm:created>2018</ddm:created>
-          <ddm:available>2018</ddm:available>
-          <ddm:audience>D35200</ddm:audience>
-          <ddm:accessRights>OPEN_ACCESS</ddm:accessRights>
-        </ddm:profile>,
-        <ddm:dcmiMetadata>
-          <dcterms:dateSubmitted>2018-03-22</dcterms:dateSubmitted>
-        </ddm:dcmiMetadata>
+    prettyPrinter.format(toDDM(minimal)) shouldBe wrapInPrettyDDM( Seq(
+      <ddm:profile>
+        <dcterms:title></dcterms:title>
+        <dc:description></dc:description>
+        <dcx-dai:creatorDetails>
+          <dcx-dai:author>
+            <dcx-dai:initials></dcx-dai:initials>
+            <dcx-dai:surname></dcx-dai:surname>
+          </dcx-dai:author>
+        </dcx-dai:creatorDetails>
+        <ddm:created>2018</ddm:created>
+        <ddm:available>2018</ddm:available>
+        <ddm:audience>D35200</ddm:audience>
+        <ddm:accessRights>OPEN_ACCESS</ddm:accessRights>
+      </ddm:profile>,
+      <ddm:dcmiMetadata>
+        <dcterms:dateSubmitted>2018-03-22</dcterms:dateSubmitted>
+      </ddm:dcmiMetadata>
     ))
   }
 
@@ -88,11 +93,11 @@ class DatasetXmlSpec extends TestSupportFixture {
 
   it should "produce multiple titles" in {
     val ddm = toDDM(minimal.copy(titles = Some(Seq("Lorum", "ipsum"))))
-    (ddm \ "profile" \ "title").iterator.toList.map(prettyPrinter.format(_)) shouldBe
+    (ddm \ "profile" \ "title").iterator.toList.map(Utility.trim) shouldBe
       List(
         <dcterms:title>Lorum</dcterms:title>,
         <dcterms:title>ipsum</dcterms:title>
-      ).map(prettyPrinter.format(_))
+      ).map(Utility.trim)
   }
 
   it should "produce all types of dates" in {
@@ -100,7 +105,6 @@ class DatasetXmlSpec extends TestSupportFixture {
     val dates = DateQualifier.values.toSeq.map { q => DatasetMetadata.Date(date, q) } :+
       DatasetMetadata.Date("2018-01-01", DateQualifier.modified) // one date twice (different values)
 
-    // need namespace because DatasetXml generates these labels with plain strings
     val ddm = toDDM(minimal.copy(dates = Some(dates)))
     (ddm \ "dcmiMetadata" \ "date").text shouldBe date
     (ddm \ "dcmiMetadata" \ "dateAccepted").text shouldBe date
@@ -109,91 +113,104 @@ class DatasetXmlSpec extends TestSupportFixture {
     (ddm \ "dcmiMetadata" \ "modified").text shouldBe date + "2018-01-01"
     (ddm \ "dcmiMetadata" \ "valid").text shouldBe date
 
-    // generated: "now" as set by fixture
+    // specified value overwritten with a generated value: "now" as set by fixture
     (ddm \ "dcmiMetadata" \ "dateSubmitted").text shouldBe "2018-03-22"
 
     // ddm:created and ddm:available are generated in ddm:profile as shown with plain minimal test
   }
   // TODO further variations on minimal should test the specifications line by line
 
+  "RichElem.setTag" should "report an error" in {
+    // TODO had to make targetFromQualifier and RichElem public for this test
+    // can't cause this error through the apply method
+    // because it does not yet use targetFromQualifier for a non-enum
+    import DatasetXml.RichElem
+    val source = new QualifiedSchemedValue[String, String](None, "", "a:b:c")
+    Try {
+      <key>Lorum Ipsum</key>.setTag(DatasetXml.targetFromQualifier, source)
+    } should matchPattern {
+      case Failure(e: Exception) if e.getMessage == "invalid DatasetMetadata: class java.lang.Exception expecting (label) or (prefix:label); got [a:b:c] to adjust the <key> of <key>Lorum Ipsum</key> created from: QualifiedSchemedValue(None,,a:b:c)" =>
+    }
+  }
+
   "datasetmetadata-from-ui-all.json" should "produce expected DDM" in {
-    shouldEqual(DatasetXml(parseTestResource("datasetmetadata-from-ui-all.json")), Seq(
-        <ddm:profile>
-          <dcterms:title xml:lang="nld">title 1</dcterms:title>
-          <dcterms:title xml:lang="nld">title2</dcterms:title>
-          <dc:description xml:lang="nld">description1</dc:description>
-          <dc:description xml:lang="nld">description2</dc:description>
-          <dcx-dai:creatorDetails>
-            <dcx-dai:author>
-              <dcx-dai:titles xml:lang="nld">Drs.</dcx-dai:titles>
-              <dcx-dai:initials>D.A.</dcx-dai:initials>
-              <dcx-dai:insertions></dcx-dai:insertions>
-              <dcx-dai:surname>NS</dcx-dai:surname>
-              <dcx-dai:role>ContactPerson</dcx-dai:role>
-              <dcx-dai:organization>
-                <dcx-dai:name xml:lang="nld">KNAW</dcx-dai:name>
-              </dcx-dai:organization>
-            </dcx-dai:author>
-          </dcx-dai:creatorDetails>
-          <dcx-dai:creatorDetails>
-            <dcx-dai:author>
-              <dcx-dai:initials>Foo</dcx-dai:initials>
-              <dcx-dai:insertions>van</dcx-dai:insertions>
-              <dcx-dai:surname>Bar</dcx-dai:surname>
-            </dcx-dai:author>
-          </dcx-dai:creatorDetails>
-          <ddm:created>2018-03-19</ddm:created>
-          <ddm:available>2018-03-14</ddm:available>
-          <ddm:audience>D35200</ddm:audience>
-          <ddm:audience>D33000</ddm:audience>
-          <ddm:accessRights>OPEN_ACCESS</ddm:accessRights>
-        </ddm:profile>,
-        <ddm:dcmiMetadata>
-          <dcterms:alternative xml:lang="nld">alternative title 1</dcterms:alternative>
-          <dcterms:alternative xml:lang="nld">alternative title2</dcterms:alternative>
-          <dcx-dai:creatorDetails>
-            <dcx-dai:author>
-              <dcx-dai:titles xml:lang="nld">Dr.</dcx-dai:titles>
-              <dcx-dai:initials>O.</dcx-dai:initials>
-              <dcx-dai:insertions>van</dcx-dai:insertions>
-              <dcx-dai:surname>Belix</dcx-dai:surname>
-            </dcx-dai:author>
-          </dcx-dai:creatorDetails>
-          <dcx-dai:creatorDetails>
-            <dcx-dai:author>
-              <dcx-dai:organization>
-                <dcx-dai:name xml:lang="nld">my organization</dcx-dai:name>
-              </dcx-dai:organization>
-            </dcx-dai:author>
-          </dcx-dai:creatorDetails>
-          <dcterms:rightsholder>
-            <dcx-dai:author>
-              <dcx-dai:role>RightsHolder</dcx-dai:role>
-              <dcx-dai:organization>
-                <dcx-dai:name xml:lang="nld">rightsHolder1</dcx-dai:name>
-              </dcx-dai:organization>
-            </dcx-dai:author>
-          </dcterms:rightsholder>
-          <dcterms:rightsholder>
-            <dcx-dai:author>
-              <dcx-dai:titles xml:lang="nld">Dr.</dcx-dai:titles>
-              <dcx-dai:initials>A.S.</dcx-dai:initials>
-              <dcx-dai:insertions>van</dcx-dai:insertions>
-              <dcx-dai:surname>Terix</dcx-dai:surname>
-              <dcx-dai:role>RightsHolder</dcx-dai:role>
-            </dcx-dai:author>
-          </dcterms:rightsholder>
-          <dcterms:publisher xml:lang="nld">pub1</dcterms:publisher>
-          <dcterms:publisher xml:lang="nld">pub2</dcterms:publisher>
-          <dc:source xml:lang="nld">source1</dc:source>
-          <dc:source xml:lang="nld">source2</dc:source>
-          <dcterms:dateCopyrighted>2018-03-18</dcterms:dateCopyrighted>
-          <dcterms:valid>2018-03-17</dcterms:valid>
-          <dcterms:modified>2018-02-02</dcterms:modified>
-          <dcterms:issued>Groundhog day</dcterms:issued>
-          <dcterms:dateSubmitted>2018-03-22</dcterms:dateSubmitted>
-          <dcterms:license>http://creativecommons.org/publicdomain/zero/1.0</dcterms:license>
-        </ddm:dcmiMetadata>
+    prettyPrinter.format(toDDM(parseTestResource("datasetmetadata-from-ui-all.json"))) shouldBe wrapInPrettyDDM(Seq(
+      <ddm:profile>
+        <dcterms:title xml:lang="nld">title 1</dcterms:title>
+        <dcterms:title xml:lang="nld">title2</dcterms:title>
+        <dc:description xml:lang="nld">description1</dc:description>
+        <dc:description xml:lang="nld">description2</dc:description>
+        <dcx-dai:creatorDetails>
+          <dcx-dai:author>
+            <dcx-dai:titles xml:lang="nld">Drs.</dcx-dai:titles>
+            <dcx-dai:initials>D.A.</dcx-dai:initials>
+            <dcx-dai:insertions></dcx-dai:insertions>
+            <dcx-dai:surname>NS</dcx-dai:surname>
+            <dcx-dai:role>ContactPerson</dcx-dai:role>
+            <dcx-dai:organization>
+              <dcx-dai:name xml:lang="nld">KNAW</dcx-dai:name>
+            </dcx-dai:organization>
+          </dcx-dai:author>
+        </dcx-dai:creatorDetails>
+        <dcx-dai:creatorDetails>
+          <dcx-dai:author>
+            <dcx-dai:initials>Foo</dcx-dai:initials>
+            <dcx-dai:insertions>van</dcx-dai:insertions>
+            <dcx-dai:surname>Bar</dcx-dai:surname>
+          </dcx-dai:author>
+        </dcx-dai:creatorDetails>
+        <ddm:created>2018-03-19</ddm:created>
+        <ddm:available>2018-03-14</ddm:available>
+        <ddm:audience>D35200</ddm:audience>
+        <ddm:audience>D33000</ddm:audience>
+        <ddm:accessRights>OPEN_ACCESS</ddm:accessRights>
+      </ddm:profile>,
+      <ddm:dcmiMetadata>
+        <dcterms:alternative xml:lang="nld">alternative title 1</dcterms:alternative>
+        <dcterms:alternative xml:lang="nld">alternative title2</dcterms:alternative>
+        <dcx-dai:creatorDetails>
+          <dcx-dai:author>
+            <dcx-dai:titles xml:lang="nld">Dr.</dcx-dai:titles>
+            <dcx-dai:initials>O.</dcx-dai:initials>
+            <dcx-dai:insertions>van</dcx-dai:insertions>
+            <dcx-dai:surname>Belix</dcx-dai:surname>
+          </dcx-dai:author>
+        </dcx-dai:creatorDetails>
+        <dcx-dai:creatorDetails>
+          <dcx-dai:author>
+            <dcx-dai:organization>
+              <dcx-dai:name xml:lang="nld">my organization</dcx-dai:name>
+            </dcx-dai:organization>
+          </dcx-dai:author>
+        </dcx-dai:creatorDetails>
+        <dcterms:rightsholder>
+          <dcx-dai:author>
+            <dcx-dai:role>RightsHolder</dcx-dai:role>
+            <dcx-dai:organization>
+              <dcx-dai:name xml:lang="nld">rightsHolder1</dcx-dai:name>
+            </dcx-dai:organization>
+          </dcx-dai:author>
+        </dcterms:rightsholder>
+        <dcterms:rightsholder>
+          <dcx-dai:author>
+            <dcx-dai:titles xml:lang="nld">Dr.</dcx-dai:titles>
+            <dcx-dai:initials>A.S.</dcx-dai:initials>
+            <dcx-dai:insertions>van</dcx-dai:insertions>
+            <dcx-dai:surname>Terix</dcx-dai:surname>
+            <dcx-dai:role>RightsHolder</dcx-dai:role>
+          </dcx-dai:author>
+        </dcterms:rightsholder>
+        <dcterms:publisher xml:lang="nld">pub1</dcterms:publisher>
+        <dcterms:publisher xml:lang="nld">pub2</dcterms:publisher>
+        <dc:source xml:lang="nld">source1</dc:source>
+        <dc:source xml:lang="nld">source2</dc:source>
+        <dcterms:dateCopyrighted>2018-03-18</dcterms:dateCopyrighted>
+        <dcterms:valid>2018-03-17</dcterms:valid>
+        <dcterms:modified>2018-02-02</dcterms:modified>
+        <dcterms:issued>Groundhog day</dcterms:issued>
+        <dcterms:dateSubmitted>2018-03-22</dcterms:dateSubmitted>
+        <dcterms:license>http://creativecommons.org/publicdomain/zero/1.0</dcterms:license>
+      </ddm:dcmiMetadata>
     ))
   }
 
@@ -240,34 +257,8 @@ class DatasetXmlSpec extends TestSupportFixture {
     )) shouldBe a[Success[_]]
   }
 
-  "RichElem.setTag" should "report an error" in {
-    // TODO had to make targetFromQualifier and RichElem public for this test
-    // can't cause this error through the apply method
-    // because it does not yet use targetFromQualifier for a non-enum
-    import DatasetXml.RichElem
-    val source = new QualifiedSchemedValue[String, String](None, "", "a:b:c")
-    Try {
-      <key>Lorum Ipsum</key>.setTag(DatasetXml.targetFromQualifier, source)
-    } should matchPattern {
-      case Failure(e: Exception) if e.getMessage == "invalid DatasetMetadata: class java.lang.Exception expecting (label) or (prefix:label); got [a:b:c] to adjust the <key> of <key>Lorum Ipsum</key> created from: QualifiedSchemedValue(None,,a:b:c)" =>
-    }
-  }
-
   private def toDDM(variant: DatasetMetadata) = {
     DatasetXml(variant).recoverWith { case e => fail(e) }.getOrElse(fail("recovering from preparation errors failed"))
-  }
-
-  private def shouldEqual(input: Try[Elem], expected: Seq[Elem]) = {
-    val emptyDDM = <ddm:DDM
-        xmlns:dc="http://purl.org/dc/elements/1.1/"
-        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-        xmlns:dcterms="http://purl.org/dc/terms/"
-        xmlns:dcx-dai="http://easy.dans.knaw.nl/schemas/dcx/dai/"
-        xmlns:ddm="http://easy.dans.knaw.nl/schemas/md/ddm/"
-        xsi:schemaLocation="http://easy.dans.knaw.nl/schemas/md/ddm/ http://easy.dans.knaw.nl/schemas/md/2017/09/ddm.xsd"
-      />
-    prettyPrinter.format(input.getOrElse(fail("conversion to DDM failed"))) shouldBe
-      prettyPrinter.format(emptyDDM.copy(child = expected))
   }
 
   private def convertAndValidate(datasetMetadata: DatasetMetadata) = {
