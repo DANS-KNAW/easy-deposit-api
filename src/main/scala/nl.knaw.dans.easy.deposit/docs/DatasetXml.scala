@@ -15,27 +15,26 @@
  */
 package nl.knaw.dans.easy.deposit.docs
 
-import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.DateQualifier.{ DateQualifier, available, created }
+import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.DateQualifier.{ available, created, dateSubmitted }
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.{ DateQualifier, _ }
 import org.joda.time.DateTime
-import org.joda.time.format.ISODateTimeFormat
 
 import scala.util.Try
 import scala.xml.{ Attribute, Elem, Null, PrefixedAttribute }
 
 object DatasetXml {
-  private val otherDateQualifiers = DateQualifier.values.filter(qualifier =>
-    qualifier != DateQualifier.created && qualifier != DateQualifier.available
-  ).toSeq
-  private val qualifier = "qualifier"
+  private val otherDateQualifiers = DateQualifier.values.filter { qualifier =>
+    !Seq(
+      created, // in ddm:profile
+      available, // in ddm:profile
+      dateSubmitted // generated, ignore if in input
+    ).contains(qualifier)
+  }.toSeq
+  private val targetFromQualifier = "qualifier"
 
   def apply(dm: DatasetMetadata): Try[Elem] = Try {
     val lang = dm.languageOfDescription.map(l => new PrefixedAttribute("xml", "lang", l.key, Null))
-    val dateSubmitted = QualifiedSchemedValue[String, DateQualifier](
-      Some("dcterms:W3CDTF"),
-      DateTime.now().toString(ISODateTimeFormat.date()),
-      DateQualifier.dateSubmitted
-    )
+    val dateSubmitted = Date(DateTime.now(), DateQualifier.dateSubmitted)
     <ddm:DDM
       xmlns:dc="http://purl.org/dc/elements/1.1/"
       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
@@ -58,8 +57,8 @@ object DatasetXml {
         { elems(dm.contributors, "dcx-dai:creatorDetails", lang) }
         { elems(dm.publishers, "dcterms:publisher").addAttr(lang) }
         { elems(dm.sources, "dc:source").addAttr(lang) }
-        { elems(dm.dates.map(filter(_, otherDateQualifiers)), qualifier) }
-        { optionalElem(Some(dateSubmitted), qualifier) }
+        { elems(dm.dates.map(filter(_, otherDateQualifiers)), targetFromQualifier) }
+        { optionalElem(Some(dateSubmitted), targetFromQualifier) }
         { optionalElem(dm.license, "dcterms:license") /* TODO xsi:type="dcterms:URI" not supported by json */ }
       </ddm:dcmiMetadata>
     </ddm:DDM>
@@ -76,16 +75,19 @@ object DatasetXml {
     case PossiblySchemedKeyValue(Some(scheme), key, _) => <key scheme={scheme.toString}>{key}</key>
     case PossiblySchemedKeyValue(None, key, _) => <key>{key}</key>
     case v => <key>{v}</key>
-  }).copy(label = elemLabel(target, source))
+  }).copy(label = elemTag(target, source))
 
   /**
+   *
    * @param target the default label
    * @param source may have a qualifier or some other property that determines the label
+   * @return a complete xml tag: a string with both namespace prefix and label,
+   *         after serialization it doesn't make a difference
    */
-  private def elemLabel[T](target: String, source: T) = {
+  private def elemTag[T](target: String, source: T) = {
     val rightsholder = "rightsholder"
     source match {
-      case x: QualifiedSchemedValue[_, _] if target == qualifier => x.qualifier.toString
+      case x: QualifiedSchemedValue[_, _] if target == targetFromQualifier => x.qualifier.toString
       case Author(_, _, _, _, Some(SchemedKeyValue(_, _, `rightsholder`)), _, _) => "dcterms:rightsholder"
       case _ => target
     }

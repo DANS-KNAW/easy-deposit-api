@@ -21,6 +21,8 @@ import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.PrivacySensitiveDataPresen
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.RelationQualifier.RelationQualifier
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata._
 import nl.knaw.dans.easy.deposit.docs.JsonUtil.{ InvalidDocumentException, RichJsonInput, toJson }
+import org.joda.time.DateTime
+import org.joda.time.format.ISODateTimeFormat
 import org.json4s.JsonInput
 
 import scala.util.{ Failure, Success, Try }
@@ -78,6 +80,16 @@ object DatasetMetadata {
 
   private val doiScheme = "id-type:DOI"
   private val dateCreatedQualifier = "id-type:DOI"
+
+  type Date = QualifiedSchemedValue[String, DateQualifier]
+
+  def Date(value: DateTime, qualifier: DateQualifier): Date = QualifiedSchemedValue[String, DateQualifier](
+    Some("dcterms:W3CDTF"), value.toString(ISODateTimeFormat.date()), qualifier
+  )
+
+  def Date(value: String, qualifier: DateQualifier): Date = QualifiedSchemedValue[String, DateQualifier](
+    Some("dcterms:W3CDTF"), value, qualifier
+  )
 
   def missingValue(label: String): InvalidDocumentException = {
     InvalidDocumentException(s"Please set $label in DatasetMetadata")
