@@ -144,13 +144,13 @@ object DatasetMetadata {
                           group: Option[String],
                          )
 
-  case class Author(titles: Option[String],
-                    initials: Option[String],
-                    insertions: Option[String],
-                    surname: Option[String],
-                    role: Option[SchemedKeyValue[String]],
-                    ids: Option[Seq[SchemedValue[String]]],
-                    organization: Option[String],
+  case class Author(titles: Option[String] = None,
+                    initials: Option[String] = None,
+                    insertions: Option[String] = None,
+                    surname: Option[String] = None,
+                    role: Option[SchemedKeyValue[String]] = None,
+                    ids: Option[Seq[SchemedValue[String]]] = None,
+                    organization: Option[String] = None,
                    ) {
     require(isValid, s"Author needs one of (organisation | surname and initials) got: ${ toJson(this) }")
 
