@@ -22,22 +22,73 @@ import better.files.File
 import javax.xml.XMLConstants
 import javax.xml.transform.Source
 import javax.xml.transform.stream.StreamSource
-import javax.xml.validation.SchemaFactory
+import javax.xml.validation.{ Schema, SchemaFactory }
 import nl.knaw.dans.easy.deposit.TestSupportFixture
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.{ DateQualifier, QualifiedSchemedValue }
 import resource.Using
 
 import scala.util.{ Failure, Success, Try }
-import scala.xml.{ Node, Utility }
+import scala.xml.{ Elem, Node, PrettyPrinter, Utility }
 
-class DatasetXmlSpec extends TestSupportFixture {
+trait DdmBehavior {
+  this: TestSupportFixture =>
 
-  private lazy val triedSchema = Try { // loading postponed until we actually start validating
+  lazy val triedSchema: Try[Schema] = Try { // loading postponed until we actually start validating
     val factory = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI)
     val schemas = "http://dublincore.org/schemas/xmls/qdc/2008/02/11/dcterms.xsd" ::
       "https://easy.dans.knaw.nl/schemas/md/ddm/ddm.xsd" :: Nil
     factory.newSchema(schemas.map(xsd => new StreamSource(xsd)).toArray[Source])
   }
+  val emptyDDM: Elem
+
+  // pretty provides friendlier trouble shooting for complex XML's than Utility.trim
+  private val prettyPrinter: PrettyPrinter = new scala.xml.PrettyPrinter(1024, 2)
+
+  /**
+   * @param input          a Success(DatasetMetadata)
+   * @param expectedOutput <ddm:profile> and optionaly <ddm:dcmiMetadata>
+   *                       if provided, input should convert into a DDM with the same content
+   */
+  def validDatasetMetadata(input: Try[DatasetMetadata], expectedOutput: Seq[Node]): Unit = {
+    lazy val datasetMetadata = input.recoverWith { case e =>
+      println(s"$e")
+      Failure(e)
+    }.getOrElse(fail("test input should be a success"))
+    lazy val ddm = DatasetXml(datasetMetadata).recoverWith { case e =>
+      println(s"$e")
+      Failure(e)
+    }.getOrElse(fail("can't create DDM from test input"))
+
+    it should "generate expected DDM" in {
+      // TODO change into "should contain": leafs in expected should occur with same path in ddm
+      // perhaps with something similar to https://stackoverflow.com/questions/39001421/
+      // or a third argument (with xpaths?) to extract subsets from the generated DDM
+      val expected = emptyDDM.copy(child = expectedOutput)
+      if(expectedOutput.nonEmpty)
+        prettyPrinter.format(ddm) shouldBe
+          prettyPrinter.format(expected)
+      println(ddm.child diff expected.child mkString ", ")
+    }
+
+    it should "generate valid DDM" in {
+      assume(triedSchema.isSuccess)
+      val validator = triedSchema.getOrElse(fail("no schema available despite assume")).newValidator()
+      val xmlString = prettyPrinter.format(ddm)
+      Using.bufferedInputStream(new ByteArrayInputStream(
+        xmlString.getBytes(StandardCharsets.UTF_8)
+      )).map(inputStream =>
+        validator.validate(new StreamSource(inputStream))
+      ).tried
+        .recoverWith { case e =>
+          println(xmlString) // to trouble shoot reported line numbers
+          Failure(e)
+        } shouldBe a[Success[_]]
+    }
+  }
+}
+
+class DatasetXmlSpec extends TestSupportFixture with DdmBehavior {
+
   private val minimal = DatasetMetadata(
     """{
       |  "titles": [""],
@@ -51,35 +102,29 @@ class DatasetXmlSpec extends TestSupportFixture {
       |  "audiences": [ { "scheme": "", "key": "D35200", "value": ""} ]
       |}""".stripMargin).getOrElse(fail("parsing minimal json failed"))
 
-  // pretty provides friendlier trouble shooting for complex XML's than Utility.trim
-  private val prettyPrinter = new scala.xml.PrettyPrinter(1024, 2)
-  private val emptyDDM = toDDM(minimal).copy(child = Seq())
+  override val emptyDDM: Elem = toDDM(minimal).copy(child = Seq())
 
-  private def wrapInPrettyDDM(seq: Seq[Node]) = prettyPrinter.format(emptyDDM.copy(child = seq))
+  "minimal" should behave like validDatasetMetadata(Success(minimal), Seq(
+    <ddm:profile>
+      <dcterms:title></dcterms:title>
+      <dc:description></dc:description>
+      <dcx-dai:creatorDetails>
+        <dcx-dai:author>
+          <dcx-dai:initials></dcx-dai:initials>
+          <dcx-dai:surname></dcx-dai:surname>
+        </dcx-dai:author>
+      </dcx-dai:creatorDetails>
+      <ddm:created>2018</ddm:created>
+      <ddm:available>2018</ddm:available>
+      <ddm:audience>D35200</ddm:audience>
+      <ddm:accessRights>OPEN_ACCESS</ddm:accessRights>
+    </ddm:profile>,
+    <ddm:dcmiMetadata>
+      <dcterms:dateSubmitted>2018-03-22</dcterms:dateSubmitted>
+    </ddm:dcmiMetadata>
+  ))
 
-  "apply" should "produce expected DDM from  minimal json" in {
-    prettyPrinter.format(toDDM(minimal)) shouldBe wrapInPrettyDDM( Seq(
-      <ddm:profile>
-        <dcterms:title></dcterms:title>
-        <dc:description></dc:description>
-        <dcx-dai:creatorDetails>
-          <dcx-dai:author>
-            <dcx-dai:initials></dcx-dai:initials>
-            <dcx-dai:surname></dcx-dai:surname>
-          </dcx-dai:author>
-        </dcx-dai:creatorDetails>
-        <ddm:created>2018</ddm:created>
-        <ddm:available>2018</ddm:available>
-        <ddm:audience>D35200</ddm:audience>
-        <ddm:accessRights>OPEN_ACCESS</ddm:accessRights>
-      </ddm:profile>,
-      <ddm:dcmiMetadata>
-        <dcterms:dateSubmitted>2018-03-22</dcterms:dateSubmitted>
-      </ddm:dcmiMetadata>
-    ))
-  }
-
-  it should "report a missing title" in {
+  "apply" should "report a missing title" in {
     DatasetXml(minimal.copy(titles = None)) should matchPattern {
       case Failure(e) if e.getMessage == "no content for mandatory dcterms:title" =>
     }
@@ -133,8 +178,42 @@ class DatasetXmlSpec extends TestSupportFixture {
     }
   }
 
-  "datasetmetadata-from-ui-all.json" should "produce expected DDM" in {
-    prettyPrinter.format(toDDM(parseTestResource("datasetmetadata-from-ui-all.json"))) shouldBe wrapInPrettyDDM(Seq(
+  "variations on minimal" should behave like validDatasetMetadata(
+    {
+      val dates = DateQualifier.values.toSeq.map { q => DatasetMetadata.Date("2018", q) } :+
+        DatasetMetadata.Date("2017", DateQualifier.modified)
+      Success(minimal.copy(
+        titles = Some(Seq("Lorum", "ipsum")),
+        descriptions = Some(Seq("Lorum", "ipsum")),
+        alternativeTitles = Some(Seq("Lorum", "ipsum")),
+        sources = Some(Seq("Lorum", "ipsum")),
+        dates = Some(dates),
+        license = Some("rabarbera")
+      ))
+    }, Seq.empty
+  )
+
+  "datasetmetadata.json" should behave like validDatasetMetadata(
+    parseTestResource("datasetmetadata.json"),
+    Seq.empty
+  )
+  // TODO keep resources in sync with UI module: https://github.com/DANS-KNAW/easy-deposit-ui/blob/784fdc5/src/test/typescript/mockserver/metadata.ts#L246
+  "datasetmetadata-from-ui-some.json" should behave like validDatasetMetadata(
+    parseTestResource("datasetmetadata-from-ui-some.json"),
+    Seq.empty
+  )
+  "datasetmetadata-from-ui-all.json without RightsHolders" should behave like validDatasetMetadata(
+    {
+      parseTestResource("datasetmetadata-from-ui-all.json").map { metadata =>
+        val validContributors = metadata.contributors.map(_.filter(_ match {
+          case author if author.organization.getOrElse("") == "my organization" => false
+          case author if author.organization.getOrElse("") == "rightsHolder1" => false
+          case author if author.surname.getOrElse("") == "Terix" => false
+          case _ => true
+        }))
+        metadata.copy(contributors = validContributors)
+      }
+    }, Seq(
       <ddm:profile>
         <dcterms:title xml:lang="nld">title 1</dcterms:title>
         <dcterms:title xml:lang="nld">title2</dcterms:title>
@@ -176,30 +255,6 @@ class DatasetXmlSpec extends TestSupportFixture {
             <dcx-dai:surname>Belix</dcx-dai:surname>
           </dcx-dai:author>
         </dcx-dai:creatorDetails>
-        <dcx-dai:creatorDetails>
-          <dcx-dai:author>
-            <dcx-dai:organization>
-              <dcx-dai:name xml:lang="nld">my organization</dcx-dai:name>
-            </dcx-dai:organization>
-          </dcx-dai:author>
-        </dcx-dai:creatorDetails>
-        <dcterms:rightsholder>
-          <dcx-dai:author>
-            <dcx-dai:role>RightsHolder</dcx-dai:role>
-            <dcx-dai:organization>
-              <dcx-dai:name xml:lang="nld">rightsHolder1</dcx-dai:name>
-            </dcx-dai:organization>
-          </dcx-dai:author>
-        </dcterms:rightsholder>
-        <dcterms:rightsholder>
-          <dcx-dai:author>
-            <dcx-dai:titles xml:lang="nld">Dr.</dcx-dai:titles>
-            <dcx-dai:initials>A.S.</dcx-dai:initials>
-            <dcx-dai:insertions>van</dcx-dai:insertions>
-            <dcx-dai:surname>Terix</dcx-dai:surname>
-            <dcx-dai:role>RightsHolder</dcx-dai:role>
-          </dcx-dai:author>
-        </dcterms:rightsholder>
         <dcterms:publisher xml:lang="nld">pub1</dcterms:publisher>
         <dcterms:publisher xml:lang="nld">pub2</dcterms:publisher>
         <dc:source xml:lang="nld">source1</dc:source>
@@ -211,79 +266,14 @@ class DatasetXmlSpec extends TestSupportFixture {
         <dcterms:dateSubmitted>2018-03-22</dcterms:dateSubmitted>
         <dcterms:license>http://creativecommons.org/publicdomain/zero/1.0</dcterms:license>
       </ddm:dcmiMetadata>
-    ))
-  }
-
-  // expected XML is tested with individual tests so these tests won't look ignored when running offline
-  "DDM validation" should "succeed for the minimal json" in {
-    convertAndValidate(minimal) shouldBe a[Success[_]]
-  }
-
-  it should "document which parts of the manual test resources are valid" in {
-    // drop what does not validate // TODO possibly fix conversion
-
-    convertAndValidate(
-      parseTestResource("datasetmetadata.json")
-    ) shouldBe a[Success[_]]
-
-    // TODO keep the following resources in sync with UI module
-    // https://github.com/DANS-KNAW/easy-deposit-ui/blob/784fdc5/src/test/typescript/mockserver/metadata.ts#L246
-    convertAndValidate(
-      parseTestResource("datasetmetadata-from-ui-some.json")
-    ) shouldBe a[Success[_]]
-
-    convertAndValidate {
-      val metadata = parseTestResource("datasetmetadata-from-ui-all.json")
-      val validContributors = metadata.contributors.map(_.filter(_ match {
-        case author if author.organization.getOrElse("") == "my organization" => false
-        case author if author.organization.getOrElse("") == "rightsHolder1" => false
-        case author if author.surname.getOrElse("") == "Terix" => false
-        case _ => true
-      }))
-      metadata.copy(contributors = validContributors)
-    } shouldBe a[Success[_]]
-  }
-
-  it should "succeed with some accumulated variations on minimal" in {
-    val dates = DateQualifier.values.toSeq.map { q => DatasetMetadata.Date("2018", q) } :+
-      DatasetMetadata.Date("2017", DateQualifier.modified)
-    convertAndValidate(minimal.copy(
-      titles = Some(Seq("Lorum", "ipsum")),
-      descriptions = Some(Seq("Lorum", "ipsum")),
-      alternativeTitles = Some(Seq("Lorum", "ipsum")),
-      sources = Some(Seq("Lorum", "ipsum")),
-      dates = Some(dates),
-      license = Some("rabarbera")
-    )) shouldBe a[Success[_]]
-  }
+    )
+  )
 
   private def toDDM(variant: DatasetMetadata) = {
     DatasetXml(variant).recoverWith { case e => fail(e) }.getOrElse(fail("recovering from preparation errors failed"))
   }
 
-  private def convertAndValidate(datasetMetadata: DatasetMetadata) = {
-    assume(triedSchema.isSuccess)
-    val validator = triedSchema.getOrElse(fail("no schema available despite assume")).newValidator()
-    val xmlString = prettyPrinter.format(
-      DatasetXml(datasetMetadata)
-        .getOrElse(fail("conversion to DDM failed"))
-    )
-    val inputStream = new ByteArrayInputStream(xmlString.getBytes(StandardCharsets.UTF_8))
-    Using.bufferedInputStream(inputStream)
-      .map(inputStream => validator.validate(new StreamSource(inputStream)))
-      .tried
-      .recoverWith { case e =>
-        println(xmlString) // to trouble shoot reported line numbers
-        Failure(e)
-      }
-  }
-
-  private def parseTestResource(file: String) = {
-    val str = Try {
-      (File(getClass.getResource("/manual-test")) / file).contentAsString
-    }.getOrElse(fail("could not read test data"))
-
-    DatasetMetadata(str)
-      .getOrElse(fail("could not parse test data"))
-  }
+  private def parseTestResource(file: String) = Try {
+    (File(getClass.getResource("/manual-test")) / file).contentAsString
+  }.flatMap(DatasetMetadata(_))
 }
