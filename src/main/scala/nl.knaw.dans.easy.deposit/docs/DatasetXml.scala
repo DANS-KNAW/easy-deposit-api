@@ -24,8 +24,8 @@ import scala.util.Try
 import scala.xml._
 
 object DatasetXml {
-  private val otherDateQualifiers = DateQualifier.values.filter { qualifier =>
-    !Seq(
+  private val otherDateQualifiers = DateQualifier.values.filterNot { qualifier =>
+    Seq(
       created, // in ddm:profile
       available, // in ddm:profile
       dateSubmitted // generated, ignore if in input
