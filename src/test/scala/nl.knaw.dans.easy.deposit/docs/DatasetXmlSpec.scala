@@ -25,6 +25,7 @@ import javax.xml.transform.stream.StreamSource
 import javax.xml.validation.{ Schema, SchemaFactory }
 import nl.knaw.dans.easy.deposit.TestSupportFixture
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.{ Author, DateQualifier, QualifiedSchemedValue, SchemedKeyValue }
+import nl.knaw.dans.lib.error._
 import resource.Using
 
 import scala.util.{ Failure, Success, Try }
@@ -264,14 +265,12 @@ trait DdmBehavior {
                            subset: Elem => Elem = identity,
                            expectedOutput: Seq[Node] = Seq.empty
                           ): Unit = {
-    lazy val datasetMetadata = input.recoverWith { case e =>
-      println(s"$e")
-      Failure(e)
-    }.getOrElse(fail("test input should be a success"))
-    lazy val ddm = DatasetXml(datasetMetadata).recoverWith { case e =>
-      println(s"$e")
-      Failure(e)
-    }.getOrElse(fail("can't create DDM from test input"))
+    lazy val datasetMetadata = input
+      .doIfFailure{ case e => println(s"$e")}
+      .getOrElse(fail("test input should be a success"))
+    lazy val ddm = DatasetXml(datasetMetadata)
+      .doIfFailure{ case e => println(s"$e")}
+      .getOrElse(fail("can't create DDM from test input"))
 
     it should "generate expected DDM" in {
       if (expectedOutput.nonEmpty)
