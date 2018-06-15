@@ -28,10 +28,16 @@ class JsonUtilSpec extends TestSupportFixture {
     values shouldBe values.distinct
   }
 
-  "JsonUtil.enumerations" should "should have all enums defined in DatasetMetatadata" in {
-    val definedEnumerations = typeOf[DatasetMetadata].companion.decls
+  "JsonUtil.enumerations" should "should have all enums defined in jspn objects" in {
+    val types = Seq(
+      typeOf[DatasetMetadata],
+      typeOf[DepositInfo],
+      typeOf[StateInfo],
+      typeOf[UserInfo]
+    )
+    val definedEnumerations = types.flatMap(_.companion.decls
       .filter(_.typeSignature <:< typeOf[Enumeration])
-      .map(_.name.toString)
+      .map(_.name.toString))
 
     val registeredEnumerations = JsonUtil.enumerations
       .map(_.getClass.getSimpleName.stripSuffix("$"))
