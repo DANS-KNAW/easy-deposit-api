@@ -49,7 +49,7 @@ object DatasetXml {
       xsi:schemaLocation="http://easy.dans.knaw.nl/schemas/md/ddm/ http://easy.dans.knaw.nl/schemas/md/2017/09/ddm.xsd"
     >
       <ddm:profile>
-        { requiredElems(dm.titles, "dcterms:title").addAttr(lang) }
+        { requiredElems(dm.titles, "dc:title").addAttr(lang) }
         { requiredElems(dm.descriptions, "dc:description").addAttr(lang) }
         { requiredElems(dm.creators.map(_.filterNot(isRightsHolder)), "dcx-dai:creatorDetails", lang) }
         { requiredElems(dm.dates.map(filter(_, Seq(created))), "ddm:created") }

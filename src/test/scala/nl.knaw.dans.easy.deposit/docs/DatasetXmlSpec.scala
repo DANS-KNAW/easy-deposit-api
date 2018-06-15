@@ -56,7 +56,7 @@ class DatasetXmlSpec extends TestSupportFixture with DdmBehavior {
     input = Success(minimal),
     expectedOutput = Seq(
       <ddm:profile>
-        <dcterms:title></dcterms:title>
+        <dc:title></dc:title>
         <dc:description></dc:description>
         <dcx-dai:creatorDetails>
           <dcx-dai:author>
@@ -80,8 +80,8 @@ class DatasetXmlSpec extends TestSupportFixture with DdmBehavior {
     subset = { actualDDM => emptyDDM.copy(child = <ddm:profile>{actualDDM \ "profile" \ "title"}</ddm:profile>) },
     expectedOutput = Seq(
       <ddm:profile>
-        <dcterms:title>Lorum</dcterms:title>
-        <dcterms:title>ipsum</dcterms:title>
+        <dc:title>Lorum</dc:title>
+        <dc:title>ipsum</dc:title>
       </ddm:profile>
     )
   )
@@ -132,7 +132,7 @@ class DatasetXmlSpec extends TestSupportFixture with DdmBehavior {
         // the dateSubmitted specified above is replaced by "now" as set by the fixture
         // dateCreated and dateAvailable are documented with the pure minimal test
         <ddm:dcmiMetadata>
-        <dcterms:date>{ date }</dcterms:date>
+        <dc:date>{ date }</dc:date>
         <dcterms:dateAccepted>{ date }</dcterms:dateAccepted>
         <dcterms:dateCopyrighted>{ date }</dcterms:dateCopyrighted>
         <dcterms:issued>{ date }</dcterms:issued>
@@ -160,7 +160,7 @@ class DatasetXmlSpec extends TestSupportFixture with DdmBehavior {
 
   "apply" should "report a missing title" in {
     DatasetXml(minimal.copy(titles = None)) should matchPattern {
-      case Failure(e) if e.getMessage == "no content for mandatory dcterms:title" =>
+      case Failure(e) if e.getMessage == "no content for mandatory dc:title" =>
     }
   }
 
@@ -185,8 +185,8 @@ class DatasetXmlSpec extends TestSupportFixture with DdmBehavior {
     ),
     expectedOutput = Seq(
       <ddm:profile>
-        <dcterms:title xml:lang="nld">title 1</dcterms:title>
-        <dcterms:title xml:lang="nld">title2</dcterms:title>
+        <dc:title xml:lang="nld">title 1</dc:title>
+        <dc:title xml:lang="nld">title2</dc:title>
         <dc:description xml:lang="nld">description1</dc:description>
         <dc:description xml:lang="nld">description2</dc:description>
         <dcx-dai:creatorDetails>
