@@ -144,7 +144,6 @@ class DatasetXmlSpec extends TestSupportFixture with DdmBehavior {
     )
     )
   }
-  // TODO further variations on minimal should test the specifications line by line
 
   "RichElem.setTag" should "report an error" in {
     // TODO had to make targetFromQualifier and RichElem public for this test
@@ -292,11 +291,8 @@ trait DdmBehavior {
         xmlString.getBytes(StandardCharsets.UTF_8)
       )).map(inputStream =>
         validator.validate(new StreamSource(inputStream))
-      ).tried
-        .recoverWith { case e =>
-          println(xmlString) // to trouble shoot reported line numbers
-          Failure(e)
-        } shouldBe a[Success[_]]
+      ).tried // println to troubleshoot a failing test: the error message shows a line number
+        .doIfFailure { case _ => println(xmlString) } shouldBe a[Success[_]]
     }
   }
 }
