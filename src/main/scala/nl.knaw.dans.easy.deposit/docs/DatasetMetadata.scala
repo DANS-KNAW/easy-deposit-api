@@ -79,7 +79,6 @@ object DatasetMetadata {
   def apply(input: JsonInput): Try[DatasetMetadata] = input.deserialize[DatasetMetadata]
 
   private val doiScheme = "id-type:DOI"
-  private val dateCreatedQualifier = "id-type:DOI"
 
   type Date = QualifiedSchemedValue[String, DateQualifier]
 
@@ -152,11 +151,28 @@ object DatasetMetadata {
                     ids: Option[Seq[SchemedValue[String]]] = None,
                     organization: Option[String] = None,
                    ) {
-    require(isValid, s"Author needs one of (organisation | surname and initials) got: ${ toJson(this) }")
+    require(isValid, incompleteAuthor)
 
-    def isValid: Boolean = {
+    private def isValid: Boolean = {
       organization.isDefined ||
         (surname.isDefined && initials.isDefined)
+    }
+
+    override def toString: String = { // TODO ID's
+      val name = Seq(titles, initials, insertions, surname)
+        .filter(_.isDefined)
+        .map(_.getOrElse(""))
+        .mkString(" ")
+      (surname.isDefined, organization.isDefined) match {
+        case (true, true) => s"$name; ${ organization.getOrElse("") }"
+        case (false, true) => organization.getOrElse("")
+        case (true, false) => name
+        case (false, false) => throw new Exception(incompleteAuthor)
+      }
+    }
+
+    private def incompleteAuthor: String = {
+      s"Author needs one of (organisation | surname and initials) got: ${ toJson(this) }"
     }
   }
 

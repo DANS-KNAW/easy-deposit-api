@@ -24,7 +24,7 @@ import javax.xml.transform.Source
 import javax.xml.transform.stream.StreamSource
 import javax.xml.validation.{ Schema, SchemaFactory }
 import nl.knaw.dans.easy.deposit.TestSupportFixture
-import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.{ DateQualifier, QualifiedSchemedValue }
+import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.{ Author, DateQualifier, QualifiedSchemedValue, SchemedKeyValue }
 import resource.Using
 
 import scala.util.{ Failure, Success, Try }
@@ -85,14 +85,43 @@ class DatasetXmlSpec extends TestSupportFixture with DdmBehavior {
     )
   )
 
+  "minimal with rightsHolders" should behave like validDatasetMetadata(
+    input = Success(minimal.copy(
+      creators = Some(Seq(
+        Author(
+          initials = Some("F.O.O."),
+          surname = Some("Bar"),
+        ),
+        Author(
+          initials = Some("O."),
+          surname = Some("Belix"),
+          role = Some(SchemedKeyValue("", "RightsHolder", ""))
+        )
+      )),
+      contributors = Some(Seq(
+        Author(
+          initials = Some("A.S."),
+          surname = Some("Terix"),
+          role = Some(SchemedKeyValue("", "RightsHolder", ""))
+        )
+      ))
+    )),
+    subset = { actualDDM => emptyDDM.copy(child = actualDDM \ "dcmiMetadata") },
+    expectedOutput = Seq(
+      //N.B: creators in ddm:profile unless they are rightsHolders
+      <ddm:dcmiMetadata>
+        <dcterms:rightsHolder>A.S. Terix</dcterms:rightsHolder>
+        <dcterms:rightsHolder>O. Belix</dcterms:rightsHolder>
+        <dcterms:dateSubmitted>2018-03-22</dcterms:dateSubmitted>
+      </ddm:dcmiMetadata>
+    )
+  )
+
   "minimal with all types of dates" should behave like validDatasetMetadata(
-    input = {
-      val date = "2018-06-14"
-      // one date twice (different values and different precision)
-      val dates = DateQualifier.values.toSeq.map { q => DatasetMetadata.Date(date, q) } :+
+    input = Success(minimal.copy(dates = Some( // one type of date twice with different precision
+      DateQualifier.values.toSeq.map { q => DatasetMetadata.Date("2018-06-14", q) } :+
         DatasetMetadata.Date("2018-01", DateQualifier.modified)
-      Success(minimal.copy(dates = Some(dates)))
-    },
+    ))),
     subset = { actualDDM => emptyDDM.copy(child = actualDDM \ "dcmiMetadata") },
     expectedOutput = Seq( // dateCreated and dateAvailable are documented with the pure minimal test
       <ddm:dcmiMetadata>
@@ -141,18 +170,12 @@ class DatasetXmlSpec extends TestSupportFixture with DdmBehavior {
   "datasetmetadata-from-ui-some.json" should behave like validDatasetMetadata(
     input = parseTestResource("datasetmetadata-from-ui-some.json")
   )
-  "datasetmetadata-from-ui-all.json without RightsHolders" should behave like validDatasetMetadata(
-    input = { // TODO fix the RightsHolders
-      parseTestResource("datasetmetadata-from-ui-all.json").map { metadata =>
-        val validContributors = metadata.contributors.map(_.filter(_ match {
-          case author if author.organization.getOrElse("") == "my organization" => false
-          case author if author.organization.getOrElse("") == "rightsHolder1" => false
-          case author if author.surname.getOrElse("") == "Terix" => false
-          case _ => true
-        }))
-        metadata.copy(contributors = validContributors)
-      }
-    },
+  "datasetmetadata-from-ui-all.json without one of the authors" should behave like validDatasetMetadata(
+    input = parseTestResource("datasetmetadata-from-ui-all.json").map(metadata =>
+      metadata.copy(contributors = metadata.contributors.map(_.filterNot(
+        _.organization.getOrElse("") == "my organization"
+      )))
+    ),
     expectedOutput = Seq(
       <ddm:profile>
         <dcterms:title xml:lang="nld">title 1</dcterms:title>
@@ -187,14 +210,16 @@ class DatasetXmlSpec extends TestSupportFixture with DdmBehavior {
       <ddm:dcmiMetadata>
         <dcterms:alternative xml:lang="nld">alternative title 1</dcterms:alternative>
         <dcterms:alternative xml:lang="nld">alternative title2</dcterms:alternative>
-        <dcx-dai:creatorDetails>
+        <dcx-dai:contributorDetails>
           <dcx-dai:author>
             <dcx-dai:titles xml:lang="nld">Dr.</dcx-dai:titles>
             <dcx-dai:initials>O.</dcx-dai:initials>
             <dcx-dai:insertions>van</dcx-dai:insertions>
             <dcx-dai:surname>Belix</dcx-dai:surname>
           </dcx-dai:author>
-        </dcx-dai:creatorDetails>
+        </dcx-dai:contributorDetails>
+        <dcterms:rightsHolder>rightsHolder1</dcterms:rightsHolder>
+        <dcterms:rightsHolder>Dr. A.S. van Terix</dcterms:rightsHolder>
         <dcterms:publisher xml:lang="nld">pub1</dcterms:publisher>
         <dcterms:publisher xml:lang="nld">pub2</dcterms:publisher>
         <dc:source xml:lang="nld">source1</dc:source>
@@ -235,7 +260,10 @@ trait DdmBehavior {
    * @param expectedOutput members of <ddm:DDM> that should equal
    *                       the members of subset(DatsetXm(input.get))
    */
-  def validDatasetMetadata(input: Try[DatasetMetadata], subset: Elem => Elem = identity, expectedOutput: Seq[Node] = Seq.empty): Unit = {
+  def validDatasetMetadata(input: Try[DatasetMetadata],
+                           subset: Elem => Elem = identity,
+                           expectedOutput: Seq[Node] = Seq.empty
+                          ): Unit = {
     lazy val datasetMetadata = input.recoverWith { case e =>
       println(s"$e")
       Failure(e)
