@@ -266,16 +266,15 @@ trait DdmBehavior {
                            expectedOutput: Seq[Node] = Seq.empty
                           ): Unit = {
     lazy val datasetMetadata = input
-      .doIfFailure{ case e => println(s"$e")}
+      .doIfFailure { case e => println(s"$e") }
       .getOrElse(fail("test input should be a success"))
     lazy val ddm = DatasetXml(datasetMetadata)
-      .doIfFailure{ case e => println(s"$e")}
+      .doIfFailure { case e => println(s"$e") }
       .getOrElse(fail("can't create DDM from test input"))
 
-    it should "generate expected DDM" in {
-      if (expectedOutput.nonEmpty)
-        prettyPrinter.format(subset(ddm)) shouldBe
-          prettyPrinter.format(emptyDDM.copy(child = expectedOutput))
+    if (expectedOutput.nonEmpty) it should "generate expected DDM" in {
+      prettyPrinter.format(subset(ddm)) shouldBe
+        prettyPrinter.format(emptyDDM.copy(child = expectedOutput))
     }
 
     it should "generate valid DDM" in {
