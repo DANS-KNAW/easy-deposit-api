@@ -76,6 +76,7 @@ object DatasetXml {
     case a: AccessRights => <key>{a.category.toString}</key>
     case x: SchemedKeyValue[_] => <key>{x.key}</key> // e.g. role, audience
     case QualifiedSchemedValue(None, value, _) => <key>{value}</key>
+    case QualifiedSchemedValue(Some(scheme), value, _: DateQualifier) if target == targetFromQualifier => <key xsi:type={scheme.toString}>{value}</key>
     case QualifiedSchemedValue(_, value, _: DateQualifier) => <key>{value}</key>
     case QualifiedSchemedValue(Some(scheme), value, _) => <key scheme={scheme.toString}>{value}</key>
     case PossiblySchemedKeyValue(Some(scheme), key, _) => <key scheme={scheme.toString}>{key}</key>

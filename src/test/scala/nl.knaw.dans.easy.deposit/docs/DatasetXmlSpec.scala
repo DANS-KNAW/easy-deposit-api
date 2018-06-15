@@ -70,7 +70,7 @@ class DatasetXmlSpec extends TestSupportFixture with DdmBehavior {
         <ddm:accessRights>OPEN_ACCESS</ddm:accessRights>
       </ddm:profile>,
       <ddm:dcmiMetadata>
-        <dcterms:dateSubmitted>2018-03-22</dcterms:dateSubmitted>
+        <dcterms:dateSubmitted xsi:type="dcterms:W3CDTF">2018-03-22</dcterms:dateSubmitted>
       </ddm:dcmiMetadata>
     )
   )
@@ -113,7 +113,7 @@ class DatasetXmlSpec extends TestSupportFixture with DdmBehavior {
         <ddm:dcmiMetadata>
         <dcterms:rightsHolder>A.S. Terix</dcterms:rightsHolder>
         <dcterms:rightsHolder>O. Belix</dcterms:rightsHolder>
-        <dcterms:dateSubmitted>2018-03-22</dcterms:dateSubmitted>
+        <dcterms:dateSubmitted xsi:type="dcterms:W3CDTF">2018-03-22</dcterms:dateSubmitted>
       </ddm:dcmiMetadata>
     )
     )
@@ -132,16 +132,16 @@ class DatasetXmlSpec extends TestSupportFixture with DdmBehavior {
         // the dateSubmitted specified above is replaced by "now" as set by the fixture
         // dateCreated and dateAvailable are documented with the pure minimal test
         <ddm:dcmiMetadata>
-        <dc:date>{ date }</dc:date>
-        <dcterms:dateAccepted>{ date }</dcterms:dateAccepted>
-        <dcterms:dateCopyrighted>{ date }</dcterms:dateCopyrighted>
-        <dcterms:issued>{ date }</dcterms:issued>
-        <dcterms:modified>{ date }</dcterms:modified>
-        <dcterms:valid>{ date }</dcterms:valid>
-        <dcterms:modified>2018-01</dcterms:modified>
-        <dcterms:dateSubmitted>2018-03-22</dcterms:dateSubmitted>
-      </ddm:dcmiMetadata>
-    )
+          <dc:date xsi:type="dcterms:W3CDTF">{ date }</dc:date>
+          <dcterms:dateAccepted xsi:type="dcterms:W3CDTF">{ date }</dcterms:dateAccepted>
+          <dcterms:dateCopyrighted xsi:type="dcterms:W3CDTF">{ date }</dcterms:dateCopyrighted>
+          <dcterms:issued xsi:type="dcterms:W3CDTF">{ date }</dcterms:issued>
+          <dcterms:modified xsi:type="dcterms:W3CDTF">{ date }</dcterms:modified>
+          <dcterms:valid xsi:type="dcterms:W3CDTF">{ date }</dcterms:valid>
+          <dcterms:modified xsi:type="dcterms:W3CDTF">2018-01</dcterms:modified>
+          <dcterms:dateSubmitted xsi:type="dcterms:W3CDTF">2018-03-22</dcterms:dateSubmitted>
+        </ddm:dcmiMetadata>
+      )
     )
   }
 
@@ -231,11 +231,11 @@ class DatasetXmlSpec extends TestSupportFixture with DdmBehavior {
         <dcterms:publisher xml:lang="nld">pub2</dcterms:publisher>
         <dc:source xml:lang="nld">source1</dc:source>
         <dc:source xml:lang="nld">source2</dc:source>
-        <dcterms:dateCopyrighted>2018-03-18</dcterms:dateCopyrighted>
-        <dcterms:valid>2018-03-17</dcterms:valid>
+        <dcterms:dateCopyrighted xsi:type="dcterms:W3CDTF">2018-03-18</dcterms:dateCopyrighted>
+        <dcterms:valid xsi:type="dcterms:W3CDTF">2018-03-17</dcterms:valid>
         <dcterms:modified>2018-02-02</dcterms:modified>
         <dcterms:issued>Groundhog day</dcterms:issued>
-        <dcterms:dateSubmitted>2018-03-22</dcterms:dateSubmitted>
+        <dcterms:dateSubmitted xsi:type="dcterms:W3CDTF">2018-03-22</dcterms:dateSubmitted>
         <dcterms:license>http://creativecommons.org/publicdomain/zero/1.0</dcterms:license>
       </ddm:dcmiMetadata>
     )
