@@ -86,57 +86,64 @@ class DatasetXmlSpec extends TestSupportFixture with DdmBehavior {
     )
   )
 
-  "minimal with rightsHolders" should behave like validDatasetMetadata(
-    input = Success(minimal.copy(
-      creators = Some(Seq(
-        Author(
-          initials = Some("F.O.O."),
-          surname = Some("Bar"),
-        ),
-        Author(
-          initials = Some("O."),
-          surname = Some("Belix"),
-          role = Some(SchemedKeyValue("", "RightsHolder", ""))
-        )
-      )),
-      contributors = Some(Seq(
-        Author(
-          initials = Some("A.S."),
-          surname = Some("Terix"),
-          role = Some(SchemedKeyValue("", "RightsHolder", ""))
-        )
-      ))
-    )),
-    subset = { actualDDM => emptyDDM.copy(child = actualDDM \ "dcmiMetadata") },
-    expectedOutput = Seq(
-      //N.B: creators in ddm:profile unless they are rightsHolders
-      <ddm:dcmiMetadata>
+  "minimal with rightsHolders" should behave like {
+    val someCreators = Some(Seq(
+      Author(
+        initials = Some("F.O.O."),
+        surname = Some("Bar")
+      ),
+      Author(
+        initials = Some("O."),
+        surname = Some("Belix"),
+        role = Some(SchemedKeyValue("", "RightsHolder", ""))
+      )
+    ))
+    val someContributors = Some(Seq(
+      Author(
+        initials = Some("A.S."),
+        surname = Some("Terix"),
+        role = Some(SchemedKeyValue("", "RightsHolder", ""))
+      )
+    ))
+    validDatasetMetadata(
+      input = Success(minimal.copy(creators = someCreators, contributors = someContributors)),
+      subset = { actualDDM => emptyDDM.copy(child = actualDDM \ "dcmiMetadata") },
+      expectedOutput = Seq(
+        //N.B: creators in ddm:profile unless they are rightsHolders
+        <ddm:dcmiMetadata>
         <dcterms:rightsHolder>A.S. Terix</dcterms:rightsHolder>
         <dcterms:rightsHolder>O. Belix</dcterms:rightsHolder>
         <dcterms:dateSubmitted>2018-03-22</dcterms:dateSubmitted>
       </ddm:dcmiMetadata>
     )
-  )
+    )
+  }
 
-  "minimal with all types of dates" should behave like validDatasetMetadata(
-    input = Success(minimal.copy(dates = Some( // one type of date twice with different precision
-      DateQualifier.values.toSeq.map { q => DatasetMetadata.Date("2018-06-14", q) } :+
-        DatasetMetadata.Date("2018-01", DateQualifier.modified)
-    ))),
-    subset = { actualDDM => emptyDDM.copy(child = actualDDM \ "dcmiMetadata") },
-    expectedOutput = Seq( // dateCreated and dateAvailable are documented with the pure minimal test
-      <ddm:dcmiMetadata>
-        <dcterms:date>2018-06-14</dcterms:date>
-        <dcterms:dateAccepted>2018-06-14</dcterms:dateAccepted>
-        <dcterms:dateCopyrighted>2018-06-14</dcterms:dateCopyrighted>
-        <dcterms:issued>2018-06-14</dcterms:issued>
-        <dcterms:modified>2018-06-14</dcterms:modified>
-        <dcterms:valid>2018-06-14</dcterms:valid>
+  "minimal with all types of dates" should behave like {
+    val date = "2018-06-14"
+    val dates = DateQualifier.values.toSeq.map { q => DatasetMetadata.Date(date, q) }
+    val someDates = Some( // one type of date twice with different precision
+      dates :+ DatasetMetadata.Date("2018-01", DateQualifier.modified)
+    )
+    validDatasetMetadata(
+      input = Success(minimal.copy(dates = someDates)),
+      subset = { actualDDM => emptyDDM.copy(child = actualDDM \ "dcmiMetadata") },
+      expectedOutput = Seq(
+        // the dateSubmitted specified above is replaced by "now" as set by the fixture
+        // dateCreated and dateAvailable are documented with the pure minimal test
+        <ddm:dcmiMetadata>
+        <dcterms:date>{ date }</dcterms:date>
+        <dcterms:dateAccepted>{ date }</dcterms:dateAccepted>
+        <dcterms:dateCopyrighted>{ date }</dcterms:dateCopyrighted>
+        <dcterms:issued>{ date }</dcterms:issued>
+        <dcterms:modified>{ date }</dcterms:modified>
+        <dcterms:valid>{ date }</dcterms:valid>
         <dcterms:modified>2018-01</dcterms:modified>
         <dcterms:dateSubmitted>2018-03-22</dcterms:dateSubmitted>
       </ddm:dcmiMetadata>
     )
-  )
+    )
+  }
   // TODO further variations on minimal should test the specifications line by line
 
   "RichElem.setTag" should "report an error" in {
