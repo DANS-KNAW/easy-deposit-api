@@ -84,21 +84,26 @@ object DatasetXml {
     case v => <key>{v}</key>
   }).setTag(target, source)
 
-  private def authorDetails(author: Author, lang: Option[Attribute]) =
-    <dcx-dai:author>
-      { optionalElem(author.titles, "dcx-dai:titles").addAttr(lang) }
-      { optionalElem(author.initials, "dcx-dai:initials") }
-      { optionalElem(author.insertions, "dcx-dai:insertions") }
-      { optionalElem(author.surname, "dcx-dai:surname") }
-      { optionalElem(author.role, "dcx-dai:role") }
-      { // TODO ID's
-      author.organization.map(str =>
-          <dcx-dai:organization>
-            { <dcx-dai:name>{str}</dcx-dai:name>.addAttr(lang) }
-          </dcx-dai:organization>
-      ).getOrElse(Seq.empty)
-      }
-    </dcx-dai:author>
+  private def authorDetails(author: Author, lang: Option[Attribute]) = {
+    if (author.surname.isEmpty)
+      author.organization.toSeq.map(orgDetails(author.role, lang))
+    else
+      <dcx-dai:author>
+        { optionalElem(author.titles, "dcx-dai:titles").addAttr(lang) }
+        { optionalElem(author.initials, "dcx-dai:initials") }
+        { optionalElem(author.insertions, "dcx-dai:insertions") }
+        { optionalElem(author.surname, "dcx-dai:surname") }
+        { optionalElem(author.role, "dcx-dai:role") }
+        { author.organization.toSeq.map(orgDetails(role = None, lang)) }
+      </dcx-dai:author>
+  }
+
+  private def orgDetails(role: Option[SchemedKeyValue[String]],
+                         lang: Option[Attribute])(organization: String) =
+      <dcx-dai:organization>
+        { role.toSeq.map(elem("dcx-dai:role", lang)) }
+        { <dcx-dai:name>{organization}</dcx-dai:name>.addAttr(lang) }
+      </dcx-dai:organization>
 
   /** @param elem XML element to be adjusted */
   implicit class RichElem(elem: Elem) extends Object {
@@ -140,7 +145,7 @@ object DatasetXml {
   }
 
   private def optionalElem[T](source: Option[T], target: String, lang: Option[Attribute] = None): Seq[Elem] = {
-    source.map(elem(target, lang)).toSeq
+    source.toSeq.map(elem(target, lang))
   }
 
   private def filter[S, T](xs: Seq[QualifiedSchemedValue[S, T]],

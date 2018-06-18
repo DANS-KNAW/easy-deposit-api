@@ -41,7 +41,7 @@ class DatasetXmlSpec extends TestSupportFixture with DdmBehavior {
       |    { "scheme": "dcterms:W3CDTF", "value": "2018", "qualifier": "dcterms:created" },
       |    { "scheme": "dcterms:W3CDTF", "value": "2018", "qualifier": "dcterms:available" },
       |  ],
-      |  "creators": [ { "initials": "", "surname": "" } ],
+      |  "creators": [ { "initials": "", "surname": "Foo" } ],
       |  "accessRights": { "category": "OPEN_ACCESS" },
       |  "audiences": [ { "scheme": "", "key": "D35200", "value": ""} ]
       |}""".stripMargin).getOrElse(fail("parsing minimal json failed"))
@@ -61,7 +61,7 @@ class DatasetXmlSpec extends TestSupportFixture with DdmBehavior {
         <dcx-dai:creatorDetails>
           <dcx-dai:author>
             <dcx-dai:initials></dcx-dai:initials>
-            <dcx-dai:surname></dcx-dai:surname>
+            <dcx-dai:surname>Foo</dcx-dai:surname>
           </dcx-dai:author>
         </dcx-dai:creatorDetails>
         <ddm:created>2018</ddm:created>
@@ -178,11 +178,7 @@ class DatasetXmlSpec extends TestSupportFixture with DdmBehavior {
     input = parseTestResource("datasetmetadata-from-ui-some.json")
   )
   "datasetmetadata-from-ui-all.json without one of the authors" should behave like validDatasetMetadata(
-    input = parseTestResource("datasetmetadata-from-ui-all.json").map(metadata =>
-      metadata.copy(contributors = metadata.contributors.map(_.filterNot(
-        _.organization.getOrElse("") == "my organization"
-      )))
-    ),
+    input = parseTestResource("datasetmetadata-from-ui-all.json"),
     expectedOutput = Seq(
       <ddm:profile>
         <dc:title xml:lang="nld">title 1</dc:title>
@@ -224,6 +220,11 @@ class DatasetXmlSpec extends TestSupportFixture with DdmBehavior {
             <dcx-dai:insertions>van</dcx-dai:insertions>
             <dcx-dai:surname>Belix</dcx-dai:surname>
           </dcx-dai:author>
+        </dcx-dai:contributorDetails>
+        <dcx-dai:contributorDetails>
+          <dcx-dai:organization>
+            <dcx-dai:name xml:lang="nld">my organization</dcx-dai:name>
+          </dcx-dai:organization>
         </dcx-dai:contributorDetails>
         <dcterms:rightsHolder>rightsHolder1</dcterms:rightsHolder>
         <dcterms:rightsHolder>Dr. A.S. van Terix</dcterms:rightsHolder>

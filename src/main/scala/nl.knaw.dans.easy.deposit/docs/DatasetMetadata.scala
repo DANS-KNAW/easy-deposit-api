@@ -152,6 +152,10 @@ object DatasetMetadata {
                     organization: Option[String] = None,
                    ) {
     require(isValid, incompleteAuthor)
+    require(
+      surname.isDefined || !(titles.isDefined || insertions.isDefined),
+      "without surname neither titles nor insertions"
+    )
 
     private def isValid: Boolean = {
       organization.isDefined ||
