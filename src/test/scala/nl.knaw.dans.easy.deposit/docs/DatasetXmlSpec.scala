@@ -41,15 +41,15 @@ class DatasetXmlSpec extends TestSupportFixture with DdmBehavior {
       |    { "scheme": "dcterms:W3CDTF", "value": "2018", "qualifier": "dcterms:created" },
       |    { "scheme": "dcterms:W3CDTF", "value": "2018", "qualifier": "dcterms:available" },
       |  ],
-      |  "creators": [ { "initials": "", "surname": "Foo" } ],
+      |  "creators": [ { "initials": "B.A.R.", "surname": "Foo" } ],
       |  "accessRights": { "category": "OPEN_ACCESS" },
       |  "audiences": [ { "scheme": "", "key": "D35200", "value": ""} ]
       |}""".stripMargin).getOrElse(fail("parsing minimal json failed"))
 
   /** provides the verbose namespaces for inline DDM */
   override val emptyDDM: Elem = DatasetXml(minimal)
-    .recoverWith { case e => fail(e) }
-    .getOrElse(fail("recovering from preparation errors failed"))
+    .doIfFailure{ case e => println(e) }
+    .getOrElse(fail("test preparation failed"))
     .copy(child = Seq())
 
   "minimal" should behave like validDatasetMetadata(
@@ -60,7 +60,7 @@ class DatasetXmlSpec extends TestSupportFixture with DdmBehavior {
         <dcterms:description></dcterms:description>
         <dcx-dai:creatorDetails>
           <dcx-dai:author>
-            <dcx-dai:initials></dcx-dai:initials>
+            <dcx-dai:initials>B.A.R.</dcx-dai:initials>
             <dcx-dai:surname>Foo</dcx-dai:surname>
           </dcx-dai:author>
         </dcx-dai:creatorDetails>

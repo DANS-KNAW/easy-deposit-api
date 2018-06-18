@@ -90,9 +90,9 @@ object DatasetXml {
     else
       <dcx-dai:author>
         { optionalElem(author.titles, "dcx-dai:titles").addAttr(lang) }
-        { optionalElem(author.initials, "dcx-dai:initials") }
+        { requiredElems(author.initials.map(Seq(_)), "dcx-dai:initials") }
         { optionalElem(author.insertions, "dcx-dai:insertions") }
-        { optionalElem(author.surname, "dcx-dai:surname") }
+        { requiredElems(author.surname.map(Seq(_)), "dcx-dai:surname") }
         { optionalElem(author.role, "dcx-dai:role") }
         { author.organization.toSeq.map(orgDetails(role = None, lang)) }
       </dcx-dai:author>
