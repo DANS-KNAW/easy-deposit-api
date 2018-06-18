@@ -57,7 +57,7 @@ class DatasetXmlSpec extends TestSupportFixture with DdmBehavior {
     expectedOutput = Seq(
       <ddm:profile>
         <dc:title></dc:title>
-        <dc:description></dc:description>
+        <dcterms:description></dcterms:description>
         <dcx-dai:creatorDetails>
           <dcx-dai:author>
             <dcx-dai:initials></dcx-dai:initials>
@@ -166,7 +166,7 @@ class DatasetXmlSpec extends TestSupportFixture with DdmBehavior {
 
   it should "report a missing description" in {
     DatasetXml(minimal.copy(descriptions = None)) should matchPattern {
-      case Failure(e) if e.getMessage == "no content for mandatory dc:description" =>
+      case Failure(e) if e.getMessage == "no content for mandatory dcterms:description" =>
     }
   }
 
@@ -187,8 +187,8 @@ class DatasetXmlSpec extends TestSupportFixture with DdmBehavior {
       <ddm:profile>
         <dc:title xml:lang="nld">title 1</dc:title>
         <dc:title xml:lang="nld">title2</dc:title>
-        <dc:description xml:lang="nld">description1</dc:description>
-        <dc:description xml:lang="nld">description2</dc:description>
+        <dcterms:description xml:lang="nld">description1</dcterms:description>
+        <dcterms:description xml:lang="nld">description2</dcterms:description>
         <dcx-dai:creatorDetails>
           <dcx-dai:author>
             <dcx-dai:titles xml:lang="nld">Drs.</dcx-dai:titles>

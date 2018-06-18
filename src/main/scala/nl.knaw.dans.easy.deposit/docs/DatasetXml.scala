@@ -50,7 +50,7 @@ object DatasetXml {
     >
       <ddm:profile>
         { requiredElems(dm.titles, "dc:title").addAttr(lang) }
-        { requiredElems(dm.descriptions, "dc:description").addAttr(lang) }
+        { requiredElems(dm.descriptions, "dcterms:description").addAttr(lang) }
         { requiredElems(dm.creators.map(_.filterNot(isRightsHolder)), "dcx-dai:creatorDetails", lang) }
         { requiredElems(dm.dates.map(filter(_, Seq(created))), "ddm:created") }
         { requiredElems(dm.dates.map(filter(_, Seq(available))), "ddm:available") }
