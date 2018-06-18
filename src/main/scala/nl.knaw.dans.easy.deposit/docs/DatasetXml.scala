@@ -137,11 +137,13 @@ object DatasetXml {
   }
 
   private def requiredElems[T](source: Option[Seq[T]], target: String, lang: Option[Attribute] = None): Seq[Elem] = {
-    source.map(_.map(elem(target, lang))).getOrElse(throwMandatory(target))
+    source.filterNot(seq => seq.isEmpty).getOrElse{
+      throw new IllegalArgumentException(s"no content for mandatory $target")
+    }.map(elem(target, lang))
   }
 
   private def elems[T](source: Option[Seq[T]], target: String, lang: Option[Attribute] = None): Seq[Elem] = {
-    source.map(_.map(elem(target, lang))).getOrElse(Seq.empty)
+    source.toSeq.flatten.map(elem(target, lang))
   }
 
   private def optionalElem[T](source: Option[T], target: String, lang: Option[Attribute] = None): Seq[Elem] = {
@@ -152,9 +154,5 @@ object DatasetXml {
                            q: Seq[T]
                           ): Seq[QualifiedSchemedValue[S, T]] = {
     xs.filter(x => q.contains(x.qualifier))
-  }
-
-  private def throwMandatory(tag: String) = {
-    throw new IllegalArgumentException(s"no content for mandatory $tag")
   }
 }

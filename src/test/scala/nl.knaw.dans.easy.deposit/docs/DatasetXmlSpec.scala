@@ -164,9 +164,9 @@ class DatasetXmlSpec extends TestSupportFixture with DdmBehavior {
     }
   }
 
-  it should "report a missing description" in {
-    DatasetXml(minimal.copy(descriptions = None)) should matchPattern {
-      case Failure(e) if e.getMessage == "no content for mandatory dcterms:description" =>
+  it should "report an empty list of titles" in {
+    DatasetXml(minimal.copy(titles = Some(Seq.empty))) should matchPattern {
+      case Failure(e) if e.getMessage == "no content for mandatory dc:title" =>
     }
   }
 
