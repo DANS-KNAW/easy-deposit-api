@@ -146,9 +146,6 @@ class DatasetXmlSpec extends TestSupportFixture with DdmBehavior {
   }
 
   "RichElem.setTag" should "report an error" in {
-    // TODO had to make targetFromQualifier and RichElem public for this test
-    // can't cause this error through the apply method
-    // because it does not yet use targetFromQualifier for a non-enum
     import DatasetXml.RichElem
     val source = new QualifiedSchemedValue[String, String](None, "", "a:b:c")
     Try {

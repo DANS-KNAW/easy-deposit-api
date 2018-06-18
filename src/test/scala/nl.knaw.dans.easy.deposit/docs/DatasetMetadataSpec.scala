@@ -188,6 +188,16 @@ class DatasetMetadataSpec extends TestSupportFixture {
     shouldReturnCustomMessage(s, """requirement failed: Author needs one of (organisation | surname and initials) got: {"initials":"A"}""")
   }
 
+  it should "reject an organisation with titles" in {
+    val s: JsonInput = """{ "contributors": [ { "titles": "A", "organization": "University of Zurich" } ] }"""
+    shouldReturnCustomMessage(s, """requirement failed: Author without surname should have neither titles nor insertions""")
+  }
+
+  it should "reject an organisation with insertions" in {
+    val s: JsonInput = """{ "contributors": [ { "insertions": "van der", "organization": "University of Zurich" } ] }"""
+    shouldReturnCustomMessage(s, """requirement failed: Author without surname should have neither titles nor insertions""")
+  }
+
   /** Performs a test that (among others) might break after an upgrade of the json4s library
    *
    * @param s               json string to be deserialized

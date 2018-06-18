@@ -154,7 +154,7 @@ object DatasetMetadata {
     require(isValid, incompleteAuthor)
     require(
       surname.isDefined || !(titles.isDefined || insertions.isDefined),
-      "without surname neither titles nor insertions"
+      "Author without surname should have neither titles nor insertions"
     )
 
     private def isValid: Boolean = {

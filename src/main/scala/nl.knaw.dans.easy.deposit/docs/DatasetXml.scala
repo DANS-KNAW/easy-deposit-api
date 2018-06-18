@@ -106,6 +106,9 @@ object DatasetXml {
       </dcx-dai:organization>
 
   /** @param elem XML element to be adjusted */
+  @throws(classOf[InvalidDocumentException]) // TODO made public for unit testing
+  // can't cause the error through the apply method
+  // because it does not yet use targetFromQualifier for a non-enum
   implicit class RichElem(elem: Elem) extends Object {
     /**
      * @param target the default tag (namespace:label)
