@@ -140,9 +140,16 @@ object DatasetXml {
   }
 
   private def requiredElems[T](source: Option[Seq[T]], target: String, lang: Option[Attribute] = None): Seq[Elem] = {
-    source.filterNot(seq => seq.isEmpty).getOrElse{
+    source.map(keepNonEmpty).filterNot(_.isEmpty).getOrElse{
       throw new IllegalArgumentException(s"no content for mandatory $target")
     }.map(elem(target, lang))
+  }
+
+  private def keepNonEmpty[T](ts: Seq[T]) = {
+    ts.filter {
+      case s: String => s.trim != ""
+      case _ => true
+    }
   }
 
   private def elems[T](source: Option[Seq[T]], target: String, lang: Option[Attribute] = None): Seq[Elem] = {

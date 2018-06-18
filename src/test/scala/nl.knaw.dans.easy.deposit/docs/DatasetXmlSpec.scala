@@ -35,8 +35,8 @@ class DatasetXmlSpec extends TestSupportFixture with DdmBehavior {
 
   private val minimal = DatasetMetadata(
     """{
-      |  "titles": [""],
-      |  "descriptions": [""],
+      |  "titles": ["Lorum ipsum"],
+      |  "descriptions": ["dolor"],
       |  "dates": [
       |    { "scheme": "dcterms:W3CDTF", "value": "2018", "qualifier": "dcterms:created" },
       |    { "scheme": "dcterms:W3CDTF", "value": "2018", "qualifier": "dcterms:available" },
@@ -56,8 +56,8 @@ class DatasetXmlSpec extends TestSupportFixture with DdmBehavior {
     input = Success(minimal),
     expectedOutput = Seq(
       <ddm:profile>
-        <dc:title></dc:title>
-        <dcterms:description></dcterms:description>
+        <dc:title>Lorum ipsum</dc:title>
+        <dcterms:description>dolor</dcterms:description>
         <dcx-dai:creatorDetails>
           <dcx-dai:author>
             <dcx-dai:initials>B.A.R.</dcx-dai:initials>
@@ -163,6 +163,12 @@ class DatasetXmlSpec extends TestSupportFixture with DdmBehavior {
 
   it should "report an empty list of titles" in {
     DatasetXml(minimal.copy(titles = Some(Seq.empty))) should matchPattern {
+      case Failure(e) if e.getMessage == "no content for mandatory dc:title" =>
+    }
+  }
+
+  it should "report an empty string as title" in {
+    DatasetXml(minimal.copy(titles = Some(Seq("   \t")))) should matchPattern {
       case Failure(e) if e.getMessage == "no content for mandatory dc:title" =>
     }
   }
