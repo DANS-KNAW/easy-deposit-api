@@ -32,7 +32,7 @@ object DatasetXml {
     ).contains(qualifier)
   }.toSeq
 
-  // TODO see unit test for error handling why this is not private
+  // TODO make private together with implicit class RichElem
   val targetFromQualifier = "qualifier"
 
   def apply(dm: DatasetMetadata): Try[Elem] = Try {
@@ -102,18 +102,18 @@ object DatasetXml {
                          lang: Option[Attribute])(organization: String) =
       <dcx-dai:organization>
         { role.toSeq.map(elem("dcx-dai:role", lang)) }
-        { <dcx-dai:name>{organization}</dcx-dai:name>.addAttr(lang) }
+        { requiredElems(Some(Seq(organization)),"dcx-dai:name").addAttr(lang) }
       </dcx-dai:organization>
 
   /** @param elem XML element to be adjusted */
-  @throws(classOf[InvalidDocumentException]) // TODO made public for unit testing
-  // can't cause the error through the apply method
-  // because it does not yet use targetFromQualifier for a non-enum
   implicit class RichElem(elem: Elem) extends Object {
+    // TODO make private once the thrown error can be tested through apply (when using targetFromQualifier for a non-enum)
+
     /**
      * @param target the default tag (namespace:label)
      * @param source may have a qualifier or some other property that determines the tag
      */
+    @throws(classOf[InvalidDocumentException])
     def setTag[T](target: String, source: T): Elem = {
       (source match {
         case x: QualifiedSchemedValue[_, _] if target == targetFromQualifier => x.qualifier.toString
@@ -131,9 +131,6 @@ object DatasetXml {
     def addAttr(maybeAttribute: Option[Attribute]): Elem = maybeAttribute.map(elem % _).getOrElse(elem)
   }
 
-  private def isRightsHolder[T](a: T with Author) = {
-    a.role.exists(_.key == "RightsHolder")
-  }
   /** @param elems the sequence of elements to adjust */
   private implicit class RichElems(elems: Seq[Elem]) extends Object {
     def addAttr(lang: Option[Attribute]): Seq[Elem] = elems.map(_.addAttr(lang))
@@ -141,8 +138,14 @@ object DatasetXml {
 
   private def requiredElems[T](source: Option[Seq[T]], target: String, lang: Option[Attribute] = None): Seq[Elem] = {
     source.map(keepNonEmpty).filterNot(_.isEmpty).getOrElse{
-      throw new IllegalArgumentException(s"no content for mandatory $target")
+      throw InvalidDocumentException("DatasetMetadata",  new Exception(
+        s"no content for mandatory $target"
+      ))
     }.map(elem(target, lang))
+  }
+
+  private def isRightsHolder[T](a: T with Author) = {
+    a.role.exists(_.key == "RightsHolder")
   }
 
   private def keepNonEmpty[T](ts: Seq[T]) = {

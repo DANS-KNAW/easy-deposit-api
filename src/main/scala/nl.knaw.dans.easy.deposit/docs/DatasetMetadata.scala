@@ -154,7 +154,7 @@ object DatasetMetadata {
     require(isValid, incompleteAuthor)
     require(
       surname.isDefined || !(titles.isDefined || insertions.isDefined),
-      "Author without surname should have neither titles nor insertions"
+      s"Author without surname should have neither titles nor insertions; got: ${ toJson(this) }"
     )
 
     private def isValid: Boolean = {
@@ -198,7 +198,7 @@ object DatasetMetadata {
                       url: Option[String],
                       title: Option[String],
                      ) extends RelationType {
-    require(isValid, "Relation needs at least one of (title | url) got: ${toJson(this)}")
+    require(isValid, s"Relation needs at least one of (title | url) got: ${toJson(this)}")
 
     def isValid: Boolean = {
       title.isDefined || url.isDefined

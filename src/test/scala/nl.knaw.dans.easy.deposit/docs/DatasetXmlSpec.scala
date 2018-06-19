@@ -25,6 +25,7 @@ import javax.xml.transform.stream.StreamSource
 import javax.xml.validation.{ Schema, SchemaFactory }
 import nl.knaw.dans.easy.deposit.TestSupportFixture
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.{ Author, DateQualifier, QualifiedSchemedValue, SchemedKeyValue }
+import nl.knaw.dans.easy.deposit.docs.JsonUtil.InvalidDocumentException
 import nl.knaw.dans.lib.error._
 import resource.Using
 
@@ -151,25 +152,50 @@ class DatasetXmlSpec extends TestSupportFixture with DdmBehavior {
     Try {
       <key>Lorum Ipsum</key>.setTag(DatasetXml.targetFromQualifier, source)
     } should matchPattern {
-      case Failure(e: Exception) if e.getMessage == "invalid DatasetMetadata: class java.lang.Exception expecting (label) or (prefix:label); got [a:b:c] to adjust the <key> of <key>Lorum Ipsum</key> created from: QualifiedSchemedValue(None,,a:b:c)" =>
+      case Failure(InvalidDocumentException(_,e)) if e.getMessage ==
+        "expecting (label) or (prefix:label); got [a:b:c] to adjust the <key> of <key>Lorum Ipsum</key> created from: QualifiedSchemedValue(None,,a:b:c)" =>
     }
   }
 
   "apply" should "report a missing title" in {
     DatasetXml(minimal.copy(titles = None)) should matchPattern {
-      case Failure(e) if e.getMessage == "no content for mandatory dc:title" =>
+      case Failure(InvalidDocumentException(_,e)) if e.getMessage ==
+        "no content for mandatory dc:title" =>
     }
   }
 
   it should "report an empty list of titles" in {
     DatasetXml(minimal.copy(titles = Some(Seq.empty))) should matchPattern {
-      case Failure(e) if e.getMessage == "no content for mandatory dc:title" =>
+      case Failure(InvalidDocumentException(_,e)) if e.getMessage ==
+        "no content for mandatory dc:title" =>
     }
   }
 
   it should "report an empty string as title" in {
     DatasetXml(minimal.copy(titles = Some(Seq("   \t")))) should matchPattern {
-      case Failure(e) if e.getMessage == "no content for mandatory dc:title" =>
+      case Failure(InvalidDocumentException(_,e)) if e.getMessage ==
+        "no content for mandatory dc:title" =>
+    }
+  }
+
+  it should "report empty initials" in {
+    DatasetXml(minimal.copy(creators = Some(Seq(Author(initials = Some(""),surname = Some("")))))) should matchPattern {
+      case Failure(InvalidDocumentException(_,e)) if e.getMessage ==
+        "no content for mandatory dcx-dai:initials" =>
+    }
+  }
+
+  it should "report an empty surname" in {
+    DatasetXml(minimal.copy(creators = Some(Seq(Author(initials = Some("x."),surname = Some("")))))) should matchPattern {
+      case Failure(InvalidDocumentException(_,e)) if e.getMessage ==
+        "no content for mandatory dcx-dai:surname" =>
+    }
+  }
+
+  it should "report an empty organisation" in {
+    DatasetXml(minimal.copy(creators = Some(Seq(Author(organization = Some("")))))) should matchPattern {
+      case Failure(InvalidDocumentException(_,e)) if e.getMessage ==
+        "no content for mandatory dcx-dai:name" =>
     }
   }
 
