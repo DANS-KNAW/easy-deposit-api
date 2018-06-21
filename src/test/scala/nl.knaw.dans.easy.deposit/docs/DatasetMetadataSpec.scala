@@ -15,7 +15,6 @@
  */
 package nl.knaw.dans.easy.deposit.docs
 
-import better.files.File
 import nl.knaw.dans.easy.deposit.TestSupportFixture
 import nl.knaw.dans.easy.deposit.docs.JsonUtil.{ InvalidDocumentException, toJson }
 import org.json4s.JsonAST._
@@ -41,7 +40,7 @@ class DatasetMetadataSpec extends TestSupportFixture {
   }
 
   private def roundTripTest(value: String): Unit = {
-    val example = (File("src") / "test" / "resources" / "manual-test" / value).contentAsString
+    val example = getManualTestResource(value)
     val parsed = prepareDatasetMetadata(example)
     val serializedObject = JsonMethods.parse(toJson(parsed))
     inside(JsonMethods.parse(example) diff serializedObject) {

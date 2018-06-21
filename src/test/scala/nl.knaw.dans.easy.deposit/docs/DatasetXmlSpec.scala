@@ -18,7 +18,6 @@ package nl.knaw.dans.easy.deposit.docs
 import java.io.ByteArrayInputStream
 import java.nio.charset.StandardCharsets
 
-import better.files.File
 import javax.xml.XMLConstants
 import javax.xml.transform.Source
 import javax.xml.transform.stream.StreamSource
@@ -46,12 +45,12 @@ class DatasetXmlSpec extends TestSupportFixture with DdmBehavior {
       |  "accessRights": { "category": "OPEN_ACCESS" },
       |  "audiences": [ { "scheme": "", "key": "D35200", "value": ""} ]
       |}""".stripMargin)
-    .doIfFailure{case e => println(e)}
+    .doIfFailure { case e => println(e) }
     .getOrElse(fail("parsing minimal json failed"))
 
   /** provides the verbose namespaces for inline DDM */
   override val emptyDDM: Elem = DatasetXml(minimal)
-    .doIfFailure{ case e => println(e) }
+    .doIfFailure { case e => println(e) }
     .getOrElse(fail("test preparation failed"))
     .copy(child = Seq())
 
@@ -114,11 +113,11 @@ class DatasetXmlSpec extends TestSupportFixture with DdmBehavior {
       expectedOutput = Seq(
         //N.B: creators in ddm:profile unless they are rightsHolders
         <ddm:dcmiMetadata>
-        <dcterms:rightsHolder>A.S. Terix</dcterms:rightsHolder>
-        <dcterms:rightsHolder>O. Belix</dcterms:rightsHolder>
-        <dcterms:dateSubmitted xsi:type="dcterms:W3CDTF">2018-03-22</dcterms:dateSubmitted>
-      </ddm:dcmiMetadata>
-    )
+          <dcterms:rightsHolder>A.S. Terix</dcterms:rightsHolder>
+          <dcterms:rightsHolder>O. Belix</dcterms:rightsHolder>
+          <dcterms:dateSubmitted xsi:type="dcterms:W3CDTF">2018-03-22</dcterms:dateSubmitted>
+        </ddm:dcmiMetadata>
+      )
     )
   }
 
@@ -154,28 +153,28 @@ class DatasetXmlSpec extends TestSupportFixture with DdmBehavior {
     Try {
       <key>Lorum Ipsum</key>.setTag(DatasetXml.targetFromQualifier, source)
     } should matchPattern {
-      case Failure(InvalidDocumentException(_,e)) if e.getMessage ==
+      case Failure(InvalidDocumentException(_, e)) if e.getMessage ==
         "expecting (label) or (prefix:label); got [a:b:c] to adjust the <key> of <key>Lorum Ipsum</key> created from: QualifiedSchemedValue(None,,a:b:c)" =>
     }
   }
 
   "apply" should "report a missing title" in {
     DatasetXml(minimal.copy(titles = None)) should matchPattern {
-      case Failure(InvalidDocumentException(_,e)) if e.getMessage ==
+      case Failure(InvalidDocumentException(_, e)) if e.getMessage ==
         "no content for mandatory dc:title" =>
     }
   }
 
   it should "report an empty list of titles" in {
     DatasetXml(minimal.copy(titles = Some(Seq.empty))) should matchPattern {
-      case Failure(InvalidDocumentException(_,e)) if e.getMessage ==
+      case Failure(InvalidDocumentException(_, e)) if e.getMessage ==
         "no content for mandatory dc:title" =>
     }
   }
 
   it should "report an empty string as title" in {
     DatasetXml(minimal.copy(titles = Some(Seq("   \t")))) should matchPattern {
-      case Failure(InvalidDocumentException(_,e)) if e.getMessage ==
+      case Failure(InvalidDocumentException(_, e)) if e.getMessage ==
         "no content for mandatory dc:title" =>
     }
   }
@@ -253,8 +252,9 @@ class DatasetXmlSpec extends TestSupportFixture with DdmBehavior {
   )
 
   private def parseTestResource(file: String) = Try {
-    (File(getClass.getResource("/manual-test")) / file).contentAsString
+    getManualTestResource(file)
   }.flatMap(DatasetMetadata(_))
+
 }
 
 trait DdmBehavior {

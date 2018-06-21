@@ -31,6 +31,12 @@ trait TestSupportFixture extends FlatSpec with Matchers with Inside with BeforeA
   lazy val testDir: File = currentWorkingDirectory / "target" / "test" / getClass.getSimpleName
   lazy val uuid: UUID = UUID.randomUUID()
 
+  def testResource(file: String): File = File(getClass.getResource(file))
+
+  def getManualTestResource(file: String): String = {
+    (testResource("/manual-test") / file).contentAsString
+  }
+
   def clearTestDir(): Unit = {
     if (testDir.exists)
       testDir.delete().createDirectories()
@@ -42,7 +48,7 @@ trait TestSupportFixture extends FlatSpec with Matchers with Inside with BeforeA
   DateTimeUtils.setCurrentMillisFixed(new DateTime(nowUTC).getMillis)
   DateTimeZone.setDefault(DateTimeZone.forTimeZone(TimeZone.getTimeZone("Europe/Amsterdam")))
 
-  val fooBarBasicAuthHeader: String = authenticationHeader("foo","bar")
+  val fooBarBasicAuthHeader: String = authenticationHeader("foo", "bar")
 
   def authenticationHeader(username: String, password: String, authType: String = "Basic"): String = {
     val encoded = Base64.getEncoder.encodeToString(s"$username:$password".getBytes())

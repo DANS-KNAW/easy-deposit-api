@@ -17,7 +17,6 @@ package nl.knaw.dans.easy.deposit
 
 import java.nio.file.attribute.PosixFilePermission
 
-import better.files.File
 import nl.knaw.dans.easy.deposit.PidRequesterComponent.PidRequester
 import nl.knaw.dans.easy.deposit.PidRequesterComponent.PidType.PidType
 import nl.knaw.dans.easy.deposit.docs.StateInfo.State
@@ -182,7 +181,7 @@ class DepositDirSpec extends TestSupportFixture with MockFactory {
   "writeSplittedDatasetMetadata" should "write 4 files" in {
     val prologue = """<?xml version='1.0' encoding='UTF-8'?>"""
     val message = "Lorum ipsum"
-    val datasetMetadata = DatasetMetadata((File("src") / "test" / "resources" / "manual-test" / "datasetmetadata-from-ui-all.json").contentAsString)
+    val datasetMetadata = DatasetMetadata(getManualTestResource("datasetmetadata-from-ui-all.json"))
       .getOrElse(fail("preparing a valid json failed"))
       .copy(messageForDataManager = Some(message))
     val deposit = createDepositAsPreparation("user001")
@@ -192,7 +191,7 @@ class DepositDirSpec extends TestSupportFixture with MockFactory {
     val oldSize = (mdDir / "dataset.json").size
 
     deposit.splitDatasetMetadata(DateTime.now) shouldBe Success(())
-    (mdDir / "dataset.json").size shouldBe oldSize // date submitted is no longer added
+    (mdDir / "dataset.json").size shouldBe oldSize // the dataset.json file is not changed
     (mdDir / "message-from-depositor.txt").contentAsString shouldBe message
     (mdDir / "agreements.xml").lineIterator.next() shouldBe prologue
     (mdDir / "dataset.xml").lineIterator.next() shouldBe prologue
