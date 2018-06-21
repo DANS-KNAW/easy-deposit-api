@@ -70,7 +70,7 @@ case class DatasetMetadata(identifiers: Option[Seq[SchemedValue[String]]] = None
                                         else Failure(DatasetMetadata.missingValue("AcceptLicenseAgreement"))
 
   def setDoi(value: String): DatasetMetadata = {
-    val ids = identifiers.getOrElse(Seq.empty).filter(_.scheme == doiScheme)
+    val ids = identifiers.getOrElse(Seq.empty).filterNot(_.scheme == doiScheme)
     this.copy(identifiers = Some(ids :+ SchemedValue(doiScheme, value)))
   }
 }
