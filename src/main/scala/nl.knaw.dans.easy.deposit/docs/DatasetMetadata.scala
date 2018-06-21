@@ -143,6 +143,10 @@ object DatasetMetadata {
                           group: Option[String],
                          )
 
+  implicit class OptionalString(val s: Option[String]) {
+    // TODO candidate for https://github.com/DANS-KNAW/dans-scala-lib/blob/master/src/main/scala/nl/knaw/dans/lib/string/package.scala
+    def isProvided: Boolean = s.getOrElse("").trim.nonEmpty
+  }
   case class Author(titles: Option[String] = None,
                     initials: Option[String] = None,
                     insertions: Option[String] = None,
@@ -151,18 +155,25 @@ object DatasetMetadata {
                     ids: Option[Seq[SchemedValue[String]]] = None,
                     organization: Option[String] = None,
                    ) {
-    require(isValid, incompleteAuthor)
-    require(
-      surname.isDefined || !(titles.isDefined || insertions.isDefined),
-      s"Author without surname should have neither titles nor insertions; got: ${ toJson(this) }"
-    )
+    require(hasMandatory, buildMsg(incompleteMsg))
+    require(!hasRedundant, buildMsg(redundantMsg))
 
-    private def isValid: Boolean = {
-      organization.isDefined ||
-        (surname.isDefined && initials.isDefined)
+    private val incompleteMsg = "needs one of (organisation | surname and initials)"
+    private val redundantMsg = "without surname should have neither titles nor insertions"
+
+    private def buildMsg(s: String) = s"Author $s; got: ${ toJson(this) }"
+
+    private def hasMandatory: Boolean = {
+      organization.isProvided ||
+        (surname.isProvided && initials.isProvided)
     }
 
-    override def toString: String = { // TODO ID's
+    private def hasRedundant: Boolean = {
+      !surname.isProvided &&
+        (titles.isProvided || insertions.isProvided)
+    }
+
+    override def toString: String = { // TODO ID's when DatasetXml implements ID's for Author fields
       val name = Seq(titles, initials, insertions, surname)
         .filter(_.isDefined)
         .map(_.getOrElse(""))
@@ -171,12 +182,8 @@ object DatasetMetadata {
         case (true, true) => s"$name; ${ organization.getOrElse("") }"
         case (false, true) => organization.getOrElse("")
         case (true, false) => name
-        case (false, false) => throw new Exception(incompleteAuthor)
+        case (false, false) => throw new Exception(buildMsg(incompleteMsg))
       }
-    }
-
-    private def incompleteAuthor: String = {
-      s"Author needs one of (organisation | surname and initials) got: ${ toJson(this) }"
     }
   }
 
@@ -198,7 +205,8 @@ object DatasetMetadata {
                       url: Option[String],
                       title: Option[String],
                      ) extends RelationType {
-    require(isValid, s"Relation needs at least one of (title | url) got: ${toJson(this)}")
+    // TODO move to DatasetXml once it implements this type of fields
+    require(isValid, s"Relation needs at least one of (title | url) got: ${ toJson(this) }")
 
     def isValid: Boolean = {
       title.isDefined || url.isDefined

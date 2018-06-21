@@ -45,7 +45,9 @@ class DatasetXmlSpec extends TestSupportFixture with DdmBehavior {
       |  "creators": [ { "initials": "B.A.R.", "surname": "Foo" } ],
       |  "accessRights": { "category": "OPEN_ACCESS" },
       |  "audiences": [ { "scheme": "", "key": "D35200", "value": ""} ]
-      |}""".stripMargin).getOrElse(fail("parsing minimal json failed"))
+      |}""".stripMargin)
+    .doIfFailure{case e => println(e)}
+    .getOrElse(fail("parsing minimal json failed"))
 
   /** provides the verbose namespaces for inline DDM */
   override val emptyDDM: Elem = DatasetXml(minimal)
@@ -175,27 +177,6 @@ class DatasetXmlSpec extends TestSupportFixture with DdmBehavior {
     DatasetXml(minimal.copy(titles = Some(Seq("   \t")))) should matchPattern {
       case Failure(InvalidDocumentException(_,e)) if e.getMessage ==
         "no content for mandatory dc:title" =>
-    }
-  }
-
-  it should "report empty initials" in {
-    DatasetXml(minimal.copy(creators = Some(Seq(Author(initials = Some(""),surname = Some("")))))) should matchPattern {
-      case Failure(InvalidDocumentException(_,e)) if e.getMessage ==
-        "no content for mandatory dcx-dai:initials" =>
-    }
-  }
-
-  it should "report an empty surname" in {
-    DatasetXml(minimal.copy(creators = Some(Seq(Author(initials = Some("x."),surname = Some("")))))) should matchPattern {
-      case Failure(InvalidDocumentException(_,e)) if e.getMessage ==
-        "no content for mandatory dcx-dai:surname" =>
-    }
-  }
-
-  it should "report an empty organisation" in {
-    DatasetXml(minimal.copy(creators = Some(Seq(Author(organization = Some("")))))) should matchPattern {
-      case Failure(InvalidDocumentException(_,e)) if e.getMessage ==
-        "no content for mandatory dcx-dai:name" =>
     }
   }
 

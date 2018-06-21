@@ -169,12 +169,12 @@ class DatasetMetadataSpec extends TestSupportFixture {
   }
 
   "DatasetMetadata.Author" should "accept an author with initials and surname" in {
-    val s: JsonInput = """{ "contributors": [ { "organization": "University of Zurich" } ] }"""
+    val s: JsonInput = """{ "creators": [ { "initials": "A", "surname": "Einstein" } ] }"""
     DatasetMetadata(s) shouldBe a[Success[_]]
   }
 
   it should "accept an organisation as author" in {
-    val s: JsonInput = """{ "creators": [ { "initials": "A", "surname": "Einstein" } ] }"""
+    val s: JsonInput = """{ "contributors": [ { "organization": "University of Zurich" } ] }"""
     DatasetMetadata(s) shouldBe a[Success[_]]
   }
 
@@ -190,12 +190,12 @@ class DatasetMetadataSpec extends TestSupportFixture {
 
   it should "reject an organisation with titles" in {
     val s: JsonInput = """{ "contributors": [ { "titles": "A", "organization": "University of Zurich" } ] }"""
-    shouldReturnCustomMessage(s, """requirement failed: Author without surname should have neither titles nor insertions""")
+    shouldReturnCustomMessage(s, """requirement failed: Author without surname should have neither titles nor insertions; got: {"titles":"A","organization":"University of Zurich"}""")
   }
 
   it should "reject an organisation with insertions" in {
     val s: JsonInput = """{ "contributors": [ { "insertions": "van der", "organization": "University of Zurich" } ] }"""
-    shouldReturnCustomMessage(s, """requirement failed: Author without surname should have neither titles nor insertions""")
+    shouldReturnCustomMessage(s, """requirement failed: Author without surname should have neither titles nor insertions; got: {"insertions":"van der","organization":"University of Zurich"}""")
   }
 
   /** Performs a test that (among others) might break after an upgrade of the json4s library

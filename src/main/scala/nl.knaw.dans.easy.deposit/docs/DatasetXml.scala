@@ -102,7 +102,7 @@ object DatasetXml {
                          lang: Option[Attribute])(organization: String) =
       <dcx-dai:organization>
         { role.toSeq.map(elem("dcx-dai:role", lang)) }
-        { requiredElems(Some(Seq(organization)),"dcx-dai:name").addAttr(lang) }
+        { requiredElems(Some(Seq(organization)), "dcx-dai:name").addAttr(lang) }
       </dcx-dai:organization>
 
   /** @param elem XML element to be adjusted */
@@ -137,8 +137,8 @@ object DatasetXml {
   }
 
   private def requiredElems[T](source: Option[Seq[T]], target: String, lang: Option[Attribute] = None): Seq[Elem] = {
-    source.map(keepNonEmpty).filterNot(_.isEmpty).getOrElse{
-      throw InvalidDocumentException("DatasetMetadata",  new Exception(
+    source.map(keepNonEmpty).filterNot(_.isEmpty).getOrElse {
+      throw InvalidDocumentException("DatasetMetadata", new Exception(
         s"no content for mandatory $target"
       ))
     }.map(elem(target, lang))
