@@ -179,12 +179,12 @@ class DatasetMetadataSpec extends TestSupportFixture {
 
   it should "reject an author without initials" in {
     val s: JsonInput = """{ "contributors": [ { "surname": "Einstein" } ] }"""
-    shouldReturnCustomMessage(s, """requirement failed: Author needs one of (organisation | surname and initials) got: {"surname":"Einstein"}""")
+    shouldReturnCustomMessage(s, """requirement failed: Author needs one of (organisation | surname and initials); got: {"surname":"Einstein"}""")
   }
 
   it should "reject an author without surname" in {
     val s: JsonInput = """{ "contributors": [ { "initials": "A" } ] }"""
-    shouldReturnCustomMessage(s, """requirement failed: Author needs one of (organisation | surname and initials) got: {"initials":"A"}""")
+    shouldReturnCustomMessage(s, """requirement failed: Author needs one of (organisation | surname and initials); got: {"initials":"A"}""")
   }
 
   it should "reject an organisation with titles" in {

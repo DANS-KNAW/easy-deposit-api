@@ -155,11 +155,11 @@ object DatasetMetadata {
                     ids: Option[Seq[SchemedValue[String]]] = None,
                     organization: Option[String] = None,
                    ) {
-    require(hasMandatory, buildMsg(incompleteMsg))
-    require(!hasRedundant, buildMsg(redundantMsg))
-
     private val incompleteMsg = "needs one of (organisation | surname and initials)"
     private val redundantMsg = "without surname should have neither titles nor insertions"
+
+    require(hasMandatory, buildMsg(incompleteMsg))
+    require(!hasRedundant, buildMsg(redundantMsg))
 
     private def buildMsg(s: String) = s"Author $s; got: ${ toJson(this) }"
 
