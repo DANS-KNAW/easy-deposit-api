@@ -82,9 +82,9 @@ object DatasetMetadata {
 
   type Date = QualifiedSchemedValue[String, DateQualifier]
 
-  def Date(value: DateTime, qualifier: DateQualifier): Date = QualifiedSchemedValue[String, DateQualifier](
-    Some("dcterms:W3CDTF"), value.toString(ISODateTimeFormat.date()), qualifier
-  )
+  def Date(value: DateTime, qualifier: DateQualifier): Date = {
+    Date(value.toString(ISODateTimeFormat.date()), qualifier)
+  }
 
   def Date(value: String, qualifier: DateQualifier): Date = QualifiedSchemedValue[String, DateQualifier](
     Some("dcterms:W3CDTF"), value, qualifier
