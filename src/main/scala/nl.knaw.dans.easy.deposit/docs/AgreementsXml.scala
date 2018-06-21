@@ -17,7 +17,7 @@ package nl.knaw.dans.easy.deposit.docs
 
 import org.joda.time.DateTime
 
-import scala.util.{ Failure, Success, Try }
+import scala.util.Try
 import scala.xml.Elem
 
 object AgreementsXml {
