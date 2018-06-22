@@ -155,23 +155,14 @@ object DatasetMetadata {
                     ids: Option[Seq[SchemedValue[String]]] = None,
                     organization: Option[String] = None,
                    ) {
+    private val hasMandatory: Boolean = organization.isProvided || (surname.isProvided && initials.isProvided)
+    private val hasRedundant: Boolean = !surname.isProvided && (titles.isProvided || insertions.isProvided)
     private val incompleteMsg = "needs one of (organisation | surname and initials)"
     private val redundantMsg = "without surname should have neither titles nor insertions"
-
     require(hasMandatory, buildMsg(incompleteMsg))
     require(!hasRedundant, buildMsg(redundantMsg))
 
     private def buildMsg(s: String) = s"Author $s; got: ${ toJson(this) }"
-
-    private def hasMandatory: Boolean = {
-      organization.isProvided ||
-        (surname.isProvided && initials.isProvided)
-    }
-
-    private def hasRedundant: Boolean = {
-      !surname.isProvided &&
-        (titles.isProvided || insertions.isProvided)
-    }
 
     def isRightsHolder: Boolean = role.exists(_.key == "RightsHolder")
 
