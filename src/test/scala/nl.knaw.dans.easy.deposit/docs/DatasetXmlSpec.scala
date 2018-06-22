@@ -23,7 +23,7 @@ import javax.xml.transform.Source
 import javax.xml.transform.stream.StreamSource
 import javax.xml.validation.{ Schema, SchemaFactory }
 import nl.knaw.dans.easy.deposit.TestSupportFixture
-import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.{ Author, DateQualifier, QualifiedSchemedValue, SchemedKeyValue }
+import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.{ Author, DateQualifier, SchemedKeyValue }
 import nl.knaw.dans.easy.deposit.docs.JsonUtil.InvalidDocumentException
 import nl.knaw.dans.lib.error._
 import resource.Using
@@ -147,14 +147,13 @@ class DatasetXmlSpec extends TestSupportFixture with DdmBehavior {
     )
   }
 
-  "RichElem.setTag" should "report an error" in {
+  "RichElem.withLabel" should "report an error" in {
     import DatasetXml.RichElem
-    val source = new QualifiedSchemedValue[String, String](None, "", "a:b:c")
     Try {
-      <key>Lorum Ipsum</key>.setTag(DatasetXml.targetFromQualifier, source)
+      <key>Lorum Ipsum</key>.withLabel("a:b:c")
     } should matchPattern {
       case Failure(InvalidDocumentException(_, e)) if e.getMessage ==
-        "expecting (label) or (prefix:label); got [a:b:c] to adjust the <key> of <key>Lorum Ipsum</key> created from: QualifiedSchemedValue(None,,a:b:c)" =>
+        "expecting (label) or (prefix:label); got [a:b:c] to adjust the <key> of <key>Lorum Ipsum</key>" =>
     }
   }
 

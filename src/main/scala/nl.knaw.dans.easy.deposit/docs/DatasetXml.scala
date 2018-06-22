@@ -15,7 +15,7 @@
  */
 package nl.knaw.dans.easy.deposit.docs
 
-import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.DateQualifier.{ DateQualifier, available, created, dateSubmitted }
+import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.DateQualifier.{ available, created, dateSubmitted }
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.{ DateQualifier, _ }
 import nl.knaw.dans.easy.deposit.docs.JsonUtil.InvalidDocumentException
 import org.joda.time.DateTime
@@ -37,6 +37,7 @@ object DatasetXml {
 
   def apply(dm: DatasetMetadata): Try[Elem] = Try {
     implicit val lang: Option[Attribute] = dm.languageOfDescription.map(l => new PrefixedAttribute("xml", "lang", l.key, Null))
+    val accessRights = dm.accessRights.getOrElse(throwNoContentFor("ddm:accessRights"))
     val contributors = dm.contributors.optFlat.filterNot(_.isRightsHolder)
     val rightHolders = dm.contributors.optFlat.filter(_.isRightsHolder) ++ dm.creators.optFlat.filter(_.isRightsHolder)
     val otherDates = dm.dates.optFlat
@@ -52,13 +53,13 @@ object DatasetXml {
       xsi:schemaLocation="http://easy.dans.knaw.nl/schemas/md/ddm/ http://easy.dans.knaw.nl/schemas/md/2017/09/ddm.xsd"
     >
       <ddm:profile>
-        { requiredElems(dm.titles, "dc:title").addAttr(lang) }
-        { requiredElems(dm.descriptions, "dcterms:description").addAttr(lang) }
-        { requiredElems(dm.creators.map(_.filterNot(_.isRightsHolder)), "dcx-dai:creatorDetails") }
-        { requiredElems(dm.dates.map(filter(_, Seq(created))), "ddm:created") }
-        { requiredElems(dm.dates.map(filter(_, Seq(available))), "ddm:available") }
-        { requiredElems(dm.audiences, "ddm:audience") }
-        { requiredElems(dm.accessRights.map(Seq(_)), "ddm:accessRights") }
+        { requiredElems(dm.titles, "dc:title").addAttr(lang) /* TODO refactoring ads name space attributes to "minimal with multiple titles" */ }
+        { dm.descriptions.reqFlat("dcterms:description").map(str => <dcterms:description>{str}</dcterms:description>).addAttr(lang) }
+        { dm.creators.reqFlat("dcx-dai:creatorDetails").map(author => <dcx-dai:creatorDetails>{authorDetails(author)}</dcx-dai:creatorDetails>) }
+        { dm.dates.map(filter(_, Seq(created))).reqFlat("ddm:created").map(date => <ddm:created>{date.value}</ddm:created>) }
+        { dm.dates.map(filter(_, Seq(available))).reqFlat("ddm:available").map(date => <ddm:available>{date.value}</ddm:available>) }
+        { dm.audiences.reqFlat("ddm:audience").map(audience => <ddm:audience>{audience.key}</ddm:audience>) }
+        { <ddm:accessRights>{accessRights.category.toString}</ddm:accessRights> }
       </ddm:profile>
       <ddm:dcmiMetadata>
         { dm.alternativeTitles.optFlat.map(str => <dcterms:alternative>{str}</dcterms:alternative>).addAttr(lang) }
@@ -73,20 +74,11 @@ object DatasetXml {
     </ddm:DDM>
   }
 
-  // called by requiredElems, elems, optionalElem
-  private def elem[T](target: String)(source: T)(implicit lang: Option[Attribute]): Elem = (source match {
-    case a: Author if a.isRightsHolder => <key>{a.toString}</key>
-    case a: Author => <key>{authorDetails(a)}</key>
-    case a: AccessRights => <key>{a.category.toString}</key>
+  // called by requiredElems, optionalElem
+  private def elem[T](target: String)(source: T): Elem = (source match {
     case x: SchemedKeyValue[_] => <key>{x.key}</key> // e.g. role, audience
-    case QualifiedSchemedValue(None, value, _) => <key>{value}</key>
-    case QualifiedSchemedValue(Some(scheme), value, _: DateQualifier) if target == targetFromQualifier => <key xsi:type={scheme.toString}>{value}</key>
-    case QualifiedSchemedValue(_, value, _: DateQualifier) => <key>{value}</key>
-    case QualifiedSchemedValue(Some(scheme), value, _) => <key scheme={scheme.toString}>{value}</key>
-    case PossiblySchemedKeyValue(Some(scheme), key, _) => <key scheme={scheme.toString}>{key}</key>
-    case PossiblySchemedKeyValue(None, key, _) => <key>{key}</key>
     case v => <key>{v}</key>
-  }).setTag(target, source)
+  }).withLabel(target)
 
   private def authorDetails(author: Author)
                            (implicit lang: Option[Attribute]) = {
@@ -113,28 +105,21 @@ object DatasetXml {
 
   /** @param elem XML element to be adjusted */
   implicit class RichElem(elem: Elem) extends Object {
-    // TODO make private once the thrown error can be tested through apply (when using targetFromQualifier for a non-enum)
+    // TODO make private once the thrown error can be tested through apply (when using a non-enum for withLabel)
 
     /**
-     * @param target the default tag (namespace:label)
-     * @param source may have a qualifier or some other property that determines the tag
+     * @param str the desired tag (namespace:label)
      */
     @throws(classOf[InvalidDocumentException])
-    def setTag[T](target: String, source: T): Elem = {
-      (source match {
-        case x: QualifiedSchemedValue[_, _] if target == targetFromQualifier => x.qualifier.toString
-        case a: Author if a.isRightsHolder => "dcterms:rightsHolder"
-        case _ => target
-      }).split(":") match {
+    def withLabel(str: String): Elem = {
+      str.split(":") match {
         case Array(label) => elem.copy(label = label)
         case Array(prefix, label) => elem.copy(prefix = prefix, label = label)
         case a => throw InvalidDocumentException("DatasetMetadata", new Exception(
-          s"expecting (label) or (prefix:label); got [${ a.mkString(":") }] to adjust the <key> of ${ Utility.trim(elem) } created from: $source"
+          s"expecting (label) or (prefix:label); got [${ a.mkString(":") }] to adjust the <key> of ${ Utility.trim(elem) }"
         ))
       }
     }
-
-    def withLabel(str: String): Elem = elem.copy(label = str)
   }
 
   /** @param elems the sequence of elements to adjust */
@@ -145,10 +130,22 @@ object DatasetXml {
   }
 
   implicit class RichOptElems[T](sources: Option[Seq[T]]) {
+    def reqFlat(fieldName: String): Seq[T] = { // TODO drop default
+      if (sources.optFlat.nonEmpty) sources.getOrElse(Seq.empty)
+      else throwNoContentFor(fieldName)
+    }
+
     def optFlat: Seq[T] = sources.toSeq.flatten.filterNot {
       case source: String => source.trim.isEmpty
       case _ => false
     }
+  }
+
+  private def throwNoContentFor[T](fieldName: String) = {
+    throw InvalidDocumentException(
+      "DatasetMetadata",
+      new Exception(s"no content for mandatory $fieldName")
+    )
   }
 
   private def requiredElems[T](source: Option[Seq[T]], target: String)
