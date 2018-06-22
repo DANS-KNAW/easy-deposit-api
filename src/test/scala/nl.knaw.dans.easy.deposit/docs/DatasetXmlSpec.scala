@@ -243,9 +243,9 @@ class DatasetXmlSpec extends TestSupportFixture with DdmBehavior {
         <dc:source xml:lang="nld">source2</dc:source>
         <dcterms:dateCopyrighted xsi:type="dcterms:W3CDTF">2018-03-18</dcterms:dateCopyrighted>
         <dcterms:valid xsi:type="dcterms:W3CDTF">2018-03-17</dcterms:valid>
+        <dcterms:dateSubmitted xsi:type="dcterms:W3CDTF">2018-03-22</dcterms:dateSubmitted>
         <dcterms:modified>2018-02-02</dcterms:modified>
         <dcterms:issued>Groundhog day</dcterms:issued>
-        <dcterms:dateSubmitted xsi:type="dcterms:W3CDTF">2018-03-22</dcterms:dateSubmitted>
         <dcterms:license>http://creativecommons.org/publicdomain/zero/1.0</dcterms:license>
       </ddm:dcmiMetadata>
     )

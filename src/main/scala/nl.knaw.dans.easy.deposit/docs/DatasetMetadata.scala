@@ -173,6 +173,8 @@ object DatasetMetadata {
         (titles.isProvided || insertions.isProvided)
     }
 
+    def isRightsHolder: Boolean = role.exists(_.key == "RightsHolder")
+
     override def toString: String = { // TODO ID's when DatasetXml implements ID's for Author fields
       val name = Seq(titles, initials, insertions, surname)
         .filter(_.isDefined)
@@ -215,11 +217,15 @@ object DatasetMetadata {
 
   case class RelatedIdentifier(scheme: Option[String],
                                value: String,
-                               qualifier: RelationQualifier) extends RelationType
+                               qualifier: RelationQualifier) extends RelationType{
+    val hasScheme: Boolean = scheme.isDefined
+  }
 
   case class QualifiedSchemedValue[S, Q](scheme: Option[S],
                                          value: String,
-                                         qualifier: Q)
+                                         qualifier: Q){
+    val hasScheme: Boolean = scheme.isDefined
+  }
 
   case class SchemedValue[S](scheme: S,
                              value: String,
@@ -227,7 +233,9 @@ object DatasetMetadata {
 
   case class PossiblySchemedValue[S](scheme: Option[S],
                                      value: String,
-                                    )
+                                    ){
+    val hasScheme: Boolean = scheme.isDefined
+  }
 
   case class SchemedKeyValue[S](scheme: S,
                                 key: String,
@@ -237,6 +245,9 @@ object DatasetMetadata {
   case class PossiblySchemedKeyValue[S](scheme: Option[S],
                                         key: Option[String],
                                         value: String,
-                                       )
+                                       ){
+    val hasScheme: Boolean = scheme.isDefined
+    val hasKey: Boolean = key.isDefined
+  }
 }
 

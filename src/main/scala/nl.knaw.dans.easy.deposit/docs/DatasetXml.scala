@@ -38,8 +38,10 @@ object DatasetXml {
   def apply(dm: DatasetMetadata): Try[Elem] = Try {
     val lang = dm.languageOfDescription.map(l => new PrefixedAttribute("xml", "lang", l.key, Null))
     val dateSubmitted = Date(DateTime.now(), DateQualifier.dateSubmitted)
-    val rightsHoldingCreators = dm.creators.map(_.filter(isRightsHolder))
+    val rightsHoldingCreators = dm.creators.map(_.filter(_.isRightsHolder))
     val contributors = Some(dm.contributors.getOrElse(Seq.empty) ++ rightsHoldingCreators.getOrElse(Seq.empty))
+    val otherDates = dm.dates.map(filter(_, otherDateQualifiers) :+ dateSubmitted)
+
     <ddm:DDM
       xmlns:dc="http://purl.org/dc/elements/1.1/"
       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
@@ -51,27 +53,28 @@ object DatasetXml {
       <ddm:profile>
         { requiredElems(dm.titles, "dc:title").addAttr(lang) }
         { requiredElems(dm.descriptions, "dcterms:description").addAttr(lang) }
-        { requiredElems(dm.creators.map(_.filterNot(isRightsHolder)), "dcx-dai:creatorDetails", lang) }
+        { requiredElems(dm.creators.map(_.filterNot(_.isRightsHolder)), "dcx-dai:creatorDetails", lang) }
         { requiredElems(dm.dates.map(filter(_, Seq(created))), "ddm:created") }
         { requiredElems(dm.dates.map(filter(_, Seq(available))), "ddm:available") }
         { requiredElems(dm.audiences, "ddm:audience") }
         { requiredElems(dm.accessRights.map(Seq(_)), "ddm:accessRights") }
       </ddm:profile>
       <ddm:dcmiMetadata>
-        { elems(dm.alternativeTitles, "dcterms:alternative").addAttr(lang) }
-        { elems(contributors, "dcx-dai:contributorDetails", lang) }
-        { elems(dm.publishers, "dcterms:publisher").addAttr(lang) }
-        { elems(dm.sources, "dc:source").addAttr(lang) }
-        { elems(dm.dates.map(filter(_, otherDateQualifiers)), targetFromQualifier) }
-        { optionalElem(Some(dateSubmitted), targetFromQualifier) }
-        { optionalElem(dm.license, "dcterms:license") /* TODO xsi:type="dcterms:URI" not supported by json */ }
+        { dm.alternativeTitles.optFlat.map(str => <dcterms:alternative>{str}</dcterms:alternative>).addAttr(lang) }
+        { contributors.optFlat.filterNot(_.isRightsHolder).map(author => <dcx-dai:contributorDetails>{authorDetails(author, lang)}</dcx-dai:contributorDetails>) }
+        { contributors.optFlat.filter(_.isRightsHolder).map(author => <dcterms:rightsHolder>{author.toString}</dcterms:rightsHolder>) }
+        { dm.publishers.optFlat.map(str => <dcterms:publisher>{str}</dcterms:publisher>).addAttr(lang) }
+        { dm.sources.optFlat.map(str => <dc:source>{str}</dc:source>).addAttr(lang) }
+        { otherDates.optFlat.filter(_.hasScheme).map(date => <x xsi:type={date.scheme.getOrElse("")}>{date.value}</x>.withLabel(date.qualifier.toString)) }
+        { otherDates.optFlat.filterNot(_.hasScheme).map(date => <x>{date.value}</x>.withLabel(date.qualifier.toString)) }
+        { dm.license.toSeq.map(str => <dcterms:license>{str}</dcterms:license>) /* TODO xsi:type="dcterms:URI" not supported by json */ }
       </ddm:dcmiMetadata>
     </ddm:DDM>
   }
 
   // called by requiredElems, elems, optionalElem
   private def elem[T](target: String, lang: Option[Attribute])(source: T): Elem = (source match {
-    case a: Author if isRightsHolder(a) => <key>{a.toString}</key>
+    case a: Author if a.isRightsHolder => <key>{a.toString}</key>
     case a: Author => <key>{authorDetails(a, lang)}</key>
     case a: AccessRights => <key>{a.category.toString}</key>
     case x: SchemedKeyValue[_] => <key>{x.key}</key> // e.g. role, audience
@@ -117,7 +120,7 @@ object DatasetXml {
     def setTag[T](target: String, source: T): Elem = {
       (source match {
         case x: QualifiedSchemedValue[_, _] if target == targetFromQualifier => x.qualifier.toString
-        case a: Author if isRightsHolder(a) => "dcterms:rightsHolder"
+        case a: Author if a.isRightsHolder => "dcterms:rightsHolder"
         case _ => target
       }).split(":") match {
         case Array(label) => elem.copy(label = label)
@@ -128,12 +131,21 @@ object DatasetXml {
       }
     }
 
-    def addAttr(maybeAttribute: Option[Attribute]): Elem = maybeAttribute.map(elem % _).getOrElse(elem)
+    def withLabel(str: String): Elem = elem.copy(label = str)
   }
 
   /** @param elems the sequence of elements to adjust */
   private implicit class RichElems(elems: Seq[Elem]) extends Object {
-    def addAttr(lang: Option[Attribute]): Seq[Elem] = elems.map(_.addAttr(lang))
+    def addAttr(lang: Option[Attribute]): Seq[Elem] = elems.map(elem => lang.map(elem % _).getOrElse(elem))
+
+    def withLabel(str: String): Seq[Elem] = elems.map(_.copy(label = str))
+  }
+
+  implicit class RichOptElems[T](sources: Option[Seq[T]]) {
+    def optFlat: Seq[T] = sources.toSeq.flatten.filterNot {
+      case source: String => source.trim.isEmpty
+      case _ => false
+    }
   }
 
   private def requiredElems[T](source: Option[Seq[T]], target: String, lang: Option[Attribute] = None): Seq[Elem] = {
@@ -144,19 +156,11 @@ object DatasetXml {
     }.map(elem(target, lang))
   }
 
-  private def isRightsHolder[T](a: T with Author) = {
-    a.role.exists(_.key == "RightsHolder")
-  }
-
   private def keepNonEmpty[T](ts: Seq[T]) = {
     ts.filter {
       case s: String => s.trim != ""
       case _ => true
     }
-  }
-
-  private def elems[T](source: Option[Seq[T]], target: String, lang: Option[Attribute] = None): Seq[Elem] = {
-    source.toSeq.flatten.map(elem(target, lang))
   }
 
   private def optionalElem[T](source: Option[T], target: String, lang: Option[Attribute] = None): Seq[Elem] = {
