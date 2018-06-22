@@ -88,6 +88,40 @@ class DatasetXmlSpec extends TestSupportFixture with DdmBehavior {
     )
   )
 
+  "minimal with multiple descriptions" should behave like validDatasetMetadata(
+    input = Success(minimal.copy(descriptions = Some(Seq("Lorum", "ipsum")))),
+    subset = { actualDDM => emptyDDM.copy(child = <ddm:profile>{actualDDM \ "profile" \ "description"}</ddm:profile>) },
+    expectedOutput = Seq(
+      <ddm:profile>
+        <dcterms:description>Lorum</dcterms:description>
+        <dcterms:description>ipsum</dcterms:description>
+      </ddm:profile>
+    )
+  )
+
+  "minimal with multiple audiences" should behave like validDatasetMetadata(
+    input = Success(minimal.copy(audiences = Some(Seq(SchemedKeyValue("","Lorum",""),SchemedKeyValue("","ipsum",""))))),
+    subset = { actualDDM => emptyDDM.copy(child = <ddm:profile>{actualDDM \ "profile" \ "audience"}</ddm:profile>) },
+    expectedOutput = Seq(
+      <ddm:profile>
+        <ddm:audience>Lorum</ddm:audience>
+        <ddm:audience>ipsum</ddm:audience>
+      </ddm:profile>
+    )
+  )
+
+  "minimal with multiple alternativeTitles" should behave like validDatasetMetadata(
+    input = Success(minimal.copy(alternativeTitles = Some(Seq("Lorum", "ipsum")))),
+    subset = { actualDDM => emptyDDM.copy(child = actualDDM \ "dcmiMetadata") },
+    expectedOutput = Seq(
+      <ddm:dcmiMetadata>
+        <dcterms:alternative>Lorum</dcterms:alternative>
+        <dcterms:alternative>ipsum</dcterms:alternative>
+        <dcterms:dateSubmitted xsi:type="dcterms:W3CDTF">2018-03-22</dcterms:dateSubmitted>
+      </ddm:dcmiMetadata>
+    )
+  )
+
   "minimal with rightsHolders" should behave like {
     val someCreators = Some(Seq(
       Author(

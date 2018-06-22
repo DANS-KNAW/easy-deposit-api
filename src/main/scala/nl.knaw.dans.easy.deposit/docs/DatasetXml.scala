@@ -46,12 +46,13 @@ object DatasetXml {
       .filter(date => otherDateQualifiers.contains(date.qualifier)) :+
       Date(DateTime.now(), DateQualifier.dateSubmitted)
 
-    def requiredElems[T](sources: Option[Seq[T]], target: String)
-                                (implicit lang: Option[Attribute]): Seq[Elem] = {
-      // TODO what is the difference with the commented line for titles?
-      // it ads name space attributes to "minimal with multiple titles"
-      // the same happens when writing a similar test for descriptions
-      sources.reqFlat(target).map(src => <key>{src}</key>.withLabel(target))
+    /**
+     * TODO workaround: when inlining each element gets the global name space attributes
+     * doesn't happen for dm.alternativeTitles.optFlat
+     * @return simple XML element
+     */
+    def required[T <: String](sources: Option[Seq[T]], target: String): Seq[Elem] = {
+      sources.reqFlat(target).map(src => <key>{ src }</key>.withLabel(target))
     }
 
     <ddm:DDM
@@ -63,24 +64,23 @@ object DatasetXml {
       xsi:schemaLocation="http://easy.dans.knaw.nl/schemas/md/ddm/ http://easy.dans.knaw.nl/schemas/md/2017/09/ddm.xsd"
     >
       <ddm:profile>
-        { requiredElems(dm.titles, "dc:title").addAttr(lang) }
-        {/* dm.titles.reqFlat("dc:title").map(str => <x>{str}</x>.withLabel("dc:title")).addAttr(lang) */}
-        { dm.descriptions.reqFlat("dcterms:description").map(str => <dcterms:description>{str}</dcterms:description>).addAttr(lang) }
-        { dm.creators.reqFlat("dcx-dai:creatorDetails").map(author => <dcx-dai:creatorDetails>{authorDetails(author)}</dcx-dai:creatorDetails>) }
-        { <ddm:created>{dateCreated.value}</ddm:created> }
-        { <ddm:available>{dateAvailable.value}</ddm:available> }
-        { dm.audiences.reqFlat("ddm:audience").map(audience => <ddm:audience>{audience.key}</ddm:audience>) }
-        { <ddm:accessRights>{accessRights.category.toString}</ddm:accessRights> }
+        { required(dm.titles, "dc:title").addAttr(lang) }
+        { required(dm.descriptions, "dcterms:description").addAttr(lang) }
+        { dm.creators.reqFlat("dcx-dai:creatorDetails").map(author => <dcx-dai:creatorDetails>{ authorDetails(author) }</dcx-dai:creatorDetails>) }
+        { <ddm:created>{ dateCreated.value }</ddm:created> }
+        { <ddm:available>{ dateAvailable.value }</ddm:available> }
+        { required(dm.audiences.map(_.map(_.key)), "ddm:audience") }
+        { <ddm:accessRights>{ accessRights.category.toString }</ddm:accessRights> }
       </ddm:profile>
       <ddm:dcmiMetadata>
-        { dm.alternativeTitles.optFlat.map(str => <dcterms:alternative>{str}</dcterms:alternative>).addAttr(lang) }
-        { contributors.map(author => <dcx-dai:contributorDetails>{authorDetails(author)}</dcx-dai:contributorDetails>) }
-        { rightHolders.map(author => <dcterms:rightsHolder>{author.toString}</dcterms:rightsHolder>) }
-        { dm.publishers.optFlat.map(str => <dcterms:publisher>{str}</dcterms:publisher>).addAttr(lang) }
-        { dm.sources.optFlat.map(str => <dc:source>{str}</dc:source>).addAttr(lang) }
-        { otherDates.filter(_.hasScheme).map(date => <x xsi:type={date.scheme.getOrElse("")}>{date.value}</x>.withLabel(date.qualifier.toString)) }
-        { otherDates.filterNot(_.hasScheme).map(date => <x>{date.value}</x>.withLabel(date.qualifier.toString)) }
-        { dm.license.toSeq.map(str => <dcterms:license>{str}</dcterms:license>) /* xsi:type="dcterms:URI" not supported by json */ }
+        { dm.alternativeTitles.optFlat.map(str => <dcterms:alternative>{ str }</dcterms:alternative>).addAttr(lang) }
+        { contributors.map(author => <dcx-dai:contributorDetails>{ authorDetails(author) }</dcx-dai:contributorDetails>) }
+        { rightHolders.map(author => <dcterms:rightsHolder>{ author.toString }</dcterms:rightsHolder>) }
+        { dm.publishers.optFlat.map(str => <dcterms:publisher>{ str }</dcterms:publisher>).addAttr(lang) }
+        { dm.sources.optFlat.map(str => <dc:source>{ str }</dc:source>).addAttr(lang) }
+        { otherDates.filter(_.hasScheme).map(date => <x xsi:type={date.scheme.getOrElse("")}>{ date.value }</x>.withLabel(date.qualifier.toString)) }
+        { otherDates.filterNot(_.hasScheme).map(date => <x>{ date.value }</x>.withLabel(date.qualifier.toString)) }
+        { dm.license.toSeq.map(str => <dcterms:license>{ str }</dcterms:license>) /* xsi:type="dcterms:URI" not supported by json */ }
       </ddm:dcmiMetadata>
     </ddm:DDM>
   }
@@ -91,11 +91,11 @@ object DatasetXml {
       author.organization.toSeq.map(orgDetails(author.role))
     else
       <dcx-dai:author>
-        { author.titles.toSeq.map(str => <dcx-dai:titles>{str}</dcx-dai:titles>).addAttr(lang) }
-        { author.initials.toSeq.map(str => <dcx-dai:initials>{str}</dcx-dai:initials>) }
-        { author.insertions.toSeq.map(str => <dcx-dai:insertions>{str}</dcx-dai:insertions>) }
-        { author.surname.toSeq.map(str => <dcx-dai:surname>{str}</dcx-dai:surname>) }
-        { author.role.toSeq.map(role => <dcx-dai:role>{role.key}</dcx-dai:role>) }
+        { author.titles.toSeq.map(str => <dcx-dai:titles>{ str }</dcx-dai:titles>).addAttr(lang) }
+        { author.initials.toSeq.map(str => <dcx-dai:initials>{ str }</dcx-dai:initials>) }
+        { author.insertions.toSeq.map(str => <dcx-dai:insertions>{ str }</dcx-dai:insertions>) }
+        { author.surname.toSeq.map(str => <dcx-dai:surname>{ str }</dcx-dai:surname>) }
+        { author.role.toSeq.map(role => <dcx-dai:role>{ role.key }</dcx-dai:role>) }
         { author.organization.toSeq.map(orgDetails()) }
       </dcx-dai:author>
   }
@@ -104,8 +104,8 @@ object DatasetXml {
                         (organization: String)
                         (implicit lang: Option[Attribute]) =
       <dcx-dai:organization>
-        { role.toSeq.map(role => <dcx-dai:role>{role.key}</dcx-dai:role>) }
-        { <dcx-dai:name>{organization}</dcx-dai:name>.addAttr(lang) }
+        { role.toSeq.map(role => <dcx-dai:role>{ role.key }</dcx-dai:role>) }
+        { <dcx-dai:name>{ organization }</dcx-dai:name>.addAttr(lang) }
       </dcx-dai:organization>
 
   /** @param elem XML element to be adjusted */
@@ -137,7 +137,7 @@ object DatasetXml {
   }
 
   implicit class OptionSeq[T](sources: Option[Seq[T]]) {
-    def reqFlat(fieldName: String): Seq[T] = { // TODO drop default
+    def reqFlat(fieldName: String): Seq[T] = {
       if (sources.optFlat.nonEmpty)
         sources.getOrElse(Seq.empty)
       else throwNoContentFor(fieldName)
