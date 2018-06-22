@@ -36,11 +36,12 @@ object DatasetXml {
   val targetFromQualifier = "qualifier"
 
   def apply(dm: DatasetMetadata): Try[Elem] = Try {
-    val lang = dm.languageOfDescription.map(l => new PrefixedAttribute("xml", "lang", l.key, Null))
-    val dateSubmitted = Date(DateTime.now(), DateQualifier.dateSubmitted)
-    val rightsHoldingCreators = dm.creators.map(_.filter(_.isRightsHolder))
-    val contributors = Some(dm.contributors.getOrElse(Seq.empty) ++ rightsHoldingCreators.getOrElse(Seq.empty))
-    val otherDates = dm.dates.map(filter(_, otherDateQualifiers) :+ dateSubmitted)
+    implicit val lang: Option[Attribute] = dm.languageOfDescription.map(l => new PrefixedAttribute("xml", "lang", l.key, Null))
+    val contributors = dm.contributors.optFlat.filterNot(_.isRightsHolder)
+    val rightHolders = dm.contributors.optFlat.filter(_.isRightsHolder) ++ dm.creators.optFlat.filter(_.isRightsHolder)
+    val otherDates = dm.dates.optFlat
+      .filter(date => otherDateQualifiers.contains(date.qualifier)) :+
+      Date(DateTime.now(), DateQualifier.dateSubmitted)
 
     <ddm:DDM
       xmlns:dc="http://purl.org/dc/elements/1.1/"
@@ -53,7 +54,7 @@ object DatasetXml {
       <ddm:profile>
         { requiredElems(dm.titles, "dc:title").addAttr(lang) }
         { requiredElems(dm.descriptions, "dcterms:description").addAttr(lang) }
-        { requiredElems(dm.creators.map(_.filterNot(_.isRightsHolder)), "dcx-dai:creatorDetails", lang) }
+        { requiredElems(dm.creators.map(_.filterNot(_.isRightsHolder)), "dcx-dai:creatorDetails") }
         { requiredElems(dm.dates.map(filter(_, Seq(created))), "ddm:created") }
         { requiredElems(dm.dates.map(filter(_, Seq(available))), "ddm:available") }
         { requiredElems(dm.audiences, "ddm:audience") }
@@ -61,21 +62,21 @@ object DatasetXml {
       </ddm:profile>
       <ddm:dcmiMetadata>
         { dm.alternativeTitles.optFlat.map(str => <dcterms:alternative>{str}</dcterms:alternative>).addAttr(lang) }
-        { contributors.optFlat.filterNot(_.isRightsHolder).map(author => <dcx-dai:contributorDetails>{authorDetails(author, lang)}</dcx-dai:contributorDetails>) }
-        { contributors.optFlat.filter(_.isRightsHolder).map(author => <dcterms:rightsHolder>{author.toString}</dcterms:rightsHolder>) }
+        { contributors.map(author => <dcx-dai:contributorDetails>{authorDetails(author)}</dcx-dai:contributorDetails>) }
+        { rightHolders.map(author => <dcterms:rightsHolder>{author.toString}</dcterms:rightsHolder>) }
         { dm.publishers.optFlat.map(str => <dcterms:publisher>{str}</dcterms:publisher>).addAttr(lang) }
         { dm.sources.optFlat.map(str => <dc:source>{str}</dc:source>).addAttr(lang) }
-        { otherDates.optFlat.filter(_.hasScheme).map(date => <x xsi:type={date.scheme.getOrElse("")}>{date.value}</x>.withLabel(date.qualifier.toString)) }
-        { otherDates.optFlat.filterNot(_.hasScheme).map(date => <x>{date.value}</x>.withLabel(date.qualifier.toString)) }
+        { otherDates.filter(_.hasScheme).map(date => <x xsi:type={date.scheme.getOrElse("")}>{date.value}</x>.withLabel(date.qualifier.toString)) }
+        { otherDates.filterNot(_.hasScheme).map(date => <x>{date.value}</x>.withLabel(date.qualifier.toString)) }
         { dm.license.toSeq.map(str => <dcterms:license>{str}</dcterms:license>) /* TODO xsi:type="dcterms:URI" not supported by json */ }
       </ddm:dcmiMetadata>
     </ddm:DDM>
   }
 
   // called by requiredElems, elems, optionalElem
-  private def elem[T](target: String, lang: Option[Attribute])(source: T): Elem = (source match {
+  private def elem[T](target: String)(source: T)(implicit lang: Option[Attribute]): Elem = (source match {
     case a: Author if a.isRightsHolder => <key>{a.toString}</key>
-    case a: Author => <key>{authorDetails(a, lang)}</key>
+    case a: Author => <key>{authorDetails(a)}</key>
     case a: AccessRights => <key>{a.category.toString}</key>
     case x: SchemedKeyValue[_] => <key>{x.key}</key> // e.g. role, audience
     case QualifiedSchemedValue(None, value, _) => <key>{value}</key>
@@ -87,9 +88,10 @@ object DatasetXml {
     case v => <key>{v}</key>
   }).setTag(target, source)
 
-  private def authorDetails(author: Author, lang: Option[Attribute]) = {
+  private def authorDetails(author: Author)
+                           (implicit lang: Option[Attribute]) = {
     if (author.surname.isEmpty)
-      author.organization.toSeq.map(orgDetails(author.role, lang))
+      author.organization.toSeq.map(orgDetails(author.role))
     else
       <dcx-dai:author>
         { optionalElem(author.titles, "dcx-dai:titles").addAttr(lang) }
@@ -97,14 +99,15 @@ object DatasetXml {
         { optionalElem(author.insertions, "dcx-dai:insertions") }
         { requiredElems(author.surname.map(Seq(_)), "dcx-dai:surname") }
         { optionalElem(author.role, "dcx-dai:role") }
-        { author.organization.toSeq.map(orgDetails(role = None, lang)) }
+        { author.organization.toSeq.map(orgDetails(role = None)) }
       </dcx-dai:author>
   }
 
-  private def orgDetails(role: Option[SchemedKeyValue[String]],
-                         lang: Option[Attribute])(organization: String) =
+  private def orgDetails(role: Option[SchemedKeyValue[String]])
+                        (organization: String)
+                        (implicit lang: Option[Attribute]) =
       <dcx-dai:organization>
-        { role.toSeq.map(elem("dcx-dai:role", lang)) }
+        { role.toSeq.map(elem("dcx-dai:role")) }
         { requiredElems(Some(Seq(organization)), "dcx-dai:name").addAttr(lang) }
       </dcx-dai:organization>
 
@@ -148,12 +151,13 @@ object DatasetXml {
     }
   }
 
-  private def requiredElems[T](source: Option[Seq[T]], target: String, lang: Option[Attribute] = None): Seq[Elem] = {
+  private def requiredElems[T](source: Option[Seq[T]], target: String)
+                              (implicit lang: Option[Attribute]): Seq[Elem] = {
     source.map(keepNonEmpty).filterNot(_.isEmpty).getOrElse {
       throw InvalidDocumentException("DatasetMetadata", new Exception(
         s"no content for mandatory $target"
       ))
-    }.map(elem(target, lang))
+    }.map(elem(target))
   }
 
   private def keepNonEmpty[T](ts: Seq[T]) = {
@@ -163,8 +167,9 @@ object DatasetXml {
     }
   }
 
-  private def optionalElem[T](source: Option[T], target: String, lang: Option[Attribute] = None): Seq[Elem] = {
-    source.toSeq.map(elem(target, lang))
+  private def optionalElem[T](source: Option[T], target: String)
+                             (implicit lang: Option[Attribute]): Seq[Elem] = {
+    source.toSeq.map(elem(target))
   }
 
   private def filter[S, T](xs: Seq[QualifiedSchemedValue[S, T]],
