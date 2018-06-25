@@ -49,15 +49,14 @@ object DatasetXml {
     // N.B: inlining would add global name space attributes to simple elements
     val ddmProfile =
       <ddm:profile>
-        { dm.titles.reqFlat("dc:title").map(src => <dc:title>{ src }</dc:title>).addAttr(lang) }
-        { dm.descriptions.reqFlat("dc:title").map(src => <dcterms:description>{ src }</dcterms:description>).addAttr(lang) }
-        { dm.creators.reqFlat("dcx-dai:creatorDetails").map(author => <dcx-dai:creatorDetails>{ authorDetails(author) }</dcx-dai:creatorDetails>) }
+        { dm.titles.optFlat.map(src => <dc:title>{ src }</dc:title>).addAttr(lang).mustBeNonEmpty("dc:title") }
+        { dm.descriptions.optFlat.map(src => <dcterms:description>{ src }</dcterms:description>).addAttr(lang).mustBeNonEmpty("dc:title") }
+        { dm.creators.optFlat.map(author => <dcx-dai:creatorDetails>{ authorDetails(author) }</dcx-dai:creatorDetails>).mustBeNonEmpty("dcx-dai:creatorDetails") }
         { <ddm:created>{ dateCreated.value }</ddm:created> }
         { <ddm:available>{ dateAvailable.value }</ddm:available> }
-        { dm.audiences.reqFlat("ddm:audience").map(src => <ddm:audience>{ src.key }</ddm:audience>) }
+        { dm.audiences.optFlat.map(src => <ddm:audience>{ src.key }</ddm:audience>).mustBeNonEmpty("ddm:audience") }
         { <ddm:accessRights>{ accessRights.category.toString }</ddm:accessRights> }
-      </ddm:profile>
-    ;
+      </ddm:profile>;
 
     <ddm:DDM
       xmlns:dc="http://purl.org/dc/elements/1.1/"
@@ -129,15 +128,14 @@ object DatasetXml {
     def addAttr(lang: Option[Attribute]): Seq[Elem] = elems.map(_.addAttr(lang))
 
     def withLabel(str: String): Seq[Elem] = elems.map(_.copy(label = str))
+
+    def mustBeNonEmpty(str: String): Seq[Elem] = {
+      if (elems.isEmpty) throwNoContentFor(str)
+      else elems
+    }
   }
 
   implicit class OptionSeq[T](sources: Option[Seq[T]]) {
-    def reqFlat(fieldName: String): Seq[T] = {
-      val flattened = sources.optFlat
-      if (flattened.nonEmpty) flattened
-      else throwNoContentFor(fieldName)
-    }
-
     def optFlat: Seq[T] = sources.toSeq.flatten.filterNot {
       case source: String => source.trim.isEmpty
       case _ => false
