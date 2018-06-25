@@ -133,8 +133,8 @@ object DatasetXml {
 
   implicit class OptionSeq[T](sources: Option[Seq[T]]) {
     def reqFlat(fieldName: String): Seq[T] = {
-      if (sources.optFlat.nonEmpty)
-        sources.getOrElse(Seq.empty)
+      val flattened = sources.optFlat
+      if (flattened.nonEmpty) flattened
       else throwNoContentFor(fieldName)
     }
 
