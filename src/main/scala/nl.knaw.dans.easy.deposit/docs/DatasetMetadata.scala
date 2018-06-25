@@ -175,7 +175,7 @@ object DatasetMetadata {
         case (true, true) => s"$name; ${ organization.getOrElse("") }"
         case (false, true) => organization.getOrElse("")
         case (true, false) => name
-        case (false, false) => throw new Exception(buildMsg(incompleteMsg))
+        case (false, false) => throw new Exception(buildMsg(incompleteMsg))// only with wrong requires
       }
     }
   }
@@ -208,13 +208,13 @@ object DatasetMetadata {
 
   case class RelatedIdentifier(scheme: Option[String],
                                value: String,
-                               qualifier: RelationQualifier) extends RelationType{
+                               qualifier: RelationQualifier) extends RelationType {
     val hasScheme: Boolean = scheme.isDefined
   }
 
   case class QualifiedSchemedValue[S, Q](scheme: Option[S],
                                          value: String,
-                                         qualifier: Q){
+                                         qualifier: Q) {
     val hasScheme: Boolean = scheme.isDefined
   }
 
@@ -224,7 +224,7 @@ object DatasetMetadata {
 
   case class PossiblySchemedValue[S](scheme: Option[S],
                                      value: String,
-                                    ){
+                                    ) {
     val hasScheme: Boolean = scheme.isDefined
   }
 
@@ -236,7 +236,7 @@ object DatasetMetadata {
   case class PossiblySchemedKeyValue[S](scheme: Option[S],
                                         key: Option[String],
                                         value: String,
-                                       ){
+                                       ) {
     val hasScheme: Boolean = scheme.isDefined
     val hasKey: Boolean = key.isDefined
   }

@@ -15,7 +15,7 @@
  */
 package nl.knaw.dans.easy.deposit.docs
 
-import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.DateQualifier.{ available, created, dateSubmitted }
+import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.DateQualifier.DateQualifier
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.{ DateQualifier, _ }
 import nl.knaw.dans.easy.deposit.docs.JsonUtil.InvalidDocumentException
 import org.joda.time.DateTime
@@ -24,38 +24,20 @@ import scala.util.Try
 import scala.xml._
 
 object DatasetXml {
-  private val otherDateQualifiers = DateQualifier.values.filterNot { qualifier =>
-    Seq(
-      created, // in ddm:profile
-      available, // in ddm:profile
-      dateSubmitted // generated, ignore if in input
-    ).contains(qualifier)
-  }.toSeq
-
   def apply(dm: DatasetMetadata): Try[Elem] = Try {
     implicit val lang: Option[Attribute] = dm.languageOfDescription.map(l => new PrefixedAttribute("xml", "lang", l.key, Null))
-    val accessRights = dm.accessRights.getOrElse(throwNoContentFor("ddm:accessRights"))
-    val contributors = dm.contributors.optFlat.filterNot(_.isRightsHolder)
-    val rightsHolders = dm.contributors.optFlat.filter(_.isRightsHolder) ++ dm.creators.optFlat.filter(_.isRightsHolder)
-
-    // TODO exactly one
-    val dateCreated = dm.dates.optFlat.find(_.qualifier == created).getOrElse(throwNoContentFor("ddm:created"))
-    val dateAvailable = dm.dates.optFlat.find(_.qualifier == available).getOrElse(throwNoContentFor("ddm:available"))
-
-    val otherDates = dm.dates.optFlat
-      .filter(date => otherDateQualifiers.contains(date.qualifier)) :+
-      Date(DateTime.now(), DateQualifier.dateSubmitted)
+    val dateSubmitted = Date(DateTime.now(), DateQualifier.dateSubmitted)
 
     // N.B: inlining would add global name space attributes to simple elements
     val ddmProfile =
       <ddm:profile>
-        { dm.titles.optFlat.map(src => <dc:title>{ src }</dc:title>).addAttr(lang).mustBeNonEmpty("dc:title") }
-        { dm.descriptions.optFlat.map(src => <dcterms:description>{ src }</dcterms:description>).addAttr(lang).mustBeNonEmpty("dc:title") }
-        { dm.creators.optFlat.map(author => <dcx-dai:creatorDetails>{ authorDetails(author) }</dcx-dai:creatorDetails>).mustBeNonEmpty("dcx-dai:creatorDetails") }
-        { <ddm:created>{ dateCreated.value }</ddm:created> }
-        { <ddm:available>{ dateAvailable.value }</ddm:available> }
-        { dm.audiences.optFlat.map(src => <ddm:audience>{ src.key }</ddm:audience>).mustBeNonEmpty("ddm:audience") }
-        { <ddm:accessRights>{ accessRights.category.toString }</ddm:accessRights> }
+        { dm.titles.getNonEmpty.map(src => <dc:title>{ src }</dc:title>).addAttr(lang).mustBeNonEmpty("dc:title") }
+        { dm.descriptions.getNonEmpty.map(src => <dcterms:description>{ src }</dcterms:description>).addAttr(lang).mustBeNonEmpty("dc:title") }
+        { dm.getCreators.map(author => <dcx-dai:creatorDetails>{ authorDetails(author) }</dcx-dai:creatorDetails>).mustBeNonEmpty("dcx-dai:creatorDetails") }
+        { <ddm:created>{ dm.getDateCreated.value }</ddm:created> }
+        { <ddm:available>{ dm.getDateAvailable.value }</ddm:available> }
+        { dm.audiences.getNonEmpty.map(src => <ddm:audience>{ src.key }</ddm:audience>).mustBeNonEmpty("ddm:audience") }
+        { <ddm:accessRights>{ dm.getAccessRights.category.toString }</ddm:accessRights> }
       </ddm:profile>;
 
     <ddm:DDM
@@ -67,13 +49,13 @@ object DatasetXml {
       xsi:schemaLocation="http://easy.dans.knaw.nl/schemas/md/ddm/ http://easy.dans.knaw.nl/schemas/md/2017/09/ddm.xsd"
     >{ ddmProfile }
       <ddm:dcmiMetadata>
-        { dm.alternativeTitles.optFlat.map(str => <dcterms:alternative>{ str }</dcterms:alternative>).addAttr(lang) }
-        { contributors.map(author => <dcx-dai:contributorDetails>{ authorDetails(author) }</dcx-dai:contributorDetails>) }
-        { rightsHolders.map(author => <dcterms:rightsHolder>{ author.toString }</dcterms:rightsHolder>) }
-        { dm.publishers.optFlat.map(str => <dcterms:publisher>{ str }</dcterms:publisher>).addAttr(lang) }
-        { dm.sources.optFlat.map(str => <dc:source>{ str }</dc:source>).addAttr(lang) }
-        { otherDates.filter(_.hasScheme).map(date => <x xsi:type={date.scheme.getOrElse("")}>{ date.value }</x>.withLabel(date.qualifier.toString)) }
-        { otherDates.filterNot(_.hasScheme).map(date => <x>{ date.value }</x>.withLabel(date.qualifier.toString)) }
+        { dm.alternativeTitles.getNonEmpty.map(str => <dcterms:alternative>{ str }</dcterms:alternative>).addAttr(lang) }
+        { dm.getContributors.map(author => <dcx-dai:contributorDetails>{ authorDetails(author) }</dcx-dai:contributorDetails>) }
+        { dm.getRightsHolders.map(author => <dcterms:rightsHolder>{ author.toString }</dcterms:rightsHolder>) }
+        { dm.publishers.getNonEmpty.map(str => <dcterms:publisher>{ str }</dcterms:publisher>).addAttr(lang) }
+        { dm.sources.getNonEmpty.map(str => <dc:source>{ str }</dc:source>).addAttr(lang) }
+        { (dm.getOtherDates.filter(_.hasScheme) :+ dateSubmitted).map(date => <x xsi:type={date.scheme.getOrElse("")}>{ date.value }</x>.withLabel(date.qualifier.toString)) }
+        { dm.getOtherDates.filterNot(_.hasScheme).map(date => <x>{ date.value }</x>.withLabel(date.qualifier.toString)) }
         { dm.license.toSeq.map(str => <dcterms:license>{ str }</dcterms:license>) /* xsi:type="dcterms:URI" not supported by json */ }
       </ddm:dcmiMetadata>
     </ddm:DDM>
@@ -101,6 +83,39 @@ object DatasetXml {
         { role.toSeq.map(role => <dcx-dai:role>{ role.key }</dcx-dai:role>) }
         { <dcx-dai:name>{ organization }</dcx-dai:name>.addAttr(lang) }
       </dcx-dai:organization>
+
+  private implicit class SubmittedDatasetMetadata(dm: DatasetMetadata) extends DatasetMetadata {
+    // getters because we can't override Option[Seq[_]] with Seq[_]
+    // private implicit to hide throws while keeping error handling simple, apply wraps it in a try
+    val getAccessRights: AccessRights = dm.accessRights.getOrElse(throwNoContentFor("ddm:accessRights"))
+
+    val getCreators: Seq[Author] = dm.creators.getNonEmpty.filterNot(_.isRightsHolder)
+    val getContributors: Seq[Author] = dm.contributors.getNonEmpty.filterNot(_.isRightsHolder)
+    val getRightsHolders: Seq[Author] = dm.contributors.getNonEmpty.filter(_.isRightsHolder) ++
+      dm.creators.getNonEmpty.filter(_.isRightsHolder)
+
+    private val flattenedDates: Seq[QualifiedSchemedValue[String, DateQualifier]] = dm.dates.toSeq.flatten
+    private val specialDateQualifiers = Seq(
+      DateQualifier.created, // for ddm:profile
+      DateQualifier.available, // for ddm:profile
+      DateQualifier.dateSubmitted // generated, ignore if in input
+    )
+    val getDateCreated: Date = getMandatorySingleDate(DateQualifier.created)
+    val getDateAvailable: Date = getMandatorySingleDate(DateQualifier.available)
+    val getOtherDates: Seq[Date] = {
+      if (flattenedDates.exists(_.qualifier == DateQualifier.dateSubmitted))
+        throw InvalidDocumentException(s"No ${ DateQualifier.dateSubmitted } allowed in DatasetMetadata")
+      flattenedDates.filterNot(date => specialDateQualifiers.contains(date.qualifier)) // TODO withFilterNot
+    }
+
+    private def getMandatorySingleDate(qualifier: DateQualifier): Date = {
+      val seq: Seq[Date] = flattenedDates.filter(_.qualifier == qualifier)
+      if (seq.size > 1)
+        throw InvalidDocumentException(s"Just one $qualifier allowed in DatasetMetadata")
+      else seq.headOption
+        .getOrElse(throw missingValue(qualifier.toString))
+    }
+  }
 
   /** @param elem XML element to be adjusted */
   implicit class RichElem(elem: Elem) extends Object {
@@ -135,8 +150,8 @@ object DatasetXml {
     }
   }
 
-  implicit class OptionSeq[T](sources: Option[Seq[T]]) {
-    def optFlat: Seq[T] = sources.toSeq.flatten.filterNot {
+  private implicit class OptionSeq[T](sources: Option[Seq[T]]) {
+    def getNonEmpty: Seq[T] = sources.toSeq.flatten.filterNot {
       case source: String => source.trim.isEmpty
       case _ => false
     }

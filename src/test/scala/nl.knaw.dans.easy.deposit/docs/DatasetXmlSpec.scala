@@ -158,9 +158,11 @@ class DatasetXmlSpec extends TestSupportFixture with DdmBehavior {
     )
   }
 
-  "minimal with all types of dates" should behave like {
+  "minimal with all types of dates (except submitted)" should behave like {
     val date = "2018-06-14"
-    val dates = DateQualifier.values.toSeq.map { q => DatasetMetadata.Date(date, q) }
+    val dates = DateQualifier.values.toSeq
+      .map { q => DatasetMetadata.Date(date, q) }
+      .filterNot(_.qualifier == DateQualifier.dateSubmitted)
     val someDates = Some( // one type of date twice with different precision
       dates :+ DatasetMetadata.Date("2018-01", DateQualifier.modified)
     )
