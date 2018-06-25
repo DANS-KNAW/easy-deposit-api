@@ -36,7 +36,7 @@ object DatasetXml {
     implicit val lang: Option[Attribute] = dm.languageOfDescription.map(l => new PrefixedAttribute("xml", "lang", l.key, Null))
     val accessRights = dm.accessRights.getOrElse(throwNoContentFor("ddm:accessRights"))
     val contributors = dm.contributors.optFlat.filterNot(_.isRightsHolder)
-    val rightHolders = dm.contributors.optFlat.filter(_.isRightsHolder) ++ dm.creators.optFlat.filter(_.isRightsHolder)
+    val rightsHolders = dm.contributors.optFlat.filter(_.isRightsHolder) ++ dm.creators.optFlat.filter(_.isRightsHolder)
 
     // TODO exactly one
     val dateCreated = dm.dates.optFlat.find(_.qualifier == created).getOrElse(throwNoContentFor("ddm:created"))
@@ -46,14 +46,18 @@ object DatasetXml {
       .filter(date => otherDateQualifiers.contains(date.qualifier)) :+
       Date(DateTime.now(), DateQualifier.dateSubmitted)
 
-    /**
-     * TODO workaround: when inlining each element gets the global name space attributes
-     * doesn't happen for dm.alternativeTitles.optFlat
-     * @return simple XML element
-     */
-    def required[T <: String](sources: Option[Seq[T]], target: String): Seq[Elem] = {
-      sources.reqFlat(target).map(src => <key>{ src }</key>.withLabel(target))
-    }
+    // N.B: inlining would add global name space attributes to simple elements
+    val ddmProfile =
+      <ddm:profile>
+        { dm.titles.reqFlat("dc:title").map(src => <dc:title>{ src }</dc:title>).addAttr(lang) }
+        { dm.descriptions.reqFlat("dc:title").map(src => <dcterms:description>{ src }</dcterms:description>).addAttr(lang) }
+        { dm.creators.reqFlat("dcx-dai:creatorDetails").map(author => <dcx-dai:creatorDetails>{ authorDetails(author) }</dcx-dai:creatorDetails>) }
+        { <ddm:created>{ dateCreated.value }</ddm:created> }
+        { <ddm:available>{ dateAvailable.value }</ddm:available> }
+        { dm.audiences.reqFlat("ddm:audience").map(src => <ddm:audience>{ src.key }</ddm:audience>) }
+        { <ddm:accessRights>{ accessRights.category.toString }</ddm:accessRights> }
+      </ddm:profile>
+    ;
 
     <ddm:DDM
       xmlns:dc="http://purl.org/dc/elements/1.1/"
@@ -62,20 +66,11 @@ object DatasetXml {
       xmlns:dcx-dai="http://easy.dans.knaw.nl/schemas/dcx/dai/"
       xmlns:ddm="http://easy.dans.knaw.nl/schemas/md/ddm/"
       xsi:schemaLocation="http://easy.dans.knaw.nl/schemas/md/ddm/ http://easy.dans.knaw.nl/schemas/md/2017/09/ddm.xsd"
-    >
-      <ddm:profile>
-        { required(dm.titles, "dc:title").addAttr(lang) }
-        { required(dm.descriptions, "dcterms:description").addAttr(lang) }
-        { dm.creators.reqFlat("dcx-dai:creatorDetails").map(author => <dcx-dai:creatorDetails>{ authorDetails(author) }</dcx-dai:creatorDetails>) }
-        { <ddm:created>{ dateCreated.value }</ddm:created> }
-        { <ddm:available>{ dateAvailable.value }</ddm:available> }
-        { required(dm.audiences.map(_.map(_.key)), "ddm:audience") }
-        { <ddm:accessRights>{ accessRights.category.toString }</ddm:accessRights> }
-      </ddm:profile>
+    >{ ddmProfile }
       <ddm:dcmiMetadata>
         { dm.alternativeTitles.optFlat.map(str => <dcterms:alternative>{ str }</dcterms:alternative>).addAttr(lang) }
         { contributors.map(author => <dcx-dai:contributorDetails>{ authorDetails(author) }</dcx-dai:contributorDetails>) }
-        { rightHolders.map(author => <dcterms:rightsHolder>{ author.toString }</dcterms:rightsHolder>) }
+        { rightsHolders.map(author => <dcterms:rightsHolder>{ author.toString }</dcterms:rightsHolder>) }
         { dm.publishers.optFlat.map(str => <dcterms:publisher>{ str }</dcterms:publisher>).addAttr(lang) }
         { dm.sources.optFlat.map(str => <dc:source>{ str }</dc:source>).addAttr(lang) }
         { otherDates.filter(_.hasScheme).map(date => <x xsi:type={date.scheme.getOrElse("")}>{ date.value }</x>.withLabel(date.qualifier.toString)) }
@@ -154,11 +149,5 @@ object DatasetXml {
       "DatasetMetadata",
       new Exception(s"no content for mandatory $fieldName")
     )
-  }
-
-  private def filter[S, T](xs: Seq[QualifiedSchemedValue[S, T]],
-                           q: Seq[T]
-                          ): Seq[QualifiedSchemedValue[S, T]] = {
-    xs.filter(x => q.contains(x.qualifier))
   }
 }
