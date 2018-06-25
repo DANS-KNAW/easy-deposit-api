@@ -139,14 +139,27 @@ object DatasetMetadata {
     val conformsTo: RelationQualifier = Value("dcterms:conformsTo")
   }
 
+  trait RequiresNonEmpty {
+    def requireNonEmptyString[T](value: T, tag: String): Unit = {
+      value match {
+        case str: String =>
+          require(str.trim.nonEmpty, s"empty $tag provided for ${ this.getClass.getSimpleName } $this")
+        case _ =>
+      }
+    }
+  }
+
   case class AccessRights(category: AccessCategory,
                           group: Option[String],
                          )
 
-  implicit class OptionalString(val s: Option[String]) {
-    // TODO candidate for https://github.com/DANS-KNAW/dans-scala-lib/blob/master/src/main/scala/nl/knaw/dans/lib/string/package.scala
-    def isProvided: Boolean = s.getOrElse("").trim.nonEmpty
+  implicit class OptionalString[T](val value: Option[T]) {
+    def isProvided: Boolean = value match {
+      case Some(str: String) => str.trim.nonEmpty
+      case _ => value.isDefined
+    }
   }
+
   case class Author(titles: Option[String] = None,
                     initials: Option[String] = None,
                     insertions: Option[String] = None,
@@ -154,9 +167,9 @@ object DatasetMetadata {
                     role: Option[SchemedKeyValue[String]] = None,
                     ids: Option[Seq[SchemedValue[String]]] = None,
                     organization: Option[String] = None,
-                   ) {
+                   ) extends RequiresNonEmpty {
     private val hasMandatory: Boolean = organization.isProvided || (surname.isProvided && initials.isProvided)
-    private val hasRedundant: Boolean = !surname.isProvided && (titles.isProvided || insertions.isProvided)
+    private val hasRedundant: Boolean = surname.isEmpty && (titles.isProvided || insertions.isProvided)
     private val incompleteMsg = "needs one of (organisation | surname and initials)"
     private val redundantMsg = "without surname should have neither titles nor insertions"
     require(hasMandatory, buildMsg(incompleteMsg))
@@ -168,14 +181,14 @@ object DatasetMetadata {
 
     override def toString: String = { // TODO ID's when DatasetXml implements ID's for Author fields
       val name = Seq(titles, initials, insertions, surname)
-        .filter(_.isDefined)
+        .filter(_.isProvided)
         .map(_.getOrElse(""))
         .mkString(" ")
-      (surname.isDefined, organization.isDefined) match {
+      (surname.isProvided, organization.isProvided) match {
         case (true, true) => s"$name; ${ organization.getOrElse("") }"
         case (false, true) => organization.getOrElse("")
         case (true, false) => name
-        case (false, false) => throw new Exception(buildMsg(incompleteMsg))// only with wrong requires
+        case (false, false) => throw new Exception(buildMsg(incompleteMsg)) // only with wrong requires
       }
     }
   }
@@ -183,62 +196,74 @@ object DatasetMetadata {
   case class SpatialPoint(scheme: String,
                           x: Int,
                           y: Int,
-                         )
+                         ) extends RequiresNonEmpty {
+    requireNonEmptyString(scheme, "scheme")
+  }
 
   case class SpatialBox(scheme: String,
                         north: Int,
                         east: Int,
                         south: Int,
                         west: Int,
-                       )
+                       ) extends RequiresNonEmpty {
+    requireNonEmptyString(scheme, "scheme")
+  }
 
   trait RelationType
 
   case class Relation(qualifier: RelationQualifier,
                       url: Option[String],
                       title: Option[String],
-                     ) extends RelationType {
-    // TODO move to DatasetXml once it implements this type of fields
-    require(isValid, s"Relation needs at least one of (title | url) got: ${ toJson(this) }")
-
-    def isValid: Boolean = {
-      title.isDefined || url.isDefined
-    }
+                     ) extends RequiresNonEmpty with RelationType {
+    require(title.isProvided || url.isProvided, s"Relation needs at least one of (title | url) got: ${ toJson(this) }")
   }
 
   case class RelatedIdentifier(scheme: Option[String],
                                value: String,
-                               qualifier: RelationQualifier) extends RelationType {
-    val hasScheme: Boolean = scheme.isDefined
+                               qualifier: RelationQualifier
+                              ) extends RelationType with RequiresNonEmpty {
+    requireNonEmptyString(value, "value")
+    val hasScheme: Boolean = scheme.isProvided
   }
 
   case class QualifiedSchemedValue[S, Q](scheme: Option[S],
                                          value: String,
-                                         qualifier: Q) {
-    val hasScheme: Boolean = scheme.isDefined
+                                         qualifier: Q
+                                        ) extends RequiresNonEmpty {
+    requireNonEmptyString(value, "value")
+    val hasScheme: Boolean = scheme.isProvided
   }
 
   case class SchemedValue[S](scheme: S,
                              value: String,
-                            )
+                            ) extends RequiresNonEmpty {
+    requireNonEmptyString(scheme, "scheme")
+    requireNonEmptyString(value, "value")
+  }
 
   case class PossiblySchemedValue[S](scheme: Option[S],
                                      value: String,
-                                    ) {
-    val hasScheme: Boolean = scheme.isDefined
+                                    ) extends RequiresNonEmpty {
+    requireNonEmptyString(value, "value")
+    val hasScheme: Boolean = scheme.isProvided
   }
 
   case class SchemedKeyValue[S](scheme: S,
                                 key: String,
                                 value: String,
-                               )
+                               ) extends RequiresNonEmpty {
+    requireNonEmptyString(scheme, "scheme")
+    requireNonEmptyString(value, "value")
+    requireNonEmptyString(key, "key")
+  }
 
   case class PossiblySchemedKeyValue[S](scheme: Option[S],
                                         key: Option[String],
                                         value: String,
-                                       ) {
-    val hasScheme: Boolean = scheme.isDefined
-    val hasKey: Boolean = key.isDefined
+                                       ) extends RequiresNonEmpty {
+    requireNonEmptyString(value, "value")
+    val hasScheme: Boolean = scheme.isProvided
+    val hasKey: Boolean = key.isProvided
   }
 }
 

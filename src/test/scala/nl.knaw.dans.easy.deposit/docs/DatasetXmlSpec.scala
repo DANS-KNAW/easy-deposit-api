@@ -43,7 +43,7 @@ class DatasetXmlSpec extends TestSupportFixture with DdmBehavior {
       |  ],
       |  "creators": [ { "initials": "B.A.R.", "surname": "Foo" } ],
       |  "accessRights": { "category": "OPEN_ACCESS" },
-      |  "audiences": [ { "scheme": "", "key": "D35200", "value": ""} ]
+      |  "audiences": [ { "scheme": "blabla", "key": "D35200", "value": "some audience"} ]
       |}""".stripMargin)
     .doIfFailure { case e => println(e) }
     .getOrElse(fail("parsing minimal json failed"))
@@ -101,8 +101,8 @@ class DatasetXmlSpec extends TestSupportFixture with DdmBehavior {
 
   "minimal with multiple audiences" should behave like validDatasetMetadata(
     input = Success(minimal.copy(audiences = Some(Seq(
-      SchemedKeyValue("","D11200",""),
-      SchemedKeyValue("","D32400","")
+      SchemedKeyValue("blabla","D11200","Lorum"),
+      SchemedKeyValue("blabla","D32400","ipsum")
     )))),
     subset = { actualDDM => emptyDDM.copy(child = <ddm:profile>{actualDDM \ "profile" \ "audience"}</ddm:profile>) },
     expectedOutput = Seq(
@@ -134,14 +134,14 @@ class DatasetXmlSpec extends TestSupportFixture with DdmBehavior {
       Author(
         initials = Some("O."),
         surname = Some("Belix"),
-        role = Some(SchemedKeyValue("", "RightsHolder", ""))
+        role = Some(SchemedKeyValue("blabla", "RightsHolder", "Lorum Ipsum"))
       )
     ))
     val someContributors = Some(Seq(
       Author(
         initials = Some("A.S."),
         surname = Some("Terix"),
-        role = Some(SchemedKeyValue("", "RightsHolder", ""))
+        role = Some(SchemedKeyValue("blabla", "RightsHolder", "Lorum Ipsum"))
       )
     ))
     validDatasetMetadata(
@@ -236,7 +236,6 @@ class DatasetXmlSpec extends TestSupportFixture with DdmBehavior {
           <dcx-dai:author>
             <dcx-dai:titles xml:lang="nld">Drs.</dcx-dai:titles>
             <dcx-dai:initials>D.A.</dcx-dai:initials>
-            <dcx-dai:insertions></dcx-dai:insertions>
             <dcx-dai:surname>NS</dcx-dai:surname>
             <dcx-dai:role>ContactPerson</dcx-dai:role>
             <dcx-dai:organization>

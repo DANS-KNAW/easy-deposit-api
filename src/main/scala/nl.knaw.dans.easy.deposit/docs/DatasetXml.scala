@@ -55,7 +55,7 @@ object DatasetXml {
         { dm.sources.getNonEmpty.map(str => <dc:source>{ str }</dc:source>).addAttr(lang) }
         { (dm.getOtherDates.filter(_.hasScheme) :+ dateSubmitted).map(date => <x xsi:type={date.scheme.getOrElse("")}>{ date.value }</x>.withLabel(date.qualifier.toString)) }
         { dm.getOtherDates.filterNot(_.hasScheme).map(date => <x>{ date.value }</x>.withLabel(date.qualifier.toString)) }
-        { dm.license.toSeq.map(str => <dcterms:license>{ str }</dcterms:license>) /* xsi:type="dcterms:URI" not supported by json */ }
+        { dm.license.getNonEmpty.map(str => <dcterms:license>{ str }</dcterms:license>) /* xsi:type="dcterms:URI" not supported by json */ }
       </ddm:dcmiMetadata>
     </ddm:DDM>
   }
@@ -66,12 +66,12 @@ object DatasetXml {
       author.organization.toSeq.map(orgDetails(author.role))
     else
       <dcx-dai:author>
-        { author.titles.toSeq.map(str => <dcx-dai:titles>{ str }</dcx-dai:titles>).addAttr(lang) }
-        { author.initials.toSeq.map(str => <dcx-dai:initials>{ str }</dcx-dai:initials>) }
-        { author.insertions.toSeq.map(str => <dcx-dai:insertions>{ str }</dcx-dai:insertions>) }
-        { author.surname.toSeq.map(str => <dcx-dai:surname>{ str }</dcx-dai:surname>) }
+        { author.titles.getNonEmpty.map(str => <dcx-dai:titles>{ str }</dcx-dai:titles>).addAttr(lang) }
+        { author.initials.getNonEmpty.map(str => <dcx-dai:initials>{ str }</dcx-dai:initials>) }
+        { author.insertions.getNonEmpty.map(str => <dcx-dai:insertions>{ str }</dcx-dai:insertions>) }
+        { author.surname.getNonEmpty.map(str => <dcx-dai:surname>{ str }</dcx-dai:surname>) }
         { author.role.toSeq.map(role => <dcx-dai:role>{ role.key }</dcx-dai:role>) }
-        { author.organization.toSeq.map(orgDetails()) }
+        { author.organization.getNonEmpty.map(orgDetails()) }
       </dcx-dai:author>
   }
 
@@ -151,6 +151,13 @@ object DatasetXml {
 
   private implicit class OptionSeq[T](sources: Option[Seq[T]]) {
     def getNonEmpty: Seq[T] = sources.toSeq.flatten.filterNot {
+      case source: String => source.trim.isEmpty
+      case _ => false
+    }
+  }
+
+  private implicit class RichOption[T](sources: Option[T]) {
+    def getNonEmpty: Seq[T] = sources.toSeq.filterNot {
       case source: String => source.trim.isEmpty
       case _ => false
     }
