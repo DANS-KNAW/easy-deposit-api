@@ -100,12 +100,15 @@ class DatasetXmlSpec extends TestSupportFixture with DdmBehavior {
   )
 
   "minimal with multiple audiences" should behave like validDatasetMetadata(
-    input = Success(minimal.copy(audiences = Some(Seq(SchemedKeyValue("","Lorum",""),SchemedKeyValue("","ipsum",""))))),
+    input = Success(minimal.copy(audiences = Some(Seq(
+      SchemedKeyValue("","D11200",""),
+      SchemedKeyValue("","D32400","")
+    )))),
     subset = { actualDDM => emptyDDM.copy(child = <ddm:profile>{actualDDM \ "profile" \ "audience"}</ddm:profile>) },
     expectedOutput = Seq(
       <ddm:profile>
-        <ddm:audience>Lorum</ddm:audience>
-        <ddm:audience>ipsum</ddm:audience>
+        <ddm:audience>D11200</ddm:audience>
+        <ddm:audience>D32400</ddm:audience>
       </ddm:profile>
     )
   )
