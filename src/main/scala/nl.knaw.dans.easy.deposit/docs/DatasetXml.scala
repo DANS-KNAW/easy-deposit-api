@@ -28,8 +28,7 @@ object DatasetXml {
     implicit val lang: Option[Attribute] = dm.languageOfDescription.map(l => new PrefixedAttribute("xml", "lang", l.key, Null))
     val dateSubmitted = Date(DateTime.now(), DateQualifier.dateSubmitted)
 
-    // N.B: inlining would add global name space attributes to simple elements
-    val ddmProfile =
+    val ddmProfile = // N.B: inlining would add global name space attributes to the first sequence of simple elements
       <ddm:profile>
         { dm.titles.getNonEmpty.map(src => <dc:title>{ src }</dc:title>).addAttr(lang).mustBeNonEmpty("dc:title") }
         { dm.descriptions.getNonEmpty.map(src => <dcterms:description>{ src }</dcterms:description>).addAttr(lang).mustBeNonEmpty("dc:title") }
