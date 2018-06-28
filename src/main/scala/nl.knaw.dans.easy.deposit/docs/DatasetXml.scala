@@ -26,7 +26,6 @@ import scala.xml._
 object DatasetXml {
   def apply(dm: DatasetMetadata): Try[Elem] = Try {
     implicit val lang: Option[Attribute] = dm.languageOfDescription.map(l => new PrefixedAttribute("xml", "lang", l.key, Null))
-    val dateSubmitted = Date(DateTime.now(), DateQualifier.dateSubmitted)
 
     <ddm:DDM
       xmlns:dc="http://purl.org/dc/elements/1.1/"
@@ -51,8 +50,8 @@ object DatasetXml {
         { dm.getRightsHolders.map(author => <dcterms:rightsHolder>{ author.toString }</dcterms:rightsHolder>) }
         { dm.publishers.getNonEmpty.map(str => <dcterms:publisher>{ str }</dcterms:publisher>).addAttr(lang) }
         { dm.sources.getNonEmpty.map(str => <dc:source>{ str }</dc:source>).addAttr(lang) }
-        { (dm.getOtherDates.filter(_.hasScheme) :+ dateSubmitted).map(date => <x xsi:type={date.scheme.getOrElse("")}>{ date.value }</x>.withLabel(date.qualifier.toString)) }
-        { dm.getOtherDates.filterNot(_.hasScheme).map(date => <x>{ date.value }</x>.withLabel(date.qualifier.toString)) }
+        { dm.getSchemedDates.map(date => <x xsi:type={date.scheme.getOrElse("")}>{ date.value }</x>.withLabel(date.qualifier.toString)) }
+        { dm.getPlainDates.map(date => <x>{ date.value }</x>.withLabel(date.qualifier.toString)) }
         { dm.license.getNonEmpty.map(str => <dcterms:license>{ str }</dcterms:license>) /* xsi:type="dcterms:URI" not supported by json */ }
       </ddm:dcmiMetadata>
     </ddm:DDM>
@@ -81,29 +80,29 @@ object DatasetXml {
         { <dcx-dai:name>{ organization }</dcx-dai:name>.addAttr(lang) }
       </dcx-dai:organization>
 
-  private implicit class SubmittedDatasetMetadata(dm: DatasetMetadata) extends DatasetMetadata {
+  private implicit class SubmittedDatasetMetadata(val dm: DatasetMetadata) extends Object {
     // getters because we can't override Option[Seq[_]] with Seq[_]
     // private implicit to hide throws while keeping error handling simple, apply wraps it in a try
-    val getAccessRights: AccessRights = dm.accessRights.getOrElse(throwNoContentFor("ddm:accessRights"))
+    lazy val getAccessRights: AccessRights = dm.accessRights.getOrElse(throwNoContentFor("ddm:accessRights"))
 
-    val getCreators: Seq[Author] = dm.creators.getNonEmpty.filterNot(_.isRightsHolder)
-    val getContributors: Seq[Author] = dm.contributors.getNonEmpty.filterNot(_.isRightsHolder)
-    val getRightsHolders: Seq[Author] = dm.contributors.getNonEmpty.filter(_.isRightsHolder) ++
-      dm.creators.getNonEmpty.filter(_.isRightsHolder)
+    lazy val getCreators: Seq[Author] = dm.creators.getOrElse(Seq.empty).filterNot(_.isRightsHolder)
+    lazy val getContributors: Seq[Author] = dm.contributors.getOrElse(Seq.empty).filterNot(_.isRightsHolder)
+    lazy val getRightsHolders: Seq[Author] = dm.contributors.getOrElse(Seq.empty).filter(_.isRightsHolder) ++
+      dm.creators.getOrElse(Seq.empty).filter(_.isRightsHolder)
 
-    private val flattenedDates: Seq[QualifiedSchemedValue[String, DateQualifier]] = dm.dates.toSeq.flatten
-    private val specialDateQualifiers = Seq(
+    private lazy val flattenedDates: Seq[QualifiedSchemedValue[String, DateQualifier]] = dm.dates.toSeq.flatten
+    private lazy val specialDateQualifiers = Seq(
       DateQualifier.created, // for ddm:profile
       DateQualifier.available, // for ddm:profile
-      DateQualifier.dateSubmitted // generated, ignore if in input
     )
-    val getDateCreated: Date = getMandatorySingleDate(DateQualifier.created)
-    val getDateAvailable: Date = getMandatorySingleDate(DateQualifier.available)
-    val getOtherDates: Seq[Date] = {
+    lazy val getDateCreated: Date = getMandatorySingleDate(DateQualifier.created)
+    lazy val getDateAvailable: Date = getMandatorySingleDate(DateQualifier.available)
+    lazy val (getSchemedDates, getPlainDates) = {
       if (flattenedDates.exists(_.qualifier == DateQualifier.dateSubmitted))
         throw InvalidDocumentException(s"No ${ DateQualifier.dateSubmitted } allowed in DatasetMetadata")
-      flattenedDates.filterNot(date => specialDateQualifiers.contains(date.qualifier)) // TODO withFilterNot
-    }
+      (flattenedDates :+ Date(DateTime.now(), DateQualifier.dateSubmitted)
+        ).filterNot(date => specialDateQualifiers.contains(date.qualifier))
+    }.partition(_.hasScheme)
 
     private def getMandatorySingleDate(qualifier: DateQualifier): Date = {
       val seq: Seq[Date] = flattenedDates.filter(_.qualifier == qualifier)
@@ -115,7 +114,7 @@ object DatasetXml {
   }
 
   /** @param elem XML element to be adjusted */
-  implicit class RichElem(elem: Elem) extends Object {
+  implicit class RichElem(val elem: Elem) extends AnyVal {
     // TODO make private once the thrown error can be tested through apply (when using a non-enum for withLabel)
 
     /**
@@ -136,7 +135,7 @@ object DatasetXml {
   }
 
   /** @param elems the sequence of XML elements to adjust */
-  private implicit class RichElems(elems: Seq[Elem]) extends Object {
+  private implicit class RichElems(val elems: Seq[Elem]) extends AnyVal {
     def addAttr(lang: Option[Attribute]): Seq[Elem] = elems.map(_.addAttr(lang))
 
     def withLabel(str: String): Seq[Elem] = elems.map(_.copy(label = str))
@@ -147,14 +146,14 @@ object DatasetXml {
     }
   }
 
-  private implicit class OptionSeq[T](sources: Option[Seq[T]]) {
+  private implicit class OptionSeq[T](val sources: Option[Seq[T]]) extends AnyVal {
     def getNonEmpty: Seq[T] = sources.map(_.filterNot {
       case source: String => source.trim.isEmpty
       case _ => false
     }).getOrElse(Seq.empty)
   }
 
-  private implicit class RichOption[T](sources: Option[T]) {
+  private implicit class RichOption[T](val sources: Option[T]) extends AnyVal {
     def getNonEmpty: Seq[T] = sources.toSeq.filterNot {
       case source: String => source.trim.isEmpty
       case _ => false

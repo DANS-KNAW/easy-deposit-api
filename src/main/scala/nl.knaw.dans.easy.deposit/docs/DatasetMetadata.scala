@@ -153,7 +153,7 @@ object DatasetMetadata {
                           group: Option[String],
                          )
 
-  implicit class OptionalString[T](val value: Option[T]) {
+  implicit class OptionalString[T](val value: Option[T]) extends AnyVal {
     def isProvided: Boolean = value match {
       case Some(str: String) => str.trim.nonEmpty
       case _ => value.isDefined
