@@ -29,7 +29,7 @@ import nl.knaw.dans.lib.error._
 import resource.Using
 
 import scala.util.{ Failure, Success, Try }
-import scala.xml.{ Elem, Node, PrettyPrinter }
+import scala.xml._
 
 class DatasetXmlSpec extends TestSupportFixture with DdmBehavior {
 
@@ -56,7 +56,7 @@ class DatasetXmlSpec extends TestSupportFixture with DdmBehavior {
 
   "minimal" should behave like validDatasetMetadata(
     input = Success(minimal),
-    expectedOutput = Seq(
+    expectedDdmContent =
       <ddm:profile>
         <dc:title>Lorum ipsum</dc:title>
         <dcterms:description>dolor</dcterms:description>
@@ -70,59 +70,54 @@ class DatasetXmlSpec extends TestSupportFixture with DdmBehavior {
         <ddm:available>2018</ddm:available>
         <ddm:audience>D35200</ddm:audience>
         <ddm:accessRights>OPEN_ACCESS</ddm:accessRights>
-      </ddm:profile>,
+      </ddm:profile>
       <ddm:dcmiMetadata>
         <dcterms:dateSubmitted xsi:type="dcterms:W3CDTF">2018-03-22</dcterms:dateSubmitted>
       </ddm:dcmiMetadata>
-    )
   )
 
   "minimal with multiple titles" should behave like validDatasetMetadata(
     input = Success(minimal.copy(titles = Some(Seq("Lorum", "ipsum")))),
-    subset = { actualDDM => emptyDDM.copy(child = <ddm:profile>{actualDDM \ "profile" \ "title"}</ddm:profile>) },
-    expectedOutput = Seq(
+    subset = actualDDM => profileElements(actualDDM, "title"),
+    expectedDdmContent =
       <ddm:profile>
         <dc:title>Lorum</dc:title>
         <dc:title>ipsum</dc:title>
       </ddm:profile>
-    )
   )
 
   "minimal with multiple descriptions" should behave like validDatasetMetadata(
     input = Success(minimal.copy(descriptions = Some(Seq("Lorum", "ipsum")))),
-    subset = { actualDDM => emptyDDM.copy(child = <ddm:profile>{actualDDM \ "profile" \ "description"}</ddm:profile>) },
-    expectedOutput = Seq(
+    subset = actualDDM => profileElements(actualDDM, "description"),
+    expectedDdmContent =
       <ddm:profile>
         <dcterms:description>Lorum</dcterms:description>
         <dcterms:description>ipsum</dcterms:description>
       </ddm:profile>
-    )
   )
 
   "minimal with multiple audiences" should behave like validDatasetMetadata(
     input = Success(minimal.copy(audiences = Some(Seq(
-      SchemedKeyValue("blabla","D11200","Lorum"),
-      SchemedKeyValue("blabla","D32400","ipsum")
+      SchemedKeyValue("blabla", "D11200", "Lorum"),
+      SchemedKeyValue("blabla", "D32400", "ipsum")
     )))),
-    subset = { actualDDM => emptyDDM.copy(child = <ddm:profile>{actualDDM \ "profile" \ "audience"}</ddm:profile>) },
-    expectedOutput = Seq(
+    subset = actualDDM => profileElements(actualDDM, "audience"),
+    expectedDdmContent =
       <ddm:profile>
         <ddm:audience>D11200</ddm:audience>
         <ddm:audience>D32400</ddm:audience>
       </ddm:profile>
-    )
   )
 
   "minimal with multiple alternativeTitles" should behave like validDatasetMetadata(
     input = Success(minimal.copy(alternativeTitles = Some(Seq("Lorum", "ipsum")))),
-    subset = { actualDDM => emptyDDM.copy(child = actualDDM \ "dcmiMetadata") },
-    expectedOutput = Seq(
+    subset = actualDDM => dcmiMetadata(actualDDM),
+    expectedDdmContent =
       <ddm:dcmiMetadata>
         <dcterms:alternative>Lorum</dcterms:alternative>
         <dcterms:alternative>ipsum</dcterms:alternative>
         <dcterms:dateSubmitted xsi:type="dcterms:W3CDTF">2018-03-22</dcterms:dateSubmitted>
       </ddm:dcmiMetadata>
-    )
   )
 
   "minimal with rightsHolders" should behave like {
@@ -146,15 +141,14 @@ class DatasetXmlSpec extends TestSupportFixture with DdmBehavior {
     ))
     validDatasetMetadata(
       input = Success(minimal.copy(creators = someCreators, contributors = someContributors)),
-      subset = { actualDDM => emptyDDM.copy(child = actualDDM \ "dcmiMetadata") },
-      expectedOutput = Seq(
+      subset = actualDDM => dcmiMetadata(actualDDM),
+      expectedDdmContent =
         //N.B: creators in ddm:profile unless they are rightsHolders
         <ddm:dcmiMetadata>
           <dcterms:rightsHolder>A.S. Terix</dcterms:rightsHolder>
           <dcterms:rightsHolder>O. Belix</dcterms:rightsHolder>
           <dcterms:dateSubmitted xsi:type="dcterms:W3CDTF">2018-03-22</dcterms:dateSubmitted>
         </ddm:dcmiMetadata>
-      )
     )
   }
 
@@ -168,8 +162,8 @@ class DatasetXmlSpec extends TestSupportFixture with DdmBehavior {
     )
     validDatasetMetadata(
       input = Success(minimal.copy(dates = someDates)),
-      subset = { actualDDM => emptyDDM.copy(child = actualDDM \ "dcmiMetadata") },
-      expectedOutput = Seq(
+      subset = actualDDM => dcmiMetadata(actualDDM),
+      expectedDdmContent =
         // the dateSubmitted specified above is replaced by "now" as set by the fixture
         // dateCreated and dateAvailable are documented with the pure minimal test
         <ddm:dcmiMetadata>
@@ -182,7 +176,6 @@ class DatasetXmlSpec extends TestSupportFixture with DdmBehavior {
           <dcterms:modified xsi:type="dcterms:W3CDTF">2018-01</dcterms:modified>
           <dcterms:dateSubmitted xsi:type="dcterms:W3CDTF">2018-03-22</dcterms:dateSubmitted>
         </ddm:dcmiMetadata>
-      )
     )
   }
 
@@ -226,7 +219,7 @@ class DatasetXmlSpec extends TestSupportFixture with DdmBehavior {
   )
   "datasetmetadata-from-ui-all.json without one of the authors" should behave like validDatasetMetadata(
     input = parseTestResource("datasetmetadata-from-ui-all.json"),
-    expectedOutput = Seq(
+    expectedDdmContent =
       <ddm:profile>
         <dc:title xml:lang="nld">title 1</dc:title>
         <dc:title xml:lang="nld">title2</dc:title>
@@ -255,7 +248,7 @@ class DatasetXmlSpec extends TestSupportFixture with DdmBehavior {
         <ddm:audience>D35200</ddm:audience>
         <ddm:audience>D33000</ddm:audience>
         <ddm:accessRights>OPEN_ACCESS</ddm:accessRights>
-      </ddm:profile>,
+      </ddm:profile>
       <ddm:dcmiMetadata>
         <dcterms:alternative xml:lang="nld">alternative title 1</dcterms:alternative>
         <dcterms:alternative xml:lang="nld">alternative title2</dcterms:alternative>
@@ -285,7 +278,15 @@ class DatasetXmlSpec extends TestSupportFixture with DdmBehavior {
         <dcterms:issued>Groundhog day</dcterms:issued>
         <dcterms:license>http://creativecommons.org/publicdomain/zero/1.0</dcterms:license>
       </ddm:dcmiMetadata>
-    )
+  )
+
+  private def dcmiMetadata(actualDDM: Elem) = emptyDDM.copy(child =
+    actualDDM \ "dcmiMetadata"
+  )
+
+  private def profileElements(actualDDM: Elem, label: String) = emptyDDM.copy(child =
+    // prevent namespaces on children
+    Elem("ddm", "profile", Null, emptyDDM.scope, minimizeEmpty = true, actualDDM \ "profile" \ label: _*)
   )
 
   private def parseTestResource(file: String) = Try {
@@ -312,12 +313,12 @@ trait DdmBehavior {
   /**
    * @param input          to be converted to DDM
    * @param subset         subset of generated DDM that should match expectedOutput
-   * @param expectedOutput members of <ddm:DDM> that should equal
+   * @param expectedDdmContent members of <ddm:DDM> that should equal
    *                       the members of subset(DatsetXm(input.get))
    */
   def validDatasetMetadata(input: Try[DatasetMetadata],
                            subset: Elem => Elem = identity,
-                           expectedOutput: Seq[Node] = Seq.empty
+                           expectedDdmContent: Seq[Node] = Seq.empty
                           ): Unit = {
     lazy val datasetMetadata = input
       .doIfFailure { case e => println(s"$e") }
@@ -326,9 +327,9 @@ trait DdmBehavior {
       .doIfFailure { case e => println(s"$e") }
       .getOrElse(fail("can't create DDM from test input"))
 
-    if (expectedOutput.nonEmpty) it should "generate expected DDM" in {
+    if (expectedDdmContent.nonEmpty) it should "generate expected DDM" in {
       prettyPrinter.format(subset(ddm)) shouldBe
-        prettyPrinter.format(emptyDDM.copy(child = expectedOutput))
+        prettyPrinter.format(emptyDDM.copy(child = expectedDdmContent))
     }
 
     it should "generate valid DDM" in {

@@ -28,7 +28,14 @@ object DatasetXml {
     implicit val lang: Option[Attribute] = dm.languageOfDescription.map(l => new PrefixedAttribute("xml", "lang", l.key, Null))
     val dateSubmitted = Date(DateTime.now(), DateQualifier.dateSubmitted)
 
-    val ddmProfile = // N.B: inlining would add global name space attributes to the first sequence of simple elements
+    <ddm:DDM
+      xmlns:dc="http://purl.org/dc/elements/1.1/"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xmlns:dcterms="http://purl.org/dc/terms/"
+      xmlns:dcx-dai="http://easy.dans.knaw.nl/schemas/dcx/dai/"
+      xmlns:ddm="http://easy.dans.knaw.nl/schemas/md/ddm/"
+      xsi:schemaLocation="http://easy.dans.knaw.nl/schemas/md/ddm/ http://easy.dans.knaw.nl/schemas/md/2017/09/ddm.xsd"
+    >
       <ddm:profile>
         { dm.titles.getNonEmpty.map(src => <dc:title>{ src }</dc:title>).addAttr(lang).mustBeNonEmpty("dc:title") }
         { dm.descriptions.getNonEmpty.map(src => <dcterms:description>{ src }</dcterms:description>).addAttr(lang).mustBeNonEmpty("dc:title") }
@@ -37,16 +44,7 @@ object DatasetXml {
         { <ddm:available>{ dm.getDateAvailable.value }</ddm:available> }
         { dm.audiences.getNonEmpty.map(src => <ddm:audience>{ src.key }</ddm:audience>).mustBeNonEmpty("ddm:audience") }
         { <ddm:accessRights>{ dm.getAccessRights.category.toString }</ddm:accessRights> }
-      </ddm:profile>;
-
-    <ddm:DDM
-      xmlns:dc="http://purl.org/dc/elements/1.1/"
-      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-      xmlns:dcterms="http://purl.org/dc/terms/"
-      xmlns:dcx-dai="http://easy.dans.knaw.nl/schemas/dcx/dai/"
-      xmlns:ddm="http://easy.dans.knaw.nl/schemas/md/ddm/"
-      xsi:schemaLocation="http://easy.dans.knaw.nl/schemas/md/ddm/ http://easy.dans.knaw.nl/schemas/md/2017/09/ddm.xsd"
-    >{ ddmProfile }
+      </ddm:profile>
       <ddm:dcmiMetadata>
         { dm.alternativeTitles.getNonEmpty.map(str => <dcterms:alternative>{ str }</dcterms:alternative>).addAttr(lang) }
         { dm.getContributors.map(author => <dcx-dai:contributorDetails>{ authorDetails(author) }</dcx-dai:contributorDetails>) }
