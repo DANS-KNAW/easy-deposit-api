@@ -141,7 +141,7 @@ object DatasetXml {
     }
   }
 
-  private implicit class RichAuthor(val sources: Option[Seq[Author]]) extends AnyVal {
+  private implicit class RichAuthors(val sources: Option[Seq[Author]]) extends AnyVal {
     def withoutRightsHolders: Seq[Author] = sources.getOrElse(Seq.empty).filterNot(_.isRightsHolder)
   }
 
