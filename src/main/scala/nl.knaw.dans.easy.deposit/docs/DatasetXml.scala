@@ -150,10 +150,10 @@ object DatasetXml {
   }
 
   private implicit class OptionSeq[T](sources: Option[Seq[T]]) {
-    def getNonEmpty: Seq[T] = sources.toSeq.flatten.filterNot {
+    def getNonEmpty: Seq[T] = sources.map(_.filterNot {
       case source: String => source.trim.isEmpty
       case _ => false
-    }
+    }).getOrElse(Seq.empty)
   }
 
   private implicit class RichOption[T](sources: Option[T]) {
