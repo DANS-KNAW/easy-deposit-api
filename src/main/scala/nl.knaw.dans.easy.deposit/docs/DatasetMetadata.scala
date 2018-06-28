@@ -167,7 +167,7 @@ object DatasetMetadata {
                     role: Option[SchemedKeyValue[String]] = None,
                     ids: Option[Seq[SchemedValue[String]]] = None,
                     organization: Option[String] = None,
-                   ) extends RequiresNonEmpty {
+                   ) {
     private val hasMandatory: Boolean = organization.isProvided || (surname.isProvided && initials.isProvided)
     private val hasRedundant: Boolean = surname.isEmpty && (titles.isProvided || insertions.isProvided)
     private val incompleteMsg = "needs one of (organisation | surname and initials)"
