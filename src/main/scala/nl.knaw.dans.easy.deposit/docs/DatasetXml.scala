@@ -123,7 +123,7 @@ object DatasetXml {
     /**
      * @param str the desired tag (namespace:label)
      */
-    @throws(classOf[InvalidDocumentException])
+    @throws[InvalidDocumentException]("when str is not a valid XML label (has more than one ':')")
     def withLabel(str: String): Elem = {
       str.split(":") match {
         case Array(label) => elem.copy(label = label)
