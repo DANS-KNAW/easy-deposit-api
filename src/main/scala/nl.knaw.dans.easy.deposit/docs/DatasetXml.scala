@@ -80,7 +80,7 @@ object DatasetXml {
         { <dcx-dai:name>{ organization }</dcx-dai:name>.addAttr(lang) }
       </dcx-dai:organization>
 
-  private implicit class SubmittedDatasetMetadata(val dm: DatasetMetadata) extends Object {
+  private implicit class SubmittedDatasetMetadata(val dm: DatasetMetadata) {
     // getters because we can't override Option[Seq[_]] with Seq[_]
     // private implicit to hide throws while keeping error handling simple, apply wraps it in a try
     lazy val getAccessRights: AccessRights = dm.accessRights.getOrElse(throwNoContentFor("ddm:accessRights"))
