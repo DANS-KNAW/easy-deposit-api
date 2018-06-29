@@ -27,8 +27,7 @@ object DatasetXml {
   def apply(dm: DatasetMetadata): Try[Elem] = Try {
     implicit val lang: Option[Attribute] = dm.languageOfDescription.map(l => new PrefixedAttribute("xml", "lang", l.key, Null))
 
-    val rightsHolders = (dm.contributors.getOrElse(Seq.empty) ++ dm.creators.getOrElse(Seq.empty))
-      .filter(_.isRightsHolder)
+    val authors = SubmittedAuthors(dm)
     val dates = SubmittedDates(dm)
 
     <ddm:DDM
@@ -42,7 +41,7 @@ object DatasetXml {
       <ddm:profile>
         { dm.titles.getNonEmpty.map(src => <dc:title>{ src }</dc:title>).addAttr(lang).mustBeNonEmpty("dc:title") }
         { dm.descriptions.getNonEmpty.map(src => <dcterms:description>{ src }</dcterms:description>).addAttr(lang).mustBeNonEmpty("dc:title") }
-        { dm.creators.withoutRightsHolders.map(author => <dcx-dai:creatorDetails>{ authorDetails(author) }</dcx-dai:creatorDetails>).mustBeNonEmpty("dcx-dai:creatorDetails") }
+        { authors.creators.map(author => <dcx-dai:creatorDetails>{ authorDetails(author) }</dcx-dai:creatorDetails>).mustBeNonEmpty("dcx-dai:creatorDetails") }
         { <ddm:created>{ dates.created.value }</ddm:created> }
         { <ddm:available>{ dates.available.value }</ddm:available> }
         { dm.audiences.getNonEmpty.map(src => <ddm:audience>{ src.key }</ddm:audience>).mustBeNonEmpty("ddm:audience") }
@@ -50,8 +49,8 @@ object DatasetXml {
       </ddm:profile>
       <ddm:dcmiMetadata>
         { dm.alternativeTitles.getNonEmpty.map(str => <dcterms:alternative>{ str }</dcterms:alternative>).addAttr(lang) }
-        { dm.contributors.withoutRightsHolders.map(author => <dcx-dai:contributorDetails>{ authorDetails(author) }</dcx-dai:contributorDetails>) }
-        { rightsHolders.map(author => <dcterms:rightsHolder>{ author.toString }</dcterms:rightsHolder>) }
+        { authors.contributors.map(author => <dcx-dai:contributorDetails>{ authorDetails(author) }</dcx-dai:contributorDetails>) }
+        { authors.rightsHolders.map(author => <dcterms:rightsHolder>{ author.toString }</dcterms:rightsHolder>) }
         { dm.publishers.getNonEmpty.map(str => <dcterms:publisher>{ str }</dcterms:publisher>).addAttr(lang) }
         { dm.sources.getNonEmpty.map(str => <dc:source>{ str }</dc:source>).addAttr(lang) }
         { dates.schemed.map(date => <x xsi:type={date.scheme.getOrElse("")}>{ date.value }</x>.withLabel(date.qualifier.toString)) }
@@ -84,15 +83,21 @@ object DatasetXml {
         { <dcx-dai:name>{ organization }</dcx-dai:name>.addAttr(lang) }
       </dcx-dai:organization>
 
+  private case class SubmittedAuthors(dm: DatasetMetadata) {
+    val (rightsHoldingCreators, creators) = dm.creators.getOrElse(Seq.empty).partition(_.isRightsHolder)
+    val (rightsHoldingContributors, contributors) = dm.contributors.getOrElse(Seq.empty).partition(_.isRightsHolder)
+    val rightsHolders: Seq[Author] = rightsHoldingContributors ++ rightsHoldingCreators
+  }
+
   private case class SubmittedDates(dm: DatasetMetadata) {
-    private lazy val flattenedDates: Seq[QualifiedSchemedValue[String, DateQualifier]] = dm.dates.toSeq.flatten
-    private lazy val specialDateQualifiers = Seq(
+    private val flattenedDates: Seq[Date] = dm.dates.toSeq.flatten
+    private val specialDateQualifiers = Seq(
       DateQualifier.created, // for ddm:profile
       DateQualifier.available, // for ddm:profile
     )
-    lazy val created: Date = getMandatorySingleDate(DateQualifier.created)
-    lazy val available: Date = getMandatorySingleDate(DateQualifier.available)
-    lazy val (schemed, plain) = {
+    val created: Date = getMandatorySingleDate(DateQualifier.created)
+    val available: Date = getMandatorySingleDate(DateQualifier.available)
+    val (schemed, plain) = {
       if (flattenedDates.exists(_.qualifier == DateQualifier.dateSubmitted))
         throw InvalidDocumentException(s"No ${ DateQualifier.dateSubmitted } allowed in DatasetMetadata")
       (flattenedDates :+ Date(DateTime.now(), DateQualifier.dateSubmitted)
@@ -139,10 +144,6 @@ object DatasetXml {
       if (elems.isEmpty) throwNoContentFor(str)
       else elems
     }
-  }
-
-  private implicit class RichAuthors(val sources: Option[Seq[Author]]) extends AnyVal {
-    def withoutRightsHolders: Seq[Author] = sources.getOrElse(Seq.empty).filterNot(_.isRightsHolder)
   }
 
   private implicit class OptionSeq[T](val sources: Option[Seq[T]]) extends AnyVal {
