@@ -18,10 +18,14 @@ package nl.knaw.dans.easy.deposit
 import java.io.InputStream
 import java.nio.file.{ Files, Path, Paths }
 
+import scala.xml.Elem
+import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.AccessCategory.AccessCategory
 import better.files._
+import org.apache.tika.Tika
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 
-import scala.util.Try
+import scala.collection.Seq
+import scala.util.{ Failure, Try }
 
 /**
  * Represents the data files of a deposit. The data files are the content files that the user uploads,
@@ -55,6 +59,54 @@ case class DataFiles(dataFilesBase: File, filesMetaData: File) extends DebugEnha
     file.outputStream.foreach(is.pipeTo(_))
     createFile
   }
+
+  /**
+   * Generates files.xml from files in draft bag
+   *
+   * @param datasetAccessCategory access type
+   * @return Elem
+   */
+  def getFilesXml(datasetAccessCategory: AccessCategory, pathData: Path): Try[Elem] = Try {
+    val files = dataFilesBase.walk()
+    val tika = new Tika
+
+    val fileXML: File = dataFilesBase / "metadata/files.xml"
+    val createFile = !fileXML.exists
+    fileXML.createIfNotExists(asDirectory = false, createParents = true)
+    fileXML.append("<?xml version='1.0' encoding='UTF-8'?>")
+    fileXML.append("files xmlns:dcterms=\"http://purl.org/dc/terms/\" xmlns=\"http://easy.dans.knaw.nl/schemas/bag/metadata/files/\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\n       xsi:schemaLocation=\"http://purl.org/dc/terms/ http://dublincore.org/schemas/xmls/qdc/2008/02/11/dcterms.xsd http://easy.dans.knaw.nl/schemas/bag/metadata/files/ http://easy.dans.knaw.nl/schemas/bag/metadata/files/files.xsd\"")
+
+
+
+    val file = dataFilesBase / "data"
+    if (!file.exists)
+      Try{Seq.empty}
+    else
+      Try {
+        file
+          .list
+          .filter(!_.isDirectory)
+          .map(
+            x => new DepositDir(baseDir, user, UUID.fromString(x.name))
+          )
+          .toSeq
+      }
+
+
+
+
+
+//      <file filepath="data/path/to/a/random/video/hubble.mpg">
+//        <dcterms:format>tika.detect(path)</dcterms:format>
+//    fileXML.append("</file>")
+
+
+    fileXML.append("</file>")
+
+
+    ???
+  }
+
 
   /**
    * Deletes the file or directory located at the relative path into the data files directory. Directories
