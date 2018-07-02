@@ -16,6 +16,7 @@
 package nl.knaw.dans.easy.deposit
 
 import java.io.InputStream
+import java.nio.charset.StandardCharsets
 import java.nio.file.{ Files, Path, Paths }
 
 import scala.xml.Elem
@@ -26,6 +27,7 @@ import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 
 import scala.collection.Seq
 import scala.util.{ Failure, Try }
+import scala.xml.{ PrettyPrinter, Utility, XML }
 
 /**
  * Represents the data files of a deposit. The data files are the content files that the user uploads,
@@ -67,44 +69,36 @@ case class DataFiles(dataFilesBase: File, filesMetaData: File) extends DebugEnha
    * @return Elem
    */
   def getFilesXml(datasetAccessCategory: AccessCategory, pathData: Path): Try[Elem] = Try {
-    val files = dataFilesBase.walk()
+
+    val dir = File(pathData)
+    val matches: List[File] = dir.walk()
+      .filter(file => file.isRegularFile)
+      .toList
+
+    //    val fileXML = File(pathData + "/metadata/files.xml")
+
     val tika = new Tika
 
-    val fileXML: File = dataFilesBase / "metadata/files.xml"
-    val createFile = !fileXML.exists
-    fileXML.createIfNotExists(asDirectory = false, createParents = true)
-    fileXML.append("<?xml version='1.0' encoding='UTF-8'?>")
-    fileXML.append("files xmlns:dcterms=\"http://purl.org/dc/terms/\" xmlns=\"http://easy.dans.knaw.nl/schemas/bag/metadata/files/\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\n       xsi:schemaLocation=\"http://purl.org/dc/terms/ http://dublincore.org/schemas/xmls/qdc/2008/02/11/dcterms.xsd http://easy.dans.knaw.nl/schemas/bag/metadata/files/ http://easy.dans.knaw.nl/schemas/bag/metadata/files/files.xsd\"")
-
-
-
-    val file = dataFilesBase / "data"
-    if (!file.exists)
-      Try{Seq.empty}
-    else
-      Try {
-        file
-          .list
-          .filter(!_.isDirectory)
-          .map(
-            x => new DepositDir(baseDir, user, UUID.fromString(x.name))
-          )
-          .toSeq
+    <files xmlns:dcterms="http://purl.org/dc/terms/"
+           xmlns="http://easy.dans.knaw.nl/schemas/bag/metadata/files/"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xsi:schemaLocation={"http://purl.org/dc/terms/ http://dublincore.org/schemas/xmls/qdc/2008/02/11/dcterms.xsd http://easy.dans.knaw.nl/schemas/bag/metadata/files/ http://easy.dans.knaw.nl/schemas/bag/metadata/files/files.xsd"}>
+      { matches.map(file =>
+      <file filepath={file.toString()}>
+        <dcterms:format>{tika.detect(file.toString())}</dcterms:format>
+      </file>)
       }
+    </files>
 
-
-
-
-
-//      <file filepath="data/path/to/a/random/video/hubble.mpg">
-//        <dcterms:format>tika.detect(path)</dcterms:format>
-//    fileXML.append("</file>")
-
-
-    fileXML.append("</file>")
-
-
-    ???
+//    val formatter = new PrettyPrinter(160, 2)
+    //    val formatted: String = formatter.format(xml)
+    //
+    //    XML.save(
+    //      filename = fileXML.toString(),
+    //      node = XML.loadString(formatted),
+    //      enc = StandardCharsets.UTF_8.toString,
+    //      xmlDecl = true,
+    //    )
   }
 
 
