@@ -20,6 +20,7 @@ import java.nio.charset.Charset
 import better.files.File
 import nl.knaw.dans.easy.deposit.TestSupportFixture
 import nl.knaw.dans.lib.error._
+import nl.knaw.dans.easy.deposit._
 
 import scala.util.Try
 import scala.xml.{ Elem, PrettyPrinter, Utility, XML }
@@ -43,25 +44,20 @@ class FilesXmlSpec extends TestSupportFixture {
     )
   }
 
-  it should "produce xml" in {
+  it should "produce xml with different mime types" in {
     clearTestDir()
     testDir.createIfNotExists(asDirectory = true)
-    val txtFile = (testDir / "test.txt").write("lorum ipsum")
-    val xmlFile = testDir / "test.xml"
-    writePretty(<dummy/>, xmlFile)
+
+    val txtFile = (testDir / "test.txt").touch().toString()
+    val xmlFile = (testDir / "test.xml").touch().toString()
 
     (createFilesXml \ "file").toList.sortBy(_.attribute("filepath").toString) shouldBe
-      <file filepath={txtFile.toString()}>
+      <file filepath={txtFile}>
         <dcterms:format>text/plain</dcterms:format>
       </file>
-      <file filepath={xmlFile.toString()}>
+      <file filepath={xmlFile}>
         <dcterms:format>application/xml</dcterms:format>
       </file>
-  }
-
-  def writePretty(elem: Elem, file: File): Try[Unit] = Try {
-    val pretty = XML.loadString(new PrettyPrinter(160, 2).format(Utility.trim(elem)))
-    XML.save(file.toString, pretty, Charset.forName("UTF-8").toString, xmlDecl = true)
   }
 
   private def createFilesXml = {
