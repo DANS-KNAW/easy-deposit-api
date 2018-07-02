@@ -21,6 +21,7 @@ import nl.knaw.dans.easy.deposit.PidRequesterComponent.PidRequester
 import nl.knaw.dans.easy.deposit.PidRequesterComponent.PidType.PidType
 import nl.knaw.dans.easy.deposit.docs.StateInfo.State
 import nl.knaw.dans.easy.deposit.docs.{ DatasetMetadata, StateInfo }
+import nl.knaw.dans.lib.error._
 import org.joda.time.DateTime
 import org.scalamock.scalatest.MockFactory
 
@@ -182,24 +183,26 @@ class DepositDirSpec extends TestSupportFixture with MockFactory {
     val prologue = """<?xml version='1.0' encoding='UTF-8'?>"""
     val message = "Lorum ipsum"
     val datasetMetadata = DatasetMetadata(getManualTestResource("datasetmetadata-from-ui-all.json"))
-      .getOrElse(fail("preparing a valid json failed"))
+      .getOrRecover(e => fail(e))
       .copy(messageForDataManager = Some(message))
     val deposit = createDepositAsPreparation("user001")
-    val mdDir = deposit.getDataFiles.getOrElse(fail("preconditions are not met"))
+    val mdDir = deposit.getDataFiles.getOrRecover(e => fail(e))
       .filesMetaData.parent.createIfNotExists(asDirectory = true, createParents = true)
     deposit.writeDatasetMetadataJson(datasetMetadata)
     val oldSize = (mdDir / "dataset.json").size
+    (mdDir.parent / "data" / "text.txt").touch()
 
     deposit.splitDatasetMetadata(DateTime.now) shouldBe Success(())
     (mdDir / "dataset.json").size shouldBe oldSize // the dataset.json file is not changed
     (mdDir / "message-from-depositor.txt").contentAsString shouldBe message
     (mdDir / "agreements.xml").lineIterator.next() shouldBe prologue
     (mdDir / "dataset.xml").lineIterator.next() shouldBe prologue
+    (mdDir / "files.xml").contentAsString should include("""filepath="data/text.txt""")
   }
 
   private def createDepositAsPreparation(user: String) = {
     val triedDepositDir = DepositDir.create(draftsDir, user)
     triedDepositDir should matchPattern { case Success(_) => }
-    triedDepositDir.getOrElse(null)
+    triedDepositDir.getOrRecover(e => fail(e))
   }
 }

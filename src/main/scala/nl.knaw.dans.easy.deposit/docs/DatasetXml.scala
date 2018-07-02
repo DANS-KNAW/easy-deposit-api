@@ -36,7 +36,7 @@ object DatasetXml {
       xmlns:dcterms="http://purl.org/dc/terms/"
       xmlns:dcx-dai="http://easy.dans.knaw.nl/schemas/dcx/dai/"
       xmlns:ddm="http://easy.dans.knaw.nl/schemas/md/ddm/"
-      xsi:schemaLocation="http://easy.dans.knaw.nl/schemas/md/ddm/ http://easy.dans.knaw.nl/schemas/md/2017/09/ddm.xsd"
+      xsi:schemaLocation="http://easy.dans.knaw.nl/schemas/md/ddm/ https://easy.dans.knaw.nl/schemas/md/2017/09/ddm.xsd"
     >
       <ddm:profile>
         { dm.titles.getNonEmpty.map(src => <dc:title>{ src }</dc:title>).addAttr(lang).mustBeNonEmpty("dc:title") }

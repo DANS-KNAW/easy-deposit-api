@@ -53,6 +53,7 @@ case class DepositDir private(baseDir: File, user: String, id: UUID) extends Deb
   private val msgFromDepositorFile = metadataDir / "message-from-depositor.txt"
   private val agreementsFile = metadataDir / "agreements.xml"
   private val datasetXmlFile = metadataDir / "dataset.xml"
+  private val filesXmlFile = metadataDir / "files.xml"
 
   /**
    * @return an information object about the current state of the desposit.
@@ -172,6 +173,8 @@ case class DepositDir private(baseDir: File, user: String, id: UUID) extends Deb
       _ <- agreementsFile.writePretty(agreementsXml)
       datasetXml <- DatasetXml(datasetMetadata)
       _ <- datasetXmlFile.writePretty(datasetXml)
+      filesXml <- FilesXml(dataFilesDir.parent)
+      _ <- filesXmlFile.writePretty(filesXml)
     } yield ()
   }
 
@@ -276,6 +279,3 @@ object DepositDir {
     depositDir
   }
 }
-
-
-

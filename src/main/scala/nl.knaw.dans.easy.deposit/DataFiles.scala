@@ -16,7 +16,7 @@
 package nl.knaw.dans.easy.deposit
 
 import java.io.InputStream
-import java.nio.file.{ Files, Path, Paths }
+import java.nio.file.{ Path, Paths }
 
 import better.files._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
@@ -76,6 +76,4 @@ case class DataFiles(dataFilesBase: File, filesMetaData: File) extends DebugEnha
 
     files.foreach(file => logger.info(s"deleted $file"))
   }
-
-  def writeFilesXml(): Try[Unit] = ???
 }
