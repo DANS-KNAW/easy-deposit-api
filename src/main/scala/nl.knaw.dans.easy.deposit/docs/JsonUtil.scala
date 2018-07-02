@@ -15,21 +15,23 @@
  */
 package nl.knaw.dans.easy.deposit.docs
 
+import java.lang.reflect.InvocationTargetException
 import java.nio.file.{ Path, Paths }
 
-import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.{ DateQualifier, _ }
+import nl.knaw.dans.easy.deposit.docs.DatasetMetadata._
 import nl.knaw.dans.easy.deposit.docs.StateInfo.State
 import org.json4s.Extraction.decompose
-import org.json4s.JsonAST._
+import org.json4s.JsonAST.{ JValue, _ }
+import org.json4s.JsonDSL._
 import org.json4s.ext.{ EnumNameSerializer, JodaTimeSerializers, UUIDSerializer }
 import org.json4s.native.JsonMethods
 import org.json4s.native.Serialization.write
-import org.json4s.{ CustomSerializer, DefaultFormats, Diff, Extraction, Formats, JValue, JsonInput }
+import org.json4s.{ CustomSerializer, DefaultFormats, Diff, Extraction, Formats, JsonInput }
 
 import scala.reflect.runtime.universe.typeOf
 import scala.util.{ Failure, Success, Try }
 
-object Json {
+object JsonUtil {
 
   case class InvalidDocumentException(s: String, t: Throwable = null)
     extends Exception(s"invalid $s: ${ t.getClass } ${ t.getMessage }", t)
@@ -44,11 +46,39 @@ object Json {
     )
   )
 
-  // NB: values for all enums should be unique, see https://github.com/json4s/json4s/issues/142
-  private val enumerations = List(DateQualifier, State, AccessCategory, PrivacySensitiveDataPresent)
+  class RelationTypeSerializer extends CustomSerializer[RelationType](_ =>
+    ( {
+      case JNull => null
+      case s: JValue =>
+        // the first class should have a mandatory field that distinguishes it from the rest
+        Try { Extraction.extract[RelatedIdentifier](s) }
+          .orElse(Try { Extraction.extract[Relation](s) })
+          .getOrElse(throw new IllegalArgumentException(s"expected one of (Relation | RelatedIdentifier) got: ${ toJson(s) }"))
+    }, {
+      // case x: RelationType => JString(x.toString) // would break rejectNotExpectedContent
+      case Relation(qualifier, url, title) =>
+        ("qualifier" -> qualifier.toString) ~
+          ("url" -> url) ~
+          ("title" -> title)
+      case RelatedIdentifier(scheme, value, qualifier) =>
+        ("scheme" -> scheme.map(_.toString)) ~
+          ("value" -> value) ~
+          ("qualifier" -> qualifier.toString)
+    }
+    )
+  )
+
+  val enumerations = List(
+    RelationQualifier,
+    DateQualifier,
+    State,
+    AccessCategory,
+    PrivacySensitiveDataPresent,
+  )
 
   private implicit val jsonFormats: Formats = new DefaultFormats {} +
     UUIDSerializer +
+    new RelationTypeSerializer +
     new PathSerializer ++
     enumerations.map(new EnumNameSerializer(_)) ++
     JodaTimeSerializers.all
@@ -62,8 +92,15 @@ object Json {
         _ <- rejectNotExpectedContent(parsed, result)
       } yield result
     }.recoverWith { case t: Throwable =>
+      val cause = t.getCause match {
+        // caused by require clauses of member classes
+        case cause: InvocationTargetException if t.getMessage == "unknown error" => cause.getTargetException
+        // when a a serializer of a superclass doesn't recognise any of the possibilities
+        case cause: IllegalArgumentException if t.getMessage == "unknown error" => cause
+        case _ => t
+      }
       val className = typeOf[A].typeSymbol.name.toString
-      Failure(InvalidDocumentException(className, t))
+      Failure(InvalidDocumentException(className, cause))
     }
 
     private def rejectNotExpectedContent[T](parsed: JValue, extracted: T): Try[Unit] = {

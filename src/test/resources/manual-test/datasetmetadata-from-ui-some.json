@@ -1,0 +1,57 @@
+{
+  "identifiers": [
+    {
+      "scheme": "id-type:DOI",
+      "value": "doi:10.17632/DANS.6wg5xccnjd.2"
+    }
+  ],
+  "languageOfDescription": {
+    "scheme": "dcterms:ISO639-2",
+    "key": "eng",
+    "value": "English"
+  },
+  "titles": [
+    "title1"
+  ],
+  "descriptions": [
+    "description1",
+    "description2"
+  ],
+  "creators": [
+    {
+      "initials": "A.S.",
+      "surname": "Terix"
+    }
+  ],
+  "audiences": [
+    {
+      "scheme": "narcis:DisciplineType",
+      "key": "D11400",
+      "value": "Fourier analysis, functional analysis"
+    },
+    {
+      "scheme": "narcis:DisciplineType",
+      "key": "D16300",
+      "value": "Theoretical computer science"
+    }
+  ],
+  "dates": [
+    {
+      "scheme": "dcterms:W3CDTF",
+      "value": "2018-03-19",
+      "qualifier": "dcterms:created"
+    },
+    {
+      "scheme": "dcterms:W3CDTF",
+      "value": "2018-05-14",
+      "qualifier": "dcterms:available"
+    }
+  ],
+  "accessRights": {
+    "category": "GROUP_ACCESS",
+    "group": "archaeology"
+  },
+  "license": "DANS-CONDITIONS-OF-USE",
+  "privacySensitiveDataPresent": "yes",
+  "acceptLicenseAgreement": false
+}

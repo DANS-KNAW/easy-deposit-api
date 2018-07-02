@@ -24,7 +24,7 @@ import gov.loc.repository.bagit.creator.BagCreator
 import gov.loc.repository.bagit.domain.{ Metadata => BagitMetadata }
 import gov.loc.repository.bagit.hash.StandardSupportedAlgorithms
 import nl.knaw.dans.easy.deposit.PidRequesterComponent.{ PidRequester, PidType }
-import nl.knaw.dans.easy.deposit.docs.Json.{ InvalidDocumentException, toJson }
+import nl.knaw.dans.easy.deposit.docs.JsonUtil.{ InvalidDocumentException, toJson }
 import nl.knaw.dans.easy.deposit.docs.StateInfo.State
 import nl.knaw.dans.easy.deposit.docs.StateInfo.State.State
 import nl.knaw.dans.easy.deposit.docs.{ DatasetMetadata, DepositInfo, StateInfo }
@@ -85,8 +85,8 @@ case class DepositDir private(baseDir: File, user: String, id: UUID) extends Deb
 
   private def checkStateTransition(transition: (State, State)) = {
     transition match {
-      case (State.DRAFT, State.SUBMITTED) => Success(())
-      case (State.REJECTED, State.DRAFT) => Success(())
+      case (State.draft, State.submitted) => Success(())
+      case (State.rejected, State.draft) => Success(())
       case (oldState, newState) => Failure(IllegalStateTransitionException(user, id, oldState, newState))
     }
   }
@@ -197,7 +197,7 @@ case class DepositDir private(baseDir: File, user: String, id: UUID) extends Deb
     doi <- maybeTriedDOI.getOrElse(pidRequester.requestPid(PidType.doi))
     _ = props.addProperty("identifier.doi", doi)
     _ <- maybeTriedDOI.getOrElse(Try { props.save(depositPropertiesFile.toJava) })
-    _ <- maybeTriedDOI.getOrElse(writeDatasetMetadataJson(dm.copy(doi = Some(doi))))
+    _ <- maybeTriedDOI.getOrElse(writeDatasetMetadataJson(dm.setDoi(doi)))
   } yield doi
 
   private def doisMatch(dm: DatasetMetadata, doi: Option[String]) = {

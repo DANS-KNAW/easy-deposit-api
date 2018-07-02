@@ -99,7 +99,7 @@ class DepositDirSpec extends TestSupportFixture with MockFactory {
   "setStateInfo" should "result in Success when transitioning from DRAFT to SUBMITTED" in {
     val deposit = createDepositAsPreparation("user001")
     val propsFile = draftsDir / "user001" / deposit.id.toString / "deposit.properties"
-    deposit.setStateInfo(StateInfo(State.SUBMITTED, "Ready for processing")) shouldBe a[Success[_]]
+    deposit.setStateInfo(StateInfo(State.submitted, "Ready for processing")) shouldBe a[Success[_]]
     propsFile.contentAsString should include regex """state.label\s*=\s*SUBMITTED""".r
   }
 
@@ -108,14 +108,14 @@ class DepositDirSpec extends TestSupportFixture with MockFactory {
     val propsFile = draftsDir / "user001" / deposit.id.toString / "deposit.properties"
     val old = propsFile.contentAsString
     propsFile.write(old.replaceFirst("DRAFT", "REJECTED"))
-    deposit.setStateInfo(StateInfo(State.DRAFT, "Open for changes")) shouldBe a[Success[_]]
+    deposit.setStateInfo(StateInfo(State.draft, "Open for changes")) shouldBe a[Success[_]]
     propsFile.contentAsString should include regex """state.label\s*=\s*DRAFT""".r
   }
 
   it should "result in IllegalStateTransitionException when transitioning from DRAFT to ARCHIVED" in {
     val deposit = createDepositAsPreparation("user001")
-    deposit.setStateInfo(StateInfo(State.ARCHIVED, "Completed archival process")) should matchPattern {
-      case Failure(IllegalStateTransitionException("user001", _, State.DRAFT, State.ARCHIVED)) =>
+    deposit.setStateInfo(StateInfo(State.archived, "Completed archival process")) should matchPattern {
+      case Failure(IllegalStateTransitionException("user001", _, State.draft, State.archived)) =>
     }
   }
 
@@ -124,8 +124,8 @@ class DepositDirSpec extends TestSupportFixture with MockFactory {
     val propsFile = draftsDir / "user001" / deposit.id.toString / "deposit.properties"
     val old = propsFile.contentAsString
     propsFile.write(old.replaceFirst("DRAFT", "REJECTED"))
-    deposit.setStateInfo(StateInfo(State.ARCHIVED, "Completed archival process")) should matchPattern {
-      case Failure(IllegalStateTransitionException("user001", _, State.REJECTED, State.ARCHIVED)) =>
+    deposit.setStateInfo(StateInfo(State.archived, "Completed archival process")) should matchPattern {
+      case Failure(IllegalStateTransitionException("user001", _, State.`rejected`, State.archived)) =>
     }
   }
 
@@ -148,7 +148,7 @@ class DepositDirSpec extends TestSupportFixture with MockFactory {
     deposit.getDOI(pidMocker) shouldBe Success(doi)
 
     // post conditions
-    mdFile.contentAsString should startWith(s"""{"doi":"$doi",""")
+    mdFile.contentAsString should startWith(s"""{"identifiers":[{"scheme":"id-type:DOI","value":"12345"}]""")
     val newDepositProperties = depositPropertiesFile.contentAsString
     newDepositProperties should include(oldDepositProperties)
     newDepositProperties should include("identifier.doi")
@@ -170,7 +170,7 @@ class DepositDirSpec extends TestSupportFixture with MockFactory {
     val doi = "12345"
     val deposit = createDepositAsPreparation(user)
     val dd = deposit.baseDir / user / deposit.id.toString
-    (dd / "bag" / "metadata" / "dataset.json").writeText(s"""{"doi":"$doi"}""")
+    (dd / "bag" / "metadata" / "dataset.json").writeText(s"""{"identifiers":[{"scheme":"id-type:DOI","value":"12345"}]}""")
     (dd / "deposit.properties").writeText(s"""identifier.doi = $doi""")
 
     val pidMocker = mock[PidRequester] // note that no pid is requested

@@ -31,10 +31,10 @@ class DepositInfoSpec extends TestSupportFixture {
   val depositInfoString = s"""{"id":"$uuid","title":"Lorum ipsum","state":"DRAFT","stateDescription":"Deposit is open for changes.","date":"2018-03-22T21:43:01Z"}"""
 
   "serialization/deserialisation" should "return the same object" in {
-    DepositInfo(Json.toJson(depositInfoObject)) shouldBe Success(depositInfoObject.copy(date = depositInfoObject.date))
+    DepositInfo(JsonUtil.toJson(depositInfoObject)) shouldBe Success(depositInfoObject.copy(date = depositInfoObject.date))
   }
 
   "deserialization/serialisation" should "return the same string" in {
-    DepositInfo(depositInfoString).map(Json.toJson) shouldBe Success(depositInfoString)
+    DepositInfo(depositInfoString).map(JsonUtil.toJson) shouldBe Success(depositInfoString)
   }
 }
