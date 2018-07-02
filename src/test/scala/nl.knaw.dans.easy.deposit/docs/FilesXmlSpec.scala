@@ -27,6 +27,7 @@ class FilesXmlSpec extends TestSupportFixture {
   override def beforeEach(): Unit = {
     super.beforeEach()
     clearTestDir()
+    testDir.createIfNotExists(asDirectory = true)
   }
 
   "apply" should "produce an empty xml" in {
