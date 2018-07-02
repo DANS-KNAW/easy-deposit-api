@@ -22,7 +22,7 @@ import org.json4s.JsonAST._
 import org.json4s.native.JsonMethods
 import org.json4s.{ Diff, JsonInput }
 
-import scala.util.{ Failure, Success, Try }
+import scala.util.{ Failure, Success }
 
 class DatasetMetadataSpec extends TestSupportFixture {
 
@@ -66,8 +66,7 @@ class DatasetMetadataSpec extends TestSupportFixture {
   }
 
   private def prepareDatasetMetadata(example: String): DatasetMetadata = {
-    val tried: Try[DatasetMetadata] = DatasetMetadata(example)
-    tried.getOrRecover(e => fail(e))
+    DatasetMetadata(example).getOrRecover(e => fail(e))
   }
 
   "deserialization" should "report additional json info" in {
