@@ -60,7 +60,7 @@
     {
       "scheme": "string",
       "value": "string",
-      "key": "string"
+      "key": "D33000"
     }
   ],
   "subjects": [
@@ -96,6 +96,11 @@
     }
   ],
   "dates": [
+    {
+      "scheme": "dcterms:W3CDTF",
+      "value": "2018-05-31",
+      "qualifier": "dcterms:available"
+    },
     {
       "scheme": "dcterms:W3CDTF",
       "value": "2018-05-31",
