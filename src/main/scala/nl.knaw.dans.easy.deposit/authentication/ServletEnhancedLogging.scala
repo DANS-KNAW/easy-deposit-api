@@ -31,11 +31,11 @@ trait ServletEnhancedLogging extends DebugEnhancedLogging {
 }
 object ServletEnhancedLogging extends DebugEnhancedLogging {
 
-  implicit class RichActionResult(actionResult: ActionResult)(implicit request: HttpServletRequest) extends Object {
+  implicit class RichActionResult(actionResult: ActionResult)(implicit request: HttpServletRequest) {
     def logResponse: ActionResult = logResult(actionResult)
   }
 
-  implicit class RichTriedActionResult(tried: Try[ActionResult])(implicit request: HttpServletRequest) extends Object {
+  implicit class RichTriedActionResult(tried: Try[ActionResult])(implicit request: HttpServletRequest) {
     // TODO to preserve actionResult into and beyond after filters, copy it into "implicit response: HttpServletResponse"
     // See the last extensive readme version (documentation moved into an incomplete book and guides)
     // https://github.com/scalatra/scalatra/blob/6a614d17c38d19826467adcabf1dc746e3192dfc/README.markdown

@@ -26,7 +26,6 @@ import org.joda.time.format.ISODateTimeFormat
 import org.json4s.JsonInput
 
 import scala.util.{ Failure, Success, Try }
-import scala.xml.Elem
 
 case class DatasetMetadata(identifiers: Option[Seq[SchemedValue[String]]] = None,
                            languageOfDescription: Option[SchemedKeyValue[String]] = None,
@@ -40,7 +39,7 @@ case class DatasetMetadata(identifiers: Option[Seq[SchemedValue[String]]] = None
                            alternativeIdentifiers: Option[Seq[SchemedValue[String]]] = None,
                            relations: Option[Seq[RelationType]] = None,
                            languagesOfFiles: Option[Seq[PossiblySchemedKeyValue[String]]] = None,
-                           dates: Option[Seq[Date]] = None,
+                           dates: Option[Seq[QualifiedSchemedValue[String, DateQualifier]]] = None,
                            sources: Option[Seq[String]] = None,
                            instructionsForReuse: Option[Seq[String]] = None,
                            publishers: Option[Seq[String]] = None,
@@ -61,50 +60,18 @@ case class DatasetMetadata(identifiers: Option[Seq[SchemedValue[String]]] = None
     case SchemedValue(`doiScheme`, value) => value
   })
 
+  lazy val privacyBoolean: Try[Boolean] = privacySensitiveDataPresent match {
+    case PrivacySensitiveDataPresent.yes => Success(true)
+    case PrivacySensitiveDataPresent.no => Success(false)
+    case PrivacySensitiveDataPresent.unspecified => Failure(missingValue("PrivacySensitiveDataPresent"))
+  }
+
+  lazy val licenceAccepted: Try[Unit] = if (acceptLicenseAgreement) Success(())
+                                        else Failure(DatasetMetadata.missingValue("AcceptLicenseAgreement"))
+
   def setDoi(value: String): DatasetMetadata = {
-    val ids = identifiers.getOrElse(Seq.empty).filter(_.scheme == doiScheme)
+    val ids = identifiers.getOrElse(Seq.empty).filterNot(_.scheme == doiScheme)
     this.copy(identifiers = Some(ids :+ SchemedValue(doiScheme, value)))
-  }
-
-  private lazy val submitDate: Option[String] = {
-    dates.flatMap(_.find(_.qualifier == DateQualifier.dateSubmitted)).map(_.value)
-  }
-
-  lazy val xml: Try[Elem] = Success(<stub/>) // TODO
-
-  def setDateSubmitted(): Try[DatasetMetadata] = {
-    if (submitDate.isDefined)
-      Failure(new Exception("dateSubmitted should not be present"))
-    else {
-      val submitted = Date(DateTime.now(), DateQualifier.dateSubmitted)
-      val newDates = submitted +: dates.getOrElse(Seq.empty)
-      Success(copy(dates = Some(newDates)))
-    }
-  }
-
-  def agreements(userId: String): Try[Elem] = {
-    for {
-      _ <- if (acceptLicenseAgreement) Success(())
-           else Failure(missingValue("AcceptLicenseAgreement"))
-      privacy <- toBoolean(privacySensitiveDataPresent)
-      date = submitDate.getOrElse(throw new IllegalArgumentException("no submitDate"))
-    } yield
-      <agr:agreements
-          xmlns:agr="http://easy.dans.knaw.nl/schemas/bag/metadata/agreements/"
-          xmlns:dcterms="http://purl.org/dc/terms/"
-          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-          xsi:schemaLocation="http://easy.dans.knaw.nl/schemas/bag/metadata/agreements/ agreements.xsd">
-        <agr:licenseAgreement>
-          <agr:depositorId>{userId}</agr:depositorId>
-          <dateAccepted>{date}</dateAccepted>
-          <agr:licenseAgreementAccepted>{acceptLicenseAgreement}</agr:licenseAgreementAccepted>
-        </agr:licenseAgreement>
-        <agr:personalDataStatement>
-          <agr:signerId>{userId}</agr:signerId>
-          <agr:dateSigned>{date}</agr:dateSigned>
-          <agr:containsPrivacySensitiveData>{privacy}</agr:containsPrivacySensitiveData>
-        </agr:personalDataStatement>
-      </agr:agreements>
   }
 }
 
@@ -112,30 +79,19 @@ object DatasetMetadata {
   def apply(input: JsonInput): Try[DatasetMetadata] = input.deserialize[DatasetMetadata]
 
   private val doiScheme = "id-type:DOI"
-  private val dateScheme = "dcterms:W3CDTF"
 
   type Date = QualifiedSchemedValue[String, DateQualifier]
 
-  def Date(value: DateTime,
-           qualifier: DateQualifier
-          ): Date = {
-    QualifiedSchemedValue[String, DateQualifier](
-      Some(dateScheme),
-      value.toString(ISODateTimeFormat.date()),
-      qualifier
-    )
+  def Date(value: DateTime, qualifier: DateQualifier): Date = {
+    Date(value.toString(ISODateTimeFormat.date()), qualifier)
   }
 
-  private def missingValue(label: String) = {
+  def Date(value: String, qualifier: DateQualifier): Date = QualifiedSchemedValue[String, DateQualifier](
+    Some("dcterms:W3CDTF"), value, qualifier
+  )
+
+  def missingValue(label: String): InvalidDocumentException = {
     InvalidDocumentException(s"Please set $label in DatasetMetadata")
-  }
-
-  private def toBoolean(privacySensitiveDataPresent: PrivacySensitiveDataPresent): Try[Boolean] = {
-    privacySensitiveDataPresent match {
-      case PrivacySensitiveDataPresent.yes => Success(true)
-      case PrivacySensitiveDataPresent.no => Success(false)
-      case PrivacySensitiveDataPresent.unspecified => Failure(missingValue("PrivacySensitiveDataPresent"))
-    }
   }
 
   object PrivacySensitiveDataPresent extends Enumeration {
@@ -156,7 +112,7 @@ object DatasetMetadata {
     type DateQualifier = Value
     val created: DateQualifier = Value("dcterms:created")
     val available: DateQualifier = Value("dcterms:available")
-    val date: DateQualifier = Value("dcterms:date")
+    val date: DateQualifier = Value("dc:date")
     val dateAccepted: DateQualifier = Value("dcterms:dateAccepted")
     val dateCopyrighted: DateQualifier = Value("dcterms:dateCopyrighted")
     val dateSubmitted: DateQualifier = Value("dcterms:dateSubmitted")
@@ -183,75 +139,131 @@ object DatasetMetadata {
     val conformsTo: RelationQualifier = Value("dcterms:conformsTo")
   }
 
+  trait RequiresNonEmpty {
+    def requireNonEmptyString[T](value: T, tag: String): Unit = {
+      value match {
+        case str: String =>
+          require(str.trim.nonEmpty, s"empty $tag provided for ${ this.getClass.getSimpleName } $this")
+        case _ =>
+      }
+    }
+  }
+
   case class AccessRights(category: AccessCategory,
                           group: Option[String],
                          )
 
-  case class Author(titles: Option[String],
-                    initials: Option[String],
-                    insertions: Option[String],
-                    surname: Option[String],
-                    role: Option[SchemedKeyValue[String]],
-                    ids: Option[Seq[SchemedValue[String]]],
-                    organization: Option[String],
-                   ) {
-    require(isValid, s"Author needs one of (organisation | surname and initials) got: ${ toJson(this) }")
+  implicit class OptionalString[T](val value: Option[T]) extends AnyVal {
+    def isProvided: Boolean = value match {
+      case Some(str: String) => str.trim.nonEmpty
+      case _ => value.isDefined
+    }
+  }
 
-    def isValid: Boolean = {
-      organization.isDefined ||
-        (surname.isDefined && initials.isDefined)
+  case class Author(titles: Option[String] = None,
+                    initials: Option[String] = None,
+                    insertions: Option[String] = None,
+                    surname: Option[String] = None,
+                    role: Option[SchemedKeyValue[String]] = None,
+                    ids: Option[Seq[SchemedValue[String]]] = None,
+                    organization: Option[String] = None,
+                   ) {
+    private val hasMandatory: Boolean = organization.isProvided || (surname.isProvided && initials.isProvided)
+    private val hasRedundant: Boolean = surname.isEmpty && (titles.isProvided || insertions.isProvided)
+    private val incompleteMsg = "needs one of (organisation | surname and initials)"
+    private val redundantMsg = "without surname should have neither titles nor insertions"
+    require(hasMandatory, buildMsg(incompleteMsg))
+    require(!hasRedundant, buildMsg(redundantMsg))
+
+    private def buildMsg(s: String) = s"Author $s; got: ${ toJson(this) }"
+
+    def isRightsHolder: Boolean = role.exists(_.key == "RightsHolder")
+
+    override def toString: String = { // TODO ID's when DatasetXml implements ID's for Author fields
+      val name = Seq(titles, initials, insertions, surname)
+        .filter(_.isProvided)
+        .map(_.getOrElse(""))
+        .mkString(" ")
+      (surname.isProvided, organization.isProvided) match {
+        case (true, true) => s"$name; ${ organization.getOrElse("") }"
+        case (false, true) => organization.getOrElse("")
+        case (true, false) => name
+        case (false, false) => throw new Exception(buildMsg(incompleteMsg)) // only with wrong requires
+      }
     }
   }
 
   case class SpatialPoint(scheme: String,
                           x: Int,
                           y: Int,
-                         )
+                         ) extends RequiresNonEmpty {
+    requireNonEmptyString(scheme, "scheme")
+  }
 
   case class SpatialBox(scheme: String,
                         north: Int,
                         east: Int,
                         south: Int,
                         west: Int,
-                       )
+                       ) extends RequiresNonEmpty {
+    requireNonEmptyString(scheme, "scheme")
+  }
 
   trait RelationType
 
   case class Relation(qualifier: RelationQualifier,
                       url: Option[String],
                       title: Option[String],
-                     ) extends RelationType {
-    require(isValid, "Relation needs at least one of (title | url) got: ${toJson(this)}")
-
-    def isValid: Boolean = {
-      title.isDefined || url.isDefined
-    }
+                     ) extends RequiresNonEmpty with RelationType {
+    require(title.isProvided || url.isProvided, s"Relation needs at least one of (title | url) got: ${ toJson(this) }")
   }
 
   case class RelatedIdentifier(scheme: Option[String],
                                value: String,
-                               qualifier: RelationQualifier) extends RelationType
+                               qualifier: RelationQualifier
+                              ) extends RelationType with RequiresNonEmpty {
+    requireNonEmptyString(value, "value")
+    val hasScheme: Boolean = scheme.isProvided
+  }
 
   case class QualifiedSchemedValue[S, Q](scheme: Option[S],
                                          value: String,
-                                         qualifier: Q)
+                                         qualifier: Q
+                                        ) extends RequiresNonEmpty {
+    requireNonEmptyString(value, "value")
+    val hasScheme: Boolean = scheme.isProvided
+  }
 
   case class SchemedValue[S](scheme: S,
                              value: String,
-                            )
+                            ) extends RequiresNonEmpty {
+    requireNonEmptyString(scheme, "scheme")
+    requireNonEmptyString(value, "value")
+  }
 
   case class PossiblySchemedValue[S](scheme: Option[S],
                                      value: String,
-                                    )
+                                    ) extends RequiresNonEmpty {
+    requireNonEmptyString(value, "value")
+    val hasScheme: Boolean = scheme.isProvided
+  }
 
   case class SchemedKeyValue[S](scheme: S,
                                 key: String,
                                 value: String,
-                               )
+                               ) extends RequiresNonEmpty {
+    requireNonEmptyString(scheme, "scheme")
+    requireNonEmptyString(value, "value")
+    requireNonEmptyString(key, "key")
+  }
 
   case class PossiblySchemedKeyValue[S](scheme: Option[S],
                                         key: Option[String],
                                         value: String,
-                                       )
+                                       ) extends RequiresNonEmpty {
+    requireNonEmptyString(value, "value")
+    val hasScheme: Boolean = scheme.isProvided
+    val hasKey: Boolean = key.isProvided
+  }
 }
 

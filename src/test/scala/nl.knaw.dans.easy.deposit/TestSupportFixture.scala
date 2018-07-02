@@ -15,7 +15,7 @@
  */
 package nl.knaw.dans.easy.deposit
 
-import java.util.{ Base64, UUID }
+import java.util.{ Base64, TimeZone, UUID }
 
 import better.files.File
 import better.files.File._
@@ -23,7 +23,7 @@ import nl.knaw.dans.easy.deposit.authentication.AuthenticationMocker.mockedAuthe
 import nl.knaw.dans.easy.deposit.authentication.TokenSupport.TokenConfig
 import nl.knaw.dans.easy.deposit.authentication.{ AuthConfig, AuthUser, AuthenticationProvider, TokenSupport }
 import org.apache.commons.configuration.PropertiesConfiguration
-import org.joda.time.{ DateTime, DateTimeUtils }
+import org.joda.time.{ DateTime, DateTimeUtils, DateTimeZone }
 import org.scalatest._
 
 trait TestSupportFixture extends FlatSpec with Matchers with Inside with BeforeAndAfterEach {
@@ -31,17 +31,24 @@ trait TestSupportFixture extends FlatSpec with Matchers with Inside with BeforeA
   lazy val testDir: File = currentWorkingDirectory / "target" / "test" / getClass.getSimpleName
   lazy val uuid: UUID = UUID.randomUUID()
 
+  def testResource(file: String): File = File(getClass.getResource(file))
+
+  def getManualTestResource(file: String): String = {
+    (testResource("/manual-test") / file).contentAsString
+  }
+
   def clearTestDir(): Unit = {
     if (testDir.exists)
       testDir.delete().createDirectories()
   }
 
+  val now = "2018-03-22T21:43:01.576"
+  val nowUTC = "2018-03-22T20:43:01Z"
   /** Causes DateTime.now() to return a predefined value. */
-  def mockDateTimeNow(value: String): Unit = {
-    DateTimeUtils.setCurrentMillisFixed(new DateTime(value).getMillis)
-  }
+  DateTimeUtils.setCurrentMillisFixed(new DateTime(nowUTC).getMillis)
+  DateTimeZone.setDefault(DateTimeZone.forTimeZone(TimeZone.getTimeZone("Europe/Amsterdam")))
 
-  val fooBarBasicAuthHeader: String = authenticationHeader("foo","bar")
+  val fooBarBasicAuthHeader: String = authenticationHeader("foo", "bar")
 
   def authenticationHeader(username: String, password: String, authType: String = "Basic"): String = {
     val encoded = Base64.getEncoder.encodeToString(s"$username:$password".getBytes())

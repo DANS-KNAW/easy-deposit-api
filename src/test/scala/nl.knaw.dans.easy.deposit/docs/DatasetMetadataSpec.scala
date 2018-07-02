@@ -15,7 +15,6 @@
  */
 package nl.knaw.dans.easy.deposit.docs
 
-import better.files.File
 import nl.knaw.dans.easy.deposit.TestSupportFixture
 import nl.knaw.dans.easy.deposit.docs.JsonUtil.{ InvalidDocumentException, toJson }
 import org.json4s.JsonAST._
@@ -41,7 +40,7 @@ class DatasetMetadataSpec extends TestSupportFixture {
   }
 
   private def roundTripTest(value: String): Unit = {
-    val example = (File("src") / "test" / "resources" / "manual-test" / value).contentAsString
+    val example = getManualTestResource(value)
     val parsed = prepareDatasetMetadata(example)
     val serializedObject = JsonMethods.parse(toJson(parsed))
     inside(JsonMethods.parse(example) diff serializedObject) {
@@ -169,23 +168,33 @@ class DatasetMetadataSpec extends TestSupportFixture {
   }
 
   "DatasetMetadata.Author" should "accept an author with initials and surname" in {
-    val s: JsonInput = """{ "contributors": [ { "organization": "University of Zurich" } ] }"""
+    val s: JsonInput = """{ "creators": [ { "initials": "A", "surname": "Einstein" } ] }"""
     DatasetMetadata(s) shouldBe a[Success[_]]
   }
 
   it should "accept an organisation as author" in {
-    val s: JsonInput = """{ "creators": [ { "initials": "A", "surname": "Einstein" } ] }"""
+    val s: JsonInput = """{ "contributors": [ { "organization": "University of Zurich" } ] }"""
     DatasetMetadata(s) shouldBe a[Success[_]]
   }
 
   it should "reject an author without initials" in {
     val s: JsonInput = """{ "contributors": [ { "surname": "Einstein" } ] }"""
-    shouldReturnCustomMessage(s, """requirement failed: Author needs one of (organisation | surname and initials) got: {"surname":"Einstein"}""")
+    shouldReturnCustomMessage(s, """requirement failed: Author needs one of (organisation | surname and initials); got: {"surname":"Einstein"}""")
   }
 
   it should "reject an author without surname" in {
     val s: JsonInput = """{ "contributors": [ { "initials": "A" } ] }"""
-    shouldReturnCustomMessage(s, """requirement failed: Author needs one of (organisation | surname and initials) got: {"initials":"A"}""")
+    shouldReturnCustomMessage(s, """requirement failed: Author needs one of (organisation | surname and initials); got: {"initials":"A"}""")
+  }
+
+  it should "reject an organisation with titles" in {
+    val s: JsonInput = """{ "contributors": [ { "titles": "A", "organization": "University of Zurich" } ] }"""
+    shouldReturnCustomMessage(s, """requirement failed: Author without surname should have neither titles nor insertions; got: {"titles":"A","organization":"University of Zurich"}""")
+  }
+
+  it should "reject an organisation with insertions" in {
+    val s: JsonInput = """{ "contributors": [ { "insertions": "van der", "organization": "University of Zurich" } ] }"""
+    shouldReturnCustomMessage(s, """requirement failed: Author without surname should have neither titles nor insertions; got: {"insertions":"van der","organization":"University of Zurich"}""")
   }
 
   /** Performs a test that (among others) might break after an upgrade of the json4s library

@@ -19,9 +19,9 @@ import java.nio.file.attribute.PosixFilePermission
 
 import nl.knaw.dans.easy.deposit.PidRequesterComponent.PidRequester
 import nl.knaw.dans.easy.deposit.PidRequesterComponent.PidType.PidType
-import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.PrivacySensitiveDataPresent
 import nl.knaw.dans.easy.deposit.docs.StateInfo.State
 import nl.knaw.dans.easy.deposit.docs.{ DatasetMetadata, StateInfo }
+import org.joda.time.DateTime
 import org.scalamock.scalatest.MockFactory
 
 import scala.util.{ Failure, Success }
@@ -181,11 +181,9 @@ class DepositDirSpec extends TestSupportFixture with MockFactory {
   "writeSplittedDatasetMetadata" should "write 4 files" in {
     val prologue = """<?xml version='1.0' encoding='UTF-8'?>"""
     val message = "Lorum ipsum"
-    val datasetMetadata = DatasetMetadata(
-      privacySensitiveDataPresent = PrivacySensitiveDataPresent.yes,
-      acceptLicenseAgreement = true,
-      messageForDataManager = Some(message)
-    )
+    val datasetMetadata = DatasetMetadata(getManualTestResource("datasetmetadata-from-ui-all.json"))
+      .getOrElse(fail("preparing a valid json failed"))
+      .copy(messageForDataManager = Some(message))
     val deposit = createDepositAsPreparation("user001")
     val mdDir = deposit.getDataFiles.getOrElse(fail("preconditions are not met"))
       .filesMetaData.parent.createIfNotExists(asDirectory = true, createParents = true)
@@ -193,8 +191,8 @@ class DepositDirSpec extends TestSupportFixture with MockFactory {
     val oldSize = (mdDir / "dataset.json").size
     (mdDir.parent / "data" / "text.txt").touch()
 
-    deposit.splitDatasetMetadata shouldBe Success(())
-    (mdDir / "dataset.json").size should be > oldSize
+    deposit.splitDatasetMetadata(DateTime.now) shouldBe Success(())
+    (mdDir / "dataset.json").size shouldBe oldSize // the dataset.json file is not changed
     (mdDir / "message-from-depositor.txt").contentAsString shouldBe message
     (mdDir / "agreements.xml").lineIterator.next() shouldBe prologue
     (mdDir / "dataset.xml").lineIterator.next() shouldBe prologue
