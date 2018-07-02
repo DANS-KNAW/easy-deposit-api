@@ -46,18 +46,18 @@ class FilesXmlSpec extends TestSupportFixture {
 
   it should "produce xml with different mime types" in {
     clearTestDir()
-    testDir.createIfNotExists(asDirectory = true)
+    (testDir / "folder").createIfNotExists(asDirectory = true)
 
-    val txtFile = (testDir / "test.txt").touch().toString()
-    val xmlFile = (testDir / "test.xml").touch().toString()
+    (testDir / "test.txt").touch()
+    (testDir / "folder" / "test.xml").touch()
 
     (createFilesXml \ "file").toList.sortBy(_.attribute("filepath").toString) shouldBe
-      <file filepath={txtFile}>
-        <dcterms:format>text/plain</dcterms:format>
-      </file>
-      <file filepath={xmlFile}>
-        <dcterms:format>application/xml</dcterms:format>
-      </file>
+        <file filepath="folder/test.xml">
+          <dcterms:format>application/xml</dcterms:format>
+        </file>
+        <file filepath="test.txt">
+          <dcterms:format>text/plain</dcterms:format>
+        </file>
   }
 
   private def createFilesXml = {
