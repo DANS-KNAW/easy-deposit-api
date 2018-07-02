@@ -175,7 +175,7 @@ case class DepositDir private(baseDir: File, user: String, id: UUID) extends Deb
       _ <- agreementsFile.writePretty(agreementsXml)
       datasetXml <- datasetMetadata.xml
       _ <- datasetXmlFile.writePretty(datasetXml)
-      filesXml <- FilesXml(dataFilesDir)
+      filesXml <- FilesXml(dataFilesDir.parent)
       _ <- filesXmlFile.writePretty(filesXml)
     } yield ()
   }
