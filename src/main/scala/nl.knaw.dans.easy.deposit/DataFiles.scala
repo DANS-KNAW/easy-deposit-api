@@ -21,7 +21,6 @@ import java.nio.file.{ Path, Paths }
 import better.files._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 
-import scala.collection.Seq
 import scala.util.Try
 
 /**
@@ -56,7 +55,6 @@ case class DataFiles(dataFilesBase: File, filesMetaData: File) extends DebugEnha
     file.outputStream.foreach(is.pipeTo(_))
     createFile
   }
-
 
   /**
    * Deletes the file or directory located at the relative path into the data files directory. Directories

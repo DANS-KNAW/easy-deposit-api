@@ -15,8 +15,6 @@
  */
 package nl.knaw.dans.easy.deposit.docs
 
-import java.nio.file.Path
-
 import better.files.File
 import org.apache.tika.Tika
 
@@ -25,6 +23,8 @@ import scala.xml.Elem
 
 object FilesXml {
 
+  private val tika = new Tika
+
   /**
    * Generates files.xml from files in draft bag
    *
@@ -32,11 +32,9 @@ object FilesXml {
    */
   def apply(pathData: File): Try[Elem] = Try {
 
-    val tika = new Tika
     val files = pathData
-      .walk()
-      .filter(_.isRegularFile)
-      .map { file =>
+      .listRecursively()
+      .collect { case file if file.isRegularFile =>
         val fileName = pathData.relativize(file).toString
         <file filepath={fileName}>
           <dcterms:format>{tika.detect(fileName)}</dcterms:format>

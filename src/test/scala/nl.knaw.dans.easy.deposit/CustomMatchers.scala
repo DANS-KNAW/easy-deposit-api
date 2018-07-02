@@ -20,7 +20,6 @@ import java.io.File
 import org.scalatest.matchers.{ MatchResult, Matcher }
 
 import scala.io.Source
-import scala.xml.Node
 
 /** Does not dump the full file but just the searched content if it is not found.
  *

@@ -15,24 +15,22 @@
  */
 package nl.knaw.dans.easy.deposit.docs
 
-import java.nio.charset.Charset
-
-import better.files.File
 import nl.knaw.dans.easy.deposit.TestSupportFixture
 import nl.knaw.dans.lib.error._
-import nl.knaw.dans.easy.deposit._
 
-import scala.util.Try
-import scala.xml.{ Elem, PrettyPrinter, Utility, XML }
+import scala.xml.PrettyPrinter
 
-class FilesXmlSpec extends TestSupportFixture {
+class FilesXmlSpec extends TestSupportFixture{
   // pretty provides friendly trouble shooting for complex XML's
   private val prettyPrinter: PrettyPrinter = new scala.xml.PrettyPrinter(1024, 2)
 
-  "apply" should "produce an empty xml" in {
+  override def beforeEach(): Unit = {
+    super.beforeEach()
     clearTestDir()
     testDir.createIfNotExists(asDirectory = true)
+  }
 
+  "apply" should "produce an empty xml" in {
     prettyPrinter.format(createFilesXml) shouldBe prettyPrinter.format(
       <files
         xmlns:dcterms="http://purl.org/dc/terms/"
