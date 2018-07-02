@@ -18,7 +18,6 @@ package nl.knaw.dans.easy.deposit.docs
 import java.nio.charset.Charset
 
 import better.files.File
-import nl.knaw.dans.easy.deposit.FileExtensions
 import nl.knaw.dans.easy.deposit.TestSupportFixture
 import nl.knaw.dans.lib.error._
 
