@@ -20,6 +20,8 @@ import java.nio.charset.StandardCharsets
 import java.nio.file.attribute.PosixFilePermission
 import java.nio.file.{ AccessDeniedException, NoSuchFileException, Paths }
 
+import nl.knaw.dans.lib.error._
+
 import scala.util.{ Failure, Success }
 
 class DataFilesSpec extends TestSupportFixture {
@@ -31,8 +33,7 @@ class DataFilesSpec extends TestSupportFixture {
 
   private val draftsDir = testDir / "drafts"
   private val dataFiles = DepositDir(draftsDir, "user01", uuid)
-    .getDataFiles
-    .getOrElse(throw new Exception("test preparations failed"))
+    .getDataFiles.getOrRecover(e => fail(e))
 
   "write" should "write content to the path specified" in {
     val content = "Lorem ipsum est"

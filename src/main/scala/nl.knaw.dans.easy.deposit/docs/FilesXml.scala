@@ -31,7 +31,6 @@ object FilesXml {
    * @return Elem
    */
   def apply(pathData: File): Try[Elem] = Try {
-
     val files = pathData
       .listRecursively()
       .collect { case file if file.isRegularFile =>

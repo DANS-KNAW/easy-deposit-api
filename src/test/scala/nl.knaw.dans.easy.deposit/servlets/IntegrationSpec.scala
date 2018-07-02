@@ -22,6 +22,7 @@ import nl.knaw.dans.easy.deposit.PidRequesterComponent.PidType.PidType
 import nl.knaw.dans.easy.deposit.authentication.AuthenticationMocker._
 import nl.knaw.dans.easy.deposit.docs.DepositInfo
 import nl.knaw.dans.easy.deposit.{ EasyDepositApiApp, _ }
+import nl.knaw.dans.lib.error._
 import org.eclipse.jetty.http.HttpStatus._
 import org.scalamock.scalatest.MockFactory
 import org.scalatra.test.scalatest.ScalatraSuite
@@ -49,7 +50,7 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
     val responseBody = post(uri = s"/deposit", headers = Seq(basicAuthentication)) {
       new String(bodyBytes)
     }
-    val uuid = DepositInfo(responseBody).map(_.id.toString).getOrElse("whoops")
+    val uuid = DepositInfo(responseBody).map(_.id.toString).getOrRecover(e => fail(e))
     val metadataURI = s"/deposit/$uuid/metadata"
 
     // create dataset metadata
@@ -116,7 +117,7 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
     val responseBody = post(uri = s"/deposit", headers = Seq(basicAuthentication)) {
       new String(bodyBytes)
     }
-    val uuid = DepositInfo(responseBody).map(_.id.toString).getOrElse("whoops")
+    val uuid = DepositInfo(responseBody).map(_.id.toString).getOrRecover(e => fail(e))
 
     val dataFilesBase = DepositDir(testDir / "drafts", "foo", UUID.fromString(uuid)).getDataFiles.get.dataFilesBase
     val times = 500
@@ -142,7 +143,7 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
     val responseBody = post(uri = s"/deposit", headers = Seq(basicAuthentication)) {
       new String(bodyBytes)
     }
-    val uuid = DepositInfo(responseBody).map(_.id.toString).getOrElse("whoops")
+    val uuid = DepositInfo(responseBody).map(_.id.toString).getOrRecover(e => fail(e))
 
     val dataFilesBase = DepositDir(testDir / "drafts", "foo", UUID.fromString(uuid)).getDataFiles.get.dataFilesBase
 

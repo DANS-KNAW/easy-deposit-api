@@ -20,14 +20,13 @@ import nl.knaw.dans.lib.error._
 
 import scala.xml.PrettyPrinter
 
-class FilesXmlSpec extends TestSupportFixture{
+class FilesXmlSpec extends TestSupportFixture {
   // pretty provides friendly trouble shooting for complex XML's
   private val prettyPrinter: PrettyPrinter = new scala.xml.PrettyPrinter(1024, 2)
 
   override def beforeEach(): Unit = {
     super.beforeEach()
     clearTestDir()
-    testDir.createIfNotExists(asDirectory = true)
   }
 
   "apply" should "produce an empty xml" in {
@@ -43,7 +42,6 @@ class FilesXmlSpec extends TestSupportFixture{
   }
 
   it should "produce xml with different mime types" in {
-    clearTestDir()
     (testDir / "folder").createIfNotExists(asDirectory = true)
 
     (testDir / "test.txt").touch()
@@ -59,9 +57,6 @@ class FilesXmlSpec extends TestSupportFixture{
   }
 
   private def createFilesXml = {
-    val filesXml = FilesXml(testDir)
-      .doIfFailure { case e => println(e) }
-      .getOrElse(fail("creating xml failed"))
-    filesXml
+    FilesXml(testDir).getOrRecover(e => fail(e))
   }
 }

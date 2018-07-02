@@ -17,11 +17,12 @@ package nl.knaw.dans.easy.deposit.docs
 
 import nl.knaw.dans.easy.deposit.TestSupportFixture
 import nl.knaw.dans.easy.deposit.docs.JsonUtil.{ InvalidDocumentException, toJson }
+import nl.knaw.dans.lib.error._
 import org.json4s.JsonAST._
 import org.json4s.native.JsonMethods
 import org.json4s.{ Diff, JsonInput }
 
-import scala.util.{ Failure, Success }
+import scala.util.{ Failure, Success, Try }
 
 class DatasetMetadataSpec extends TestSupportFixture {
 
@@ -64,9 +65,9 @@ class DatasetMetadataSpec extends TestSupportFixture {
       """{"creators":[],"privacySensitiveDataPresent":"unspecified","acceptLicenseAgreement":false}"""
   }
 
-  private def prepareDatasetMetadata(example: String) = {
-    val tried = DatasetMetadata(example)
-    tried.getOrElse(fail(s"preparation failed with: $tried"))
+  private def prepareDatasetMetadata(example: String): DatasetMetadata = {
+    val tried: Try[DatasetMetadata] = DatasetMetadata(example)
+    tried.getOrRecover(e => fail(e))
   }
 
   "deserialization" should "report additional json info" in {

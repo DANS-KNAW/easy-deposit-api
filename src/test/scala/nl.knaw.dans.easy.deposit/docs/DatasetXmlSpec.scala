@@ -46,12 +46,12 @@ class DatasetXmlSpec extends TestSupportFixture with DdmBehavior {
       |  "audiences": [ { "scheme": "blabla", "key": "D35200", "value": "some audience"} ]
       |}""".stripMargin)
     .doIfFailure { case e => println(e) }
-    .getOrElse(fail("parsing minimal json failed"))
+    .getOrRecover(e => fail(e))
 
   /** provides the verbose namespaces for inline DDM */
   override val emptyDDM: Elem = DatasetXml(minimal)
     .doIfFailure { case e => println(e) }
-    .getOrElse(fail("test preparation failed"))
+    .getOrRecover(e => fail(e))
     .copy(child = Seq())
 
   "minimal" should behave like validDatasetMetadata(
@@ -311,10 +311,10 @@ trait DdmBehavior {
   private val prettyPrinter: PrettyPrinter = new scala.xml.PrettyPrinter(1024, 2)
 
   /**
-   * @param input          to be converted to DDM
-   * @param subset         subset of generated DDM that should match expectedOutput
+   * @param input              to be converted to DDM
+   * @param subset             subset of generated DDM that should match expectedOutput
    * @param expectedDdmContent members of <ddm:DDM> that should equal
-   *                       the members of subset(DatsetXm(input.get))
+   *                           the members of subset(DatsetXm(input.get))
    */
   def validDatasetMetadata(input: Try[DatasetMetadata],
                            subset: Elem => Elem = identity,
@@ -322,10 +322,10 @@ trait DdmBehavior {
                           ): Unit = {
     lazy val datasetMetadata = input
       .doIfFailure { case e => println(s"$e") }
-      .getOrElse(fail("test input should be a success"))
+      .getOrRecover(e => fail(e))
     lazy val ddm = DatasetXml(datasetMetadata)
       .doIfFailure { case e => println(s"$e") }
-      .getOrElse(fail("can't create DDM from test input"))
+      .getOrRecover(e => fail(e))
 
     if (expectedDdmContent.nonEmpty) it should "generate expected DDM" in {
       prettyPrinter.format(subset(ddm)) shouldBe
@@ -334,7 +334,7 @@ trait DdmBehavior {
 
     it should "generate valid DDM" in {
       assume(triedSchema.isSuccess)
-      val validator = triedSchema.getOrElse(fail("no schema available despite assume")).newValidator()
+      val validator = triedSchema.getOrRecover(e => fail(e)).newValidator()
       val xmlString = prettyPrinter.format(ddm)
       Using.bufferedInputStream(new ByteArrayInputStream(
         xmlString.getBytes(StandardCharsets.UTF_8)
