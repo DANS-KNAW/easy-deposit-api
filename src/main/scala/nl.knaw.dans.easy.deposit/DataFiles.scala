@@ -16,18 +16,13 @@
 package nl.knaw.dans.easy.deposit
 
 import java.io.InputStream
-import java.nio.charset.StandardCharsets
-import java.nio.file.{ Files, Path, Paths }
+import java.nio.file.{ Path, Paths }
 
-import scala.xml.Elem
-import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.AccessCategory.AccessCategory
 import better.files._
-import org.apache.tika.Tika
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 
 import scala.collection.Seq
-import scala.util.{ Failure, Try }
-import scala.xml.{ PrettyPrinter, Utility, XML }
+import scala.util.Try
 
 /**
  * Represents the data files of a deposit. The data files are the content files that the user uploads,
@@ -62,45 +57,6 @@ case class DataFiles(dataFilesBase: File, filesMetaData: File) extends DebugEnha
     createFile
   }
 
-  /**
-   * Generates files.xml from files in draft bag
-   *
-   * @param datasetAccessCategory access type
-   * @return Elem
-   */
-  def getFilesXml(datasetAccessCategory: AccessCategory, pathData: Path): Try[Elem] = Try {
-
-    val dir = File(pathData)
-    val matches: List[File] = dir.walk()
-      .filter(file => file.isRegularFile)
-      .toList
-
-    //    val fileXML = File(pathData + "/metadata/files.xml")
-
-    val tika = new Tika
-
-    <files xmlns:dcterms="http://purl.org/dc/terms/"
-           xmlns="http://easy.dans.knaw.nl/schemas/bag/metadata/files/"
-           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-           xsi:schemaLocation={"http://purl.org/dc/terms/ http://dublincore.org/schemas/xmls/qdc/2008/02/11/dcterms.xsd http://easy.dans.knaw.nl/schemas/bag/metadata/files/ http://easy.dans.knaw.nl/schemas/bag/metadata/files/files.xsd"}>
-      { matches.map(file =>
-      <file filepath={file.toString()}>
-        <dcterms:format>{tika.detect(file.toString())}</dcterms:format>
-      </file>)
-      }
-    </files>
-
-//    val formatter = new PrettyPrinter(160, 2)
-    //    val formatted: String = formatter.format(xml)
-    //
-    //    XML.save(
-    //      filename = fileXML.toString(),
-    //      node = XML.loadString(formatted),
-    //      enc = StandardCharsets.UTF_8.toString,
-    //      xmlDecl = true,
-    //    )
-  }
-
 
   /**
    * Deletes the file or directory located at the relative path into the data files directory. Directories
@@ -122,6 +78,4 @@ case class DataFiles(dataFilesBase: File, filesMetaData: File) extends DebugEnha
 
     files.foreach(file => logger.info(s"deleted $file"))
   }
-
-  def writeFilesXml(): Try[Unit] = ???
 }

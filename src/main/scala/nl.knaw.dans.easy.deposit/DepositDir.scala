@@ -27,7 +27,7 @@ import nl.knaw.dans.easy.deposit.PidRequesterComponent.{ PidRequester, PidType }
 import nl.knaw.dans.easy.deposit.docs.JsonUtil.{ InvalidDocumentException, toJson }
 import nl.knaw.dans.easy.deposit.docs.StateInfo.State
 import nl.knaw.dans.easy.deposit.docs.StateInfo.State.State
-import nl.knaw.dans.easy.deposit.docs.{ DatasetMetadata, DepositInfo, StateInfo }
+import nl.knaw.dans.easy.deposit.docs.{ DatasetMetadata, DepositInfo, FilesXml, StateInfo }
 import nl.knaw.dans.lib.error._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.apache.commons.configuration.PropertiesConfiguration
@@ -53,6 +53,7 @@ case class DepositDir private(baseDir: File, user: String, id: UUID) extends Deb
   private val msgFromDepositorFile = metadataDir / "message-from-depositor.txt"
   private val agreementsFile = metadataDir / "agreements.xml"
   private val datasetXmlFile = metadataDir / "dataset.xml"
+  private val filesXmlFile = metadataDir / "files.xml"
 
   /**
    * @return an information object about the current state of the desposit.
@@ -174,6 +175,8 @@ case class DepositDir private(baseDir: File, user: String, id: UUID) extends Deb
       _ <- agreementsFile.writePretty(agreementsXml)
       datasetXml <- datasetMetadata.xml
       _ <- datasetXmlFile.writePretty(datasetXml)
+      filesXml <- FilesXml(dataFilesDir)
+      _ <- filesXmlFile.writePretty(filesXml)
     } yield ()
   }
 

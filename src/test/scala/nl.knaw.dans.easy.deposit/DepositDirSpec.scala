@@ -197,6 +197,7 @@ class DepositDirSpec extends TestSupportFixture with MockFactory {
     (mdDir / "message-from-depositor.txt").contentAsString shouldBe message
     (mdDir / "agreements.xml").lineIterator.next() shouldBe prologue
     (mdDir / "dataset.xml").lineIterator.next() shouldBe prologue
+    (mdDir / "files.xml").lineIterator.next() shouldBe prologue
   }
 
   private def createDepositAsPreparation(user: String) = {
