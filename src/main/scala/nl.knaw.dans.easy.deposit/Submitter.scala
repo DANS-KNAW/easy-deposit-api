@@ -16,8 +16,10 @@
 package nl.knaw.dans.easy.deposit
 
 import better.files.File
+import org.joda.time.DateTime
+import sun.reflect.generics.reflectiveObjects.NotImplementedException
 
-import scala.util.Try
+import scala.util.{ Failure, Try }
 
 /**
  * Object that contains the logic for submitting a deposit.
@@ -37,13 +39,10 @@ class Submitter(stagingBaseDir: File, submitToBaseDir: File) {
   def submit(depositDir: DepositDir): Try[Unit] = {
     // TODO: implement as follows:
     // 1. Set state to SUBMITTED
-    // 2. getDataFiles.writeFilesXml()
-    // 3. getDatasetMetadata.writeDatasetXml()
-    // 4. getDatasetMetadata.writeAgreementsXml()
+    depositDir.createXMLs(DateTime.now)
     // 5. Update/write bag checksums.
     // 6. Copy to staging area
     // 7. Move copy to submit-to area
-
-    ???
+    Try(???)
   }
 }
