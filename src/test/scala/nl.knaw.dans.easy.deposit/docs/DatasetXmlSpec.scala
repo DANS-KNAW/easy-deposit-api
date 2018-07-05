@@ -303,14 +303,18 @@ trait DdmBehavior {
   val emptyDDM: Elem
 
   lazy val triedSchema: Try[Schema] = Try { // loading postponed until we actually start validating
-    // TODO get schema from emptyDDM attributes
-    val schemas = "https://easy.dans.knaw.nl/schemas/md/2017/09/ddm.xsd" :: Nil
+    val schemas = emptyDDM.attribute("http://www.w3.org/2001/XMLSchema-instance","schemaLocation")
+      .getOrElse(fail("no schemaLocation attribute"))
+      .headOption
+      .getOrElse(fail("no schemaLocation value"))
+      .text
+      .replaceAll(".* ","") :: Nil
     SchemaFactory
       .newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI)
       .newSchema(schemas.map(xsd => new StreamSource(xsd)).toArray[Source])
   }
 
-  // pretty provides friendlier trouble shooting for complex XML's than Utility.trim
+  // pretty provides friendly trouble shooting for complex XML's
   private val prettyPrinter: PrettyPrinter = new scala.xml.PrettyPrinter(1024, 2)
 
   /**
