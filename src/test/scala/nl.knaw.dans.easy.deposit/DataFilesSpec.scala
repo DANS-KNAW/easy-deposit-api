@@ -33,7 +33,7 @@ class DataFilesSpec extends TestSupportFixture {
 
   private val draftsDir = testDir / "drafts"
   private val dataFiles = DepositDir(draftsDir, "user01", uuid)
-    .getDataFiles.getOrRecover(e => fail(e))
+    .getDataFiles.getOrRecover(e => fail(e.toString))
 
   "write" should "write content to the path specified" in {
     val content = "Lorem ipsum est"

@@ -48,12 +48,12 @@ class DatasetXmlSpec extends TestSupportFixture with DdmBehavior {
       |  "audiences": [ { "scheme": "blabla", "key": "D35200", "value": "some audience"} ]
       |}""".stripMargin)
     .doIfFailure { case e => println(e) }
-    .getOrRecover(e => fail(e))
+    .getOrRecover(e => fail(e.toString))
 
   /** provides the verbose namespaces for inline DDM */
   override val emptyDDM: Elem = DatasetXml(minimal)
     .doIfFailure { case e => println(e) }
-    .getOrRecover(e => fail(e))
+    .getOrRecover(e => fail(e.toString))
     .copy(child = Seq())
 
   "minimal" should behave like validDatasetMetadata(
@@ -329,10 +329,10 @@ trait DdmBehavior {
                           ): Unit = {
     lazy val datasetMetadata = input
       .doIfFailure { case e => println(s"$e") }
-      .getOrRecover(e => fail(e))
+      .getOrRecover(e => fail(e.toString))
     lazy val ddm = DatasetXml(datasetMetadata)
       .doIfFailure { case e => println(s"$e") }
-      .getOrRecover(e => fail(e))
+      .getOrRecover(e => fail(e.toString))
 
     if (expectedDdmContent.nonEmpty) it should "generate expected DDM" in {
       prettyPrinter.format(subset(ddm)) shouldBe
