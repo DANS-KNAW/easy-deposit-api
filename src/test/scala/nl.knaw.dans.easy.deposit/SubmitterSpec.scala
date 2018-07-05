@@ -25,7 +25,7 @@ class SubmitterSpec extends TestSupportFixture {
   override def beforeEach(): Unit = {
     super.beforeEach()
     clearTestDir()
-    draftsDir.createDirectories()
+    //draftsDir.createDirectories()
   }
 
   private val draftsDir = testDir / "drafts"
