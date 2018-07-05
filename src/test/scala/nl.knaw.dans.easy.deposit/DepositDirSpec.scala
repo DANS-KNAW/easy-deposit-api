@@ -180,6 +180,6 @@ class DepositDirSpec extends TestSupportFixture with MockFactory {
   }
 
   private def createDepositAsPreparation(user: String) = {
-    DepositDir.create(draftsDir, user).getOrRecover(e => fail(e.toString))
+    DepositDir.create(draftsDir, user).getOrRecover(e => fail(e.toString, e))
   }
 }

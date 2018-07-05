@@ -66,7 +66,7 @@ class DatasetMetadataSpec extends TestSupportFixture {
   }
 
   private def prepareDatasetMetadata(example: String): DatasetMetadata = {
-    DatasetMetadata(example).getOrRecover(e => fail(e.toString))
+    DatasetMetadata(example).getOrRecover(e => fail(e.toString, e))
   }
 
   "deserialization" should "report additional json info" in {

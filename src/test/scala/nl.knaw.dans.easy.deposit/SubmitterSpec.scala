@@ -34,10 +34,10 @@ class SubmitterSpec extends TestSupportFixture {
     val prologue = """<?xml version='1.0' encoding='UTF-8'?>"""
     val message = "Lorum ipsum"
     val datasetMetadata = DatasetMetadata(getManualTestResource("datasetmetadata-from-ui-all.json"))
-      .getOrRecover(e => fail(e.toString))
+      .getOrRecover(e => fail(e.toString, e))
       .copy(messageForDataManager = Some(message))
-    val depositDir = DepositDir.create(draftsDir, "user").getOrRecover(e => fail(e.toString))
-    val mdDir = depositDir.getDataFiles.getOrRecover(e => fail(e.toString))
+    val depositDir = DepositDir.create(draftsDir, "user").getOrRecover(e => fail(e.toString, e))
+    val mdDir = depositDir.getDataFiles.getOrRecover(e => fail(e.toString, e))
       .filesMetaData.parent.createIfNotExists(asDirectory = true, createParents = true)
     depositDir.writeDatasetMetadataJson(datasetMetadata)
     val oldSize = (mdDir / "dataset.json").size
