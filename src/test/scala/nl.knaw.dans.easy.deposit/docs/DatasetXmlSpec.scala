@@ -16,6 +16,7 @@
 package nl.knaw.dans.easy.deposit.docs
 
 import java.io.ByteArrayInputStream
+import java.net.UnknownHostException
 import java.nio.charset.StandardCharsets
 
 import javax.xml.XMLConstants
@@ -26,6 +27,7 @@ import nl.knaw.dans.easy.deposit.TestSupportFixture
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.{ Author, DateQualifier, SchemedKeyValue }
 import nl.knaw.dans.easy.deposit.docs.JsonUtil.InvalidDocumentException
 import nl.knaw.dans.lib.error._
+import org.xml.sax.SAXParseException
 import resource.Using
 
 import scala.util.{ Failure, Success, Try }
@@ -301,10 +303,11 @@ trait DdmBehavior {
   val emptyDDM: Elem
 
   lazy val triedSchema: Try[Schema] = Try { // loading postponed until we actually start validating
-    val factory = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI)
-    val schemas = "http://dublincore.org/schemas/xmls/qdc/2008/02/11/dcterms.xsd" ::
-      "https://easy.dans.knaw.nl/schemas/md/ddm/ddm.xsd" :: Nil
-    factory.newSchema(schemas.map(xsd => new StreamSource(xsd)).toArray[Source])
+    // TODO get schema from emptyDDM attributes
+    val schemas = "https://easy.dans.knaw.nl/schemas/md/2017/09/ddm.xsd" :: Nil
+    SchemaFactory
+      .newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI)
+      .newSchema(schemas.map(xsd => new StreamSource(xsd)).toArray[Source])
   }
 
   // pretty provides friendlier trouble shooting for complex XML's than Utility.trim
@@ -333,8 +336,13 @@ trait DdmBehavior {
     }
 
     it should "generate valid DDM" in {
-      assume(triedSchema.isSuccess)
-      val validator = triedSchema.getOrRecover(e => fail(e)).newValidator()
+      val unknownHost = triedSchema match {
+        case _: Success[_] => false
+        case Failure(e: SAXParseException) if e.getCause.isInstanceOf[UnknownHostException] => true
+        case _ => false
+      }
+      assume(!unknownHost)
+      val validator = triedSchema.getOrRecover(e => fail(s"could not load schema: $e")).newValidator()
       val xmlString = prettyPrinter.format(ddm)
       Using.bufferedInputStream(new ByteArrayInputStream(
         xmlString.getBytes(StandardCharsets.UTF_8)
