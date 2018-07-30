@@ -164,8 +164,10 @@ case class DepositDir private(baseDir: File, user: String, id: UUID) extends Deb
     () // satisfy the compiler which doesn't want a File
   }.recoverWith { case _: NoSuchFileException => notFoundFailure() }
 
-  /** part of submit sequence */
-  def splitDatasetMetadata(dateSubmitted: DateTime): Try[Unit] = {
+  /** create dataset.xml, agreements.xml, files.xml
+   *  from datasetmetadata.json and files in data folder
+   */
+  def createXMLs(dateSubmitted: DateTime): Try[Unit] = {
     for {
       datasetMetadata <- getDatasetMetadata // TODO skip recover? Depends on to be implemented submit.
       _ = msgFromDepositorFile.write(datasetMetadata.messageForDataManager.getOrElse(""))
@@ -204,7 +206,7 @@ case class DepositDir private(baseDir: File, user: String, id: UUID) extends Deb
   private def doisMatch(dm: DatasetMetadata, doi: Option[String]) = {
     if (doi == dm.doi) Success(())
     else {
-      val e = new Exception(s"DOI in dataset.xml [${ dm.doi }] does not equal DOI in deposit.properties [$doi]")
+      val e = new Exception(s"DOI in datasetmetadata.json [${ dm.doi }] does not equal DOI in deposit.properties [$doi]")
       Failure(CorruptDepositException(user, id.toString, e))
     }
   }

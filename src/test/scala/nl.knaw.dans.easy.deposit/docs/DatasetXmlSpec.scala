@@ -16,6 +16,7 @@
 package nl.knaw.dans.easy.deposit.docs
 
 import java.io.ByteArrayInputStream
+import java.net.UnknownHostException
 import java.nio.charset.StandardCharsets
 
 import javax.xml.XMLConstants
@@ -26,6 +27,7 @@ import nl.knaw.dans.easy.deposit.TestSupportFixture
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.{ Author, DateQualifier, SchemedKeyValue }
 import nl.knaw.dans.easy.deposit.docs.JsonUtil.InvalidDocumentException
 import nl.knaw.dans.lib.error._
+import org.xml.sax.SAXParseException
 import resource.Using
 
 import scala.util.{ Failure, Success, Try }
@@ -46,12 +48,12 @@ class DatasetXmlSpec extends TestSupportFixture with DdmBehavior {
       |  "audiences": [ { "scheme": "blabla", "key": "D35200", "value": "some audience"} ]
       |}""".stripMargin)
     .doIfFailure { case e => println(e) }
-    .getOrRecover(e => fail(e))
+    .getOrRecover(e => fail(e.toString))
 
   /** provides the verbose namespaces for inline DDM */
   override val emptyDDM: Elem = DatasetXml(minimal)
     .doIfFailure { case e => println(e) }
-    .getOrRecover(e => fail(e))
+    .getOrRecover(e => fail(e.toString))
     .copy(child = Seq())
 
   "minimal" should behave like validDatasetMetadata(
@@ -301,13 +303,18 @@ trait DdmBehavior {
   val emptyDDM: Elem
 
   lazy val triedSchema: Try[Schema] = Try { // loading postponed until we actually start validating
-    val factory = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI)
-    val schemas = "http://dublincore.org/schemas/xmls/qdc/2008/02/11/dcterms.xsd" ::
-      "https://easy.dans.knaw.nl/schemas/md/ddm/ddm.xsd" :: Nil
-    factory.newSchema(schemas.map(xsd => new StreamSource(xsd)).toArray[Source])
+    val schemas = emptyDDM.attribute("http://www.w3.org/2001/XMLSchema-instance","schemaLocation")
+      .getOrElse(fail("no schemaLocation attribute"))
+      .headOption
+      .getOrElse(fail("no schemaLocation value"))
+      .text
+      .replaceAll(".* ","") :: Nil
+    SchemaFactory
+      .newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI)
+      .newSchema(schemas.map(xsd => new StreamSource(xsd)).toArray[Source])
   }
 
-  // pretty provides friendlier trouble shooting for complex XML's than Utility.trim
+  // pretty provides friendly trouble shooting for complex XML's
   private val prettyPrinter: PrettyPrinter = new scala.xml.PrettyPrinter(1024, 2)
 
   /**
@@ -322,10 +329,10 @@ trait DdmBehavior {
                           ): Unit = {
     lazy val datasetMetadata = input
       .doIfFailure { case e => println(s"$e") }
-      .getOrRecover(e => fail(e))
+      .getOrRecover(e => fail(e.toString))
     lazy val ddm = DatasetXml(datasetMetadata)
       .doIfFailure { case e => println(s"$e") }
-      .getOrRecover(e => fail(e))
+      .getOrRecover(e => fail(e.toString))
 
     if (expectedDdmContent.nonEmpty) it should "generate expected DDM" in {
       prettyPrinter.format(subset(ddm)) shouldBe
@@ -333,8 +340,13 @@ trait DdmBehavior {
     }
 
     it should "generate valid DDM" in {
-      assume(triedSchema.isSuccess)
-      val validator = triedSchema.getOrRecover(e => fail(e)).newValidator()
+      val unknownHost = triedSchema match {
+        case _: Success[_] => false
+        case Failure(e: SAXParseException) if e.getCause.isInstanceOf[UnknownHostException] => true
+        case _ => false
+      }
+      assume(!unknownHost)
+      val validator = triedSchema.getOrRecover(e => fail(s"could not load schema: $e")).newValidator()
       val xmlString = prettyPrinter.format(ddm)
       Using.bufferedInputStream(new ByteArrayInputStream(
         xmlString.getBytes(StandardCharsets.UTF_8)

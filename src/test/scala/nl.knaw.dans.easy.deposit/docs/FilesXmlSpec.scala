@@ -58,6 +58,6 @@ class FilesXmlSpec extends TestSupportFixture {
   }
 
   private def createFilesXml = {
-    FilesXml(testDir).getOrRecover(e => fail(e))
+    FilesXml(testDir).getOrRecover(e => fail(e.toString))
   }
 }

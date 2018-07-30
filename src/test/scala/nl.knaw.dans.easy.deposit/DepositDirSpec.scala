@@ -179,30 +179,7 @@ class DepositDirSpec extends TestSupportFixture with MockFactory {
     deposit.getDOI(pidMocker) shouldBe Success(doi)
   }
 
-  "writeSplittedDatasetMetadata" should "write 4 files" in {
-    val prologue = """<?xml version='1.0' encoding='UTF-8'?>"""
-    val message = "Lorum ipsum"
-    val datasetMetadata = DatasetMetadata(getManualTestResource("datasetmetadata-from-ui-all.json"))
-      .getOrRecover(e => fail(e))
-      .copy(messageForDataManager = Some(message))
-    val deposit = createDepositAsPreparation("user001")
-    val mdDir = deposit.getDataFiles.getOrRecover(e => fail(e))
-      .filesMetaData.parent.createIfNotExists(asDirectory = true, createParents = true)
-    deposit.writeDatasetMetadataJson(datasetMetadata)
-    val oldSize = (mdDir / "dataset.json").size
-    (mdDir.parent / "data" / "text.txt").touch()
-
-    deposit.splitDatasetMetadata(DateTime.now) shouldBe Success(())
-    (mdDir / "dataset.json").size shouldBe oldSize // the dataset.json file is not changed
-    (mdDir / "message-from-depositor.txt").contentAsString shouldBe message
-    (mdDir / "agreements.xml").lineIterator.next() shouldBe prologue
-    (mdDir / "dataset.xml").lineIterator.next() shouldBe prologue
-    (mdDir / "files.xml").contentAsString should include("""filepath="data/text.txt""")
-  }
-
   private def createDepositAsPreparation(user: String) = {
-    val triedDepositDir = DepositDir.create(draftsDir, user)
-    triedDepositDir should matchPattern { case Success(_) => }
-    triedDepositDir.getOrRecover(e => fail(e))
+    DepositDir.create(draftsDir, user).getOrRecover(e => fail(e.toString, e))
   }
 }
