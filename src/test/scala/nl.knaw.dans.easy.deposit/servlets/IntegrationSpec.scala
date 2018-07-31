@@ -184,6 +184,7 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
       status shouldBe FORBIDDEN_403
       body shouldBe s"Cannot transition from ARCHIVED to SUBMITTED (deposit id: $uuid, user: foo)"
     }
+    (testDir / "drafts" / "foo" / uuid.toString / "metatada").entries.size shouldBe 1 // still just the json
   }
 
   private def randomContent(times: Int) = {
