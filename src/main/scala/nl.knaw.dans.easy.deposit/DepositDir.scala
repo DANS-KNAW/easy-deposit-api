@@ -157,15 +157,20 @@ case class DepositDir private(baseDir: File, user: String, id: UUID) extends Deb
    * Writes the dataset level metadata for this deposit.
    *
    * @param md the metadata to write
+   *           Changing "identifiers": [{ "scheme": "id-type:DOI", "value": "..."}]
+   *           will cause an error when calling getDOI by an explicit request
+   *           or when getDOI is called implicitly by submit
+   *           because it will not match the deposit properties.
+   *           A "dates": [ { ..., "qualifier": "dcterms:dateSubmitted" }]
+   *           will cause an error when converted to dataset.xml at submit.
    */
   def writeDatasetMetadataJson(md: DatasetMetadata): Try[Unit] = Try {
-    // TODO DOI should not change, only enforced by client calling getDOI. State and dateSubmitted should not change either.
     datasetMetadataJsonFile.write(toJson(md))
     () // satisfy the compiler which doesn't want a File
   }.recoverWith { case _: NoSuchFileException => notFoundFailure() }
 
   /** create dataset.xml, agreements.xml, files.xml
-   *  from datasetmetadata.json and files in data folder
+   * from datasetmetadata.json and files in data folder
    */
   def createXMLs(dateSubmitted: DateTime): Try[Unit] = {
     for {

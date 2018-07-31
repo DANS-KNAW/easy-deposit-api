@@ -16,6 +16,7 @@
 package nl.knaw.dans.easy.deposit
 
 import better.files.File
+import nl.knaw.dans.easy.deposit.PidRequesterComponent.PidRequester
 import org.joda.time.DateTime
 
 import scala.util.Try
@@ -26,7 +27,9 @@ import scala.util.Try
  * @param stagingBaseDir  the base directory for staged copies
  * @param submitToBaseDir the directory to which the staged copy must be moved.
  */
-class Submitter(stagingBaseDir: File, submitToBaseDir: File) {
+class Submitter(stagingBaseDir: File,
+                submitToBaseDir: File,
+                pidRequester: PidRequester) {
 
   /**
    * Submits `depositDir` by writing the file metadata, updating the bag checksums, staging a copy
@@ -38,11 +41,18 @@ class Submitter(stagingBaseDir: File, submitToBaseDir: File) {
   def submit(depositDir: DepositDir): Try[Unit] = {
     // TODO: implement as follows:
     for {
-      // 1. Set state to SUBMITTED
-      _ <- depositDir.createXMLs(DateTime.now)
-      // 5. Update/write bag checksums.
-      // 6. Copy to staging area
-      // 7. Move copy to submit-to area
+      // TODO cache json read (and possibly rewritten) by getDOI for createXMLs?
+      _ <- depositDir.getDOI(pidRequester) // EASY-1464 step 3.3.1 - 3.3.3
+      // EASY-1464 step 3.3.4 validation
+      //   [v] mandatory fields are present and not empty (by DatasetXml(datasetMetadata) in createXMLs)
+      //   [v] DOI in json matches properties (by getDOI)
+      //   [ ] URLs are valid
+      //   [ ] ...
+      _ <- depositDir.createXMLs(DateTime.now) // EASY-1464 3.3.5
+      // EASY-1464 step 3.3.6 Set state to SUBMITTED
+      // EASY-1464 step 3.3.7 Update/write bag checksums.
+      // EASY-1464 step 3.3.8 Copy to staging area
+      // EASY-1464 step 3.3.9 Move copy to submit-to area
     } yield ???
   }
 }
