@@ -19,10 +19,9 @@ import java.nio.file.attribute.PosixFilePermission
 
 import nl.knaw.dans.easy.deposit.PidRequesterComponent.PidRequester
 import nl.knaw.dans.easy.deposit.PidRequesterComponent.PidType.PidType
+import nl.knaw.dans.easy.deposit.docs.StateInfo
 import nl.knaw.dans.easy.deposit.docs.StateInfo.State
-import nl.knaw.dans.easy.deposit.docs.{ DatasetMetadata, StateInfo }
 import nl.knaw.dans.lib.error._
-import org.joda.time.DateTime
 import org.scalamock.scalatest.MockFactory
 
 import scala.util.{ Failure, Success }
@@ -161,9 +160,7 @@ class DepositDirSpec extends TestSupportFixture with MockFactory {
     val deposit = createDepositAsPreparation(user)
     (deposit.baseDir / user / deposit.id.toString / "bag" / "metadata" / "dataset.json").writeText(s"""{"doi":"$doi"}""")
 
-    val pidMocker = mock[PidRequester] // note that no pid is requested
-
-    deposit.getDOI(pidMocker) should matchPattern { case Failure(CorruptDepositException(_, _, _)) => }
+    deposit.getDOI(null) should matchPattern { case Failure(CorruptDepositException(_, _, _)) => }
   }
 
   it should """return the available DOI""" in {
@@ -174,9 +171,7 @@ class DepositDirSpec extends TestSupportFixture with MockFactory {
     (dd / "bag" / "metadata" / "dataset.json").writeText(s"""{"identifiers":[{"scheme":"id-type:DOI","value":"12345"}]}""")
     (dd / "deposit.properties").writeText(s"""identifier.doi = $doi""")
 
-    val pidMocker = mock[PidRequester] // note that no pid is requested
-
-    deposit.getDOI(pidMocker) shouldBe Success(doi)
+    deposit.getDOI(null) shouldBe Success(doi)
   }
 
   private def createDepositAsPreparation(user: String) = {

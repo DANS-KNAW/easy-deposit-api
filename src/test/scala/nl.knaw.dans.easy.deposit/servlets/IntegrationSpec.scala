@@ -145,8 +145,6 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
     }
     val uuid = DepositInfo(responseBody).map(_.id.toString).getOrRecover(e => fail(e.toString, e))
 
-    val dataFilesBase = DepositDir(testDir / "drafts", "foo", UUID.fromString(uuid)).getDataFiles.get.dataFilesBase
-
     // expect a new doi once
     val doi = "12345"
     (app.pidRequester.requestPid(_: PidType)) expects * once() returning Success(doi)
@@ -162,6 +160,29 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
     get(uri = s"/deposit/$uuid/doi", headers = Seq(basicAuthentication)) {
       status shouldBe OK_200
       body shouldBe expectedDoiRecord
+    }
+  }
+
+  s"scenario: POST /deposit; hack state to ARCHIVED; SUBMIT" should "reject state transition" in {
+
+    // create dataset
+    expectsUserFooBar
+    val responseBody = post(uri = s"/deposit", headers = Seq(basicAuthentication)) {
+      new String(bodyBytes)
+    }
+    val uuid = DepositInfo(responseBody).map(_.id.toString).getOrRecover(e => fail(e.toString, e))
+
+    // hack state
+    val props = testDir / "drafts" / "foo" / uuid.toString / "deposit.properties"
+    props.write(props.contentAsString.replace("DRAFT", "ARCHIVED"))
+
+    // submit
+    expectsUserFooBar
+    put(s"/deposit/$uuid/state", headers = Seq(basicAuthentication),
+      body = """{"state":"SUBMITTED","stateDescription":"blabla"}"""
+    ) {
+      status shouldBe FORBIDDEN_403
+      body shouldBe s"Cannot transition from ARCHIVED to SUBMITTED (deposit id: $uuid, user: foo)"
     }
   }
 
