@@ -17,6 +17,8 @@ package nl.knaw.dans.easy.deposit
 
 import better.files.File
 import nl.knaw.dans.easy.deposit.PidRequesterComponent.PidRequester
+import nl.knaw.dans.easy.deposit.docs.StateInfo
+import nl.knaw.dans.easy.deposit.docs.StateInfo.State
 import org.joda.time.DateTime
 
 import scala.util.Try
@@ -39,6 +41,7 @@ class Submitter(stagingBaseDir: File,
    * @return
    */
   def submit(depositDir: DepositDir): Try[Unit] = {
+    val submitted = StateInfo(State.submitted, "Deposit is ready for processing.")
     // TODO: implement as follows:
     for {
       // TODO cache json read (and possibly rewritten) by getDOI for createXMLs?
@@ -49,7 +52,8 @@ class Submitter(stagingBaseDir: File,
       //   [ ] URLs are valid
       //   [ ] ...
       _ <- depositDir.createXMLs(DateTime.now) // EASY-1464 3.3.5
-      // EASY-1464 step 3.3.6 Set state to SUBMITTED
+      _ <- depositDir.setStateInfo(submitted) // EASY-1464 3.3.6
+      // TODO: the next steps in a worker thread so that submit can return fast for large deposits.
       // EASY-1464 step 3.3.7 Update/write bag checksums.
       // EASY-1464 step 3.3.8 Copy to staging area
       // EASY-1464 step 3.3.9 Move copy to submit-to area

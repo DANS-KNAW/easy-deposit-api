@@ -133,14 +133,15 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
    *
    * @param user  the user ID
    * @param id    the deposit ID
-   * @param state the state to transition to
+   * @param stateInfo the state to transition to
    * @return
    */
-  // TODO: do post processing described above in a worker thread so that submit can return fast for large deposits.
-  def setDepositState(state: StateInfo)(user: String, id: UUID): Try[Unit] = for {
+  def setDepositState(stateInfo: StateInfo)(user: String, id: UUID): Try[Unit] = for {
     deposit <- DepositDir.get(draftsDir, user, id)
-    _ <- if (state.state == State.submitted) submitter.submit(deposit)
-         else deposit.setStateInfo(state)
+    _ <- deposit.checkStateTransition(stateInfo.state)
+    _ <- if (stateInfo.state == State.submitted)
+           submitter.submit(deposit) // also changes the state
+         else deposit.setStateInfo(stateInfo)
   } yield ()
 
   /**

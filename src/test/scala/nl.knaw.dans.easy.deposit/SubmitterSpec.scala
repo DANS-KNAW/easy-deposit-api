@@ -17,7 +17,8 @@ package nl.knaw.dans.easy.deposit
 
 import nl.knaw.dans.easy.deposit.PidRequesterComponent.PidRequester
 import nl.knaw.dans.easy.deposit.PidRequesterComponent.PidType.PidType
-import nl.knaw.dans.easy.deposit.docs.DatasetMetadata
+import nl.knaw.dans.easy.deposit.docs.StateInfo.State
+import nl.knaw.dans.easy.deposit.docs.{ DatasetMetadata, StateInfo }
 import nl.knaw.dans.lib.error._
 import org.scalamock.scalatest.MockFactory
 
@@ -41,22 +42,27 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
     propsFile.append(s"identifier.doi=$doi")
     (mdDir.parent / "data" / "text.txt").touch()
     val mdOldSize = (mdDir / "dataset.json").size
-    val propsOldSize = propsFile.size
+    depositDir.getStateInfo should matchPattern {
+      case Success(StateInfo(State.draft, "Deposit is open for changes.")) =>
+    }
 
     new Submitter(null, null, null).submit(depositDir) should matchPattern {
       case Failure(e) if e.isInstanceOf[NotImplementedError] =>
     }
 
     val prologue = """<?xml version='1.0' encoding='UTF-8'?>"""
-    propsFile.size shouldBe propsOldSize
     (mdDir / "dataset.json").size shouldBe mdOldSize
     (mdDir / "message-from-depositor.txt").contentAsString shouldBe customMessage
     (mdDir / "agreements.xml").lineIterator.next() shouldBe prologue
     (mdDir / "dataset.xml").lineIterator.next() shouldBe prologue
     (mdDir / "files.xml").contentAsString should include("""filepath="data/text.txt""")
+    depositDir.getDOI(null) shouldBe Success(doi)
+    depositDir.getStateInfo should matchPattern {
+      case Success(StateInfo(State.submitted, "Deposit is ready for processing.")) =>
+    }
   }
 
-  "submit" should "write empty message-form-depositor file" in {
+  "submit" should "write empty message-from-depositor file" in {
 
     val (depositDir, mdDir, propsFile) = createDeposit(datasetMetadata.copy(messageForDataManager = None))
     propsFile.append(s"identifier.doi=$doi")
@@ -70,7 +76,7 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
 
   "submit" should "add DOI to props and json" in {
 
-    val (depositDir, mdDir, propsFile) = createDeposit(datasetMetadata.copy(identifiers = None))
+    val (depositDir, _, _) = createDeposit(datasetMetadata.copy(identifiers = None))
     val pidMocker = mock[PidRequester]
     val mockedPid = "12345"
     (pidMocker.requestPid(_: PidType)) expects * once() returning Success(mockedPid)
@@ -79,8 +85,7 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
       case Failure(e) if e.isInstanceOf[NotImplementedError] =>
     }
 
-    propsFile.contentAsString should include(mockedPid)
-    (mdDir / "dataset.json").contentAsString should include(mockedPid)
+    depositDir.getDOI(null) shouldBe Success(mockedPid)
   }
 
   private def getMetadataDir(depositDir: DepositDir) = {
