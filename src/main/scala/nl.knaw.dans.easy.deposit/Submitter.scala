@@ -15,6 +15,9 @@
  */
 package nl.knaw.dans.easy.deposit
 
+import java.io.ByteArrayInputStream
+import java.nio.charset.StandardCharsets
+
 import better.files.File
 import nl.knaw.dans.bag.v0.DansV0Bag
 import nl.knaw.dans.easy.deposit.PidRequesterComponent.PidRequester
@@ -45,7 +48,6 @@ class Submitter(stagingBaseDir: File,
     val agreementsFile = stageMetadataDir / "agreements.xml"
     val datasetXmlFile = stageMetadataDir / "dataset.xml"
     val filesXmlFile = stageMetadataDir / "files.xml"
-    val msgFromDepositorFile = stageMetadataDir / "message-from-depositor.txt"
     val propsFileName = "deposit.properties"
     val submitted = StateInfo(StateInfo.State.submitted, "Deposit is ready for processing.")
     // TODO: implement as follows:
@@ -73,8 +75,7 @@ class Submitter(stagingBaseDir: File,
       _ = stageBag.withEasyUserAccount(depositDir.user)
       _ = (dataFilesDir.parent.parent / propsFileName).copyTo(stageDir / propsFileName)
       // EASY-1464 3.3.5 part 2: write xml files to metadata // TODO sha's?
-      _ = stageMetadataDir.createDirectories()
-      _ = msgFromDepositorFile.write(msg)
+      _ = stageBag.addTagFile(msg.asInputStream)(_ / "metadata" / "message-from-depositor.txt")
       _ <- agreementsFile.writePretty(agreementsXml)
       _ <- datasetXmlFile.writePretty(datasetXml)
       _ <- filesXmlFile.writePretty(filesXml)

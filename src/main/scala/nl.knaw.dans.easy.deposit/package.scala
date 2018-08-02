@@ -15,7 +15,8 @@
  */
 package nl.knaw.dans.easy
 
-import java.nio.charset.Charset
+import java.io.{ ByteArrayInputStream, InputStream }
+import java.nio.charset.{ Charset, StandardCharsets }
 import java.nio.file.Path
 import java.util.UUID
 
@@ -55,9 +56,16 @@ package object deposit {
       XML.save(file.toString, pretty, Charset.forName("UTF-8").toString, xmlDecl = true)
     }
   }
+
   implicit class FilesExtensions(val files: Files) {
     def failFastMap(f: File => Try[Any]): Try[Any] = {
       files.toStream.map(f).find(_.isFailure).getOrElse(Success(()))
+    }
+  }
+
+  implicit class StringExtensions(val s: String) {
+    def asInputStream: InputStream = {
+      new ByteArrayInputStream(s.getBytes(StandardCharsets.UTF_8))
     }
   }
 }
