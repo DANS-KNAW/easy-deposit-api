@@ -29,9 +29,8 @@ import scala.util.Try
  * in this.
  *
  * @param dataFilesBase the base directory of the data files
- * @param filesMetaData the file containing the file metadata
  */
-case class DataFiles(dataFilesBase: File, filesMetaData: File) extends DebugEnhancedLogging {
+case class DataFiles(dataFilesBase: File) extends DebugEnhancedLogging {
 
   /**
    * Lists information about the files the directory `path` and its subdirectories.

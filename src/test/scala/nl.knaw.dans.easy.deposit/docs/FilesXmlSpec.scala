@@ -27,7 +27,7 @@ class FilesXmlSpec extends TestSupportFixture {
   override def beforeEach(): Unit = {
     super.beforeEach()
     clearTestDir()
-    testDir.createIfNotExists(asDirectory = true)
+    (testDir / "data").createIfNotExists(asDirectory = true)
   }
 
   "apply" should "produce an empty xml" in {
@@ -43,21 +43,20 @@ class FilesXmlSpec extends TestSupportFixture {
   }
 
   it should "produce xml with different mime types" in {
-    (testDir / "folder").createIfNotExists(asDirectory = true)
-
-    (testDir / "test.txt").touch()
-    (testDir / "folder" / "test.xml").touch()
+    (testDir / "data" / "folder").createIfNotExists(asDirectory = true)
+    (testDir / "data" / "test.txt").touch()
+    (testDir / "data" / "folder" / "test.xml").touch()
 
     (createFilesXml \ "file").toList.sortBy(_.attribute("filepath").toString) shouldBe
-        <file filepath="folder/test.xml">
+        <file filepath="data/folder/test.xml">
           <dcterms:format>application/xml</dcterms:format>
         </file>
-        <file filepath="test.txt">
+        <file filepath="data/test.txt">
           <dcterms:format>text/plain</dcterms:format>
         </file>
   }
 
   private def createFilesXml = {
-    FilesXml(testDir).getOrRecover(e => fail(e.toString))
+    FilesXml(testDir / "data").getOrRecover(e => fail(e.toString))
   }
 }

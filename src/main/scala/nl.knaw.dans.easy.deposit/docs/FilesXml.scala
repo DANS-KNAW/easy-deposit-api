@@ -34,9 +34,8 @@ object FilesXml {
     val files = pathData
       .listRecursively()
       .collect { case file if file.isRegularFile =>
-        val fileName = pathData.relativize(file).toString
-        <file filepath={fileName}>
-          <dcterms:format>{tika.detect(fileName)}</dcterms:format>
+        <file filepath={pathData.parent.relativize(file).toString}>
+          <dcterms:format>{tika.detect(file.toJava)}</dcterms:format>
         </file>
       }
 

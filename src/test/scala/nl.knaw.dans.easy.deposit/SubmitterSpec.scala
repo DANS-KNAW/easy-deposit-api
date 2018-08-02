@@ -39,51 +39,58 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
 
   "submit" should "write 4 files" in {
 
-    val (depositDir, mdDir, propsFile) = createDeposit(datasetMetadata.copy(messageForDataManager = Some(customMessage)))
-    propsFile.append(s"identifier.doi=$doi")
-    (mdDir.parent / "data" / "text.txt").touch()
-    (mdDir.parent / "data" / "folder").createDirectories()
-    (mdDir.parent / "data" / "folder" / "text.txt").write("Lorum ipsum")
-    val mdOldSize = (mdDir / "dataset.json").size
+    val depositDir = createDeposit(datasetMetadata.copy(messageForDataManager = Some(customMessage)))
+    val bagDir = getBagDir(depositDir)
+    (bagDir.parent / "deposit.properties").append(s"identifier.doi=$doi")
+    (bagDir / "data" / "text.txt").touch()
+    (bagDir / "data" / "folder").createDirectories()
+    (bagDir / "data" / "folder" / "text.txt").write("Lorum ipsum")
+    val mdOldSize = (bagDir / "metadata" / "dataset.json").size
     depositDir.getStateInfo should matchPattern {
       case Success(StateInfo(State.draft, "Deposit is open for changes.")) =>
     }
 
-    new Submitter(testDir / "staged", null, null).submit(depositDir) should matchPattern {
+    val triedUnit = new Submitter(testDir / "staged", null, null).submit(depositDir)
+    triedUnit should matchPattern {
       case Failure(e) if e.isInstanceOf[NotImplementedError] =>
     }
 
-    val prologue = """<?xml version='1.0' encoding='UTF-8'?>"""
-    (mdDir / "dataset.json").size shouldBe mdOldSize
-    (mdDir / "message-from-depositor.txt").contentAsString shouldBe customMessage
-    (mdDir / "agreements.xml").lineIterator.next() shouldBe prologue
-    (mdDir / "dataset.xml").lineIterator.next() shouldBe prologue
-    (mdDir / "files.xml").contentAsString should include("""filepath="data/text.txt""")
-    (mdDir / "files.xml").contentAsString should include("""filepath="data/folder/text.txt""")
+    (bagDir / "metadata" / "dataset.json").size shouldBe mdOldSize // no DOI added
+    val prologue =
+      """<?xml version='1.0' encoding='UTF-8'?>"""
+    val stagedBagDir = testDir / "staged" / depositDir.id.toString / "bag"
+    (stagedBagDir / "metadata" / "message-from-depositor.txt").contentAsString shouldBe customMessage
+    (stagedBagDir / "metadata" / "agreements.xml").lineIterator.next() shouldBe prologue
+    (stagedBagDir / "metadata" / "dataset.xml").lineIterator.next() shouldBe prologue
+    (stagedBagDir / "metadata" / "files.xml").contentAsString should include("""filepath="data/text.txt""")
+    (stagedBagDir / "metadata" / "files.xml").contentAsString should include("""filepath="data/folder/text.txt""")
     depositDir.getDOI(null) shouldBe Success(doi)
     depositDir.getStateInfo should matchPattern {
       case Success(StateInfo(State.submitted, "Deposit is ready for processing.")) =>
     }
-    propsFile.contentAsString shouldBe (testDir / "staged" / depositDir.id.toString / "deposit.properties").contentAsString
-    (propsFile / ".." / "bag" / "data").children.size shouldBe
-      (testDir / "staged" / depositDir.id.toString / "bag" / "data").children.size
+    (bagDir.parent / "deposit.properties").contentAsString shouldBe
+      (stagedBagDir.parent / "deposit.properties").contentAsString
+    (bagDir / "data").children.size shouldBe (stagedBagDir / "data").children.size
+    // TODO compare number of files.xml eleents with number of files
   }
 
   it should "write empty message-from-depositor file" in {
 
-    val (depositDir, mdDir, propsFile) = createDeposit(datasetMetadata.copy(messageForDataManager = None))
-    propsFile.append(s"identifier.doi=$doi")
+    val depositDir = createDeposit(datasetMetadata.copy(messageForDataManager = None))
+    val bagDir = getBagDir(depositDir)
+    (bagDir.parent / "deposit.properties").append(s"identifier.doi=$doi")
 
     new Submitter(testDir / "staged", null, null).submit(depositDir) should matchPattern {
       case Failure(e) if e.isInstanceOf[NotImplementedError] =>
     }
 
-    (mdDir / "message-from-depositor.txt").contentAsString shouldBe ""
+    (testDir / "staged" / depositDir.id.toString / "bag" / "metadata" / "message-from-depositor.txt")
+      .contentAsString shouldBe ""
   }
 
   it should "add DOI to props and json" in {
 
-    val (depositDir, _, _) = createDeposit(datasetMetadata.copy(identifiers = None))
+    val depositDir = createDeposit(datasetMetadata.copy(identifiers = None))
     val pidMocker = mock[PidRequester]
     val mockedPid = "12345"
     (pidMocker.requestPid(_: PidType)) expects * once() returning Success(mockedPid)
@@ -98,7 +105,7 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
   it should "reject an inconsistent DOI" in {
     // invalid state transition is tested with IntegrationSpec
 
-    val (depositDir, _, _) = createDeposit(datasetMetadata)
+    val depositDir = createDeposit(datasetMetadata)
 
     new Submitter(testDir / "staged", null, null).submit(depositDir) should matchPattern {
       case Failure(e) if e.isInstanceOf[CorruptDepositException] =>
@@ -108,7 +115,7 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
   it should "reject an incomplete json" in {
     // other validation errors are tested with DatasetXmlSpec and DepositDirSpec
 
-    val (depositDir, _, _) = createDeposit(DatasetMetadata())
+    val depositDir = createDeposit(DatasetMetadata())
     val pidMocker = mock[PidRequester]
     val mockedPid = "12345"
     (pidMocker.requestPid(_: PidType)) expects * once() returning Success(mockedPid)
@@ -118,18 +125,17 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
     }
   }
 
-  private def getMetadataDir(depositDir: DepositDir) = {
+  private def getBagDir(depositDir: DepositDir) = {
     depositDir
       .getDataFiles
       .getOrRecover(e => fail(e.toString, e))
-      .filesMetaData
+      .dataFilesBase
       .parent
   }
 
   private def createDeposit(metadata: DatasetMetadata) = {
     val depositDir = DepositDir.create(testDir / "drafts", "user").getOrRecover(e => fail(e.toString, e))
     depositDir.writeDatasetMetadataJson(metadata)
-    val mdDir = getMetadataDir(depositDir)
-    (depositDir, mdDir, mdDir.parent.parent / "deposit.properties")
+    depositDir
   }
 }
