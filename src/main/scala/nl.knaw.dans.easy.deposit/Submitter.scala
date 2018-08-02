@@ -15,13 +15,13 @@
  */
 package nl.knaw.dans.easy.deposit
 
-import better.files.{ File, Files }
+import better.files.File
 import nl.knaw.dans.bag.v0.DansV0Bag
 import nl.knaw.dans.easy.deposit.PidRequesterComponent.PidRequester
 import nl.knaw.dans.easy.deposit.docs.StateInfo
 import org.joda.time.DateTime
 
-import scala.util.{ Success, Try }
+import scala.util.{ Failure, Try }
 
 /**
  * Object that contains the logic for submitting a deposit.
@@ -56,12 +56,22 @@ class Submitter(stagingBaseDir: File,
       // EASY-1464 step 3.3.7 Update/write bag checksums.
       // EASY-1464 step 3.3.8 Copy to staging area
       dataFilesDir <- depositDir.getDataFiles.map(_.dataFilesBase)
-      bag <- DansV0Bag.empty(stageDir)
+      bag <- DansV0Bag.empty(stageDir / "bag")
       _ = bag.withEasyUserAccount(depositDir.user)
+      _ <- copyProps(stageDir, dataFilesDir.parent.parent)
       // TODO: the next steps in a worker thread so that submit can return fast for large deposits.
       _ <- dataFilesDir.children.failFastMap(f => bag.addPayloadFile(f)(_ / dataFilesDir.relativize(f).toString))
       _ <- bag.save() // TODO after each file to allow resume?
       // EASY-1464 step 3.3.9 Move copy to submit-to area
     } yield ???
+  }
+
+  private def copyProps(stageDir: File, dataFilesDir: File) = {
+    val props = "deposit.properties"
+    Try {
+      (dataFilesDir / props).copyTo(stageDir / props)
+    }.recoverWith {
+      case e => Failure(new Exception(s"could not copy $props: ${ e.getClass } ${ e.getMessage }", e))
+    }
   }
 }

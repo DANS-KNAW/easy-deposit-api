@@ -64,6 +64,9 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
     depositDir.getStateInfo should matchPattern {
       case Success(StateInfo(State.submitted, "Deposit is ready for processing.")) =>
     }
+    propsFile.contentAsString shouldBe (testDir / "staged" / depositDir.id.toString / "deposit.properties").contentAsString
+    (propsFile / ".." / "bag" / "data").children.size shouldBe
+      (testDir / "staged" / depositDir.id.toString / "bag" / "data").children.size
   }
 
   it should "write empty message-from-depositor file" in {
