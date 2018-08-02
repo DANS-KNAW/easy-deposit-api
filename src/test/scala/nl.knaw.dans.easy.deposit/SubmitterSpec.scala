@@ -42,12 +42,14 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
     val (depositDir, mdDir, propsFile) = createDeposit(datasetMetadata.copy(messageForDataManager = Some(customMessage)))
     propsFile.append(s"identifier.doi=$doi")
     (mdDir.parent / "data" / "text.txt").touch()
+    (mdDir.parent / "data" / "folder").createDirectories()
+    (mdDir.parent / "data" / "folder" / "text.txt").write("Lorum ipsum")
     val mdOldSize = (mdDir / "dataset.json").size
     depositDir.getStateInfo should matchPattern {
       case Success(StateInfo(State.draft, "Deposit is open for changes.")) =>
     }
 
-    new Submitter(null, null, null).submit(depositDir) should matchPattern {
+    new Submitter(testDir / "staged", null, null).submit(depositDir) should matchPattern {
       case Failure(e) if e.isInstanceOf[NotImplementedError] =>
     }
 
@@ -57,49 +59,50 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
     (mdDir / "agreements.xml").lineIterator.next() shouldBe prologue
     (mdDir / "dataset.xml").lineIterator.next() shouldBe prologue
     (mdDir / "files.xml").contentAsString should include("""filepath="data/text.txt""")
+    (mdDir / "files.xml").contentAsString should include("""filepath="data/folder/text.txt""")
     depositDir.getDOI(null) shouldBe Success(doi)
     depositDir.getStateInfo should matchPattern {
       case Success(StateInfo(State.submitted, "Deposit is ready for processing.")) =>
     }
   }
 
-  "submit" should "write empty message-from-depositor file" in {
+  it should "write empty message-from-depositor file" in {
 
     val (depositDir, mdDir, propsFile) = createDeposit(datasetMetadata.copy(messageForDataManager = None))
     propsFile.append(s"identifier.doi=$doi")
 
-    new Submitter(null, null, null).submit(depositDir) should matchPattern {
+    new Submitter(testDir / "staged", null, null).submit(depositDir) should matchPattern {
       case Failure(e) if e.isInstanceOf[NotImplementedError] =>
     }
 
     (mdDir / "message-from-depositor.txt").contentAsString shouldBe ""
   }
 
-  "submit" should "add DOI to props and json" in {
+  it should "add DOI to props and json" in {
 
     val (depositDir, _, _) = createDeposit(datasetMetadata.copy(identifiers = None))
     val pidMocker = mock[PidRequester]
     val mockedPid = "12345"
     (pidMocker.requestPid(_: PidType)) expects * once() returning Success(mockedPid)
 
-    new Submitter(null, null, pidMocker).submit(depositDir) should matchPattern {
+    new Submitter(testDir / "staged", null, pidMocker).submit(depositDir) should matchPattern {
       case Failure(e) if e.isInstanceOf[NotImplementedError] =>
     }
 
     depositDir.getDOI(null) shouldBe Success(mockedPid)
   }
 
-  "submit" should "reject an inconsistent DOI" in {
+  it should "reject an inconsistent DOI" in {
     // invalid state transition is tested with IntegrationSpec
 
     val (depositDir, _, _) = createDeposit(datasetMetadata)
 
-    new Submitter(null, null, null).submit(depositDir) should matchPattern {
+    new Submitter(testDir / "staged", null, null).submit(depositDir) should matchPattern {
       case Failure(e) if e.isInstanceOf[CorruptDepositException] =>
     }
   }
 
-  "submit" should "reject an incomplete json" in {
+  it should "reject an incomplete json" in {
     // other validation errors are tested with DatasetXmlSpec and DepositDirSpec
 
     val (depositDir, _, _) = createDeposit(DatasetMetadata())
@@ -107,7 +110,7 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
     val mockedPid = "12345"
     (pidMocker.requestPid(_: PidType)) expects * once() returning Success(mockedPid)
 
-    new Submitter(null, null, pidMocker).submit(depositDir) should matchPattern {
+    new Submitter(testDir / "staged", null, pidMocker).submit(depositDir) should matchPattern {
       case Failure(e) if e.isInstanceOf[InvalidDocumentException] =>
     }
   }

@@ -19,10 +19,10 @@ import java.nio.charset.Charset
 import java.nio.file.Path
 import java.util.UUID
 
-import better.files.File
+import better.files.{ File, Files }
 import nl.knaw.dans.easy.deposit.docs.StateInfo.State.State
 
-import scala.util.Try
+import scala.util.{ Success, Try }
 import scala.xml.{ Elem, PrettyPrinter, Utility, XML }
 
 package object deposit {
@@ -53,6 +53,11 @@ package object deposit {
     def writePretty(elem: Elem): Try[Unit] = Try {
       val pretty = XML.loadString(new PrettyPrinter(160, 2).format(Utility.trim(elem)))
       XML.save(file.toString, pretty, Charset.forName("UTF-8").toString, xmlDecl = true)
+    }
+  }
+  implicit class FilesExtensions(val files: Files) {
+    def failFastMap(f: File => Try[Any]): Try[Any] = {
+      files.toStream.map(f).find(_.isFailure).getOrElse(Success(()))
     }
   }
 }
