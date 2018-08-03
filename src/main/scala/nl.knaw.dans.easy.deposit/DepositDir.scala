@@ -289,6 +289,7 @@ object DepositDir {
       addProperty("creation.timestamp", depositInfo.date)
       addProperty("state.label", depositInfo.state.toString)
       addProperty("state.description", depositInfo.stateDescription)
+      addProperty("depositor.userId", user)
       addProperty("curation.required", "yes")
       addProperty("curation.performed", "no")
       addProperty("bag-store.bag-id", depositInfo.id)
