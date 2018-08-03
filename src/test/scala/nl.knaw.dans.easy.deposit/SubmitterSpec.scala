@@ -39,37 +39,42 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
 
   "submit" should "write 4 files" in {
 
+    // preparations
     val depositDir = createDeposit(datasetMetadata.copy(messageForDataManager = Some(customMessage)))
     val bagDir = getBagDir(depositDir)
     (bagDir.parent / "deposit.properties").append(s"identifier.doi=$doi")
     (bagDir / "data" / "text.txt").touch()
     (bagDir / "data" / "folder").createDirectories()
     (bagDir / "data" / "folder" / "text.txt").write("Lorum ipsum")
-    val mdOldSize = (bagDir / "metadata" / "dataset.json").size
-    depositDir.getStateInfo should matchPattern {
+    (testDir / "submitted").createDirectories()
+
+    // preconditions
+    val mdOldSize = (bagDir / "metadata" / "dataset.json").size // should not change
+    depositDir.getStateInfo should matchPattern { // should change
       case Success(StateInfo(State.draft, "Deposit is open for changes.")) =>
     }
 
-    new Submitter(testDir / "staged", null, null).submit(depositDir) should matchPattern {
-      case Failure(e) if e.isInstanceOf[NotImplementedError] =>
-    }
+    // the test
+    new Submitter(testDir / "staged", testDir / "submitted", null)
+      .submit(depositDir) should matchPattern { case Success(()) => }
 
+    // post conditions
+    (testDir / "staged").children.size shouldBe 0
     (bagDir / "metadata" / "dataset.json").size shouldBe mdOldSize // no DOI added
-    val stagedBagDir = testDir / "staged" / depositDir.id.toString / "bag"
-    (stagedBagDir / "metadata" / "message-from-depositor.txt").contentAsString shouldBe customMessage
-    (stagedBagDir / "metadata" / "agreements.xml").lineIterator.next() shouldBe prologue
-    (stagedBagDir / "metadata" / "dataset.xml").lineIterator.next() shouldBe prologue
-    (stagedBagDir / "data").children.size shouldBe (bagDir / "data").children.size
-    (stagedBagDir / "tagmanifest-sha1.txt").lines.size shouldBe 7 // tag files including metadata/*
-    (stagedBagDir / "manifest-sha1.txt").lines.size shouldBe 2 // the data files
-    (stagedBagDir / "metadata" / "files.xml").contentAsString.matches("(?s).*(filepath=.*){2}.*") shouldBe true
-    (stagedBagDir.parent / "deposit.properties").contentAsString shouldBe
+    val submittedBagDir = testDir / "submitted" / depositDir.id.toString / "bag"
+    (submittedBagDir / "metadata" / "message-from-depositor.txt").contentAsString shouldBe customMessage
+    (submittedBagDir / "metadata" / "agreements.xml").lineIterator.next() shouldBe prologue
+    (submittedBagDir / "metadata" / "dataset.xml").lineIterator.next() shouldBe prologue
+    (submittedBagDir / "data").children.size shouldBe (bagDir / "data").children.size
+    (submittedBagDir / "tagmanifest-sha1.txt").lines.size shouldBe 7 // tag files including metadata/*
+    (submittedBagDir / "manifest-sha1.txt").lines.size shouldBe 2 // the data files
+    (submittedBagDir / "metadata" / "files.xml").contentAsString.matches("(?s).*(filepath=.*){2}.*") shouldBe true
+    (submittedBagDir.parent / "deposit.properties").contentAsString shouldBe
       (bagDir.parent / "deposit.properties").contentAsString
     depositDir.getDOI(null) shouldBe Success(doi) // no pid-requester so obtained from json and/or props
     depositDir.getStateInfo should matchPattern {
       case Success(StateInfo(State.submitted, "Deposit is ready for processing.")) =>
     }
-    // TODO compare number of files.xml eleents with number of files
   }
 
   it should "write empty message-from-depositor file" in {
@@ -77,12 +82,12 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
     val depositDir = createDeposit(datasetMetadata.copy(messageForDataManager = None))
     val bagDir = getBagDir(depositDir)
     (bagDir.parent / "deposit.properties").append(s"identifier.doi=$doi")
+    (testDir / "submitted").createDirectories()
 
-    new Submitter(testDir / "staged", null, null).submit(depositDir) should matchPattern {
-      case Failure(e) if e.isInstanceOf[NotImplementedError] =>
-    }
+    new Submitter(testDir / "staged", testDir / "submitted", null)
+      .submit(depositDir) should matchPattern { case Success(()) => }
 
-    (testDir / "staged" / depositDir.id.toString / "bag" / "metadata" / "message-from-depositor.txt")
+    (testDir / "submitted" / depositDir.id.toString / "bag" / "metadata" / "message-from-depositor.txt")
       .contentAsString shouldBe ""
   }
 
@@ -92,10 +97,10 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
     val pidMocker = mock[PidRequester]
     val mockedPid = "12345"
     (pidMocker.requestPid(_: PidType)) expects * once() returning Success(mockedPid)
+    (testDir / "submitted").createDirectories()
 
-    new Submitter(testDir / "staged", null, pidMocker).submit(depositDir) should matchPattern {
-      case Failure(e) if e.isInstanceOf[NotImplementedError] =>
-    }
+    new Submitter(testDir / "staged", testDir / "submitted", pidMocker)
+      .submit(depositDir) should matchPattern { case Success(()) => }
 
     depositDir.getDOI(null) shouldBe Success(mockedPid)
   }
@@ -105,7 +110,7 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
 
     val depositDir = createDeposit(datasetMetadata)
 
-    new Submitter(testDir / "staged", null, null).submit(depositDir) should matchPattern {
+    new Submitter(testDir / "staged", testDir / "submitted", null).submit(depositDir) should matchPattern {
       case Failure(e) if e.isInstanceOf[CorruptDepositException] =>
     }
   }
@@ -118,7 +123,7 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
     val mockedPid = "12345"
     (pidMocker.requestPid(_: PidType)) expects * once() returning Success(mockedPid)
 
-    new Submitter(testDir / "staged", null, pidMocker).submit(depositDir) should matchPattern {
+    new Submitter(testDir / "staged", testDir / "submitted", pidMocker).submit(depositDir) should matchPattern {
       case Failure(e) if e.isInstanceOf[InvalidDocumentException] =>
     }
   }

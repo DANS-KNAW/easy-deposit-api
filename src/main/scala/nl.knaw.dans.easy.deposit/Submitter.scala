@@ -73,7 +73,7 @@ class Submitter(stagingBaseDir: File,
       _ <- dataFilesDir.children.failFastMap(f => stageBag.addPayloadFile(f)(_ / dataFilesDir.relativize(f).toString))
       _ <- stageBag.save() // TODO after each file to allow resume?
       // EASY-1464 step 3.3.9 Move copy to submit-to area
-      //TODO _ = stageDir.moveTo(submitToBaseDir / depositDir.id.toString)
-    } yield ???
+      _ = stageDir.moveTo(submitToBaseDir / depositDir.id.toString)
+    } yield ()
   }
 }
