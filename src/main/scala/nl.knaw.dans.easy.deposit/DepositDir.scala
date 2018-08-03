@@ -49,7 +49,7 @@ case class DepositDir private(baseDir: File, user: String, id: UUID) extends Deb
   private val metadataDir = bagDir / "metadata"
   private val dataFilesDir = bagDir / "data"
   private val depositPropertiesFile = bagDir.parent / "deposit.properties"
-  val datasetMetadataJsonFile = metadataDir / "dataset.json"
+  private val datasetMetadataJsonFile = metadataDir / "dataset.json"
 
   /**
    * @return an information object about the current state of the desposit.
