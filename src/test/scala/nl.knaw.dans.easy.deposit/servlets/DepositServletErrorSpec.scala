@@ -82,7 +82,7 @@ class DepositServletErrorSpec extends TestSupportFixture with ServletFixture wit
     }
   }
 
-  s"get /:uuid/metadata" should "report a currupt dataset" in {
+  s"get /:uuid/metadata" should "report a corrupt dataset" in {
     (mockedApp.getDatasetMetadataForDeposit(_: String, _: UUID)) expects("foo", uuid) returning
       Failure(CorruptDepositException("foo", uuid.toString, new Exception("invalid json")))
 

@@ -27,7 +27,7 @@ import nl.knaw.dans.easy.deposit.PidRequesterComponent.{ PidRequester, PidType }
 import nl.knaw.dans.easy.deposit.docs.JsonUtil.{ InvalidDocumentException, toJson }
 import nl.knaw.dans.easy.deposit.docs.StateInfo.State
 import nl.knaw.dans.easy.deposit.docs.StateInfo.State.State
-import nl.knaw.dans.easy.deposit.docs._
+import nl.knaw.dans.easy.deposit.docs.{ StateInfo, _ }
 import nl.knaw.dans.lib.error._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.apache.commons.configuration.PropertiesConfiguration
@@ -76,20 +76,29 @@ case class DepositDir private(baseDir: File, user: String, id: UUID) extends Deb
   def setStateInfo(stateInfo: StateInfo): Try[Unit] = {
     for {
       props <- getDepositProps
-      currentState = State.withName(props.getString("state.label"))
-      _ <- checkStateTransition(currentState, stateInfo.state)
+      _ <- checkStateChange(stateInfo.state, props)
       _ = props.setProperty("state.label", stateInfo.state.toString)
       _ = props.setProperty("state.description", stateInfo.stateDescription.toString)
       _ = props.save()
     } yield ()
   }
 
-  private def checkStateTransition(transition: (State, State)) = {
-    transition match {
-      case (State.draft, State.submitted) => Success(())
-      case (State.rejected, State.draft) => Success(())
-      case (oldState, newState) => Failure(IllegalStateTransitionException(user, id, oldState, newState))
-    }
+  def checkStateTransition(newState: State): Try[PropertiesConfiguration] = {
+    for {
+      props <- getDepositProps
+      _ <- checkStateChange(newState, props)
+    } yield props
+  }
+
+  private def checkStateChange(newState: State, props: PropertiesConfiguration) = {
+    for {
+      currentState <- Try { State.withName(props.getString("state.label")) }
+      _ <- (currentState, newState) match {
+        case (State.draft, State.submitted) => Success(())
+        case (State.rejected, State.draft) => Success(())
+        case _ => Failure(IllegalStateTransitionException(user, id, currentState, newState))
+      }
+    } yield ()
   }
 
   /**
@@ -157,15 +166,22 @@ case class DepositDir private(baseDir: File, user: String, id: UUID) extends Deb
    * Writes the dataset level metadata for this deposit.
    *
    * @param md the metadata to write
+   *           In terms of JSon syntax, content like
+   *           "identifiers": [{ "scheme": "id-type:DOI", "value": "..."}]
+   *           should have been acquired with an explicit getDOI request.
+   *           Otherwise submit will fail because the value
+   *           is out of sync with deposit properties.
+   *           JSon content like
+   *           "dates": [ { ..., "qualifier": "dcterms:dateSubmitted" }]
+   *           will cause an error when converted to dataset.xml at submit.
    */
   def writeDatasetMetadataJson(md: DatasetMetadata): Try[Unit] = Try {
-    // TODO DOI should not change, only enforced by client calling getDOI. State and dateSubmitted should not change either.
     datasetMetadataJsonFile.write(toJson(md))
     () // satisfy the compiler which doesn't want a File
   }.recoverWith { case _: NoSuchFileException => notFoundFailure() }
 
   /** create dataset.xml, agreements.xml, files.xml
-   *  from datasetmetadata.json and files in data folder
+   * from datasetmetadata.json and files in data folder
    */
   def createXMLs(dateSubmitted: DateTime): Try[Unit] = {
     for {
@@ -276,6 +292,9 @@ object DepositDir {
       addProperty("state.label", depositInfo.state.toString)
       addProperty("state.description", depositInfo.stateDescription)
       addProperty("depositor.userId", user)
+      addProperty("curation.required", "yes")
+      addProperty("curation.performed", "no")
+      addProperty("bag-store.bag-id", depositInfo.id)
     }.save(depositDir.depositPropertiesFile.toJava)
 
     depositDir

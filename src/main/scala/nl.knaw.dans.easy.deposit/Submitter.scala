@@ -16,6 +16,9 @@
 package nl.knaw.dans.easy.deposit
 
 import better.files.File
+import nl.knaw.dans.easy.deposit.PidRequesterComponent.PidRequester
+import nl.knaw.dans.easy.deposit.docs.StateInfo
+import nl.knaw.dans.easy.deposit.docs.StateInfo.State
 import org.joda.time.DateTime
 
 import scala.util.Try
@@ -26,7 +29,9 @@ import scala.util.Try
  * @param stagingBaseDir  the base directory for staged copies
  * @param submitToBaseDir the directory to which the staged copy must be moved.
  */
-class Submitter(stagingBaseDir: File, submitToBaseDir: File) {
+class Submitter(stagingBaseDir: File,
+                submitToBaseDir: File,
+                pidRequester: PidRequester) {
 
   /**
    * Submits `depositDir` by writing the file metadata, updating the bag checksums, staging a copy
@@ -36,13 +41,22 @@ class Submitter(stagingBaseDir: File, submitToBaseDir: File) {
    * @return
    */
   def submit(depositDir: DepositDir): Try[Unit] = {
+    val submitted = StateInfo(State.submitted, "Deposit is ready for processing.")
     // TODO: implement as follows:
     for {
-      // 1. Set state to SUBMITTED
-      _ <- depositDir.createXMLs(DateTime.now)
-      // 5. Update/write bag checksums.
-      // 6. Copy to staging area
-      // 7. Move copy to submit-to area
+      // TODO cache json read (and possibly rewritten) by getDOI for createXMLs?
+      _ <- depositDir.getDOI(pidRequester) // EASY-1464 step 3.3.1 - 3.3.3
+      // EASY-1464 step 3.3.4 validation
+      //   [v] mandatory fields are present and not empty (by DatasetXml(datasetMetadata) in createXMLs)
+      //   [v] DOI in json matches properties (by getDOI)
+      //   [ ] URLs are valid
+      //   [ ] ...
+      _ <- depositDir.createXMLs(DateTime.now) // EASY-1464 3.3.5
+      _ <- depositDir.setStateInfo(submitted) // EASY-1464 3.3.6
+      // TODO: the next steps in a worker thread so that submit can return fast for large deposits.
+      // EASY-1464 step 3.3.7 Update/write bag checksums.
+      // EASY-1464 step 3.3.8 Copy to staging area
+      // EASY-1464 step 3.3.9 Move copy to submit-to area
     } yield ???
   }
 }
