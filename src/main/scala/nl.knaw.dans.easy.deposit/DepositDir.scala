@@ -166,11 +166,13 @@ case class DepositDir private(baseDir: File, user: String, id: UUID) extends Deb
    * Writes the dataset level metadata for this deposit.
    *
    * @param md the metadata to write
-   *           Changing "identifiers": [{ "scheme": "id-type:DOI", "value": "..."}]
-   *           will cause an error when calling getDOI by an explicit request
-   *           or when getDOI is called implicitly by submit
-   *           because it will not match the deposit properties.
-   *           A "dates": [ { ..., "qualifier": "dcterms:dateSubmitted" }]
+   *           In terms of JSon syntax, content like
+   *           "identifiers": [{ "scheme": "id-type:DOI", "value": "..."}]
+   *           should have been acquired with an explicit getDOI request.
+   *           Otherwise submit will fail because the value
+   *           is out of sync with deposit properties.
+   *           JSon content like
+   *           "dates": [ { ..., "qualifier": "dcterms:dateSubmitted" }]
    *           will cause an error when converted to dataset.xml at submit.
    */
   def writeDatasetMetadataJson(md: DatasetMetadata): Try[Unit] = Try {
