@@ -24,7 +24,7 @@ import better.files.{ File, Files }
 import nl.knaw.dans.easy.deposit.docs.StateInfo.State.State
 
 import scala.util.{ Success, Try }
-import scala.xml.{ Elem, PrettyPrinter, Utility, XML }
+import scala.xml._
 
 package object deposit {
 
@@ -50,10 +50,14 @@ package object deposit {
    */
   case class FileInfo(fileName: String, dirPath: Path, sha1sum: String)
 
-  implicit class FileExtensions(val file: File) extends AnyVal {
-    def writePretty(elem: Elem): Try[Unit] = Try {
-      val pretty = XML.loadString(new PrettyPrinter(160, 2).format(Utility.trim(elem)))
-      XML.save(file.toString, pretty, Charset.forName("UTF-8").toString, xmlDecl = true)
+  val prologue = """<?xml version='1.0' encoding='UTF-8'?>"""
+
+  implicit class XmlExtensions(val elem: Elem) extends AnyVal {
+
+    def serialize: String = {
+      val printer = new PrettyPrinter(160, 2)
+      val trimmed = Utility.trim(elem)
+      prologue + "\n" + printer.format(trimmed)
     }
   }
 
