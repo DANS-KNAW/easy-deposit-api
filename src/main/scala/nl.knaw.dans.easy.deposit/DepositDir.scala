@@ -27,7 +27,7 @@ import nl.knaw.dans.easy.deposit.PidRequesterComponent.{ PidRequester, PidType }
 import nl.knaw.dans.easy.deposit.docs.JsonUtil.{ InvalidDocumentException, toJson }
 import nl.knaw.dans.easy.deposit.docs.StateInfo.State
 import nl.knaw.dans.easy.deposit.docs.StateInfo.State.State
-import nl.knaw.dans.easy.deposit.docs._
+import nl.knaw.dans.easy.deposit.docs.{ StateInfo, _ }
 import nl.knaw.dans.lib.error._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.apache.commons.configuration.PropertiesConfiguration
@@ -75,7 +75,8 @@ case class DepositDir private(baseDir: File, user: String, id: UUID) extends Deb
    */
   def setStateInfo(stateInfo: StateInfo): Try[Unit] = {
     for {
-      props <- checkStateTransition(stateInfo.state) // read again as submit might have added a DOI
+      props <- getDepositProps
+      _ <- checkStateChange(stateInfo.state, props)
       _ = props.setProperty("state.label", stateInfo.state.toString)
       _ = props.setProperty("state.description", stateInfo.stateDescription.toString)
       _ = props.save()
@@ -85,13 +86,19 @@ case class DepositDir private(baseDir: File, user: String, id: UUID) extends Deb
   def checkStateTransition(newState: State): Try[PropertiesConfiguration] = {
     for {
       props <- getDepositProps
-      currentState = State.withName(props.getString("state.label"))
+      _ <- checkStateChange(newState, props)
+    } yield props
+  }
+
+  private def checkStateChange(newState: State, props: PropertiesConfiguration) = {
+    for {
+      currentState <- Try { State.withName(props.getString("state.label")) }
       _ <- (currentState, newState) match {
         case (State.draft, State.submitted) => Success(())
         case (State.rejected, State.draft) => Success(())
         case _ => Failure(IllegalStateTransitionException(user, id, currentState, newState))
       }
-    } yield props
+    } yield ()
   }
 
   /**
