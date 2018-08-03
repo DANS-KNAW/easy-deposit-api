@@ -20,14 +20,14 @@ import java.util.UUID
 import nl.knaw.dans.easy.deposit.PidRequesterComponent.PidRequester
 import nl.knaw.dans.easy.deposit.PidRequesterComponent.PidType.PidType
 import nl.knaw.dans.easy.deposit.authentication.AuthenticationMocker._
-import nl.knaw.dans.easy.deposit.docs.DepositInfo
+import nl.knaw.dans.easy.deposit.docs.{ DatasetMetadata, DepositInfo, JsonUtil }
 import nl.knaw.dans.easy.deposit.{ EasyDepositApiApp, _ }
 import nl.knaw.dans.lib.error._
 import org.eclipse.jetty.http.HttpStatus._
 import org.scalamock.scalatest.MockFactory
 import org.scalatra.test.scalatest.ScalatraSuite
 
-import scala.util.Success
+import scala.util.{ Success, Try }
 
 class IntegrationSpec extends TestSupportFixture with ServletFixture with ScalatraSuite with MockFactory {
 
@@ -86,6 +86,7 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
       status shouldBe NOT_FOUND_404
     }
   }
+
 
   s"scenario: POST /deposit twice; GET /deposit" should "return a list of datasets" in {
 
@@ -161,6 +162,51 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
       status shouldBe OK_200
       body shouldBe expectedDoiRecord
     }
+  }
+
+  s"scenario: create - ... - sumbit" should "create submitted dataset copied from a draft" in {
+
+    val datasetMetadata = getManualTestResource("datasetmetadata-from-ui-all.json")
+    val doi = Try { DatasetMetadata(datasetMetadata).get.identifiers.get.headOption.get.value }
+      .getOrRecover(e => fail("could not get DOI from test input", e))
+
+    // create dataset
+    expectsUserFooBar
+    val responseBody = post(uri = s"/deposit", headers = Seq(basicAuthentication)) {
+      new String(bodyBytes)
+    }
+    val uuid = DepositInfo(responseBody).map(_.id.toString).getOrRecover(e => fail(e.toString, e))
+
+    // upload dataset metadata
+    expectsUserFooBar
+    put(s"/deposit/$uuid/metadata", headers = Seq(basicAuthentication),
+      body = datasetMetadata
+    ) {
+      body shouldBe ""
+      status shouldBe NO_CONTENT_204
+    }
+
+    // upload a file
+    expectsUserFooBar
+    post(uri = s"/deposit/$uuid/file/path/to/text.txt", headers = Seq(basicAuthentication), body = randomContent(22)) {
+      status shouldBe CREATED_201
+    }
+
+    // avoid having to mock the pid-service
+    (testDir / "drafts" / "foo" / uuid.toString / "deposit.properties").append(s"identifier.doi=$doi")
+
+    // submit
+    expectsUserFooBar
+    put(s"/deposit/$uuid/state", headers = Seq(basicAuthentication),
+      body = """{"state":"SUBMITTED","stateDescription":"blabla"}"""
+    ) {
+      body shouldBe ""
+      status shouldBe NO_CONTENT_204
+    }
+
+    // TODO despite TestSupportFixture.minimalAppConfig deposits.submit-to is mixed up with drafts
+    // +3 is difference in number of files in metadata directory: json versus xml's
+    ((testDir / "drafts" / "foo" / uuid.toString).walk().size + 3) shouldBe (testDir / "drafts" / uuid.toString).walk().size
   }
 
   s"scenario: POST /deposit; hack state to ARCHIVED; SUBMIT" should "reject state transition" in {

@@ -60,7 +60,11 @@ trait TestSupportFixture extends FlatSpec with Matchers with Inside with BeforeA
       private val draftDir: File = (testDir / "drafts")
         .delete(true)
         .createIfNotExists(asDirectory = true, createParents = true)
+      private val submitDir: File = (testDir / "easy-ingest-flow-inbox")
+        .delete(true)
+        .createIfNotExists(asDirectory = true, createParents = true)
       addProperty("deposits.drafts", draftDir.toString())
+      addProperty("deposits.submit-to", submitDir.toString())
       addProperty("pids.generator-service", "http://hostDoesNotExist")
     })
   }
