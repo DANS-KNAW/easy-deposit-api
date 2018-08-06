@@ -66,7 +66,7 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
   )
 
   private def getConfiguredDirectory(key: String): File = {
-    val dir = File(configuration.properties.getString("deposits.drafts"))
+    val dir = File(configuration.properties.getString(key))
 
     if (!dir.exists) throw ConfigurationException(s"Configured directory '$key' does not exist: $dir")
     if (!dir.isDirectory) throw ConfigurationException(s"Configured directory '$key' is a regular file: $dir")

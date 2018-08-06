@@ -169,6 +169,7 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
     val datasetMetadata = getManualTestResource("datasetmetadata-from-ui-all.json")
     val doi = Try { DatasetMetadata(datasetMetadata).get.identifiers.get.headOption.get.value }
       .getOrRecover(e => fail("could not get DOI from test input", e))
+    (testDir / "easy-ingest-flow-inbox").createDirectories()
 
     // create dataset
     expectsUserFooBar
@@ -204,9 +205,8 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
       status shouldBe NO_CONTENT_204
     }
 
-    // TODO despite TestSupportFixture.minimalAppConfig deposits.submit-to is mixed up with drafts
     // +3 is difference in number of files in metadata directory: json versus xml's
-    ((testDir / "drafts" / "foo" / uuid.toString).walk().size + 3) shouldBe (testDir / "drafts" / uuid.toString).walk().size
+    ((testDir / "drafts" / "foo" / uuid.toString).walk().size + 3) shouldBe (testDir / "easy-ingest-flow-inbox" / uuid.toString).walk().size
   }
 
   s"scenario: POST /deposit; hack state to ARCHIVED; SUBMIT" should "reject state transition" in {
