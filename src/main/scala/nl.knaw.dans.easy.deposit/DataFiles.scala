@@ -19,9 +19,10 @@ import java.io.InputStream
 import java.nio.file.{ Path, Paths }
 
 import better.files._
+import nl.knaw.dans.bag.v0.DansV0Bag
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 
-import scala.util.Try
+import scala.util.{ Success, Try }
 
 /**
  * Represents the data files of a deposit. The data files are the content files that the user uploads,
@@ -38,7 +39,16 @@ case class DataFiles(dataFilesBase: File) extends DebugEnhancedLogging {
    * @param path a relative path into `dataFilesBase`
    * @return a list of [[FileInfo]] objects
    */
-  def list(path: Path = Paths.get("")): Try[Seq[FileInfo]] = ???
+  def list(path: Path = Paths.get("")): Try[Seq[FileInfo]] = {
+    for {
+      bag <- DansV0Bag.read(dataFilesBase.parent) // TODO reads all manifests and metadata, need just one manifest
+      alg <- Try { bag.payloadManifestAlgorithms.headOption.get }
+      files <- Try { bag.payloadManifests(alg) }
+    } yield files
+      .withFilter { case (f, _) => path.toString == "" || dataFilesBase.relativize(f).startsWith(path) }
+      .map { case (f, c) => FileInfo(f.name, dataFilesBase.relativize(f.parent), c) }
+      .toSeq
+  }
 
   /**
    * Write the inputstream `is` to the relative path into the data files directory.

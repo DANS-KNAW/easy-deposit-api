@@ -19,7 +19,9 @@ import java.io.ByteArrayInputStream
 import java.nio.charset.StandardCharsets
 import java.nio.file.attribute.PosixFilePermission
 import java.nio.file.{ AccessDeniedException, NoSuchFileException, Paths }
+import java.util.UUID
 
+import nl.knaw.dans.bag.v0.DansV0Bag
 import nl.knaw.dans.lib.error._
 
 import scala.util.{ Failure, Success }
@@ -86,4 +88,32 @@ class DataFilesSpec extends TestSupportFixture {
       case other => fail(s"expecting Failure(NoSuchFileException($path)) but got $other")
     }
   }
+
+  "list" should "return the proper number of files" in {
+    val bag = DansV0Bag
+      .empty(testDir / "testBag").getOrRecover(fail("could not create test bag", _))
+      .addPayloadFile(randomContent)(_ / "1.txt").getOrRecover(payloadFailure)
+      .addPayloadFile(randomContent)(_ / "folder1/2.txt").getOrRecover(payloadFailure)
+      .addPayloadFile(randomContent)(_ / "folder1/3.txt").getOrRecover(payloadFailure)
+      .addPayloadFile(randomContent)(_ / "folder2/4.txt").getOrRecover(payloadFailure)
+    bag.save()
+    val dataFiles = DataFiles(testDir / "testBag/data")
+    val path2 = Paths.get("folder2")
+
+    dataFiles.list(path2) should matchPattern {
+      case Success(Seq(FileInfo("4.txt", p, _))) if p == path2 => // no order problem as the next cases would have
+    }
+    dataFiles.list(Paths.get("folder1")) should matchPattern {
+      case Success(Seq(_, _)) =>
+    }
+    dataFiles.list(Paths.get("")) should matchPattern {
+      case Success(Seq(_, _, _, _)) =>
+    }
+  }
+
+  private def payloadFailure(value: Throwable) =
+    fail("could not add payloadFile to test bag", value)
+
+  private def randomContent =
+    UUID.randomUUID().toString.asInputStream
 }
