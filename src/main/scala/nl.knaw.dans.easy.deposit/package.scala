@@ -16,11 +16,12 @@
 package nl.knaw.dans.easy
 
 import java.io.{ ByteArrayInputStream, InputStream }
-import java.nio.charset.{ Charset, StandardCharsets }
-import java.nio.file.Path
+import java.nio.charset.StandardCharsets
+import java.nio.file.{ Path, Paths }
 import java.util.UUID
 
 import better.files.{ File, Files }
+import nl.knaw.dans.bag.v0.DansV0Bag
 import nl.knaw.dans.easy.deposit.docs.StateInfo.State.State
 
 import scala.util.{ Success, Try }
@@ -58,6 +59,15 @@ package object deposit {
       val printer = new PrettyPrinter(160, 2)
       val trimmed = Utility.trim(elem)
       prologue + "\n" + printer.format(trimmed)
+    }
+  }
+  implicit class BagExtensions(val bag: DansV0Bag) {
+    def addMetadataFile(content: Elem, target: String): Try[Any] = {
+      bag.addTagFile(content.serialize.asInputStream, Paths.get(s"metadata/$target"))
+    }
+
+    def addMetadataFile(content: String, target: String): Try[Any] = {
+      bag.addTagFile(content.asInputStream, Paths.get(s"metadata/$target"))
     }
   }
 
