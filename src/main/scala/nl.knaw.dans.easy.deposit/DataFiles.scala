@@ -16,13 +16,13 @@
 package nl.knaw.dans.easy.deposit
 
 import java.io.InputStream
-import java.nio.file.{ Path, Paths }
+import java.nio.file.{ NoSuchFileException, Path, Paths }
 
 import better.files._
 import nl.knaw.dans.bag.v0.DansV0Bag
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 
-import scala.util.{ Success, Try }
+import scala.util.{ Failure, Success, Try }
 
 /**
  * Represents the data files of a deposit. The data files are the content files that the user uploads,
@@ -40,14 +40,13 @@ case class DataFiles(dataFilesBase: File) extends DebugEnhancedLogging {
    * @return a list of [[FileInfo]] objects
    */
   def list(path: Path = Paths.get("")): Try[Seq[FileInfo]] = {
-    for {
-      bag <- DansV0Bag.read(dataFilesBase.parent) // TODO reads all manifests and metadata, need just one manifest
-      alg <- Try { bag.payloadManifestAlgorithms.headOption.get }
-      files <- Try { bag.payloadManifests(alg) }
-    } yield files
-      .withFilter { case (f, _) => path.toString == "" || dataFilesBase.relativize(f).startsWith(path) }
-      .map { case (f, c) => FileInfo(f.name, dataFilesBase.relativize(f.parent), c) }
-      .toSeq
+    getManifest.map { case (_, manifest) => // TODO reads all manifests and metadata, need just one manifest
+      manifest.withFilter { case (file, _) =>
+        path.toString == "" || dataFilesBase.relativize(file).startsWith(path)
+      }.map { case (file, checksum) =>
+        FileInfo(file.name, dataFilesBase.relativize(file.parent), checksum)
+      }.toSeq
+    }
   }
 
   /**
@@ -57,13 +56,24 @@ case class DataFiles(dataFilesBase: File) extends DebugEnhancedLogging {
    * @param path the relative path to the file to write
    * @return `true` if a new file was created, `false` if an existing file was overwritten
    */
-  def write(is: InputStream, path: Path): Try[Boolean] = Try {
-    val file: File = dataFilesBase / path.toString
-    val createFile = !file.exists
-    file.createIfNotExists(asDirectory = false, createParents = true)
-    file.outputStream.foreach(is.pipeTo(_))
-    createFile
+  def write(is: InputStream, path: Path): Try[Boolean] = {
+    for {
+      (bag, manifest) <- getManifest
+      fileExists = manifest.exists { case (p, _) => dataFilesBase.relativize(p) == path }
+      _ <- if (fileExists) bag.removePayloadFile(path)
+           else Success(())
+      _ <- if (fileExists) bag.save
+           else Success(())
+      _ <- bag.addPayloadFile(is, path)
+      _ <- bag.save
+    } yield !fileExists
   }
+
+  private def getManifest = for {
+    bag <- DansV0Bag.read(dataFilesBase.parent)
+    alg <- Try { bag.payloadManifestAlgorithms.headOption.get }
+    manifest <- Try { bag.payloadManifests(alg) }
+  } yield (bag, manifest)
 
   /**
    * Deletes the file or directory located at the relative path into the data files directory. Directories
@@ -71,18 +81,23 @@ case class DataFiles(dataFilesBase: File) extends DebugEnhancedLogging {
    *
    * @param path the relative path of the file or directory to delete
    */
-  def delete(path: Path): Try[Unit] = Try {
-
+  def delete(path: Path): Try[Unit] = {
     val file = dataFilesBase / path.toString
-    val fileStream = file.walk()
-    // TODO maximise depth/width? resource leaks: https://github.com/pathikrit/better-files/issues/241
-    val files = if (file.isDirectory && fileStream.hasNext)
-                  fileStream.toList // without toList we would only log the first
-                else Seq(file)
+    for {
+      _ <- if (file.exists) Success(())
+           else Failure(new NoSuchFileException(path.toString))
+      bag <- DansV0Bag.read(dataFilesBase.parent)
+      _ <- if (file.isDirectory) removeDir(bag, file.walk().toStream)
+           else bag.removePayloadFile(path)
+      _ <- bag.save
+    } yield ()
+  }
 
-    file.delete()
-    // TODO when upload (and write DatasetMetadata?) does it too: let the bag-it lib recalculate the manifest file
+  private def removeDir(bag: DansV0Bag, files: Stream[File]) = {
+    def remove(file: File) = {
+      bag.removePayloadFile(dataFilesBase.relativize(file))
+    }
 
-    files.foreach(file => logger.info(s"deleted $file"))
+    files.withFilter(!_.isDirectory).map(remove).find(_.isFailure).getOrElse(Success(()))
   }
 }

@@ -34,10 +34,9 @@ class DataFilesSpec extends TestSupportFixture {
   }
 
   private val draftsDir = testDir / "drafts"
-  private val dataFiles = DepositDir(draftsDir, "user01", uuid)
-    .getDataFiles.getOrRecover(e => fail(e.toString, e))
 
   "write" should "write content to the path specified" in {
+    val dataFiles = createDatafiles
     val content = "Lorem ipsum est"
     val inputStream = new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8))
     val fileInBag = "location/in/data/dir/test.txt"
@@ -49,6 +48,7 @@ class DataFilesSpec extends TestSupportFixture {
   }
 
   it should "report write errors" in {
+    val dataFiles = createDatafiles
     dataFiles.dataFilesBase
       .createIfNotExists(asDirectory = true, createParents = true)
       .removePermission(PosixFilePermission.OWNER_WRITE)
@@ -60,32 +60,40 @@ class DataFilesSpec extends TestSupportFixture {
   }
 
   "delete" should "delete a file" in {
-    val dataFilesBase = dataFiles.dataFilesBase
-      .createIfNotExists(asDirectory = true, createParents = true)
-    val file = (dataFilesBase / "file.txt").writeText("Lorem ipsum est")
+    val bag = DansV0Bag.empty(testDir / "bag").getOrRecover(e => fail(s"could not create test bag $e"))
+    bag.addPayloadFile("Lorum ipsum est".asInputStream, Paths.get("file.txt"))
+    bag.save
+    (bag.data / "file.txt").toJava should exist
+    (bag.data.parent / "manifest-sha1.txt").lines.size shouldBe 1
 
-    dataFiles.delete(Paths.get("file.txt")) should matchPattern { case Success(()) => }
+    DataFiles(bag.data)
+      .delete(Paths.get("file.txt")) should matchPattern { case Success(()) => }
 
-    file.toJava shouldNot exist
+    bag.data.children.size shouldBe 0
+    (bag.data.parent / "manifest-sha1.txt").lines.size shouldBe 0
   }
 
   it should "recursively delete files" in {
-    val dir = (dataFiles.dataFilesBase / "path" / "to" / "files").createIfNotExists(asDirectory = true, createParents = true)
-    (0 until 105).foreach { n =>
-      (dir / s"file$n.txt").writeText("Lorem ipsum est")
+    val bag = DansV0Bag.empty(testDir / "bag").getOrRecover(e => fail(s"could not create test bag $e"))
+    bag.addPayloadFile("Lorum ipsum est".asInputStream, Paths.get("file.txt"))
+    (0 until 5).foreach { n =>
+      bag.addPayloadFile(s"$n Lorum ipsum est".asInputStream, Paths.get(s"path/to/file$n.txt"))
     }
+    bag.save
+    bag.data.children.size shouldBe 2 // one file one folder
+    (bag.baseDir / "manifest-sha1.txt").lines.size shouldBe 6
 
-    dataFiles.delete(Paths.get("path/to")) should matchPattern { case Success(()) => }
+    DataFiles(bag.data)
+      .delete(Paths.get("path/to")) should matchPattern { case Success(()) => }
 
-    (dataFiles.dataFilesBase / "path" / "to").toJava shouldNot exist
-    (dataFiles.dataFilesBase / "path").toJava should exist
+    bag.data.children.size shouldBe 1
+    (bag.baseDir / "manifest-sha1.txt").lines.size shouldBe 1
   }
 
   it should "report a non existing file" in {
-    val path = (dataFiles.dataFilesBase / "file.txt").toString()
-    inside(dataFiles.delete(Paths.get("file.txt"))) {
-      case Failure(e: NoSuchFileException) => e.getMessage shouldBe path
-      case other => fail(s"expecting Failure(NoSuchFileException($path)) but got $other")
+    inside(createDatafiles.delete(Paths.get("file.txt"))) {
+      case Failure(e: NoSuchFileException) => e.getMessage shouldBe "file.txt"
+      case other => fail(s"expecting Failure(NoSuchFileException(file.txt)) but got $other")
     }
   }
 
@@ -109,6 +117,12 @@ class DataFilesSpec extends TestSupportFixture {
     dataFiles.list(Paths.get("")) should matchPattern {
       case Success(Seq(_, _, _, _)) =>
     }
+  }
+
+  private def createDatafiles = {
+    DepositDir.create(draftsDir, "user01")
+      .getOrRecover(e => fail("can't create test deposit", e))
+      .getDataFiles.getOrRecover(e => fail("can't get datafiles from test deposit", e))
   }
 
   private def payloadFailure(value: Throwable) =

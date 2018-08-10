@@ -20,11 +20,10 @@ import java.nio.charset.StandardCharsets
 import java.nio.file.{ Path, Paths }
 import java.util.UUID
 
-import better.files.{ File, Files }
 import nl.knaw.dans.bag.v0.DansV0Bag
 import nl.knaw.dans.easy.deposit.docs.StateInfo.State.State
 
-import scala.util.{ Success, Try }
+import scala.util.Try
 import scala.xml._
 
 package object deposit {
@@ -68,12 +67,6 @@ package object deposit {
 
     def addMetadataFile(content: String, target: String): Try[Any] = {
       bag.addTagFile(content.asInputStream, Paths.get(s"metadata/$target"))
-    }
-  }
-
-  implicit class FilesExtensions(val files: Files) {
-    def failFastMap(f: File => Try[Any]): Try[Any] = {
-      files.toStream.map(f).find(_.isFailure).getOrElse(Success(()))
     }
   }
 
