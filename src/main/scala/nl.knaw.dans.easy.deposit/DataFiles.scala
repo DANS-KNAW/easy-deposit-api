@@ -19,6 +19,7 @@ import java.io.InputStream
 import java.nio.file.{ NoSuchFileException, Path, Paths }
 
 import better.files._
+import nl.knaw.dans.bag.ChecksumAlgorithm.SHA1
 import nl.knaw.dans.bag.DansBag
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 
@@ -40,38 +41,39 @@ case class DataFiles(bag: DansBag) extends DebugEnhancedLogging {
    * @return a list of [[FileInfo]] objects
    */
   def list(path: Path = Paths.get("")): Try[Seq[FileInfo]] = {
-    getManifest.map(_.withFilter { case (file, _) =>
-      path.toString == "" || bag.data.relativize(file).startsWith(path)
-    }.map { case (file, checksum) =>
+    def startsWithPath(manifestItem: (File, String)): Boolean = {
+      path.toString == "" || bag.data.relativize(manifestItem._1).startsWith(path)
+    }
+
+    def toFileInfo(manifestItem: (File, String)): FileInfo = {
+      val file = manifestItem._1
+      val checksum = manifestItem._2
       FileInfo(file.name, bag.data.relativize(file.parent), checksum)
-    }.toSeq)
+    }
+
+    val manifestMap = bag.payloadManifests
+    manifestMap.values.headOption // this may result in some manifest
+      .map(manifestMap.getOrElse(SHA1, _)) // but we prefer the SHA1 manifest
+      .map(items => Success(items.withFilter(startsWithPath).map(toFileInfo).toSeq))
+      .getOrElse(Failure(new Exception(s"no algorithm for ${ bag.baseDir }")))
   }
 
   /**
-   * Write the inputstream `is` to the relative path into the data files directory.
+   * Write the input stream `is` to the relative path into the data files directory.
    *
    * @param is   the input stream
    * @param path the relative path to the file to write
    * @return `true` if a new file was created, `false` if an existing file was overwritten
    */
   def write(is: InputStream, path: Path): Try[Boolean] = {
+    val fileExists = (bag.data / path.toString).exists
     for {
-      manifest <- getManifest
-      fileExists = manifest.exists { case (p, _) => bag.data.relativize(p) == path }
-      _ <- if (fileExists) bag.removePayloadFile(path)
-           else Success(())
-      _ <- if (fileExists) bag.save
+      _ <- if (fileExists) removeFile(path)
            else Success(())
       _ <- bag.addPayloadFile(is, path)
       _ <- bag.save
     } yield !fileExists
   }
-
-  private def getManifest = for {
-    // TODO how to recognize the preferred algorithm over the deprecated ones?
-    alg <- Try { bag.payloadManifestAlgorithms.headOption.get }
-    manifest <- Try { bag.payloadManifests(alg) }
-  } yield manifest
 
   /**
    * Deletes the file or directory located at the relative path into the data files directory. Directories
@@ -81,20 +83,23 @@ case class DataFiles(bag: DansBag) extends DebugEnhancedLogging {
    */
   def delete(path: Path): Try[Unit] = {
     val file = bag.data / path.toString
-    for {
-      _ <- if (file.exists) Success(())
-           else Failure(new NoSuchFileException(path.toString))
-      _ <- if (file.isDirectory) removeDir(bag, file.walk().toStream)
-           else bag.removePayloadFile(path)
-      _ <- bag.save
-    } yield ()
+    if (!file.exists) Failure(new NoSuchFileException(path.toString))
+    else if (file.isDirectory) removeDir(file.walk().toStream)
+    else removeFile(path)
   }
 
-  private def removeDir(bag: DansBag, files: Stream[File]) = {
-    def remove(file: File) = {
-      bag.removePayloadFile(bag.data.relativize(file))
-    }
+  private def removeDir(files: Stream[File]) = {
+    files
+      .withFilter(!_.isDirectory)
+      .map(f => removeFile(bag.data.relativize(f)))
+      .find(_.isFailure)
+      .getOrElse(Success(()))
+  }
 
-    files.withFilter(!_.isDirectory).map(remove).find(_.isFailure).getOrElse(Success(()))
+  private def removeFile(path: Path) = {
+    // saving each mutation keeps the bag consistent in case of failures further down the chain
+    bag
+      .removePayloadFile(path)
+      .flatMap(_.save)
   }
 }
