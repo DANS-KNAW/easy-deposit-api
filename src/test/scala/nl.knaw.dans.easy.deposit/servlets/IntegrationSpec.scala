@@ -120,7 +120,7 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
     }
     val uuid = DepositInfo(responseBody).map(_.id.toString).getOrRecover(e => fail(e.toString, e))
 
-    val dataFilesBase = DepositDir(testDir / "drafts", "foo", UUID.fromString(uuid)).getDataFiles.get.dataFilesBase
+    val dataFilesBase = DepositDir(testDir / "drafts", "foo", UUID.fromString(uuid)).getDataFiles.get.bag.data
     val times = 500
     val expectedContentSize = 37 * times - 1
 

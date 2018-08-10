@@ -132,8 +132,8 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
     depositDir
       .getDataFiles
       .getOrRecover(e => fail(e.toString, e))
-      .dataFilesBase
-      .parent
+      .bag
+      .baseDir
   }
 
   private def createDeposit(metadata: DatasetMetadata) = {

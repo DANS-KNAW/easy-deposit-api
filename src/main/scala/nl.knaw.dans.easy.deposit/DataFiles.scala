@@ -19,7 +19,7 @@ import java.io.InputStream
 import java.nio.file.{ NoSuchFileException, Path, Paths }
 
 import better.files._
-import nl.knaw.dans.bag.v0.DansV0Bag
+import nl.knaw.dans.bag.DansBag
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 
 import scala.util.{ Failure, Success, Try }
@@ -29,9 +29,9 @@ import scala.util.{ Failure, Success, Try }
  * i.e. the files that are the actual target of preservation. The dataset metadata is ''not'' included
  * in this.
  *
- * @param dataFilesBase the base directory of the data files
+ * @param bag the bag containing the data files
  */
-case class DataFiles(dataFilesBase: File) extends DebugEnhancedLogging {
+case class DataFiles(bag: DansBag) extends DebugEnhancedLogging {
 
   /**
    * Lists information about the files the directory `path` and its subdirectories.
@@ -40,13 +40,11 @@ case class DataFiles(dataFilesBase: File) extends DebugEnhancedLogging {
    * @return a list of [[FileInfo]] objects
    */
   def list(path: Path = Paths.get("")): Try[Seq[FileInfo]] = {
-    getManifest.map { case (_, manifest) => // TODO reads all manifests and metadata, need just one manifest
-      manifest.withFilter { case (file, _) =>
-        path.toString == "" || dataFilesBase.relativize(file).startsWith(path)
-      }.map { case (file, checksum) =>
-        FileInfo(file.name, dataFilesBase.relativize(file.parent), checksum)
-      }.toSeq
-    }
+    getManifest.map(_.withFilter { case (file, _) =>
+      path.toString == "" || bag.data.relativize(file).startsWith(path)
+    }.map { case (file, checksum) =>
+      FileInfo(file.name, bag.data.relativize(file.parent), checksum)
+    }.toSeq)
   }
 
   /**
@@ -58,8 +56,8 @@ case class DataFiles(dataFilesBase: File) extends DebugEnhancedLogging {
    */
   def write(is: InputStream, path: Path): Try[Boolean] = {
     for {
-      (bag, manifest) <- getManifest
-      fileExists = manifest.exists { case (p, _) => dataFilesBase.relativize(p) == path }
+      manifest <- getManifest
+      fileExists = manifest.exists { case (p, _) => bag.data.relativize(p) == path }
       _ <- if (fileExists) bag.removePayloadFile(path)
            else Success(())
       _ <- if (fileExists) bag.save
@@ -70,10 +68,10 @@ case class DataFiles(dataFilesBase: File) extends DebugEnhancedLogging {
   }
 
   private def getManifest = for {
-    bag <- DansV0Bag.read(dataFilesBase.parent)
+    // TODO how to recognize the preferred algorithm over the deprecated ones?
     alg <- Try { bag.payloadManifestAlgorithms.headOption.get }
     manifest <- Try { bag.payloadManifests(alg) }
-  } yield (bag, manifest)
+  } yield manifest
 
   /**
    * Deletes the file or directory located at the relative path into the data files directory. Directories
@@ -82,20 +80,19 @@ case class DataFiles(dataFilesBase: File) extends DebugEnhancedLogging {
    * @param path the relative path of the file or directory to delete
    */
   def delete(path: Path): Try[Unit] = {
-    val file = dataFilesBase / path.toString
+    val file = bag.data / path.toString
     for {
       _ <- if (file.exists) Success(())
            else Failure(new NoSuchFileException(path.toString))
-      bag <- DansV0Bag.read(dataFilesBase.parent)
       _ <- if (file.isDirectory) removeDir(bag, file.walk().toStream)
            else bag.removePayloadFile(path)
       _ <- bag.save
     } yield ()
   }
 
-  private def removeDir(bag: DansV0Bag, files: Stream[File]) = {
+  private def removeDir(bag: DansBag, files: Stream[File]) = {
     def remove(file: File) = {
-      bag.removePayloadFile(dataFilesBase.relativize(file))
+      bag.removePayloadFile(bag.data.relativize(file))
     }
 
     files.withFilter(!_.isDirectory).map(remove).find(_.isFailure).getOrElse(Success(()))

@@ -51,7 +51,7 @@ class Submitter(stagingBaseDir: File,
     //   [ ] URLs are valid
     //   [ ] ...
     // EASY-1464 3.3.5.a: generate (with some implicit validation) content for metadata files
-    dataFilesDir <- depositDir.getDataFiles.map(_.dataFilesBase)
+    dataFilesDir <- depositDir.getDataFiles.map(_.bag.data)
     datasetMetadata <- depositDir.getDatasetMetadata // TODO skip recover: internal error if not catched by getDOI
     agreementsXml <- AgreementsXml(depositDir.user, DateTime.now, datasetMetadata)
     datasetXml <- DatasetXml(datasetMetadata)

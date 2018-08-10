@@ -43,19 +43,19 @@ class DataFilesSpec extends TestSupportFixture {
 
     dataFiles.write(inputStream, Paths.get(fileInBag)) shouldBe Success(true)
 
-    (dataFiles.dataFilesBase / fileInBag).contentAsString shouldBe content
+    (dataFiles.bag.data / fileInBag).contentAsString shouldBe content
     inputStream.close()
   }
 
   it should "report write errors" in {
     val dataFiles = createDatafiles
-    dataFiles.dataFilesBase
+    dataFiles.bag.data
       .createIfNotExists(asDirectory = true, createParents = true)
       .removePermission(PosixFilePermission.OWNER_WRITE)
     val inputStream = new ByteArrayInputStream("Lorem ipsum est".getBytes(StandardCharsets.UTF_8))
 
     dataFiles.write(inputStream, Paths.get("location/in/data/dir/test.txt")).toString shouldBe
-      Failure(new AccessDeniedException((dataFiles.dataFilesBase / "location").toString())).toString
+      Failure(new AccessDeniedException((dataFiles.bag.data / "location").toString())).toString
     inputStream.close()
   }
 
@@ -66,7 +66,7 @@ class DataFilesSpec extends TestSupportFixture {
     (bag.data / "file.txt").toJava should exist
     (bag.data.parent / "manifest-sha1.txt").lines.size shouldBe 1
 
-    DataFiles(bag.data)
+    DataFiles(bag)
       .delete(Paths.get("file.txt")) should matchPattern { case Success(()) => }
 
     bag.data.children.size shouldBe 0
@@ -83,7 +83,7 @@ class DataFilesSpec extends TestSupportFixture {
     bag.data.children.size shouldBe 2 // one file one folder
     (bag.baseDir / "manifest-sha1.txt").lines.size shouldBe 6
 
-    DataFiles(bag.data)
+    DataFiles(bag)
       .delete(Paths.get("path/to")) should matchPattern { case Success(()) => }
 
     bag.data.children.size shouldBe 1
@@ -105,7 +105,7 @@ class DataFilesSpec extends TestSupportFixture {
       .addPayloadFile(randomContent)(_ / "folder1/3.txt").getOrRecover(payloadFailure)
       .addPayloadFile(randomContent)(_ / "folder2/4.txt").getOrRecover(payloadFailure)
     bag.save()
-    val dataFiles = DataFiles(testDir / "testBag/data")
+    val dataFiles = DataFiles(bag)
     val path2 = Paths.get("folder2")
 
     dataFiles.list(path2) should matchPattern {
