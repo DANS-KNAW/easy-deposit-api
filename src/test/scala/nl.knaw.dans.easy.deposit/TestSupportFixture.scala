@@ -57,14 +57,23 @@ trait TestSupportFixture extends FlatSpec with Matchers with Inside with BeforeA
 
   def minimalAppConfig: Configuration = {
     new Configuration("", new PropertiesConfiguration() {
-      private val draftDir: File = (testDir / "drafts")
-        .delete(true)
-        .createIfNotExists(asDirectory = true, createParents = true)
-      addProperty("deposits.drafts", draftDir.toString())
-      addProperty("pids.generator-service", "http://hostDoesNotExist")
+      addProperty("deposits.stage", testSubDir("stage").toString())
+      addProperty("deposits.drafts", testSubDir("drafts").toString())
+      addProperty("deposits.submit-to", testSubDir("easy-ingest-flow-inbox").toString())
+      addProperty("pids.generator-service", "http://piHostDoesNotExist")
+      addProperty("users.ldap-url", "http://ldapHostDoesNotExist")
+      addProperty("users.ldap-parent-entry", "-")
+      addProperty("users.ldap-admin-principal", "-")
+      addProperty("users.ldap-admin-password", "-")
+      addProperty("users.ldap-user-id-attr-name", "-")
     })
   }
 
+  private def testSubDir(drafts: String) = {
+    (testDir / drafts)
+      .delete(true)
+      .createIfNotExists(asDirectory = true, createParents = true)
+  }
   private class TokenSupportImpl() extends TokenSupport with AuthConfig {
 
     // required by AuthConfig but not by TokenSupport

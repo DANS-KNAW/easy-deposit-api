@@ -15,15 +15,17 @@
  */
 package nl.knaw.dans.easy
 
-import java.nio.charset.Charset
-import java.nio.file.Path
+import java.io.{ ByteArrayInputStream, InputStream }
+import java.nio.charset.StandardCharsets
+import java.nio.file.{ Path, Paths }
 import java.util.UUID
 
-import better.files.File
+import better.files.{ File, Files }
+import nl.knaw.dans.bag.v0.DansV0Bag
 import nl.knaw.dans.easy.deposit.docs.StateInfo.State.State
 
-import scala.util.Try
-import scala.xml.{ Elem, PrettyPrinter, Utility, XML }
+import scala.util.{ Success, Try }
+import scala.xml._
 
 package object deposit {
 
@@ -49,10 +51,35 @@ package object deposit {
    */
   case class FileInfo(fileName: String, dirPath: Path, sha1sum: String)
 
-  implicit class FileExtensions(val file: File) extends AnyVal {
-    def writePretty(elem: Elem): Try[Unit] = Try {
-      val pretty = XML.loadString(new PrettyPrinter(160, 2).format(Utility.trim(elem)))
-      XML.save(file.toString, pretty, Charset.forName("UTF-8").toString, xmlDecl = true)
+  val prologue = """<?xml version='1.0' encoding='UTF-8'?>"""
+
+  implicit class XmlExtensions(val elem: Elem) extends AnyVal {
+
+    def serialize: String = {
+      val printer = new PrettyPrinter(160, 2)
+      val trimmed = Utility.trim(elem)
+      prologue + "\n" + printer.format(trimmed)
+    }
+  }
+  implicit class BagExtensions(val bag: DansV0Bag) {
+    def addMetadataFile(content: Elem, target: String): Try[Any] = {
+      bag.addTagFile(content.serialize.asInputStream, Paths.get(s"metadata/$target"))
+    }
+
+    def addMetadataFile(content: String, target: String): Try[Any] = {
+      bag.addTagFile(content.asInputStream, Paths.get(s"metadata/$target"))
+    }
+  }
+
+  implicit class FilesExtensions(val files: Files) {
+    def failFastMap(f: File => Try[Any]): Try[Any] = {
+      files.toStream.map(f).find(_.isFailure).getOrElse(Success(()))
+    }
+  }
+
+  implicit class StringExtensions(val s: String) {
+    def asInputStream: InputStream = {
+      new ByteArrayInputStream(s.getBytes(StandardCharsets.UTF_8))
     }
   }
 }

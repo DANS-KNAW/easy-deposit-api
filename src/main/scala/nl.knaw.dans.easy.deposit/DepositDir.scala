@@ -50,10 +50,6 @@ case class DepositDir private(baseDir: File, user: String, id: UUID) extends Deb
   private val dataFilesDir = bagDir / "data"
   private val depositPropertiesFile = bagDir.parent / "deposit.properties"
   private val datasetMetadataJsonFile = metadataDir / "dataset.json"
-  private val msgFromDepositorFile = metadataDir / "message-from-depositor.txt"
-  private val agreementsFile = metadataDir / "agreements.xml"
-  private val datasetXmlFile = metadataDir / "dataset.xml"
-  private val filesXmlFile = metadataDir / "files.xml"
 
   /**
    * @return an information object about the current state of the desposit.
@@ -180,27 +176,11 @@ case class DepositDir private(baseDir: File, user: String, id: UUID) extends Deb
     () // satisfy the compiler which doesn't want a File
   }.recoverWith { case _: NoSuchFileException => notFoundFailure() }
 
-  /** create dataset.xml, agreements.xml, files.xml
-   * from datasetmetadata.json and files in data folder
-   */
-  def createXMLs(dateSubmitted: DateTime): Try[Unit] = {
-    for {
-      datasetMetadata <- getDatasetMetadata // TODO skip recover? Depends on to be implemented submit.
-      _ = msgFromDepositorFile.write(datasetMetadata.messageForDataManager.getOrElse(""))
-      agreementsXml <- AgreementsXml(user, dateSubmitted, datasetMetadata)
-      _ <- agreementsFile.writePretty(agreementsXml)
-      datasetXml <- DatasetXml(datasetMetadata)
-      _ <- datasetXmlFile.writePretty(datasetXml)
-      filesXml <- FilesXml(dataFilesDir.parent)
-      _ <- filesXmlFile.writePretty(filesXml)
-    } yield ()
-  }
-
   /**
    * @return object to access the data files of this deposit
    */
   def getDataFiles: Try[DataFiles] = Try {
-    DataFiles(dataFilesDir, metadataDir / "files.xml")
+    DataFiles(dataFilesDir)
   }
 
   /**
