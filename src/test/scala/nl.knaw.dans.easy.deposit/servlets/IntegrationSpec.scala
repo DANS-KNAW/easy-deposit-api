@@ -131,9 +131,14 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
       (dataFilesBase / "path" / "to" / "text.txt").size shouldBe expectedContentSize
     }
     expectsUserFooBar
-    post(uri = s"/deposit/$uuid/file/path/to/text.txt", headers = Seq(basicAuthentication), body = randomContent(times)) {
+    post(uri = s"/deposit/$uuid/file/path/to/text.txt", headers = Seq(basicAuthentication), body = "fixed content for a fixed checksum") {
       status shouldBe OK_200
-      (dataFilesBase / "path" / "to" / "text.txt").size shouldBe expectedContentSize
+      (dataFilesBase / "path" / "to" / "text.txt").size shouldBe 34
+    }
+    expectsUserFooBar
+    get(uri = s"/deposit/$uuid/file/path", headers = Seq(basicAuthentication)) {
+      status shouldBe OK_200
+      body shouldBe """[{"fileName":"text.txt","dirPath":"path/to","sha1sum":"f5aa79b56b3d051f35be075470970b552c7f835f"}]"""
     }
   }
 
