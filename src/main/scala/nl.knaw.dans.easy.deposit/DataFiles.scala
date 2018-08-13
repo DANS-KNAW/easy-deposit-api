@@ -37,7 +37,7 @@ case class DataFiles(bag: DansBag) extends DebugEnhancedLogging {
   /**
    * Lists information about the files the directory `path` and its subdirectories.
    *
-   * @param path a relative path into `dataFilesBase`
+   * @param path a relative path into data files directory of the bag.
    * @return a list of [[FileInfo]] objects
    */
   def list(path: Path = Paths.get("")): Try[Seq[FileInfo]] = {
