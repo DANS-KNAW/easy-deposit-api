@@ -52,8 +52,9 @@ case class DataFiles(bag: DansBag) extends DebugEnhancedLogging {
     }
 
     val manifestMap = bag.payloadManifests
-    manifestMap.values.headOption // this may result in some manifest
-      .map(manifestMap.getOrElse(SHA1, _)) // but we prefer the SHA1 manifest
+    manifestMap
+      .get(SHA1)
+      .orElse(manifestMap.values.headOption)
       .map(items => Success(items.withFilter(startsWithPath).map(toFileInfo).toSeq))
       .getOrElse(Failure(new Exception(s"no algorithm for ${ bag.baseDir }")))
   }
