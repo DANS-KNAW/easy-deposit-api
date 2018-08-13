@@ -92,7 +92,7 @@ case class DataFiles(bag: DansBag) extends DebugEnhancedLogging {
     else removeFile(path)
   }
 
-  private def removeDir(files: Stream[File]) = {
+  private def removeDir(files: Stream[File]): Try[Unit] = {
     files
       .withFilter(!_.isDirectory)
       .map(f => removeFile(bag.data.relativize(f)))
@@ -100,7 +100,7 @@ case class DataFiles(bag: DansBag) extends DebugEnhancedLogging {
       .getOrElse(Success(()))
   }
 
-  private def removeFile(path: Path) = {
+  private def removeFile(path: Path): Try[Unit] = {
     // saving each mutation keeps the bag consistent in case of failures further down the chain
     bag
       .removePayloadFile(path)
