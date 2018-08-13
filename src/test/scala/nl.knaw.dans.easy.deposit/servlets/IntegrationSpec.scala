@@ -20,7 +20,7 @@ import java.util.UUID
 import nl.knaw.dans.easy.deposit.PidRequesterComponent.PidRequester
 import nl.knaw.dans.easy.deposit.PidRequesterComponent.PidType.PidType
 import nl.knaw.dans.easy.deposit.authentication.AuthenticationMocker._
-import nl.knaw.dans.easy.deposit.docs.{ DatasetMetadata, DepositInfo, JsonUtil }
+import nl.knaw.dans.easy.deposit.docs.{ DatasetMetadata, DepositInfo }
 import nl.knaw.dans.easy.deposit.{ EasyDepositApiApp, _ }
 import nl.knaw.dans.lib.error._
 import org.eclipse.jetty.http.HttpStatus._
