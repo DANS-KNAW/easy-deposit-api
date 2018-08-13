@@ -36,6 +36,9 @@ case class DataFiles(bag: DansBag) extends DebugEnhancedLogging {
 
   /**
    * Lists information about the files the directory `path` and its subdirectories.
+   * A previous crash during a recursive delete process (deleting a directory),
+   * or between deleting a single file and updating the manifest,
+   * will result in showing deleted files.
    *
    * @param path a relative path into data files directory of the bag.
    * @return a list of [[FileInfo]] objects
@@ -58,7 +61,7 @@ case class DataFiles(bag: DansBag) extends DebugEnhancedLogging {
       .getOrElse(Failure(new Exception(s"no algorithm for ${ bag.baseDir }")))
   }
 
-  def toFileInfo(file: File, checksum: String): FileInfo = {
+  private def toFileInfo(file: File, checksum: String): FileInfo = {
     FileInfo(file.name, bag.data.relativize(file.parent), checksum)
   }
 
@@ -88,22 +91,22 @@ case class DataFiles(bag: DansBag) extends DebugEnhancedLogging {
   def delete(path: Path): Try[Unit] = {
     val file = bag.data / path.toString
     if (!file.exists) Failure(new NoSuchFileException(path.toString))
-    else if (file.isDirectory) removeDir(file.walk().toStream)
-    else removeFile(path)
+    else (if (file.isDirectory) removeDir(file.walk().toStream)
+          else removeFile(path)
+      ).flatMap(_.save)
   }
 
-  private def removeDir(files: Stream[File]): Try[Unit] = {
+  private def removeDir(files: Stream[File]): Try[DansBag] = {
     files
       .withFilter(!_.isDirectory)
       .map(f => removeFile(bag.data.relativize(f)))
-      .find(_.isFailure)
-      .getOrElse(Success(()))
+      .find(_.isFailure) // fail fast
+      .getOrElse(Success(bag))
   }
 
-  private def removeFile(path: Path): Try[Unit] = {
-    // saving each mutation keeps the bag consistent in case of failures further down the chain
-    bag
-      .removePayloadFile(path)
-      .flatMap(_.save)
+  private def removeFile(path: Path): Try[DansBag] = {
+    // saving after each file causes calculation of at least 4 check sums in tagmanifest
+    // still one deleted file can show up after a crash between delete and completing the save
+    bag.removePayloadFile(path)
   }
 }
