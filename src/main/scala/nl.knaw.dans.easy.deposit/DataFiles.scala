@@ -42,19 +42,24 @@ case class DataFiles(bag: DansBag) extends DebugEnhancedLogging {
    */
   def list(path: Path = Paths.get("")): Try[Seq[FileInfo]] = {
     val parentPath = bag.baseDir / "data" / path.toString
+    val manifestMap = bag.payloadManifests
 
-    def toFileInfo(manifestItem: (File, String)): FileInfo = {
-      val file = manifestItem._1
-      val checksum = manifestItem._2
-      FileInfo(file.name, bag.data.relativize(file.parent), checksum)
+    def convert(items: Map[File, String]) = {
+      items
+        .withFilter(_._1.isChildOf(parentPath))
+        .map((toFileInfo _).tupled)
+        .toSeq
     }
 
-    val manifestMap = bag.payloadManifests
     manifestMap
       .get(SHA1)
       .orElse(manifestMap.values.headOption)
-      .map(items => Success(items.withFilter(_._1.isChildOf(parentPath)).map(toFileInfo).toSeq))
+      .map(items => Success(convert(items)))
       .getOrElse(Failure(new Exception(s"no algorithm for ${ bag.baseDir }")))
+  }
+
+  def toFileInfo(file: File, checksum: String): FileInfo = {
+    FileInfo(file.name, bag.data.relativize(file.parent), checksum)
   }
 
   /**
