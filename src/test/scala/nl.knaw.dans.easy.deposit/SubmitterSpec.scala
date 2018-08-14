@@ -37,15 +37,16 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
   private val doi = Try { datasetMetadata.identifiers.get.headOption.get.value }
     .getOrRecover(e => fail("could not get DOI from test input", e))
 
-  "submit" should "write 4 files" in {
+  "submit" should "write all files" in {
 
     // preparations
     val depositDir = createDeposit(datasetMetadata.copy(messageForDataManager = Some(customMessage)))
-    val bagDir = getBagDir(depositDir)
+    val bag = getBag(depositDir)
+    val bagDir = bag.baseDir
     (bagDir.parent / "deposit.properties").append(s"identifier.doi=$doi")
-    (bagDir / "data" / "text.txt").touch()
-    (bagDir / "data" / "folder").createDirectories()
-    (bagDir / "data" / "folder" / "text.txt").write("Lorum ipsum")
+    bag.addPayloadFile("".asInputStream)(_ / "text.txt")
+    bag.addPayloadFile("Lorum ipsum".asInputStream)(_ / "folder/text.txt")
+    bag.save()
     (testDir / "submitted").createDirectories()
 
     // preconditions
@@ -105,6 +106,22 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
     depositDir.getDOI(null) shouldBe Success(mockedPid)
   }
 
+  it should "reject an inconsistent checksum in the draft" in {
+    val depositDir = createDeposit(datasetMetadata)
+    val bag = getBag(depositDir)
+    (bag.baseDir.parent / "deposit.properties").append(s"identifier.doi=$doi")
+    bag.addPayloadFile("lorum ipsum".asInputStream)(_ / "file.txt")
+    bag.save()
+    (testDir / "submitted").createDirectories()
+
+    // make manifest corrupt
+    (bag.baseDir / "manifest-sha1.txt").append("chk file")
+
+    new Submitter(testDir / "staged", testDir / "submitted", null).submit(depositDir) should matchPattern {
+      case Failure(e) if e.getMessage == "staged and draft bag have different payload manifest elements: (Set(),Set((file,chk)))" =>
+    }
+  }
+
   it should "reject an inconsistent DOI" in {
     // invalid state transition is tested with IntegrationSpec
 
@@ -128,12 +145,13 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
     }
   }
 
-  private def getBagDir(depositDir: DepositDir) = {
+  private def getBagDir(depositDir: DepositDir) = getBag(depositDir).baseDir
+
+  private def getBag(depositDir: DepositDir) = {
     depositDir
       .getDataFiles
       .getOrRecover(e => fail(e.toString, e))
       .bag
-      .baseDir
   }
 
   private def createDeposit(metadata: DatasetMetadata) = {
