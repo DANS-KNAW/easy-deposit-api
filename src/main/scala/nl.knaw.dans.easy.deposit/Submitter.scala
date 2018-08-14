@@ -63,6 +63,7 @@ class Submitter(stagingBaseDir: File,
       msg = datasetMetadata.messageForDataManager.getOrElse("")
       filesXml <- FilesXml(draftBag.data)
       _ <- sameFiles(draftBag.payloadManifests, draftBag.baseDir / "data")
+      // TODO this is the last moment to report an invalid DDM as user error, subsequent errors are internal server errors
       // EASY-1464 3.3.8.a create empty staged bag to take a copy of the deposit
       stageDir = (stagingBaseDir / depositDir.id.toString).createDirectories()
       stageBag <- DansV0Bag.empty(stageDir / "bag").map(_.withEasyUserAccount(depositDir.user))
@@ -94,9 +95,11 @@ class Submitter(stagingBaseDir: File,
   type ManifestMap = Map[ChecksumAlgorithm, ManifestItems]
 
   private def sameFiles(payloadManifests: ManifestMap, dataDir: File) = {
-    // TODO new gov.loc.repository.bagit.verify.PayloadVerifier().verifyPayload(draftBag, false)
-    // TODO other way around in case of a crash between adding a payload and saving the bag
-    Success(())
+    val files = dataDir.walk().filter(!_.isDirectory).toSet
+    payloadManifests.values.map(_.keySet)
+      .find(_ != files)
+      .map(manifestFiles => Failure(new Exception(s"invalid bag, missing [files, checksums]: [${ manifestFiles.diff(files) }, ${ files.diff(manifestFiles) }]")))
+      .getOrElse(Success(()))
   }
 
   private def samePayloadManifestEntries(staged: DansBag, draft: DansBag) = {
@@ -107,7 +110,7 @@ class Submitter(stagingBaseDir: File,
         (xs.diff(ys), ys.diff(xs))
       }
       .find(diffs => diffs._1.nonEmpty || diffs._2.nonEmpty)
-      .map(diffs => Failure(new Exception(s"staged and draft bag have different payload manifest elements: $diffs")))
+      .map(diffs => Failure(new Exception(s"staged and draft bag [${draft.baseDir.parent}] have different payload manifest elements: $diffs")))
       .getOrElse(Success(()))
   }
 

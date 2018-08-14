@@ -21,6 +21,7 @@ import nl.knaw.dans.easy.deposit.docs.JsonUtil.InvalidDocumentException
 import nl.knaw.dans.easy.deposit.docs.StateInfo.State
 import nl.knaw.dans.easy.deposit.docs.{ DatasetMetadata, StateInfo }
 import nl.knaw.dans.lib.error._
+import org.scalactic.Fail
 import org.scalamock.scalatest.MockFactory
 
 import scala.util.{ Failure, Success, Try }
@@ -106,7 +107,7 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
     depositDir.getDOI(null) shouldBe Success(mockedPid)
   }
 
-  it should "reject an inconsistent checksum in the draft" in {
+  it should "report a file missing in the draft" in {
     val depositDir = createDeposit(datasetMetadata)
     val bag = getBag(depositDir)
     (bag.baseDir.parent / "deposit.properties").append(s"identifier.doi=$doi")
@@ -114,11 +115,28 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
     bag.save()
     (testDir / "submitted").createDirectories()
 
-    // make manifest corrupt
+    // add file to manifest that does not exist
     (bag.baseDir / "manifest-sha1.txt").append("chk file")
 
     new Submitter(testDir / "staged", testDir / "submitted", null).submit(depositDir) should matchPattern {
-      case Failure(e) if e.getMessage == "staged and draft bag have different payload manifest elements: (Set(),Set((file,chk)))" =>
+      case Failure(e) if e.getMessage == s"invalid bag, missing [files, checksums]: [Set($testDir/drafts/user/${ depositDir.id }/bag/file), Set()]" =>
+    }
+  }
+
+  it should "report an invalid checksum" in {
+    val depositDir = createDeposit(datasetMetadata)
+    val bag = getBag(depositDir)
+    (bag.baseDir.parent / "deposit.properties").append(s"identifier.doi=$doi")
+    bag.addPayloadFile("lorum ipsum".asInputStream)(_ / "file.txt")
+    bag.save()
+    (testDir / "submitted").createDirectories()
+
+    // change a checksum in the manifest
+    val manifest = bag.baseDir / "manifest-sha1.txt"
+    manifest.write(manifest.contentAsString.replaceAll(" +","xxx  "))
+
+    new Submitter(testDir / "staged", testDir / "submitted", null).submit(depositDir) should matchPattern {
+      case Failure(e) if e.getMessage == s"staged and draft bag [${bag.baseDir.parent}] have different payload manifest elements: (Set((data/file.txt,a57ec0c3239f30b29f1e9270581be50a70c74c04)),Set((data/file.txt,a57ec0c3239f30b29f1e9270581be50a70c74c04xxx)))" =>
     }
   }
 
