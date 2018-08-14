@@ -21,12 +21,12 @@ import java.util.UUID
 import nl.knaw.dans.easy.deposit.authentication.ServletEnhancedLogging._
 import nl.knaw.dans.easy.deposit.docs.JsonUtil.{ InvalidDocumentException, toJson }
 import nl.knaw.dans.easy.deposit.docs.{ DatasetMetadata, StateInfo }
-import nl.knaw.dans.easy.deposit.servlets.DepositServlet.InvalidResourceException
+import nl.knaw.dans.easy.deposit.servlets.DepositServlet.{ BadRequestException, InvalidResourceException }
 import nl.knaw.dans.easy.deposit.{ EasyDepositApiApp, _ }
 import org.scalatra._
 import resource.managed
 
-import scala.util.{ Failure, Try }
+import scala.util.{ Failure, Success, Try }
 
 class DepositServlet(app: EasyDepositApiApp) extends ProtectedServlet(app) {
 
@@ -87,17 +87,27 @@ class DepositServlet(app: EasyDepositApiApp) extends ProtectedServlet(app) {
       .map(depositFiles => Ok(body = toJson(depositFiles)))
       .getOrRecoverResponse(respond)
   }
-  post("/:uuid/file/*") { upload } //dir
-  put("/:uuid/file/*") { upload } //file
-  private def upload = {
-    for {
-      managedIS <- getRequestBodyAsManagedInputStream
-      newFileWasCreated <- managedIS.apply(is => forPath(app.writeDepositFile(is)))
-    } yield if (newFileWasCreated)
-              Created(headers = Map("Location" -> request.uri.toASCIIString))
-            else Ok()
-  }.getOrRecoverResponse(respond)
-
+  post("/:uuid/file/*") { //file
+    {
+      for { // a unique request signature so no forXxx method
+        managedIS <- getRequestBodyAsManagedInputStream
+        uuid <- getUUID
+        dir <- getPath
+        // TODO EASY-1658: mime type application/zip or application/binary
+        disposition <- getMandatoryHeader("Content-Disposition")
+        path = dir.resolve(disposition)
+        newFileWasCreated <- managedIS.apply(is => app.writeDepositFile(is)(user.id, uuid, path))
+      } yield newFileHeader(newFileWasCreated)
+    }.getOrRecoverResponse(respond)
+  }
+  put("/:uuid/file/*") { //file
+    {
+      for {
+        managedIS <- getRequestBodyAsManagedInputStream
+        newFileWasCreated <- managedIS.apply(is => forPath(app.writeDepositFile(is)))
+      } yield newFileHeader(newFileWasCreated)
+    }.getOrRecoverResponse(respond)
+  }
   delete("/:uuid/file/*") { //dir and file
     forPath(app.deleteDepositFile)
       .map(_ => NoContent())
@@ -128,6 +138,12 @@ class DepositServlet(app: EasyDepositApiApp) extends ProtectedServlet(app) {
     } yield result
   }
 
+  private def newFileHeader(newFileWasCreated: Boolean) = {
+    if (newFileWasCreated)
+      Created(headers = Map("Location" -> request.uri.toASCIIString))
+    else Ok()
+  }
+
   private def respond(t: Throwable): ActionResult = t match {
     case e: IllegalStateTransitionException => Forbidden(e.getMessage)
     case e: NoSuchDepositException => NoSuchDespositResponse(e)
@@ -152,14 +168,23 @@ class DepositServlet(app: EasyDepositApiApp) extends ProtectedServlet(app) {
   private def getUUID: Try[UUID] = Try {
     UUID.fromString(params("uuid"))
   }.recoverWith { case t: Throwable =>
-    Failure(new InvalidResourceException(s"Invalid deposit id: ${ t.getMessage }"))
+    Failure(InvalidResourceException(s"Invalid deposit id: ${ t.getMessage }"))
   }
 
   private def getPath: Try[Path] = Try {
     Paths.get(multiParams("splat").find(!_.trim.isEmpty).getOrElse(""))
   }.recoverWith { case t: Throwable =>
     logger.error(s"bad path:${ t.getClass.getName } ${ t.getMessage }")
-    Failure(new InvalidResourceException(s"Invalid path."))
+    Failure(InvalidResourceException(s"Invalid path."))
+  }
+
+  private def getMandatoryHeader(headerName: String): Try[String] = {
+    Some(request.getHeader(headerName))
+      .find(!_.trim.isEmpty)
+    match {
+      case Some(s) => Success(s)
+      case None => Failure(BadRequestException(s"No $headerName header found"))
+    }
   }
 
   private def getRequestBodyAsManagedInputStream = {
@@ -169,5 +194,6 @@ class DepositServlet(app: EasyDepositApiApp) extends ProtectedServlet(app) {
 
 object DepositServlet {
 
-  private class InvalidResourceException(s: String) extends Exception(s)
+  private case class InvalidResourceException(s: String) extends Exception(s)
+  private case class BadRequestException(s: String) extends Exception(s)
 }

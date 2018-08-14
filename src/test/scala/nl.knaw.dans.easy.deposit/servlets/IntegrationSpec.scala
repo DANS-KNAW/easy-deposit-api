@@ -20,7 +20,7 @@ import java.util.UUID
 import nl.knaw.dans.easy.deposit.PidRequesterComponent.PidRequester
 import nl.knaw.dans.easy.deposit.PidRequesterComponent.PidType.PidType
 import nl.knaw.dans.easy.deposit.authentication.AuthenticationMocker._
-import nl.knaw.dans.easy.deposit.docs.{ DatasetMetadata, DepositInfo, JsonUtil }
+import nl.knaw.dans.easy.deposit.docs.{ DatasetMetadata, DepositInfo }
 import nl.knaw.dans.easy.deposit.{ EasyDepositApiApp, _ }
 import nl.knaw.dans.lib.error._
 import org.eclipse.jetty.http.HttpStatus._
@@ -126,12 +126,12 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
 
     // upload the file twice
     expectsUserFooBar
-    post(uri = s"/deposit/$uuid/file/path/to/text.txt", headers = Seq(basicAuthentication), body = randomContent(times)) {
+    put(uri = s"/deposit/$uuid/file/path/to/text.txt", headers = Seq(basicAuthentication), body = randomContent(times)) {
       status shouldBe CREATED_201
       (dataFilesBase / "path" / "to" / "text.txt").size shouldBe expectedContentSize
     }
     expectsUserFooBar
-    post(uri = s"/deposit/$uuid/file/path/to/text.txt", headers = Seq(basicAuthentication), body = randomContent(times)) {
+    put(uri = s"/deposit/$uuid/file/path/to/text.txt", headers = Seq(basicAuthentication), body = randomContent(times)) {
       status shouldBe OK_200
       (dataFilesBase / "path" / "to" / "text.txt").size shouldBe expectedContentSize
     }
@@ -189,9 +189,12 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
 
     // upload a file
     expectsUserFooBar
-    post(uri = s"/deposit/$uuid/file/path/to/text.txt", headers = Seq(basicAuthentication), body = randomContent(22)) {
+    val header = ("Content-Disposition", "text.txt")
+    post(uri = s"/deposit/$uuid/file/path/to/", headers = Seq(header, basicAuthentication), body = randomContent(22)) {
       status shouldBe CREATED_201
     }
+    // path is assembled from uri + header:
+    (testDir / "drafts" / "foo" / uuid.toString / "bag/data/path/to/text.txt").toJava should exist
 
     // avoid having to mock the pid-service
     (testDir / "drafts" / "foo" / uuid.toString / "deposit.properties").append(s"identifier.doi=$doi")
