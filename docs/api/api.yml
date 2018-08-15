@@ -390,8 +390,8 @@ paths:
       description: |
         By default the file in the request body is saved in `dir_path` under the file name provided
         in the `Content-Disposition` header. However, if the request body is sent as a ZIP file, it
-        is extracted in `dir_path` and `Content-Disposition` is ignored. If `dir_path`, or any of its
-        parents do not exist yet, they are first created.
+        is extracted in `dir_path` and `Content-Disposition` is ignored (and may be left out).
+        If `dir_path`, or any of its parents do not exist yet, they are first created.
       parameters:
       - $ref: "#/components/parameters/DepositId"
       - $ref: "#/components/parameters/DirPath"
@@ -584,7 +584,7 @@ components:
     ContentDisposition:
       name: "Content-Disposition; filename"
       in: header
-      description: the name to use for the new file in the deposit
+      description: the name to use for the new file in the deposit; required unless Content-Type is `application/zip`.
       required: true
       schema:
         type: "string"
