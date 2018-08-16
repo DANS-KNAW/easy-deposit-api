@@ -20,7 +20,7 @@ import java.util.UUID
 import nl.knaw.dans.easy.deposit.PidRequesterComponent.PidRequester
 import nl.knaw.dans.easy.deposit.PidRequesterComponent.PidType.PidType
 import nl.knaw.dans.easy.deposit.authentication.AuthenticationMocker._
-import nl.knaw.dans.easy.deposit.docs.{ DatasetMetadata, DepositInfo, JsonUtil }
+import nl.knaw.dans.easy.deposit.docs.{ DatasetMetadata, DepositInfo }
 import nl.knaw.dans.easy.deposit.{ EasyDepositApiApp, _ }
 import nl.knaw.dans.lib.error._
 import org.eclipse.jetty.http.HttpStatus._
@@ -126,14 +126,14 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
 
     // upload the file twice
     expectsUserFooBar
-    post(uri = s"/deposit/$uuid/file/path/to/text.txt", headers = Seq(basicAuthentication), body = randomContent(times)) {
+    put(uri = s"/deposit/$uuid/file/path/to/text.txt", headers = Seq(basicAuthentication), body = randomContent(times)) {
       status shouldBe CREATED_201
       (dataFilesBase / "path" / "to" / "text.txt").size shouldBe expectedContentSize
     }
     expectsUserFooBar
-    post(uri = s"/deposit/$uuid/file/path/to/text.txt", headers = Seq(basicAuthentication), body = "fixed content for a fixed checksum") {
+    put(uri = s"/deposit/$uuid/file/path/to/text.txt", headers = Seq(basicAuthentication), body = "Lorum ipsum") {
       status shouldBe OK_200
-      (dataFilesBase / "path" / "to" / "text.txt").size shouldBe 34
+      (dataFilesBase / "path" / "to" / "text.txt").size shouldBe 11
     }
     expectsUserFooBar
     get(uri = s"/deposit/$uuid/file/path", headers = Seq(basicAuthentication)) {
