@@ -94,15 +94,12 @@ class DepositServlet(app: EasyDepositApiApp) extends ProtectedServlet(app) {
       val msg = s"expecting header 'Content-Type: $zip' or 'Content-Type: $bin'; the latter with a 'Content-Disposition'."
       for {
         managedIS <- getRequestBodyAsManagedInputStream
-        uuid <- getUUID
-        dir <- getPath
         maybeContentDisposition = getLowerCaseHeaderValue("Content-Disposition")
         maybeContentType = getLowerCaseHeaderValue("Content-Type")
         newFileWasCreated <- (maybeContentType, maybeContentDisposition) match {
           case (Some(`zip`), _) => Failure(???) // TODO issue EASY-1658
           case (Some(`bin`), Some(contentDisposition: String)) =>
-            val path = dir.resolve(contentDisposition)
-            managedIS.apply(is => app.writeDepositFile(is)(user.id, uuid, path))
+            managedIS.apply(is => forPathSupplement(contentDisposition, app.writeDepositFile(is)))
           case (_, _) => Failure(BadRequestException(s"$msg GOT: $maybeContentType AND $maybeContentType"))
         }
       } yield newFileHeader(newFileWasCreated)
@@ -146,7 +143,17 @@ class DepositServlet(app: EasyDepositApiApp) extends ProtectedServlet(app) {
     } yield result
   }
 
-  private def newFileHeader(newFileWasCreated: Boolean) = {
+  private def forPathSupplement[T](pathSupplement: String, callback: (String, UUID, Path) => Try[T]
+                        ): Try[T] = {
+    for {
+      uuid <- getUUID
+      path <- getPath
+      fullPath = path.resolve(pathSupplement)
+      result <- Try(callback(user.id, uuid, fullPath)).flatten // catch throws that slipped through
+    } yield result
+  }
+
+  private def newFileHeader(newFileWasCreated: Boolean): ActionResult = {
     if (newFileWasCreated)
       Created(headers = Map("Location" -> request.uri.toASCIIString))
     else Ok()
@@ -162,13 +169,13 @@ class DepositServlet(app: EasyDepositApiApp) extends ProtectedServlet(app) {
     case _ => internalErrorResponse(t)
   }
 
-  private def NoSuchDespositResponse(e: NoSuchDepositException) = {
+  private def NoSuchDespositResponse(e: NoSuchDepositException): ActionResult = {
     // we log but don't expose which file was not found
     logger.info(e.getMessage)
     NotFound(body = s"Deposit ${ e.id } not found")
   }
 
-  private def InvalidResourceResponse(t: InvalidResourceException) = {
+  private def InvalidResourceResponse(t: InvalidResourceException): ActionResult = {
     // we log but don't expose which part of the uri was invalid
     logger.error(s"${ t.getMessage }")
     NotFound()
