@@ -48,7 +48,8 @@ class DepositServletErrorSpec extends TestSupportFixture with ServletFixture wit
   }
 
   it should "return 500 (Internal Server Error) on a not expected exception and a cookie" ignore {
-    // TODO breaks tests in TypicalSessionSpec when running 'mvn clean install'
+    // TODO breaks "Post /auth/login" tests in SessionSpec. Destroy cookie to reset the state of what?
+    // these tests also break when "should create a protected cookie..." is executed as first
     val jwtCookie = createJWT(AuthUser("foo", state = UserState.active))
     expectsUserFooBar
     post(uri = "/", headers = Seq(("Cookie", s"${ Scentry.scentryAuthKey }=$jwtCookie"))) {

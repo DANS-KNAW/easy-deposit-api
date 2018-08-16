@@ -21,6 +21,7 @@ import nl.knaw.dans.easy.deposit.docs.JsonUtil.InvalidDocumentException
 import nl.knaw.dans.easy.deposit.docs.StateInfo.State
 import nl.knaw.dans.easy.deposit.docs.{ DatasetMetadata, StateInfo }
 import nl.knaw.dans.lib.error._
+import org.scalactic.Fail
 import org.scalamock.scalatest.MockFactory
 
 import scala.util.{ Failure, Success, Try }
@@ -37,15 +38,16 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
   private val doi = Try { datasetMetadata.identifiers.get.headOption.get.value }
     .getOrRecover(e => fail("could not get DOI from test input", e))
 
-  "submit" should "write 4 files" in {
+  "submit" should "write all files" in {
 
     // preparations
     val depositDir = createDeposit(datasetMetadata.copy(messageForDataManager = Some(customMessage)))
-    val bagDir = getBagDir(depositDir)
+    val bag = getBag(depositDir)
+    val bagDir = bag.baseDir
     (bagDir.parent / "deposit.properties").append(s"identifier.doi=$doi")
-    (bagDir / "data" / "text.txt").touch()
-    (bagDir / "data" / "folder").createDirectories()
-    (bagDir / "data" / "folder" / "text.txt").write("Lorum ipsum")
+    bag.addPayloadFile("".asInputStream)(_ / "text.txt")
+    bag.addPayloadFile("Lorum ipsum".asInputStream)(_ / "folder/text.txt")
+    bag.save()
     (testDir / "submitted").createDirectories()
 
     // preconditions
@@ -105,6 +107,39 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
     depositDir.getDOI(null) shouldBe Success(mockedPid)
   }
 
+  it should "report a file missing in the draft" in {
+    val depositDir = createDeposit(datasetMetadata)
+    val bag = getBag(depositDir)
+    (bag.baseDir.parent / "deposit.properties").append(s"identifier.doi=$doi")
+    bag.addPayloadFile("lorum ipsum".asInputStream)(_ / "file.txt")
+    bag.save()
+    (testDir / "submitted").createDirectories()
+
+    // add file to manifest that does not exist
+    (bag.baseDir / "manifest-sha1.txt").append("chk file")
+
+    new Submitter(testDir / "staged", testDir / "submitted", null).submit(depositDir) should matchPattern {
+      case Failure(e) if e.getMessage == s"invalid bag, missing [files, checksums]: [Set($testDir/drafts/user/${ depositDir.id }/bag/file), Set()]" =>
+    }
+  }
+
+  it should "report an invalid checksum" in {
+    val depositDir = createDeposit(datasetMetadata)
+    val bag = getBag(depositDir)
+    (bag.baseDir.parent / "deposit.properties").append(s"identifier.doi=$doi")
+    bag.addPayloadFile("lorum ipsum".asInputStream)(_ / "file.txt")
+    bag.save()
+    (testDir / "submitted").createDirectories()
+
+    // change a checksum in the manifest
+    val manifest = bag.baseDir / "manifest-sha1.txt"
+    manifest.write(manifest.contentAsString.replaceAll(" +","xxx  "))
+
+    new Submitter(testDir / "staged", testDir / "submitted", null).submit(depositDir) should matchPattern {
+      case Failure(e) if e.getMessage == s"staged and draft bag [${bag.baseDir.parent}] have different payload manifest elements: (Set((data/file.txt,a57ec0c3239f30b29f1e9270581be50a70c74c04)),Set((data/file.txt,a57ec0c3239f30b29f1e9270581be50a70c74c04xxx)))" =>
+    }
+  }
+
   it should "reject an inconsistent DOI" in {
     // invalid state transition is tested with IntegrationSpec
 
@@ -128,12 +163,13 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
     }
   }
 
-  private def getBagDir(depositDir: DepositDir) = {
+  private def getBagDir(depositDir: DepositDir) = getBag(depositDir).baseDir
+
+  private def getBag(depositDir: DepositDir) = {
     depositDir
       .getDataFiles
       .getOrRecover(e => fail(e.toString, e))
-      .dataFilesBase
-      .parent
+      .bag
   }
 
   private def createDeposit(metadata: DatasetMetadata) = {
