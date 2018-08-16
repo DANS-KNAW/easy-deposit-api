@@ -1,19 +1,42 @@
 JSON files for manual tests
 ---------------------------
 
-DatasetXmlSpec shows whether the `datasetmetadata-` files would produce valid DDM on submission.
-The files with `datasetmetadata-from-ui-` in their name are derived from the mockserver of [easy-deposit-ui](https://github.com/DANS-KNAW/easy-deposit-ui).
+The test class `DatasetXmlSpec` shows whether the `datasetmetadata-` files would produce valid DDM on submission.
+The files with `datasetmetadata-from-ui-` in their name are derived from the mockserver of [easy-deposit-ui].
 `servlet\IntegrationSpec` specifies only some scenarios that could be performed by the UI.
-Other tests show in the `servlets` package emulate just a single step.
+Other tests in the `servlets` package emulate just a single step.
 All these steps can be tested manually with tools like `Postman` or `curl`.
-One step involving json files is shown below.
-Play with the content of the files to check whether responses make sense for the UI and user of the UI.
 
-* Launch a virtual machine with `vagrant up` in the root of the project
-* Create a deposit, for details see `docs/api.html`
-* Use the returned UUID to replace XXX in the following command.
+* Launch the `deasy` VM
+  * go to the root of [easy-dtap]
+  * Make sure the project is up-to-date and `easy-dtap/deasy_base_box` has the latest [base-box]
+  * execute the command `vagrant up --no-provision` 
+* build the project and deploy it on a running `deasy`
 
-    curl -i  -H 'Content-Type: text/plain'  --data-binary "@XXX.json" -X POST -u user001:user001 'http://test.dans.knaw.nl:20190/deposit/XXX/datasetmetadata'
+      cd easy-deposit-api && mvn clean install && cd easy-dtap && ./deploy-role easy-deposit-api
+
+* Create a new deposit:
+
+      curl -i -u user001:user001 -X POST http://deasy:20190/deposit
+
+* Use the returned UUID to replace <UUID> in the command below (that uploads dataset metadata),
+  use the files in this directory for XXX
+  and play with the content to check whether responses make sense for the UI and user of the UI.
+
+
+      curl -i  -H 'Content-Type: application/json' --data-binary "@XXX.json" -X PUT -u user001:user001 'http://deasy.dans.knaw.nl:20190/deposit/<UUID>/datasetmetadata'
+
+* For details of other commands see `docs/api.html`, the [xls of EASY-1644] and [easy-test-resources]
+
+Reserve a DOI or submit requires a pid generator which is not deployed on the local VM.
+For other commands you can use the local `test` VM
+which you can launch with `vagrant up` in the root of the project. 
+
+[easy-test-resources]: https://github.com/DANS-KNAW/easy-test-resources/blob/master/test-run/EASY-1525-deposit-api.md
+[xls of EASY-1644]: https://drivenbydata.atlassian.net/secure/attachment/25376/2018-08-03%20EASY-1644%20Deposit_API_1.0.0.xlsx
+[base-box]: http://develop.dans.knaw.nl/boxes/
+[easy-deposit-ui]: https://github.com/DANS-KNAW/easy-deposit-ui
+[easy-dtap]: https://github.com/DANS-KNAW/easy-dtap
 
 
 Purpose of HTML files
