@@ -26,7 +26,7 @@ import nl.knaw.dans.easy.deposit.{ EasyDepositApiApp, _ }
 import org.scalatra._
 import resource.managed
 
-import scala.util.{ Failure, Success, Try }
+import scala.util.{ Failure, Try }
 
 class DepositServlet(app: EasyDepositApiApp) extends ProtectedServlet(app) {
 
@@ -89,14 +89,22 @@ class DepositServlet(app: EasyDepositApiApp) extends ProtectedServlet(app) {
   }
   post("/:uuid/file/*") { //file
     {
-      for { // a unique request signature so no forXxx method
+      val zip = "application/zip"
+      val bin = "application/octet-stream"
+      val msg = s"expecting header 'Content-Type: $zip' or 'Content-Type: $bin'; the latter with a 'Content-Disposition'."
+      for {
         managedIS <- getRequestBodyAsManagedInputStream
         uuid <- getUUID
         dir <- getPath
-        // TODO EASY-1658: mime type application/zip or application/binary
-        disposition <- getMandatoryHeader("Content-Disposition")
-        path = dir.resolve(disposition)
-        newFileWasCreated <- managedIS.apply(is => app.writeDepositFile(is)(user.id, uuid, path))
+        maybeContentDisposition = getLowerCaseHeaderValue("Content-Disposition")
+        maybeContentType = getLowerCaseHeaderValue("Content-Type")
+        newFileWasCreated <- (maybeContentType, maybeContentDisposition) match {
+          case (Some(`zip`), _) => Failure(???) // TODO issue EASY-1658
+          case (Some(`bin`), Some(contentDisposition: String)) =>
+            val path = dir.resolve(contentDisposition)
+            managedIS.apply(is => app.writeDepositFile(is)(user.id, uuid, path))
+          case (_, _) => Failure(BadRequestException(s"$msg GOT: $maybeContentType AND $maybeContentType"))
+        }
       } yield newFileHeader(newFileWasCreated)
     }.getOrRecoverResponse(respond)
   }
@@ -150,6 +158,7 @@ class DepositServlet(app: EasyDepositApiApp) extends ProtectedServlet(app) {
     case e: NoSuchFileException => NotFound(body = s"${ e.getMessage } not found")
     case e: InvalidResourceException => InvalidResourceResponse(e)
     case e: InvalidDocumentException => badDocResponse(e)
+    case e: BadRequestException => BadRequest(e.getMessage)
     case _ => internalErrorResponse(t)
   }
 
@@ -178,13 +187,10 @@ class DepositServlet(app: EasyDepositApiApp) extends ProtectedServlet(app) {
     Failure(InvalidResourceException(s"Invalid path."))
   }
 
-  private def getMandatoryHeader(headerName: String): Try[String] = {
-    Some(request.getHeader(headerName))
+  private def getLowerCaseHeaderValue(headerName: String) = {
+    Option(request.getHeader(headerName))
       .find(!_.trim.isEmpty)
-    match {
-      case Some(s) => Success(s)
-      case None => Failure(BadRequestException(s"No $headerName header found"))
-    }
+      .map(_.toLowerCase)
   }
 
   private def getRequestBodyAsManagedInputStream = {

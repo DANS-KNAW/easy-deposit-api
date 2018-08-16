@@ -138,7 +138,7 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
     expectsUserFooBar
     get(uri = s"/deposit/$uuid/file/path", headers = Seq(basicAuthentication)) {
       status shouldBe OK_200
-      body shouldBe """[{"fileName":"text.txt","dirPath":"path/to","sha1sum":"f5aa79b56b3d051f35be075470970b552c7f835f"}]"""
+      body shouldBe """[{"fileName":"text.txt","dirPath":"path/to","sha1sum":"c5b8de8cc3587aef4e118a481115391033621e06"}]"""
     }
   }
 
@@ -194,8 +194,12 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
 
     // upload a file
     expectsUserFooBar
-    val header = ("Content-Disposition", "text.txt")
-    post(uri = s"/deposit/$uuid/file/path/to/", headers = Seq(header, basicAuthentication), body = randomContent(22)) {
+    val headers = Seq(
+      ("Content-Disposition", "text.txt"),
+      ("Content-Type", "application/octet-stream"),
+      basicAuthentication
+    )
+    post(uri = s"/deposit/$uuid/file/path/to/", headers = headers, body = randomContent(22)) {
       status shouldBe CREATED_201
     }
     // path is assembled from uri + header:
@@ -215,6 +219,29 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
 
     // +3 is difference in number of files in metadata directory: json versus xml's
     ((testDir / "drafts" / "foo" / uuid.toString).walk().size + 3) shouldBe (testDir / "easy-ingest-flow-inbox" / uuid.toString).walk().size
+  }
+
+
+  s"scenario: create - POST payload" should "report a missing content disposistion" in {
+
+    val datasetMetadata = getManualTestResource("datasetmetadata-from-ui-all.json")
+    val doi = Try { DatasetMetadata(datasetMetadata).get.identifiers.get.headOption.get.value }
+      .getOrRecover(e => fail("could not get DOI from test input", e))
+    (testDir / "easy-ingest-flow-inbox").createDirectories()
+
+    // create dataset
+    expectsUserFooBar
+    val responseBody = post(uri = s"/deposit", headers = Seq(basicAuthentication)) {
+      new String(bodyBytes)
+    }
+    val uuid = DepositInfo(responseBody).map(_.id.toString).getOrRecover(e => fail(e.toString, e))
+
+    // upload a file
+    expectsUserFooBar
+    post(uri = s"/deposit/$uuid/file/path/to/", headers = Seq(basicAuthentication), body = randomContent(22)) {
+      status shouldBe BAD_REQUEST_400
+      body shouldBe "expecting header 'Content-Type: application/zip' or 'Content-Type: application/octet-stream'; the latter with a 'Content-Disposition'. GOT: None AND None"
+    }
   }
 
   s"scenario: POST /deposit; hack state to ARCHIVED; SUBMIT" should "reject state transition" in {
