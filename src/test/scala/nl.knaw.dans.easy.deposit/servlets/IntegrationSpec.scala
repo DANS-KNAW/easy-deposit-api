@@ -20,7 +20,7 @@ import java.util.UUID
 import nl.knaw.dans.easy.deposit.PidRequesterComponent.PidRequester
 import nl.knaw.dans.easy.deposit.PidRequesterComponent.PidType.PidType
 import nl.knaw.dans.easy.deposit.authentication.AuthenticationMocker._
-import nl.knaw.dans.easy.deposit.docs.{ DatasetMetadata, DepositInfo }
+import nl.knaw.dans.easy.deposit.docs.{ DatasetMetadata, DepositInfo, JsonUtil }
 import nl.knaw.dans.easy.deposit.{ EasyDepositApiApp, _ }
 import nl.knaw.dans.lib.error._
 import org.eclipse.jetty.http.HttpStatus._
@@ -120,20 +120,25 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
     }
     val uuid = DepositInfo(responseBody).map(_.id.toString).getOrRecover(e => fail(e.toString, e))
 
-    val dataFilesBase = DepositDir(testDir / "drafts", "foo", UUID.fromString(uuid)).getDataFiles.get.dataFilesBase
+    val dataFilesBase = DepositDir(testDir / "drafts", "foo", UUID.fromString(uuid)).getDataFiles.get.bag.data
     val times = 500
     val expectedContentSize = 37 * times - 1
 
     // upload the file twice
     expectsUserFooBar
-    put(uri = s"/deposit/$uuid/file/path/to/text.txt", headers = Seq(basicAuthentication), body = randomContent(times)) {
+    post(uri = s"/deposit/$uuid/file/path/to/text.txt", headers = Seq(basicAuthentication), body = randomContent(times)) {
       status shouldBe CREATED_201
       (dataFilesBase / "path" / "to" / "text.txt").size shouldBe expectedContentSize
     }
     expectsUserFooBar
-    put(uri = s"/deposit/$uuid/file/path/to/text.txt", headers = Seq(basicAuthentication), body = randomContent(times)) {
+    post(uri = s"/deposit/$uuid/file/path/to/text.txt", headers = Seq(basicAuthentication), body = "fixed content for a fixed checksum") {
       status shouldBe OK_200
-      (dataFilesBase / "path" / "to" / "text.txt").size shouldBe expectedContentSize
+      (dataFilesBase / "path" / "to" / "text.txt").size shouldBe 34
+    }
+    expectsUserFooBar
+    get(uri = s"/deposit/$uuid/file/path", headers = Seq(basicAuthentication)) {
+      status shouldBe OK_200
+      body shouldBe """[{"fileName":"text.txt","dirPath":"path/to","sha1sum":"f5aa79b56b3d051f35be075470970b552c7f835f"}]"""
     }
   }
 

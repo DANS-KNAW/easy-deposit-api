@@ -17,12 +17,10 @@ package nl.knaw.dans.easy.deposit
 
 import java.io.FileNotFoundException
 import java.nio.file.NoSuchFileException
-import java.util.{ UUID, Arrays => JArrays }
+import java.util.UUID
 
 import better.files._
-import gov.loc.repository.bagit.creator.BagCreator
-import gov.loc.repository.bagit.domain.{ Metadata => BagitMetadata }
-import gov.loc.repository.bagit.hash.StandardSupportedAlgorithms
+import nl.knaw.dans.bag.v0.DansV0Bag
 import nl.knaw.dans.easy.deposit.PidRequesterComponent.{ PidRequester, PidType }
 import nl.knaw.dans.easy.deposit.docs.JsonUtil.{ InvalidDocumentException, toJson }
 import nl.knaw.dans.easy.deposit.docs.StateInfo.State
@@ -47,7 +45,6 @@ import scala.util.{ Failure, Success, Try }
 case class DepositDir private(baseDir: File, user: String, id: UUID) extends DebugEnhancedLogging {
   private val bagDir = baseDir / user / id.toString / "bag"
   private val metadataDir = bagDir / "metadata"
-  private val dataFilesDir = bagDir / "data"
   private val depositPropertiesFile = bagDir.parent / "deposit.properties"
   private val datasetMetadataJsonFile = metadataDir / "dataset.json"
 
@@ -179,9 +176,7 @@ case class DepositDir private(baseDir: File, user: String, id: UUID) extends Deb
   /**
    * @return object to access the data files of this deposit
    */
-  def getDataFiles: Try[DataFiles] = Try {
-    DataFiles(dataFilesDir)
-  }
+  def getDataFiles: Try[DataFiles] = DansV0Bag.read(bagDir).map(DataFiles)
 
   /**
    * @param pidRequester used to mint a new doi if none was found yet
@@ -252,21 +247,21 @@ object DepositDir {
    * @param user    the user name
    * @return the newly created [[DepositDir]]
    */
-  def create(baseDir: File, user: String): Try[DepositDir] = Try {
+  def create(baseDir: File, user: String): Try[DepositDir] = {
     val depositInfo = DepositInfo()
-    val depositDir = DepositDir(baseDir, user, depositInfo.id)
-    depositDir.bagDir.createIfNotExists(asDirectory = true, createParents = true)
+    val deposit = DepositDir(baseDir, user, depositInfo.id)
+    val depositDir = deposit.baseDir / user / depositInfo.id.toString
+    for {
+      _ <- Try { depositDir.createDirectories }
+      bag <- DansV0Bag.empty(depositDir / "bag")
+      _ = bag.withEasyUserAccount(deposit.user)
+      _ <- bag.addTagFile("{}".asInputStream)(_ / "metadata" / "dataset.json")
+      _ <- bag.save()
+      _ <- createDepositProperties(user, depositInfo, deposit)
+    } yield deposit
+  }
 
-    val bagitdMetadata = new BagitMetadata {
-      add("Created", depositInfo.date.toString)
-      add("Bag-Size", "0 KB")
-    }
-    BagCreator.bagInPlace(depositDir.bagDir.path, JArrays.asList(StandardSupportedAlgorithms.SHA1), true, bagitdMetadata)
-
-    // creating the following before the bag would move the metadata directory into bag/data
-    depositDir.metadataDir.createIfNotExists(asDirectory = true)
-    depositDir.datasetMetadataJsonFile.write("{}")
-
+  private def createDepositProperties(user: String, depositInfo: DepositInfo, depositDir: DepositDir) = Try {
     new PropertiesConfiguration() {
       addProperty("creation.timestamp", depositInfo.date)
       addProperty("state.label", depositInfo.state.toString)
@@ -276,7 +271,5 @@ object DepositDir {
       addProperty("curation.performed", "no")
       addProperty("bag-store.bag-id", depositInfo.id)
     }.save(depositDir.depositPropertiesFile.toJava)
-
-    depositDir
   }
 }
