@@ -70,7 +70,7 @@ class DepositServletErrorSpec extends TestSupportFixture with ServletFixture wit
 
   s"put /:uuid/metadata" should "report a lost dataset" in {
     expectsUserFooBar
-    (mockedApp.writeDataMetadataToDeposit(_: DatasetMetadata)(_: String, _: UUID)) expects(*, "foo", uuid) returning
+    (mockedApp.writeDataMetadataToDeposit(_: DatasetMetadata, _: String, _: UUID)) expects(*, "foo", uuid) returning
       Failure(NoSuchDepositException("foo", uuid, new Exception()))
 
     put(

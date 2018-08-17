@@ -26,91 +26,99 @@ import nl.knaw.dans.easy.deposit.{ EasyDepositApiApp, _ }
 import org.scalatra._
 import resource.managed
 
-import scala.util.{ Failure, Try }
+import scala.util.{ Failure, Success, Try }
 
 class DepositServlet(app: EasyDepositApiApp) extends ProtectedServlet(app) {
 
-  /**
-    * Convention:
-    * - Try(...).flatten.map(...).getOrRecover(respond)
-    * - Try(for{...} yield ... ).flatten.getOrRecover(respond)
-    *
-    * The Try.flatten turns stack traces into internal errors in case of
-    * programming errors of the type that throws an exception despite returning a try.
-    */
+  /*
+   * Defensive programming convention at this top level, everything in a for-comprehension:
+   *
+   *    (for {...} yield ...).getOrRecoverResponse(respond)
+   *
+   * Thus programming errors of the type that throws an exception despite returning a try
+   * won't cause a stack trace.
+   *
+   * A unit test emulating a programming error in a called method, something like
+   *
+   *    (mockedApp.Xxx) expects ... throwing new Exception("someone made a programming error")
+   *
+   * showed this doesn't work with just one assignment within the for-comprehension.
+   * Anyhow, the implicit `user.id` is not safe outside a for-comprehension as (in theory) it can be null.
+   */
 
   get("/") {
-    Try(app.getDeposits(user.id))
-      .flatten
-      .map(deposits => Ok(body = toJson(deposits)))
+    (for {
+      userId <- getUserId
+      deposits <- app.getDeposits(userId)
+    } yield Ok(body = toJson(deposits)))
       .getOrRecoverResponse(respond)
   }
   post("/") {
-    Try(app.createDeposit(user.id))
-      .flatten
-      .map(depositCreatedResponse)
+    (for {
+      userId <- getUserId
+      depositInfo <- app.createDeposit(userId)
+    } yield depositCreatedResponse(depositInfo))
       .getOrRecoverResponse(respond)
   }
   get("/:uuid/metadata") {
-    Try(for {
+    (for {
       uuid <- getUUID
       dmd <- app.getDatasetMetadataForDeposit(user.id, uuid)
     } yield Ok(body = toJson(dmd))
-    ).flatten.getOrRecoverResponse(respond)
+      ).getOrRecoverResponse(respond)
   }
   get("/:uuid/doi") {
-    Try(for {
+    (for {
       uuid <- getUUID
       doi <- app.getDoi(user.id, uuid)
     } yield Ok(body = s"""{"doi":"$doi"}""")
-    ).flatten.getOrRecoverResponse(respond)
+      ).getOrRecoverResponse(respond)
   }
   put("/:uuid/metadata") {
-    Try(for {
+    (for {
       uuid <- getUUID
       managedIS <- getRequestBodyAsManagedInputStream
       datasetMetadata <- managedIS.apply(is => DatasetMetadata(is))
       _ <- app.writeDataMetadataToDeposit(datasetMetadata, user.id, uuid)
     } yield NoContent()
-    ).flatten.getOrRecoverResponse(respond)
+      ).getOrRecoverResponse(respond)
   }
   get("/:uuid/state") {
-    Try(for {
+    (for {
       uuid <- getUUID
       depositState <- app.getDepositState(user.id, uuid)
     } yield Ok(body = toJson(depositState))
-    ).flatten.getOrRecoverResponse(respond)
+      ).getOrRecoverResponse(respond)
   }
   put("/:uuid/state") {
-    Try(for {
+    (for {
       uuid <- getUUID
       managedIS <- getRequestBodyAsManagedInputStream
       stateInfo <- managedIS.apply(is => StateInfo(is))
       _ <- app.setDepositState(stateInfo, user.id, uuid)
     } yield NoContent()
-    ).flatten.getOrRecoverResponse(respond)
+      ).getOrRecoverResponse(respond)
   }
 
   delete("/:uuid") {
-    Try(for {
+    (for {
       uuid <- getUUID
       _ <- app.deleteDeposit(user.id, uuid)
     } yield NoContent()
-    ).flatten.getOrRecoverResponse(respond)
+      ).getOrRecoverResponse(respond)
   }
   get("/:uuid/file/*") { //dir and file
-    Try(for {
+    (for {
       uuid <- getUUID
       path <- getPath
       depositFiles <- app.getDepositFiles(user.id, uuid, path)
     } yield Ok(body = toJson(depositFiles))
-    ).flatten.getOrRecoverResponse(respond)
+      ).getOrRecoverResponse(respond)
   }
   post("/:uuid/file/*") { //file
     val zip = "application/zip"
     val bin = "application/octet-stream"
-    val msg = s"expecting header 'Content-Type: $zip' or 'Content-Type: $bin'; the latter with a 'Content-Disposition'."
-    Try(for {
+    (for {
       uuid <- getUUID
       path <- getPath
       managedIS <- getRequestBodyAsManagedInputStream
@@ -121,27 +129,29 @@ class DepositServlet(app: EasyDepositApiApp) extends ProtectedServlet(app) {
         case (Some(`bin`), Some(contentDisposition: String)) =>
           val fullPath = path.resolve(contentDisposition)
           managedIS.apply(is => app.writeDepositFile(is, user.id, uuid, fullPath))
-        case (_, _) => Failure(BadRequestException(s"$msg GOT: $maybeContentType AND $maybeContentType"))
+        case (_, _) =>
+          val explanation = s"Expecting header 'Content-Type: $zip' or 'Content-Type: $bin'; the latter with a 'Content-Disposition'."
+          Failure(BadRequestException(s"$explanation GOT: $maybeContentType AND $maybeContentType"))
       }
     } yield fileCreatedOrOkResponse(newFileWasCreated)
-    ).flatten.getOrRecoverResponse(respond)
+      ).getOrRecoverResponse(respond)
   }
   put("/:uuid/file/*") { //file
-    Try(for {
+    (for {
       uuid <- getUUID
       path <- getPath
       managedIS <- getRequestBodyAsManagedInputStream
       newFileWasCreated <- managedIS.apply(is => app.writeDepositFile(is, user.id, uuid, path))
     } yield fileCreatedOrOkResponse(newFileWasCreated)
-    ).flatten.getOrRecoverResponse(respond)
+      ).getOrRecoverResponse(respond)
   }
   delete("/:uuid/file/*") { //dir and file
-    Try(for {
+    (for {
       uuid <- getUUID
       path <- getPath
       _ <- app.deleteDepositFile(user.id, uuid, path)
     } yield NoContent()
-    ).flatten.getOrRecoverResponse(respond)
+      ).getOrRecoverResponse(respond)
   }
 
   private def respond(t: Throwable): ActionResult = t match {
@@ -177,6 +187,13 @@ class DepositServlet(app: EasyDepositApiApp) extends ProtectedServlet(app) {
     if (newFileWasCreated)
       Created(headers = Map("Location" -> request.uri.toASCIIString))
     else Ok()
+  }
+
+  private def getUserId: Try[String] = {
+    userOption match {
+      case Some(u) => Success(u.id)
+      case None => Failure(new Exception("No user in a protected servlet. This should be impossible."))
+    }
   }
 
   private def getUUID: Try[UUID] = Try {
