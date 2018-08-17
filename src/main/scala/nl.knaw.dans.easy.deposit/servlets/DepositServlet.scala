@@ -20,7 +20,7 @@ import java.util.UUID
 
 import nl.knaw.dans.easy.deposit.authentication.ServletEnhancedLogging._
 import nl.knaw.dans.easy.deposit.docs.JsonUtil.{ InvalidDocumentException, toJson }
-import nl.knaw.dans.easy.deposit.docs.{ DatasetMetadata, StateInfo }
+import nl.knaw.dans.easy.deposit.docs.{ DatasetMetadata, DepositInfo, StateInfo }
 import nl.knaw.dans.easy.deposit.servlets.DepositServlet.{ BadRequestException, InvalidResourceException }
 import nl.knaw.dans.easy.deposit.{ EasyDepositApiApp, _ }
 import org.scalatra._
@@ -30,155 +30,155 @@ import scala.util.{ Failure, Try }
 
 class DepositServlet(app: EasyDepositApiApp) extends ProtectedServlet(app) {
 
+  /**
+    * Code patterns:
+    * - Try(...).flatten.map(...).getOrRecover(respond)
+    * - Try(for{...} yield ... ).flatten.getOrRecover(respond)
+    *
+    * The Try.flatten makes sure we catch any exception caused by programming errors
+    * of the type that throws an exception despite returning a try.
+    * Thus we can turn those exceptions in internal server errors rather than returning
+    * a stack trace to the client.
+    */
+
   get("/") {
-    forUser(app.getDeposits)
+    Try(app.getDeposits(user.id))
+      .flatten
       .map(deposits => Ok(body = toJson(deposits)))
       .getOrRecoverResponse(respond)
   }
   post("/") {
-    forUser(app.createDeposit).map { depositInfo =>
-      Created(
-        body = toJson(depositInfo),
-        headers = Map("Location" -> s"${ request.getRequestURL }/${ depositInfo.id }")
-      )
-    }.getOrRecoverResponse(respond)
+    Try(app.createDeposit(user.id))
+      .flatten
+      .map(depositCreatedResponse)
+      .getOrRecoverResponse(respond)
   }
   get("/:uuid/metadata") {
-    forDeposit(app.getDatasetMetadataForDeposit)
-      .map(datasetMetadata => Ok(body = toJson(datasetMetadata)))
-      .getOrRecoverResponse(respond)
+    Try(for {
+      uuid <- getUUID
+      dmd <- app.getDatasetMetadataForDeposit(user.id, uuid)
+    } yield Ok(body = toJson(dmd))
+    ).flatten.getOrRecoverResponse(respond)
   }
   get("/:uuid/doi") {
-    forDeposit(app.getDoi)
-      .map(doi => Ok(body = s"""{"doi":"$doi"}"""))
-      .getOrRecoverResponse(respond)
+    Try(for {
+      uuid <- getUUID
+      doi <- app.getDoi(user.id, uuid)
+    } yield Ok(body = s"""{"doi":"$doi"}""")
+    ).flatten.getOrRecoverResponse(respond)
   }
   put("/:uuid/metadata") {
-    {
-      for {
-        managedIS <- getRequestBodyAsManagedInputStream
-        datasetMetadata <- managedIS.apply(is => DatasetMetadata(is))
-        _ <- forDeposit(app.writeDataMetadataToDeposit(datasetMetadata))
-      } yield NoContent()
-    }.getOrRecoverResponse(respond)
+    Try(for {
+      uuid <- getUUID
+      managedIS <- getRequestBodyAsManagedInputStream
+      datasetMetadata <- managedIS.apply(is => DatasetMetadata(is))
+      _ <- app.writeDataMetadataToDeposit(datasetMetadata)(user.id, uuid)
+    } yield NoContent()
+    ).flatten.getOrRecoverResponse(respond)
   }
   get("/:uuid/state") {
-    forDeposit(app.getDepositState)
-      .map(depositState => Ok(body = toJson(depositState)))
-      .getOrRecoverResponse(respond)
+    Try(for {
+      uuid <- getUUID
+      depositState <- app.getDepositState(user.id, uuid)
+    } yield Ok(body = toJson(depositState))
+    ).flatten.getOrRecoverResponse(respond)
   }
   put("/:uuid/state") {
-    {
-      for {
-        managedIS <- getRequestBodyAsManagedInputStream
-        stateInfo <- managedIS.apply(is => StateInfo(is))
-        _ <- forDeposit(app.setDepositState(stateInfo))
-      } yield NoContent()
-    }.getOrRecoverResponse(respond)
+    Try(for {
+      uuid <- getUUID
+      managedIS <- getRequestBodyAsManagedInputStream
+      stateInfo <- managedIS.apply(is => StateInfo(is))
+      _ <- app.setDepositState(stateInfo)(user.id, uuid)
+    } yield NoContent()
+    ).flatten.getOrRecoverResponse(respond)
   }
 
   delete("/:uuid") {
-    forDeposit(app.deleteDeposit)
-      .map(_ => NoContent())
-      .getOrRecoverResponse(respond)
+    Try(for {
+      uuid <- getUUID
+      _ <- app.deleteDeposit(user.id, uuid)
+    } yield NoContent()
+    ).flatten.getOrRecoverResponse(respond)
   }
   get("/:uuid/file/*") { //dir and file
-    forPath(app.getDepositFiles)
-      .map(depositFiles => Ok(body = toJson(depositFiles)))
-      .getOrRecoverResponse(respond)
+    Try(for {
+      uuid <- getUUID
+      path <- getPath
+      depositFiles <- app.getDepositFiles(user.id, uuid, path)
+    } yield Ok(body = toJson(depositFiles))
+    ).flatten.getOrRecoverResponse(respond)
   }
   post("/:uuid/file/*") { //file
-    {
-      val zip = "application/zip"
-      val bin = "application/octet-stream"
-      val msg = s"expecting header 'Content-Type: $zip' or 'Content-Type: $bin'; the latter with a 'Content-Disposition'."
-      for {
-        managedIS <- getRequestBodyAsManagedInputStream
-        maybeContentDisposition = getLowerCaseHeaderValue("Content-Disposition")
-        maybeContentType = getLowerCaseHeaderValue("Content-Type")
-        newFileWasCreated <- (maybeContentType, maybeContentDisposition) match {
-          case (Some(`zip`), _) => Failure(???) // TODO issue EASY-1658
-          case (Some(`bin`), Some(contentDisposition: String)) =>
-            managedIS.apply(is => forPathSupplement(contentDisposition, app.writeDepositFile(is)))
-          case (_, _) => Failure(BadRequestException(s"$msg GOT: $maybeContentType AND $maybeContentType"))
-        }
-      } yield newFileHeader(newFileWasCreated)
-    }.getOrRecoverResponse(respond)
+    val zip = "application/zip"
+    val bin = "application/octet-stream"
+    val msg = s"expecting header 'Content-Type: $zip' or 'Content-Type: $bin'; the latter with a 'Content-Disposition'."
+    Try(for {
+      uuid <- getUUID
+      path <- getPath
+      managedIS <- getRequestBodyAsManagedInputStream
+      maybeContentDisposition = getLowerCaseHeaderValue("Content-Disposition")
+      maybeContentType = getLowerCaseHeaderValue("Content-Type")
+      newFileWasCreated <- (maybeContentType, maybeContentDisposition) match {
+        case (Some(`zip`), _) => Failure(???) // TODO issue EASY-1658
+        case (Some(`bin`), Some(contentDisposition: String)) =>
+          val fullPath = path.resolve(contentDisposition)
+          managedIS.apply(is => app.writeDepositFile(is)(user.id, uuid, fullPath))
+        case (_, _) => Failure(BadRequestException(s"$msg GOT: $maybeContentType AND $maybeContentType"))
+      }
+    } yield fileCreatedOrOkResponse(newFileWasCreated)
+    ).flatten.getOrRecoverResponse(respond)
   }
   put("/:uuid/file/*") { //file
-    {
-      for {
-        managedIS <- getRequestBodyAsManagedInputStream
-        newFileWasCreated <- managedIS.apply(is => forPath(app.writeDepositFile(is)))
-      } yield newFileHeader(newFileWasCreated)
-    }.getOrRecoverResponse(respond)
+    Try(for {
+      uuid <- getUUID
+      path <- getPath
+      managedIS <- getRequestBodyAsManagedInputStream
+      newFileWasCreated <- managedIS.apply(is => app.writeDepositFile(is)(user.id, uuid, path))
+    } yield fileCreatedOrOkResponse(newFileWasCreated)
+    ).flatten.getOrRecoverResponse(respond)
   }
   delete("/:uuid/file/*") { //dir and file
-    forPath(app.deleteDepositFile)
-      .map(_ => NoContent())
-      .getOrRecoverResponse(respond)
-  }
-
-  private def forUser[T](callback: String => Try[T]
-                        ): Try[T] = {
-    // shortest callBack signature
-    // the signatures reflect the parameters in the route patterns and authenticated user
-    Try(callback(user.id)).flatten // catch throws that slipped through
-  }
-
-  private def forDeposit[T](callback: (String, UUID) => Try[T]
-                           ): Try[T] = {
-    for {
-      uuid <- getUUID
-      result <- Try(callback(user.id, uuid)).flatten // catch throws that slipped through
-    } yield result
-  }
-
-  private def forPath[T](callback: (String, UUID, Path) => Try[T]
-                        ): Try[T] = {
-    for {
+    Try(for {
       uuid <- getUUID
       path <- getPath
-      result <- Try(callback(user.id, uuid, path)).flatten // catch throws that slipped through
-    } yield result
-  }
-
-  private def forPathSupplement[T](pathSupplement: String, callback: (String, UUID, Path) => Try[T]
-                        ): Try[T] = {
-    for {
-      uuid <- getUUID
-      path <- getPath
-      fullPath = path.resolve(pathSupplement)
-      result <- Try(callback(user.id, uuid, fullPath)).flatten // catch throws that slipped through
-    } yield result
-  }
-
-  private def newFileHeader(newFileWasCreated: Boolean): ActionResult = {
-    if (newFileWasCreated)
-      Created(headers = Map("Location" -> request.uri.toASCIIString))
-    else Ok()
+      _ <- app.deleteDepositFile(user.id, uuid, path)
+    } yield NoContent()
+    ).flatten.getOrRecoverResponse(respond)
   }
 
   private def respond(t: Throwable): ActionResult = t match {
     case e: IllegalStateTransitionException => Forbidden(e.getMessage)
-    case e: NoSuchDepositException => NoSuchDespositResponse(e)
+    case e: NoSuchDepositException => noSuchDespositResponse(e)
     case e: NoSuchFileException => NotFound(body = s"${ e.getMessage } not found")
-    case e: InvalidResourceException => InvalidResourceResponse(e)
+    case e: InvalidResourceException => invalidResourceResponse(e)
     case e: InvalidDocumentException => badDocResponse(e)
     case e: BadRequestException => BadRequest(e.getMessage)
     case _ => internalErrorResponse(t)
   }
 
-  private def NoSuchDespositResponse(e: NoSuchDepositException): ActionResult = {
+  private def noSuchDespositResponse(e: NoSuchDepositException): ActionResult = {
     // we log but don't expose which file was not found
     logger.info(e.getMessage)
     NotFound(body = s"Deposit ${ e.id } not found")
   }
 
-  private def InvalidResourceResponse(t: InvalidResourceException): ActionResult = {
+  private def invalidResourceResponse(t: InvalidResourceException): ActionResult = {
     // we log but don't expose which part of the uri was invalid
     logger.error(s"${ t.getMessage }")
     NotFound()
+  }
+
+  private def depositCreatedResponse(depositInfo: DepositInfo) = {
+    Created(
+      body = toJson(depositInfo),
+      headers = Map("Location" -> s"${ request.getRequestURL }/${ depositInfo.id }")
+    )
+  }
+
+  private def fileCreatedOrOkResponse(newFileWasCreated: Boolean): ActionResult = {
+    if (newFileWasCreated)
+      Created(headers = Map("Location" -> request.uri.toASCIIString))
+    else Ok()
   }
 
   private def getUUID: Try[UUID] = Try {
