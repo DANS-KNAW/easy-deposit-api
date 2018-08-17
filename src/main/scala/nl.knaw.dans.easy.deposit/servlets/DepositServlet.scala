@@ -156,7 +156,7 @@ class DepositServlet(app: EasyDepositApiApp) extends ProtectedServlet(app) {
 
   private def respond(t: Throwable): ActionResult = t match {
     case e: IllegalStateTransitionException => Forbidden(e.getMessage)
-    case e: NoSuchDepositException => noSuchDespositResponse(e)
+    case e: NoSuchDepositException => noSuchDepositResponse(e)
     case e: NoSuchFileException => NotFound(body = s"${ e.getMessage } not found")
     case e: InvalidResourceException => invalidResourceResponse(e)
     case e: InvalidDocumentException => badDocResponse(e)
@@ -164,7 +164,7 @@ class DepositServlet(app: EasyDepositApiApp) extends ProtectedServlet(app) {
     case _ => internalErrorResponse(t)
   }
 
-  private def noSuchDespositResponse(e: NoSuchDepositException): ActionResult = {
+  private def noSuchDepositResponse(e: NoSuchDepositException): ActionResult = {
     // we log but don't expose which file was not found
     logger.info(e.getMessage)
     NotFound(body = s"Deposit ${ e.id } not found")
