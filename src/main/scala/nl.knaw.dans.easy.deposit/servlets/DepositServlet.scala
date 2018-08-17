@@ -31,14 +31,12 @@ import scala.util.{ Failure, Try }
 class DepositServlet(app: EasyDepositApiApp) extends ProtectedServlet(app) {
 
   /**
-    * Code patterns:
+    * Convention:
     * - Try(...).flatten.map(...).getOrRecover(respond)
     * - Try(for{...} yield ... ).flatten.getOrRecover(respond)
     *
-    * The Try.flatten makes sure we catch any exception caused by programming errors
-    * of the type that throws an exception despite returning a try.
-    * Thus we can turn those exceptions in internal server errors rather than returning
-    * a stack trace to the client.
+    * The Try.flatten turns stack traces into internal errors in case of
+    * programming errors of the type that throws an exception despite returning a try.
     */
 
   get("/") {
@@ -72,7 +70,7 @@ class DepositServlet(app: EasyDepositApiApp) extends ProtectedServlet(app) {
       uuid <- getUUID
       managedIS <- getRequestBodyAsManagedInputStream
       datasetMetadata <- managedIS.apply(is => DatasetMetadata(is))
-      _ <- app.writeDataMetadataToDeposit(datasetMetadata)(user.id, uuid)
+      _ <- app.writeDataMetadataToDeposit(datasetMetadata, user.id, uuid)
     } yield NoContent()
     ).flatten.getOrRecoverResponse(respond)
   }
@@ -88,7 +86,7 @@ class DepositServlet(app: EasyDepositApiApp) extends ProtectedServlet(app) {
       uuid <- getUUID
       managedIS <- getRequestBodyAsManagedInputStream
       stateInfo <- managedIS.apply(is => StateInfo(is))
-      _ <- app.setDepositState(stateInfo)(user.id, uuid)
+      _ <- app.setDepositState(stateInfo, user.id, uuid)
     } yield NoContent()
     ).flatten.getOrRecoverResponse(respond)
   }
@@ -122,7 +120,7 @@ class DepositServlet(app: EasyDepositApiApp) extends ProtectedServlet(app) {
         case (Some(`zip`), _) => Failure(???) // TODO issue EASY-1658
         case (Some(`bin`), Some(contentDisposition: String)) =>
           val fullPath = path.resolve(contentDisposition)
-          managedIS.apply(is => app.writeDepositFile(is)(user.id, uuid, fullPath))
+          managedIS.apply(is => app.writeDepositFile(is, user.id, uuid, fullPath))
         case (_, _) => Failure(BadRequestException(s"$msg GOT: $maybeContentType AND $maybeContentType"))
       }
     } yield fileCreatedOrOkResponse(newFileWasCreated)
@@ -133,7 +131,7 @@ class DepositServlet(app: EasyDepositApiApp) extends ProtectedServlet(app) {
       uuid <- getUUID
       path <- getPath
       managedIS <- getRequestBodyAsManagedInputStream
-      newFileWasCreated <- managedIS.apply(is => app.writeDepositFile(is)(user.id, uuid, path))
+      newFileWasCreated <- managedIS.apply(is => app.writeDepositFile(is, user.id, uuid, path))
     } yield fileCreatedOrOkResponse(newFileWasCreated)
     ).flatten.getOrRecoverResponse(respond)
   }

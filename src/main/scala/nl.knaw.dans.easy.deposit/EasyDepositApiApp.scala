@@ -136,7 +136,7 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
    * @param stateInfo the state to transition to
    * @return
    */
-  def setDepositState(stateInfo: StateInfo)(user: String, id: UUID): Try[Unit] = for {
+  def setDepositState(stateInfo: StateInfo, user: String, id: UUID): Try[Unit] = for {
     deposit <- DepositDir.get(draftsDir, user, id)
     _ <- deposit.checkStateTransition(stateInfo.state)
     _ <- if (stateInfo.state == State.submitted)
@@ -190,7 +190,7 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
    * @param dm   the dataset metadata
    * @return
    */
-  def writeDataMetadataToDeposit(dm: DatasetMetadata)(user: String, id: UUID): Try[Unit] = for {
+  def writeDataMetadataToDeposit(dm: DatasetMetadata, user: String, id: UUID): Try[Unit] = for {
     deposit <- DepositDir.get(draftsDir, user, id)
     _ <- deposit.writeDatasetMetadataJson(dm)
   } yield ()
@@ -222,7 +222,7 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
    * @param is   the input stream to write from
    * @return `true` if a new file was created, `false` otherwise
    */
-  def writeDepositFile(is: => InputStream)(user: String, id: UUID, path: Path): Try[Boolean] = for {
+  def writeDepositFile(is: => InputStream, user: String, id: UUID, path: Path): Try[Boolean] = for {
     deposit <- DepositDir.get(draftsDir, user, id)
     dataFiles <- deposit.getDataFiles
     created <- dataFiles.write(is, path)
