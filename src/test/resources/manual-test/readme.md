@@ -16,8 +16,6 @@ Self explaining web pages to test without a fully dressed web client.
 Examine cookies with developer tools of a browser.
 See the test classes in the servlets package for expected behaviour.
 
-Note that `upload.html`, adjust it to one you created before on `deasy`.
-
 Manual tests
 ------------
 

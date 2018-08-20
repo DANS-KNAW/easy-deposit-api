@@ -2,7 +2,7 @@
 <head>
     <script>
         function setAction(el){
-            document.getElementById('form').action = "http://test.dans.knaw.nl:20190/deposit/" +
+            document.getElementById('form').action = "http://deasy.dans.knaw.nl:20190/deposit/" +
                el.value +"/file/fixed-file-name"
             return true
         }
@@ -12,14 +12,15 @@
 <h1>Manual test for upload.</h1>
 <a href="login.html">login</a>
 <form id="form"
-      action="http://deasy.dans.knaw.nl:20190/deposit/196fb09a-03c5-4951-a308-4879e4b7f2ab/file/some.png"
+      action="http://deasy.dans.knaw.nl:20190/deposit/UUID/file/some.png"
       method="post"
       enctype="multipart/form-data"
 >
+    <label for="uuid">UUID</label><input id="uuid" type="text" onchange="setAction(this)">
+    <br>
     <input type="file" id="myFiles" multiple size="50">
-    <!--<input type="file" id="myFile">-->
     <input type="submit"/>
 </form>
-<p>NB: Needs server side implementation of multipart/form-data.</p>
+<p>NB: Needs server side implementation of Content-Type multipart/form-data.</p>
 </body>
 </html>
