@@ -252,7 +252,7 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
     expectsUserFooBar
     post(uri = s"/deposit/$uuid/file/path/to/", headers = Seq(basicAuthentication), body = randomContent(22)) {
       status shouldBe BAD_REQUEST_400
-      body shouldBe "Expecting header 'Content-Type: application/zip' or 'Content-Type: application/octet-stream'; the latter with a 'Content-Disposition'. GOT: None AND None"
+      body shouldBe "Expecting header 'Content-Type: application/zip' or 'Content-Type: application/octet-stream'; the latter with a filename in the 'Content-Disposition'. GOT: None AND None"
     }
   }
 

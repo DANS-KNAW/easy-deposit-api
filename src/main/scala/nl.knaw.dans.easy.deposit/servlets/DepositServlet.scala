@@ -132,7 +132,7 @@ class DepositServlet(app: EasyDepositApiApp) extends ProtectedServlet(app) {
           val fullPath = path.resolve(fileName)
           managedIS.apply(is => app.writeDepositFile(is, user.id, uuid, fullPath))
         case (_, _) =>
-          val explanation = s"Expecting header 'Content-Type: $zip' or 'Content-Type: $bin'; the latter with a 'Content-Disposition'."
+          val explanation = s"Expecting header 'Content-Type: $zip' or 'Content-Type: $bin'; the latter with a filename in the 'Content-Disposition'."
           Failure(BadRequestException(s"$explanation GOT: $maybeContentType AND $maybeContentType"))
       }
     } yield fileCreatedOrOkResponse(newFileWasCreated)
@@ -167,15 +167,19 @@ class DepositServlet(app: EasyDepositApiApp) extends ProtectedServlet(app) {
   }
 
   private def noSuchDepositResponse(e: NoSuchDepositException): ActionResult = {
-    // we log but don't expose which file was not found
-    logger.info(e.getMessage)
+    // returning the message to the client might reveal absolute paths on the server
+    logWhatIsHiddenForGetOrRecoverResponse(e.getMessage)
     NotFound(body = s"Deposit ${ e.id } not found")
   }
 
   private def invalidResourceResponse(t: InvalidResourceException): ActionResult = {
-    // we log but don't expose which part of the uri was invalid
-    logger.error(s"${ t.getMessage }")
+    // returning the message to the client might reveal absolute paths on the server
+    logWhatIsHiddenForGetOrRecoverResponse(t.getMessage)
     NotFound()
+  }
+
+  private def logWhatIsHiddenForGetOrRecoverResponse(message: String): Unit = {
+    logger.info(s"user[$getUserId] ${ request.getMethod } ${ request.getRequestURL } : ${ message }")
   }
 
   private def depositCreatedResponse(depositInfo: DepositInfo) = {
@@ -207,7 +211,7 @@ class DepositServlet(app: EasyDepositApiApp) extends ProtectedServlet(app) {
   private def getPath: Try[Path] = Try {
     Paths.get(multiParams("splat").find(!_.trim.isEmpty).getOrElse(""))
   }.recoverWith { case t: Throwable =>
-    logger.error(s"bad path:${ t.getClass.getName } ${ t.getMessage }")
+    logWhatIsHiddenForGetOrRecoverResponse(s"bad path:${ t.getClass.getName } ${ t.getMessage }")
     Failure(InvalidResourceException(s"Invalid path."))
   }
 
@@ -218,11 +222,7 @@ class DepositServlet(app: EasyDepositApiApp) extends ProtectedServlet(app) {
           .getParameter("filename")
       ))
   }.recoverWith{
-    case e: ParseException =>
-      val msg = s"Content-Disposition: ${ e.getMessage }"
-      logger.error(msg, e)
-      Failure(BadRequestException(msg))
-    case e => Failure(e)
+    case e: Throwable => Failure(BadRequestException(s"Content-Disposition: ${ e.getMessage }"))
   }
 
   private def getLowerCaseHeaderValue(headerName: String) = {
