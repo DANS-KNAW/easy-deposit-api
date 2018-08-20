@@ -192,10 +192,22 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
       status shouldBe NO_CONTENT_204
     }
 
-    // upload a file
+    // bad request: filename lacks trailing quote
+    expectsUserFooBar
+    val invalidHeaders = Seq(
+      ("Content-Disposition", """form-data; name="fieldName"; filename="text.txt"""),
+      ("Content-Type", "application/octet-stream"),
+      basicAuthentication
+    )
+    post(uri = s"/deposit/$uuid/file/path/to/", headers = invalidHeaders, body = randomContent(22)) {
+      body shouldBe "Content-Disposition: Unbalanced quoted string"
+      status shouldBe BAD_REQUEST_400
+    }
+
+    // valid file upload
     expectsUserFooBar
     val headers = Seq(
-      ("Content-Disposition", "text.txt"),
+      ("Content-Disposition", """form-data; name="fieldName"; filename="text.txt""""),
       ("Content-Type", "application/octet-stream"),
       basicAuthentication
     )

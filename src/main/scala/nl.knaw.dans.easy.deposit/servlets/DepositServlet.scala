@@ -18,6 +18,7 @@ package nl.knaw.dans.easy.deposit.servlets
 import java.nio.file.{ NoSuchFileException, Path, Paths }
 import java.util.UUID
 
+import com.sun.xml.internal.messaging.saaj.packaging.mime.internet.{ ContentDisposition, ParseException }
 import nl.knaw.dans.easy.deposit.authentication.ServletEnhancedLogging._
 import nl.knaw.dans.easy.deposit.docs.JsonUtil.{ InvalidDocumentException, toJson }
 import nl.knaw.dans.easy.deposit.docs.{ DatasetMetadata, DepositInfo, StateInfo }
@@ -115,19 +116,20 @@ class DepositServlet(app: EasyDepositApiApp) extends ProtectedServlet(app) {
     } yield Ok(body = toJson(depositFiles))
       ).getOrRecoverResponse(respond)
   }
+
   post("/:uuid/file/*") { //file
     val zip = "application/zip"
     val bin = "application/octet-stream"
     (for {
       uuid <- getUUID
       path <- getPath
-      managedIS <- getRequestBodyAsManagedInputStream
-      maybeContentDisposition = getLowerCaseHeaderValue("Content-Disposition")
+      managedIS <- getRequestBodyAsManagedInputStream // TODO decide when this line upon implementation of zip
       maybeContentType = getLowerCaseHeaderValue("Content-Type")
-      newFileWasCreated <- (maybeContentType, maybeContentDisposition) match {
+      mayBeFileName <- filenameFromContentDisposition
+      newFileWasCreated <- (maybeContentType, mayBeFileName) match {
         case (Some(`zip`), _) => Failure(???) // TODO issue EASY-1658
-        case (Some(`bin`), Some(contentDisposition: String)) =>
-          val fullPath = path.resolve(contentDisposition)
+        case (Some(`bin`), Some(fileName: String)) =>
+          val fullPath = path.resolve(fileName)
           managedIS.apply(is => app.writeDepositFile(is, user.id, uuid, fullPath))
         case (_, _) =>
           val explanation = s"Expecting header 'Content-Type: $zip' or 'Content-Type: $bin'; the latter with a 'Content-Disposition'."
@@ -207,6 +209,20 @@ class DepositServlet(app: EasyDepositApiApp) extends ProtectedServlet(app) {
   }.recoverWith { case t: Throwable =>
     logger.error(s"bad path:${ t.getClass.getName } ${ t.getMessage }")
     Failure(InvalidResourceException(s"Invalid path."))
+  }
+
+  private def filenameFromContentDisposition = Try{
+    Option(request.getHeader("Content-Disposition"))
+      .flatMap(s => Some(
+        new ContentDisposition(s)
+          .getParameter("filename")
+      ))
+  }.recoverWith{
+    case e: ParseException =>
+      val msg = s"Content-Disposition: ${ e.getMessage }"
+      logger.error(msg, e)
+      Failure(BadRequestException(msg))
+    case e => Failure(e)
   }
 
   private def getLowerCaseHeaderValue(headerName: String) = {
