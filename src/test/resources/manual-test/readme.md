@@ -1,11 +1,25 @@
 JSON files for manual tests
 ---------------------------
 
-The test class `DatasetXmlSpec` shows whether the `datasetmetadata-` files would produce valid DDM on submission.
 The files with `datasetmetadata-from-ui-` in their name are derived from the mockserver of [easy-deposit-ui].
-`servlet\IntegrationSpec` specifies only some scenarios that could be performed by the UI.
+
+All `json` files could be used for manual tests. The expected results are documented with unit tests such as `DatasetXmlSpec`.
+
+`servlet\IntegrationSpec` specifies only some scenarios that could be performed by the UI or manual tests.
 Other tests in the `servlets` package emulate just a single step.
-All these steps can be tested manually with tools like `Postman` or `curl`.
+
+
+Purpose of HTML files
+---------------------
+
+Self explaining web pages to test without a fully dressed web client.
+Examine cookies with developer tools of a browser.
+See the test classes in the servlets package for expected behaviour.
+
+Manual tests
+------------
+
+The steps of a deposit scenario can be tested manually with tools like `Postman` or `curl`.
 
 * Launch the `deasy` VM
   * go to the root of [easy-dtap]
@@ -26,7 +40,7 @@ All these steps can be tested manually with tools like `Postman` or `curl`.
 
       curl -i  -H 'Content-Type: application/json' --data-binary "@XXX.json" -X PUT -u user001:user001 'http://deasy.dans.knaw.nl:20190/deposit/<UUID>/datasetmetadata'
 
-* For details of other commands see `docs/api.html`, the [xls of EASY-1644] and [easy-test-resources]
+* For details of other commands see `docs/api.html`, with examples in the [xls of EASY-1644] and [easy-test-resources]
 
 Reserve a DOI or submit requires a pid generator which is not deployed on the local VM.
 For other commands you can use the local `test` VM
@@ -37,11 +51,3 @@ which you can launch with `vagrant up` in the root of the project.
 [base-box]: http://develop.dans.knaw.nl/boxes/
 [easy-deposit-ui]: https://github.com/DANS-KNAW/easy-deposit-ui
 [easy-dtap]: https://github.com/DANS-KNAW/easy-dtap
-
-
-Purpose of HTML files
----------------------
-
-Self explaining web pages to test without a fully dressed web client.
-Examine cookies with developer tools of a browser.
-See the test classes in the servlets package for expected behaviour.
