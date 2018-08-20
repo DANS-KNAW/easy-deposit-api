@@ -133,7 +133,7 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
     expectsUserFooBar
     put(uri = s"/deposit/$uuid/file/path/to/text.txt", headers = Seq(basicAuthentication), body = "Lorum ipsum") {
       status shouldBe OK_200
-      (dataFilesBase / "path" / "to" / "text.txt").size shouldBe 11
+      (dataFilesBase / "path" / "to" / "text.txt").contentAsString shouldBe "Lorum ipsum"
     }
     expectsUserFooBar
     get(uri = s"/deposit/$uuid/file/path", headers = Seq(basicAuthentication)) {
@@ -211,11 +211,12 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
       ("Content-Type", "application/octet-stream"),
       basicAuthentication
     )
-    post(uri = s"/deposit/$uuid/file/path/to/", headers = headers, body = randomContent(22)) {
+    val content = randomContent(22)
+    post(uri = s"/deposit/$uuid/file/path/to/", headers = headers, body = content) {
       status shouldBe CREATED_201
     }
-    // path is assembled from uri + header:
-    (testDir / "drafts" / "foo" / uuid.toString / "bag/data/path/to/text.txt").toJava should exist
+    // path is assembled from uri + header-info:
+    (testDir / "drafts" / "foo" / uuid.toString / "bag/data/path/to/text.txt").contentAsString shouldBe content
 
     // avoid having to mock the pid-service
     (testDir / "drafts" / "foo" / uuid.toString / "deposit.properties").append(s"identifier.doi=$doi")
