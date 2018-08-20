@@ -133,7 +133,7 @@ class DepositServlet(app: EasyDepositApiApp) extends ProtectedServlet(app) {
           managedIS.apply(is => app.writeDepositFile(is, user.id, uuid, fullPath))
         case (_, _) =>
           val explanation = s"Expecting header 'Content-Type: $zip' or 'Content-Type: $bin'; the latter with a filename in the 'Content-Disposition'."
-          Failure(BadRequestException(s"$explanation GOT: $maybeContentType AND $maybeContentType"))
+          Failure(BadRequestException(s"$explanation GOT: $maybeContentType AND $mayBeFileName"))
       }
     } yield fileCreatedOrOkResponse(newFileWasCreated)
       ).getOrRecoverResponse(respond)

@@ -16,6 +16,8 @@ Self explaining web pages to test without a fully dressed web client.
 Examine cookies with developer tools of a browser.
 See the test classes in the servlets package for expected behaviour.
 
+Note that `upload.html`, adjust it to one you created before on `deasy`.
+
 Manual tests
 ------------
 
@@ -27,7 +29,10 @@ The steps of a deposit scenario can be tested manually with tools like `Postman`
   * execute the command `vagrant up --no-provision` 
 * build the project and deploy it on a running `deasy`
 
-      cd easy-deposit-api && mvn clean install && cd easy-dtap && ./deploy-role easy-deposit-api
+      cd ../easy-deposit-api
+      mvn clean install
+      cd ../easy-dtap
+      ./deploy-role easy-deposit-api
 
 * Create a new deposit:
 
