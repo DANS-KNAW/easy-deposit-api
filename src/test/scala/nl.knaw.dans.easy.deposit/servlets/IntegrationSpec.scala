@@ -169,7 +169,7 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
     }
   }
 
-  s"scenario: create - ... - sumbit" should "create submitted dataset copied from a draft" ignore {
+  s"scenario: create - ... - sumbit" should "create submitted dataset copied from a draft" in {
 
     val datasetMetadata = getManualTestResource("datasetmetadata-from-ui-all.json")
     val doi = Try { DatasetMetadata(datasetMetadata).get.identifiers.get.headOption.get.value }
@@ -235,7 +235,7 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
   }
 
 
-  s"scenario: create - POST payload" should "report a missing content disposistion" ignore {
+  s"scenario: create - POST payload" should "report a missing content disposistion" in {
 
     val datasetMetadata = getManualTestResource("datasetmetadata-from-ui-all.json")
     val doi = Try { DatasetMetadata(datasetMetadata).get.identifiers.get.headOption.get.value }
@@ -252,8 +252,8 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
     // upload a file
     expectsUserFooBar
     post(uri = s"/deposit/$uuid/file/path/to/", headers = Seq(basicAuthentication), body = randomContent(22)) {
-      status shouldBe BAD_REQUEST_400
-      body shouldBe "Expecting header 'Content-Type: application/zip' or 'Content-Type: application/octet-stream'; the latter with a filename in the 'Content-Disposition'. GOT: None AND None"
+      status shouldBe NOT_IMPLEMENTED_501
+      body shouldBe "Expecting Content-Type: [ application/zip | application/octet-stream | multipart/form-data ]; application/octet-stream with a filename in the 'Content-Disposition'. GOT: None AND None"
     }
   }
 

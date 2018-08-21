@@ -140,7 +140,7 @@ class DepositServlet(app: EasyDepositApiApp)
         case (Some(`bin`), Some(fileName: String)) => getRequestBodyAsManagedInputStream
             .flatMap(_.apply(app.writeDepositFile(_, user.id, uuid, path.resolve(fileName))))
         case (_, _) =>
-          val explanation = s"Expecting header 'Content-Type: [$zip|$bin|$multi]; $bin with a filename in the 'Content-Disposition'."
+          val explanation = s"Expecting Content-Type: [ $zip | $bin | $multi ]; $bin with a filename in the 'Content-Disposition'."
           Failure(new NotImplementedException(s"$explanation GOT: $maybeMimeType AND $mayBeFileName"))
       }
     } yield fileCreatedOrOkResponse(newFileWasCreated)
