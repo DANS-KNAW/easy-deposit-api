@@ -4,6 +4,8 @@
         function setAction(el){
             document.getElementById('form').action = "http://deasy.dans.knaw.nl:20190/deposit/" +
                el.value +"/file/fixed-file-name"
+//             document.getElementById('uuid').value + "/" +
+//             document.getElementById('path').value
             return true
         }
     </script>
@@ -16,11 +18,15 @@
       method="post"
       enctype="multipart/form-data"
 >
-    <label for="uuid">UUID</label><input id="uuid" type="text" onchange="setAction(this)">
+    <label for="uuid">UUID</label><input id="uuid" type="text" onchange="setAction(this)" style="width:400px">
     <br>
-    <input type="file" id="myFiles" multiple size="50">
+    <!--<label for="path">path</label><input id="path" type="text" onchange="setAction(this)" style="width:400px">-->
+    <!--<br>-->
+    <input type="file" multiple size="50" name="field1">
+    <br>
+    <input type="file" multiple size="50" name="field2">
+    <br>
     <input type="submit"/>
 </form>
-<p>NB: Needs server side implementation of Content-Type multipart/form-data.</p>
 </body>
 </html>

@@ -226,6 +226,7 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
     deposit <- DepositDir.get(draftsDir, user, id)
     dataFiles <- deposit.getDataFiles
     created <- dataFiles.write(is, path)
+    _  = logger.info(s"created=$created $user/$id/$path")
   } yield created
 
   /**

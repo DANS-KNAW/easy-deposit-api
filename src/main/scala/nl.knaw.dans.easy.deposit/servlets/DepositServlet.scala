@@ -24,12 +24,18 @@ import nl.knaw.dans.easy.deposit.docs.JsonUtil.{ InvalidDocumentException, toJso
 import nl.knaw.dans.easy.deposit.docs.{ DatasetMetadata, DepositInfo, StateInfo }
 import nl.knaw.dans.easy.deposit.servlets.DepositServlet.{ BadRequestException, InvalidResourceException }
 import nl.knaw.dans.easy.deposit.{ EasyDepositApiApp, _ }
+import org.apache.commons.lang.NotImplementedException
 import org.scalatra._
+import org.scalatra.util.RicherString._
+import org.scalatra.servlet.{ FileItem, FileUploadSupport, MultipartConfig }
 import resource.managed
 
 import scala.util.{ Failure, Success, Try }
 
-class DepositServlet(app: EasyDepositApiApp) extends ProtectedServlet(app) {
+class DepositServlet(app: EasyDepositApiApp)
+  extends ProtectedServlet(app)
+    with FileUploadSupport {
+  configureMultipartHandling(MultipartConfig(maxFileSize = Some(3 * 1024 * 1024)))
 
   /*
    * Defensive programming convention at this top level, everything in a for-comprehension:
@@ -120,24 +126,36 @@ class DepositServlet(app: EasyDepositApiApp) extends ProtectedServlet(app) {
   post("/:uuid/file/*") { //file
     val zip = "application/zip"
     val bin = "application/octet-stream"
+    val multi = "multipart/form-data"
     (for {
       uuid <- getUUID
       path <- getPath
-      managedIS <- getRequestBodyAsManagedInputStream // TODO decide when this line upon implementation of zip
-      maybeContentType = getLowerCaseHeaderValue("Content-Type")
+      maybeMimeType = request.getHeader("Content-Type").blankOption.map(_.replaceAll("[^-a-z/].*", ""))
       mayBeFileName <- filenameFromContentDisposition
-      newFileWasCreated <- (maybeContentType, mayBeFileName) match {
+      newFileWasCreated <- (maybeMimeType, mayBeFileName) match {
         case (Some(`zip`), _) => Failure(???) // TODO issue EASY-1658
-        case (Some(`bin`), Some(fileName: String)) =>
-          val fullPath = path.resolve(fileName)
-          managedIS.apply(is => app.writeDepositFile(is, user.id, uuid, fullPath))
+        case (Some(`multi`), _) => getFileItems(uuid)
+          .map(item => managed(item.getInputStream).apply(app.writeDepositFile(_, user.id, uuid, path.resolve(item.name))))
+          .find(_.isFailure).getOrElse(Success(false)) // TODO when false/true? Note that files in a second set may overwrite one of a previous set
+        case (Some(`bin`), Some(fileName: String)) => getRequestBodyAsManagedInputStream
+            .flatMap(_.apply(app.writeDepositFile(_, user.id, uuid, path.resolve(fileName))))
         case (_, _) =>
-          val explanation = s"Expecting header 'Content-Type: $zip' or 'Content-Type: $bin'; the latter with a filename in the 'Content-Disposition'."
-          Failure(BadRequestException(s"$explanation GOT: $maybeContentType AND $mayBeFileName"))
+          val explanation = s"Expecting header 'Content-Type: [$zip|$bin|$multi]; $bin with a filename in the 'Content-Disposition'."
+          Failure(new NotImplementedException(s"$explanation GOT: $maybeMimeType AND $mayBeFileName"))
       }
     } yield fileCreatedOrOkResponse(newFileWasCreated)
       ).getOrRecoverResponse(respond)
   }
+
+  private def getFileItems(uuid: UUID) = {
+    val fileItems = fileMultiParams.values.flatten
+    logger.info(fileItems
+      .map(i => s"size=${ i.size } charset=${ i.charset } contentType=${ i.contentType } fieldName=${ i.fieldName } name=${ i.name }")
+      .mkString(s"${ user.id }/$uuid/path: ", ", ", "")
+    )
+    fileItems.toStream
+  }
+
   put("/:uuid/file/*") { //file
     (for {
       uuid <- getUUID
@@ -163,6 +181,7 @@ class DepositServlet(app: EasyDepositApiApp) extends ProtectedServlet(app) {
     case e: InvalidResourceException => invalidResourceResponse(e)
     case e: InvalidDocumentException => badDocResponse(e)
     case e: BadRequestException => BadRequest(e.getMessage)
+    case e: NotImplementedException => NotImplemented(e.getMessage)
     case _ => internalErrorResponse(t)
   }
 
@@ -215,20 +234,14 @@ class DepositServlet(app: EasyDepositApiApp) extends ProtectedServlet(app) {
     Failure(InvalidResourceException(s"Invalid path."))
   }
 
-  private def filenameFromContentDisposition = Try{
+  private def filenameFromContentDisposition = Try {
     Option(request.getHeader("Content-Disposition"))
       .flatMap(s => Some(
         new ContentDisposition(s)
           .getParameter("filename")
       ))
-  }.recoverWith{
+  }.recoverWith {
     case e: Throwable => Failure(BadRequestException(s"Content-Disposition: ${ e.getMessage }"))
-  }
-
-  private def getLowerCaseHeaderValue(headerName: String) = {
-    Option(request.getHeader(headerName))
-      .find(!_.trim.isEmpty)
-      .map(_.toLowerCase)
   }
 
   private def getRequestBodyAsManagedInputStream = {
