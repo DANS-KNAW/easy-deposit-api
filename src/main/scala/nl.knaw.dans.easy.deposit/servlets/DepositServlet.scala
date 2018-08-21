@@ -27,7 +27,7 @@ import nl.knaw.dans.easy.deposit.{ EasyDepositApiApp, _ }
 import org.apache.commons.lang.NotImplementedException
 import org.scalatra._
 import org.scalatra.util.RicherString._
-import org.scalatra.servlet.{ FileItem, FileUploadSupport, MultipartConfig }
+import org.scalatra.servlet.{ FileItem, FileUploadSupport, MultipartConfig, SizeConstraintExceededException }
 import resource.managed
 
 import scala.util.{ Failure, Success, Try }
@@ -35,8 +35,10 @@ import scala.util.{ Failure, Success, Try }
 class DepositServlet(app: EasyDepositApiApp)
   extends ProtectedServlet(app)
     with FileUploadSupport {
-  configureMultipartHandling(MultipartConfig(maxFileSize = Some(3 * 1024 * 1024)))
-
+  configureMultipartHandling(MultipartConfig())
+  error {
+    case e: SizeConstraintExceededException => RequestEntityTooLarge(s"too much! ${ e.getMessage }")
+  }
   /*
    * Defensive programming convention at this top level, everything in a for-comprehension:
    *
@@ -124,36 +126,39 @@ class DepositServlet(app: EasyDepositApiApp)
   }
 
   post("/:uuid/file/*") { //file
-    val zip = "application/zip"
-    val bin = "application/octet-stream"
     val multi = "multipart/form-data"
     (for {
       uuid <- getUUID
       path <- getPath
-      maybeMimeType = request.getHeader("Content-Type").blankOption.map(_.replaceAll("[^-a-z/].*", ""))
-      mayBeFileName <- filenameFromContentDisposition
-      newFileWasCreated <- (maybeMimeType, mayBeFileName) match {
-        case (Some(`zip`), _) => Failure(???) // TODO issue EASY-1658
-        case (Some(`multi`), _) => getFileItems(uuid)
-          .map(item => managed(item.getInputStream).apply(app.writeDepositFile(_, user.id, uuid, path.resolve(item.name))))
-          .find(_.isFailure).getOrElse(Success(false)) // TODO when false/true? Note that files in a second set may overwrite one of a previous set
-        case (Some(`bin`), Some(fileName: String)) => getRequestBodyAsManagedInputStream
-            .flatMap(_.apply(app.writeDepositFile(_, user.id, uuid, path.resolve(fileName))))
-        case (_, _) =>
-          val explanation = s"Expecting Content-Type: [ $zip | $bin | $multi ]; $bin with a filename in the 'Content-Disposition'."
-          Failure(new NotImplementedException(s"$explanation GOT: $maybeMimeType AND $mayBeFileName"))
-      }
-    } yield fileCreatedOrOkResponse(newFileWasCreated)
+      _ <- isMultipart
+      _ <- getFileItems(uuid)
+        .map(item => managed(item.getInputStream).apply(app.writeDepositFile(_, user.id, uuid, path.resolve(item.name))))
+        .find(_.isFailure).getOrElse(Success(false))
+    } yield fileCreatedOrOkResponse(false) // TODO when false/true? Note that files in a second set may overwrite one of a previous set
       ).getOrRecoverResponse(respond)
   }
 
+  private def isMultipart = {
+    val multiPart = "multipart/form-data"
+    request.getHeader("Content-Type").blankOption match {
+      case Some(s) if s.toLowerCase.startsWith(multiPart) => Success(())
+      case x => Failure(new NotImplementedException(s"Expecting Content-Type[$multiPart], got $x."))
+    }
+  }
+
   private def getFileItems(uuid: UUID) = {
-    val fileItems = fileMultiParams.values.flatten
+    val fileItems = fileMultiParams
+      .values.flatten
+      .filter(_.name.blankOption.isDefined) // skips fields without selected file items
     logger.info(fileItems
-      .map(i => s"size=${ i.size } charset=${ i.charset } contentType=${ i.contentType } fieldName=${ i.fieldName } name=${ i.name }")
+      .map(i => logMsg(i))
       .mkString(s"${ user.id }/$uuid/path: ", ", ", "")
     )
     fileItems.toStream
+  }
+
+  private def logMsg(i: FileItem) = {
+    s"size=${ i.size } charset=${ i.charset } contentType=${ i.contentType } fieldName=${ i.fieldName } name=${ i.name }"
   }
 
   put("/:uuid/file/*") { //file

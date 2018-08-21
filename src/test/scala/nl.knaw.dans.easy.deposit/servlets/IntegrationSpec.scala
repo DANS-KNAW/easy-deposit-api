@@ -192,32 +192,6 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
       status shouldBe NO_CONTENT_204
     }
 
-    // bad request: filename lacks trailing quote
-    expectsUserFooBar
-    val invalidHeaders = Seq(
-      ("Content-Disposition", """form-data; name="fieldName"; filename="text.txt"""),
-      ("Content-Type", "application/octet-stream"),
-      basicAuthentication
-    )
-    post(uri = s"/deposit/$uuid/file/path/to/", headers = invalidHeaders, body = randomContent(22)) {
-      body shouldBe "Content-Disposition: Unbalanced quoted string"
-      status shouldBe BAD_REQUEST_400
-    }
-
-    // valid file upload
-    expectsUserFooBar
-    val headers = Seq(
-      ("Content-Disposition", """form-data; name="fieldName"; filename="text.txt""""),
-      ("Content-Type", "application/octet-stream"),
-      basicAuthentication
-    )
-    val content = randomContent(22)
-    post(uri = s"/deposit/$uuid/file/path/to/", headers = headers, body = content) {
-      status shouldBe CREATED_201
-    }
-    // path is assembled from uri + header-info:
-    (testDir / "drafts" / "foo" / uuid.toString / "bag/data/path/to/text.txt").contentAsString shouldBe content
-
     // avoid having to mock the pid-service
     (testDir / "drafts" / "foo" / uuid.toString / "deposit.properties").append(s"identifier.doi=$doi")
 
@@ -253,7 +227,7 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
     expectsUserFooBar
     post(uri = s"/deposit/$uuid/file/path/to/", headers = Seq(basicAuthentication), body = randomContent(22)) {
       status shouldBe NOT_IMPLEMENTED_501
-      body shouldBe "Expecting Content-Type: [ application/zip | application/octet-stream | multipart/form-data ]; application/octet-stream with a filename in the 'Content-Disposition'. GOT: None AND None"
+      body shouldBe "Expecting Content-Type[multipart/form-data], got None."
     }
   }
 

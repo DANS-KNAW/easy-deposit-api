@@ -225,8 +225,9 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
   def writeDepositFile(is: => InputStream, user: String, id: UUID, path: Path): Try[Boolean] = for {
     deposit <- DepositDir.get(draftsDir, user, id)
     dataFiles <- deposit.getDataFiles
+    _ = logger.info(s"uploading to [${dataFiles.bag.baseDir}] of [$path]")
     created <- dataFiles.write(is, path)
-    _  = logger.info(s"created=$created $user/$id/$path")
+    _ = logger.info(s"created=$created $user/$id/$path")
   } yield created
 
   /**

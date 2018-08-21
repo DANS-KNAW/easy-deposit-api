@@ -3,12 +3,15 @@
     <script>
         function setAction(el){
             document.getElementById('form').action = "http://deasy.dans.knaw.nl:20190/deposit/" +
-               el.value +"/file/fixed-file-name"
-//             document.getElementById('uuid').value + "/" +
-//             document.getElementById('path').value
+               document.getElementById('uuid').value + "/file/" +
+               document.getElementById('path').value
             return true
         }
     </script>
+    <style>
+        label {width: 50px}
+        input[type="text"] {width: 200px}
+    </style>
 </head>
 <body>
 <h1>Manual test for upload.</h1>
@@ -18,13 +21,13 @@
       method="post"
       enctype="multipart/form-data"
 >
-    <label for="uuid">UUID</label><input id="uuid" type="text" onchange="setAction(this)" style="width:400px">
+    <label for="uuid">UUID</label><input id="uuid" type="text" onchange="setAction(this)">
     <br>
-    <!--<label for="path">path</label><input id="path" type="text" onchange="setAction(this)" style="width:400px">-->
-    <!--<br>-->
+    <label for="path">path</label><input id="path" type="text" onchange="setAction(this)">
+    <br>
     <input type="file" multiple size="50" name="field1">
     <br>
-    <input type="file" multiple size="50" name="field2">
+    <input type="file" multiple size="5" name="field2">
     <br>
     <input type="submit"/>
 </form>
