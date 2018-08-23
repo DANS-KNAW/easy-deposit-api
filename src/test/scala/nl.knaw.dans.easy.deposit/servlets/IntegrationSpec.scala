@@ -15,8 +15,10 @@
  */
 package nl.knaw.dans.easy.deposit.servlets
 
+import java.nio.file.Files
 import java.util.UUID
 
+import better.files.File
 import nl.knaw.dans.easy.deposit.PidRequesterComponent.PidRequester
 import nl.knaw.dans.easy.deposit.PidRequesterComponent.PidType.PidType
 import nl.knaw.dans.easy.deposit.authentication.AuthenticationMocker._
@@ -111,7 +113,7 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
     }
   }
 
-  s"scenario: POST /deposit; twice POST /deposit/:uuid/file/path/to/text.txt" should "return 201 respectively 200" in {
+  s"scenario: POST /deposit; twice PUT /deposit/:uuid/file/path/to/text.txt" should "return 201 respectively 200" in {
 
     // create dataset
     expectsUserFooBar
@@ -126,9 +128,10 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
 
     // upload the file twice
     expectsUserFooBar
-    put(uri = s"/deposit/$uuid/file/path/to/text.txt", headers = Seq(basicAuthentication), body = randomContent(times)) {
+    val content = randomContent(times)
+    put(uri = s"/deposit/$uuid/file/path/to/text.txt", headers = Seq(basicAuthentication), body = content) {
       status shouldBe CREATED_201
-      (dataFilesBase / "path" / "to" / "text.txt").size shouldBe expectedContentSize
+      (dataFilesBase / "path" / "to" / "text.txt").contentAsString shouldBe content
     }
     expectsUserFooBar
     put(uri = s"/deposit/$uuid/file/path/to/text.txt", headers = Seq(basicAuthentication), body = "Lorum ipsum") {
@@ -183,6 +186,19 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
     }
     val uuid = DepositInfo(responseBody).map(_.id.toString).getOrRecover(e => fail(e.toString, e))
 
+    // upload files with "multipart/form-data"
+    expectsUserFooBar
+    val files = Iterable(
+      ("some", File(".gitignore").toJava), // emulates a <input type="file">
+      ("others", File("README.md").toJava) // emulates another <input type="file">
+    )
+    post(uri = s"/deposit/$uuid/file/path/to/dir", params = Iterable(), headers = Seq(basicAuthentication), files = files) {
+      status shouldBe OK_200
+      (testDir / "drafts" / "foo" / uuid.toString / "bag/data/path/to/dir")
+        .list.foreach(file => file.contentAsString shouldBe File(file.name).contentAsString)
+      body shouldBe ""
+    }
+
     // upload dataset metadata
     expectsUserFooBar
     put(s"/deposit/$uuid/metadata", headers = Seq(basicAuthentication),
@@ -202,10 +218,10 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
     ) {
       body shouldBe ""
       status shouldBe NO_CONTENT_204
-    }
 
-    // +3 is difference in number of files in metadata directory: json versus xml's
-    ((testDir / "drafts" / "foo" / uuid.toString).walk().size + 3) shouldBe (testDir / "easy-ingest-flow-inbox" / uuid.toString).walk().size
+      // +3 is difference in number of files in metadata directory: json versus xml's
+      ((testDir / "drafts" / "foo" / uuid.toString).walk().size + 3) shouldBe (testDir / "easy-ingest-flow-inbox" / uuid.toString).walk().size
+    }
   }
 
 
