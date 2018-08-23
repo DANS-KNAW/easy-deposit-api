@@ -18,7 +18,7 @@ package nl.knaw.dans.easy.deposit.servlets
 import java.nio.file.{ NoSuchFileException, Path, Paths }
 import java.util.UUID
 
-import com.sun.xml.internal.messaging.saaj.packaging.mime.internet.{ ContentDisposition, ParseException }
+import better.files.File
 import nl.knaw.dans.easy.deposit.authentication.ServletEnhancedLogging._
 import nl.knaw.dans.easy.deposit.docs.JsonUtil.{ InvalidDocumentException, toJson }
 import nl.knaw.dans.easy.deposit.docs.{ DatasetMetadata, DepositInfo, StateInfo }
@@ -26,8 +26,8 @@ import nl.knaw.dans.easy.deposit.servlets.DepositServlet.{ BadRequestException, 
 import nl.knaw.dans.easy.deposit.{ EasyDepositApiApp, _ }
 import org.apache.commons.lang.NotImplementedException
 import org.scalatra._
-import org.scalatra.util.RicherString._
 import org.scalatra.servlet.{ FileItem, FileUploadSupport, MultipartConfig, SizeConstraintExceededException }
+import org.scalatra.util.RicherString._
 import resource.managed
 
 import scala.util.{ Failure, Success, Try }
@@ -108,7 +108,6 @@ class DepositServlet(app: EasyDepositApiApp)
     } yield NoContent()
       ).getOrRecoverResponse(respond)
   }
-
   delete("/:uuid") {
     (for {
       uuid <- getUUID
@@ -124,49 +123,25 @@ class DepositServlet(app: EasyDepositApiApp)
     } yield Ok(body = toJson(depositFiles))
       ).getOrRecoverResponse(respond)
   }
-
   post("/:uuid/file/*") { //file
-    val multi = "multipart/form-data"
     (for {
       uuid <- getUUID
       path <- getPath
       _ <- isMultipart
-      _ <- getFileItems(uuid)
-        .map(item => managed(item.getInputStream).apply(app.writeDepositFile(_, user.id, uuid, path.resolve(item.name))))
-        .find(_.isFailure).getOrElse(Success(false))
+      _ <- getFileItems(uuid, path).withFilter(_.name.blankOption.isDefined).map { item =>
+        val mis = managed(item.getInputStream)
+        val fullPath = path.resolve(item.name)
+        mis.apply(app.writeDepositFile(_, user.id, uuid, fullPath))
+      }.find(_.isFailure).getOrElse(Success(false))
     } yield fileCreatedOrOkResponse(false) // TODO when false/true? Note that files in a second set may overwrite one of a previous set
       ).getOrRecoverResponse(respond)
   }
-
-  private def isMultipart = {
-    val multiPart = "multipart/form-data"
-    request.getHeader("Content-Type").blankOption match {
-      case Some(s) if s.toLowerCase.startsWith(multiPart) => Success(())
-      case x => Failure(new NotImplementedException(s"Expecting Content-Type[$multiPart], got $x."))
-    }
-  }
-
-  private def getFileItems(uuid: UUID) = {
-    val fileItems = fileMultiParams
-      .values.flatten
-      .filter(_.name.blankOption.isDefined) // skips fields without selected file items
-    logger.info(fileItems
-      .map(i => logMsg(i))
-      .mkString(s"${ user.id }/$uuid/path: ", ", ", "")
-    )
-    fileItems.toStream
-  }
-
-  private def logMsg(i: FileItem) = {
-    s"size=${ i.size } charset=${ i.charset } contentType=${ i.contentType } fieldName=${ i.fieldName } name=${ i.name }"
-  }
-
   put("/:uuid/file/*") { //file
     (for {
       uuid <- getUUID
       path <- getPath
       managedIS <- getRequestBodyAsManagedInputStream
-      newFileWasCreated <- managedIS.apply(is => app.writeDepositFile(is, user.id, uuid, path))
+      newFileWasCreated <- managedIS.apply(app.writeDepositFile(_, user.id, uuid, path))
     } yield fileCreatedOrOkResponse(newFileWasCreated)
       ).getOrRecoverResponse(respond)
   }
@@ -239,14 +214,21 @@ class DepositServlet(app: EasyDepositApiApp)
     Failure(InvalidResourceException(s"Invalid path."))
   }
 
-  private def filenameFromContentDisposition = Try {
-    Option(request.getHeader("Content-Disposition"))
-      .flatMap(s => Some(
-        new ContentDisposition(s)
-          .getParameter("filename")
-      ))
-  }.recoverWith {
-    case e: Throwable => Failure(BadRequestException(s"Content-Disposition: ${ e.getMessage }"))
+  private def getFileItems(uuid: UUID, path: File): Seq[FileItem] = {
+    val fileItems = fileMultiParams.values.flatten
+    logger.info(fileItems
+      .map(i => s"size=${ i.size } charset=${ i.charset } contentType=${ i.contentType } fieldName=${ i.fieldName } name=${ i.name }")
+      .mkString(s"${ user.id }/$uuid/$path: ", "; ", ".")
+    )
+    fileItems.toStream
+  }
+
+  private def isMultipart = {
+    val multiPart = "multipart/form-data"
+    request.getHeader("Content-Type").blankOption match {
+      case Some(s) if s.toLowerCase.startsWith(multiPart) => Success(())
+      case x => Failure(new NotImplementedException(s"Expecting Content-Type[$multiPart], got $x."))
+    }
   }
 
   private def getRequestBodyAsManagedInputStream = {
