@@ -16,14 +16,14 @@
 package nl.knaw.dans.easy.deposit.servlets
 
 import java.nio.file.{ Path, Paths }
-import java.util.{ TimeZone, UUID }
+import java.util.UUID
 
 import nl.knaw.dans.easy.deposit._
 import nl.knaw.dans.easy.deposit.authentication.AuthenticationMocker._
 import nl.knaw.dans.easy.deposit.docs.StateInfo.State._
-import nl.knaw.dans.easy.deposit.docs.{ DatasetMetadata, DepositInfo, StateInfo }
+import nl.knaw.dans.easy.deposit.docs.{ DepositInfo, StateInfo }
 import org.eclipse.jetty.http.HttpStatus._
-import org.joda.time.{ DateTime, DateTimeZone }
+import org.joda.time.DateTime
 import org.scalamock.scalatest.MockFactory
 import org.scalatra.test.scalatest.ScalatraSuite
 
@@ -50,9 +50,10 @@ class HappyRoutesSpec extends TestSupportFixture with ServletFixture with Scalat
       uri = "/auth/login",
       params = Seq(("login", "foo"), ("password", "bar"))
     ) {
-      status shouldBe OK_200
-      body shouldBe "signed in"
+      status shouldBe NO_CONTENT_204
+      body shouldBe ""
       header("Set-Cookie") should startWith("scentry.auth.default.user=") // details in TypicalSessionSpec
+      header("Set-Cookie") shouldNot startWith("scentry.auth.default.user=;")
     }
   }
 

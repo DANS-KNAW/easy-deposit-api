@@ -16,18 +16,19 @@
 package nl.knaw.dans.easy.deposit.authentication
 
 import nl.knaw.dans.easy.deposit.authentication.ServletEnhancedLogging._
-import org.scalatra.Ok
+import org.scalatra.NoContent
 
 class AuthTestServlet(authProvider: AuthenticationProvider) extends AbstractTestServlet(authProvider) {
 
+  // TODO: change the code so that the methods in AuthServlet are called instead of duplicating them here
   post("/login") {
     login()
-    Ok(s"signed in").logResponse
+    NoContent().logResponse
   }
 
-  put("/logout") {
+  post("/logout") {
     logOut() // destroys the scentry cookie
-    Ok("you are signed out").logResponse
+    NoContent().logResponse
   }
 }
 
