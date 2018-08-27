@@ -123,17 +123,17 @@ class DepositServlet(app: EasyDepositApiApp)
     } yield Ok(body = toJson(depositFiles))
       ).getOrRecoverResponse(respond)
   }
-  post("/:uuid/file/*") { //file
+  post("/:uuid/file/*") { //file(s)
     (for {
       uuid <- getUUID
       path <- getPath
       _ <- isMultipart
-      _ <- getFileItems(uuid, path).withFilter(_.name.blankOption.isDefined).map { item =>
-        val mis = managed(item.getInputStream)
-        val fullPath = path.resolve(item.name)
-        mis.apply(app.writeDepositFile(_, user.id, uuid, fullPath))
-      }.find(_.isFailure).getOrElse(Success(false))
-    } yield fileCreatedOrOkResponse(false) // TODO when false/true? Note that files in a second set may overwrite one of a previous set
+      newFileItems <- getFileItems(uuid, path)
+        .withFilter(_.name.blankOption.isDefined)
+        .map { fileItem => postFileItem(uuid, path, fileItem) }
+        .failFast
+        .map(_.withFilter(_._1).map(_._2))
+    } yield Ok() // TODO create multiple location headers from newFileItems?
       ).getOrRecoverResponse(respond)
   }
   put("/:uuid/file/*") { //file
@@ -142,7 +142,9 @@ class DepositServlet(app: EasyDepositApiApp)
       path <- getPath
       managedIS <- getRequestBodyAsManagedInputStream
       newFileWasCreated <- managedIS.apply(app.writeDepositFile(_, user.id, uuid, path))
-    } yield fileCreatedOrOkResponse(newFileWasCreated)
+    } yield if (newFileWasCreated)
+              Created(headers = Map("Location" -> request.uri.toASCIIString))
+            else Ok()
       ).getOrRecoverResponse(respond)
   }
   delete("/:uuid/file/*") { //dir and file
@@ -152,6 +154,16 @@ class DepositServlet(app: EasyDepositApiApp)
       _ <- app.deleteDepositFile(user.id, uuid, path)
     } yield NoContent()
       ).getOrRecoverResponse(respond)
+  }
+
+  private def postFileItem(uuid: UUID, path: Path, item: FileItem): Try[(Boolean, FileItem)] = {
+    val fullPath = path.resolve(item.name)
+    managed(item.getInputStream)
+      .apply(app.writeDepositFile(_, user.id, uuid, fullPath))
+      .map((_, item))
+      .recoverWith{case e: Throwable => Failure(
+        new Exception(s"Could not save ${item.name} in list ${item.fieldName}: ${e.getMessage}", e)
+      )}
   }
 
   private def respond(t: Throwable): ActionResult = t match {
@@ -188,12 +200,6 @@ class DepositServlet(app: EasyDepositApiApp)
     )
   }
 
-  private def fileCreatedOrOkResponse(newFileWasCreated: Boolean): ActionResult = {
-    if (newFileWasCreated)
-      Created(headers = Map("Location" -> request.uri.toASCIIString))
-    else Ok()
-  }
-
   private def getUserId: Try[String] = {
     userOption match {
       case Some(u) => Success(u.id)
@@ -214,13 +220,13 @@ class DepositServlet(app: EasyDepositApiApp)
     Failure(InvalidResourceException(s"Invalid path."))
   }
 
-  private def getFileItems(uuid: UUID, path: File): Seq[FileItem] = {
+  private def getFileItems(uuid: UUID, path: File): Iterable[FileItem] = {
     val fileItems = fileMultiParams.values.flatten
     logger.info(fileItems
       .map(i => s"size=${ i.size } charset=${ i.charset } contentType=${ i.contentType } fieldName=${ i.fieldName } name=${ i.name }")
       .mkString(s"${ user.id }/$uuid/$path: ", "; ", ".")
     )
-    fileItems.toStream
+    fileItems
   }
 
   private def isMultipart = {

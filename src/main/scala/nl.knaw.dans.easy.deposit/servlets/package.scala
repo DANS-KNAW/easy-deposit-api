@@ -19,6 +19,8 @@ import nl.knaw.dans.easy.deposit.docs.JsonUtil.InvalidDocumentException
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.scalatra.{ ActionResult, BadRequest, InternalServerError }
 
+import scala.util.{ Failure, Success, Try }
+
 package object servlets extends DebugEnhancedLogging {
 
   def internalErrorResponse(t: Throwable): ActionResult = {
@@ -30,4 +32,20 @@ package object servlets extends DebugEnhancedLogging {
     logger.error(t.getMessage)
     BadRequest(s"Bad Request. ${ t.getMessage }")
   }
+
+  implicit class RichIterable[T](val xs: Iterable[Try[T]]) extends AnyVal {
+    def failFast: Try[Seq[T]] = {
+      // TODO dans-lib candidate?
+      val successes = Seq.newBuilder[T]
+
+      xs.foreach {
+        case Success(t) => successes += t
+        case Failure(e) =>
+          return Failure(FailedFastException(e, successes.result()))
+      }
+
+      Success(successes.result())
+    }
+  }
+  case class FailedFastException[T](cause: Throwable, successes: Seq[T]) extends Exception(cause)
 }
