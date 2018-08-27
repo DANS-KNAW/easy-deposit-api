@@ -152,7 +152,7 @@ class DepositServlet(app: EasyDepositApiApp) extends ProtectedServlet(app) {
   private def getUUID: Try[UUID] = Try {
     UUID.fromString(params("uuid"))
   }.recoverWith { case t: Throwable =>
-    Failure(new InvalidDocumentException(s"deposit id: ${ t.getMessage }"))
+    Failure(new InvalidResourceException(s"Invalid deposit id: ${ t.getMessage }"))
   }
 
   private def getPath: Try[Path] = Try {
