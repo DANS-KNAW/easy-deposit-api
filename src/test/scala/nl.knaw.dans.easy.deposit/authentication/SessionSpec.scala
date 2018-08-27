@@ -49,8 +49,7 @@ class SessionSpec extends TestSupportFixture with ServletFixture with ScalatraSu
       body should startWith("AuthUser(foo,List(),ACTIVE) ")
       body should endWith(" EASY Deposit API Service running")
       header("REMOTE_USER") shouldBe "foo"
-      header("Set-Cookie") should startWith("scentry.auth.default.user=")
-      header("Set-Cookie") shouldNot startWith("scentry.auth.default.user=;") // note the empty value
+      header("Set-Cookie") should startWith regex "scentry.auth.default.user=[^;].+;"
       status shouldBe OK_200
     }
   }
