@@ -388,8 +388,9 @@ paths:
       - directory
       summary: Adds a file or a subdirectory.
       description: |
-        By default the file in the request body is saved in `dir_path` under the file name provided
-        in the `Content-Disposition` header. However, if the request body is sent as a ZIP file, it
+        Sub request of a request with `Content-Type` value `multipart/form-data`.
+        By default the files listed in the body of the main request are saved in `dir_path` under the file name provided
+        in the `Content-Disposition` header. However, if a file has the extension ZIP, it
         is extracted in `dir_path` and `Content-Disposition` is ignored (and may be left out).
         If `dir_path`, or any of its parents do not exist yet, they are first created.
       parameters:

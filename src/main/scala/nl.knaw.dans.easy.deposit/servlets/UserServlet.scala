@@ -31,10 +31,10 @@ class UserServlet(app: EasyDepositApiApp) extends ProtectedServlet(app) {
       .getOrRecoverResponse(respond)
   }
   put("/") {
-    (for {
+    Try(for {
       user <- UserInfo(request.body)
-      _ <- Try(???).flatten
-    } yield Ok(???))
+      _ <- Try(???)
+    } yield Ok(???)).flatten
       .getOrRecoverResponse(respond)
   }
 

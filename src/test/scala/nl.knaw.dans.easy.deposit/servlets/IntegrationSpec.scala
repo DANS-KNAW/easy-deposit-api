@@ -15,6 +15,10 @@
  */
 package nl.knaw.dans.easy.deposit.servlets
 
+import java.nio.file.Files
+import java.nio.file.Files.setPosixFilePermissions
+import java.nio.file.attribute.PosixFilePermissions
+import java.nio.file.attribute.PosixFilePermissions.fromString
 import java.util.UUID
 
 import nl.knaw.dans.easy.deposit.PidRequesterComponent.PidRequester
@@ -111,7 +115,7 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
     }
   }
 
-  s"scenario: POST /deposit; twice POST /deposit/:uuid/file/path/to/text.txt" should "return 201 respectively 200" in {
+  s"scenario: POST /deposit; twice PUT /deposit/:uuid/file/path/to/text.txt" should "return 201 respectively 200" in {
 
     // create dataset
     expectsUserFooBar
@@ -126,19 +130,20 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
 
     // upload the file twice
     expectsUserFooBar
-    post(uri = s"/deposit/$uuid/file/path/to/text.txt", headers = Seq(basicAuthentication), body = randomContent(times)) {
+    val content = randomContent(times)
+    put(uri = s"/deposit/$uuid/file/path/to/text.txt", headers = Seq(basicAuthentication), body = content) {
       status shouldBe CREATED_201
-      (dataFilesBase / "path" / "to" / "text.txt").size shouldBe expectedContentSize
+      (dataFilesBase / "path" / "to" / "text.txt").contentAsString shouldBe content
     }
     expectsUserFooBar
-    post(uri = s"/deposit/$uuid/file/path/to/text.txt", headers = Seq(basicAuthentication), body = "fixed content for a fixed checksum") {
+    put(uri = s"/deposit/$uuid/file/path/to/text.txt", headers = Seq(basicAuthentication), body = "Lorum ipsum") {
       status shouldBe OK_200
-      (dataFilesBase / "path" / "to" / "text.txt").size shouldBe 34
+      (dataFilesBase / "path" / "to" / "text.txt").contentAsString shouldBe "Lorum ipsum"
     }
     expectsUserFooBar
     get(uri = s"/deposit/$uuid/file/path", headers = Seq(basicAuthentication)) {
       status shouldBe OK_200
-      body shouldBe """[{"fileName":"text.txt","dirPath":"path/to","sha1sum":"f5aa79b56b3d051f35be075470970b552c7f835f"}]"""
+      body shouldBe """[{"fileName":"text.txt","dirPath":"path/to","sha1sum":"c5b8de8cc3587aef4e118a481115391033621e06"}]"""
     }
   }
 
@@ -182,6 +187,41 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
       new String(bodyBytes)
     }
     val uuid = DepositInfo(responseBody).map(_.id.toString).getOrRecover(e => fail(e.toString, e))
+    val depositDir = testDir / "drafts" / "foo" / uuid.toString
+    val relativeTarget = "path/to/dir"
+    val absoluteTarget = depositDir / "bag/data" / relativeTarget
+    (testDir / "input").createDirectory()
+    Seq(
+      ("1.txt", "Lorem ipsum dolor sit amet"),
+      ("2.txt", "consectetur adipiscing elit"),
+      ("3.txt", "sed do eiusmod tempor incididunt ut labore et dolore magna aliqua"),
+      ("4.txt", "Ut enim ad minim veniam")
+    ).foreach { case (name, content) => (testDir / "input" / name).write(content) }
+
+    // upload files with "multipart/form-data"
+    expectsUserFooBar
+    val files = Iterable(
+      ("some", (testDir / "input/1.txt").toJava), // emulates a <input type="file">
+      ("some", (testDir / "input/2.txt").toJava),
+      ("others", (testDir / "input/3.txt").toJava),
+      ("others", (testDir / "input/4.txt").toJava),
+    )
+    post(uri = s"/deposit/$uuid/file/$relativeTarget", params = Iterable(), headers = Seq(basicAuthentication), files = files) {
+      status shouldBe OK_200
+       absoluteTarget
+         .list.foreach(file => file.contentAsString shouldBe (testDir / "input" / file.name).contentAsString)
+      body shouldBe ""
+    }
+
+    // same upload with failure
+    // TODO make it impossible to write just one of the files (absoluteTarget / "2.txt") now the log won't show a partial success
+    setPosixFilePermissions(absoluteTarget.createDirectories().path, fromString("r--r--r--"))
+    expectsUserFooBar
+    post(uri = s"/deposit/$uuid/file/$relativeTarget", params = Iterable(), headers = Seq(basicAuthentication), files = files) {
+      setPosixFilePermissions(absoluteTarget.path, fromString("rwxr-xr-x")) // restore
+      status shouldBe INTERNAL_SERVER_ERROR_500
+      body shouldBe "Internal Server Error"
+    }
 
     // upload dataset metadata
     expectsUserFooBar
@@ -192,14 +232,8 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
       status shouldBe NO_CONTENT_204
     }
 
-    // upload a file
-    expectsUserFooBar
-    post(uri = s"/deposit/$uuid/file/path/to/text.txt", headers = Seq(basicAuthentication), body = randomContent(22)) {
-      status shouldBe CREATED_201
-    }
-
     // avoid having to mock the pid-service
-    (testDir / "drafts" / "foo" / uuid.toString / "deposit.properties").append(s"identifier.doi=$doi")
+    (depositDir / "deposit.properties").append(s"identifier.doi=$doi")
 
     // submit
     expectsUserFooBar
@@ -208,10 +242,33 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
     ) {
       body shouldBe ""
       status shouldBe NO_CONTENT_204
-    }
 
-    // +3 is difference in number of files in metadata directory: json versus xml's
-    ((testDir / "drafts" / "foo" / uuid.toString).walk().size + 3) shouldBe (testDir / "easy-ingest-flow-inbox" / uuid.toString).walk().size
+      // +3 is difference in number of files in metadata directory: json versus xml's
+      (depositDir.walk().size + 3) shouldBe (testDir / "easy-ingest-flow-inbox" / uuid.toString).walk().size
+    }
+  }
+
+
+  s"scenario: create - POST payload" should "report a missing content disposistion" in {
+
+    val datasetMetadata = getManualTestResource("datasetmetadata-from-ui-all.json")
+    val doi = Try { DatasetMetadata(datasetMetadata).get.identifiers.get.headOption.get.value }
+      .getOrRecover(e => fail("could not get DOI from test input", e))
+    (testDir / "easy-ingest-flow-inbox").createDirectories()
+
+    // create dataset
+    expectsUserFooBar
+    val responseBody = post(uri = s"/deposit", headers = Seq(basicAuthentication)) {
+      new String(bodyBytes)
+    }
+    val uuid = DepositInfo(responseBody).map(_.id.toString).getOrRecover(e => fail(e.toString, e))
+
+    // upload a file
+    expectsUserFooBar
+    post(uri = s"/deposit/$uuid/file/path/to/", headers = Seq(basicAuthentication), body = randomContent(22)) {
+      status shouldBe NOT_IMPLEMENTED_501
+      body shouldBe "Expecting Content-Type[multipart/form-data], got None."
+    }
   }
 
   s"scenario: POST /deposit; hack state to ARCHIVED; SUBMIT" should "reject state transition" in {

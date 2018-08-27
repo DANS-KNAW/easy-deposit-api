@@ -21,13 +21,14 @@ import nl.knaw.dans.easy.deposit._
 import nl.knaw.dans.easy.deposit.authentication.AuthUser.UserState
 import nl.knaw.dans.easy.deposit.authentication.AuthenticationMocker._
 import nl.knaw.dans.easy.deposit.authentication.{ AuthUser, AuthenticationProvider }
-import nl.knaw.dans.easy.deposit.docs.DatasetMetadata
+import nl.knaw.dans.easy.deposit.docs.{ DatasetMetadata, DepositInfo }
+import nl.knaw.dans.lib.error._
 import org.eclipse.jetty.http.HttpStatus._
 import org.scalamock.scalatest.MockFactory
 import org.scalatra.auth.Scentry
 import org.scalatra.test.scalatest.ScalatraSuite
 
-import scala.util.Failure
+import scala.util.{ Failure, Try }
 
 class DepositServletErrorSpec extends TestSupportFixture with ServletFixture with ScalatraSuite with MockFactory {
 
@@ -70,7 +71,7 @@ class DepositServletErrorSpec extends TestSupportFixture with ServletFixture wit
 
   s"put /:uuid/metadata" should "report a lost dataset" in {
     expectsUserFooBar
-    (mockedApp.writeDataMetadataToDeposit(_: DatasetMetadata)(_: String, _: UUID)) expects(*, "foo", uuid) returning
+    (mockedApp.writeDataMetadataToDeposit(_: DatasetMetadata, _: String, _: UUID)) expects(*, "foo", uuid) returning
       Failure(NoSuchDepositException("foo", uuid, new Exception()))
 
     put(

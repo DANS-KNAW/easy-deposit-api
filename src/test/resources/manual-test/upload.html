@@ -2,24 +2,34 @@
 <head>
     <script>
         function setAction(el){
-            document.getElementById('form').action = "http://test.dans.knaw.nl:20190/deposit/" +
-               el.value +"/file/fixed-file-name"
+            document.getElementById('form').action = "http://deasy.dans.knaw.nl:20190/deposit/" +
+               document.getElementById('uuid').value + "/file/" +
+               document.getElementById('path').value
             return true
         }
     </script>
+    <style>
+        label {width: 50px}
+        input[type="text"] {width: 300px}
+    </style>
 </head>
 <body>
 <h1>Manual test for upload.</h1>
 <a href="login.html">login</a>
 <form id="form"
-      action="http://test.dans.knaw.nl:20190/deposit/07d53775-aeff-478c-85d3-a8e27724ab9f/file/some.png"
+      action="http://deasy.dans.knaw.nl:20190/deposit/UUID/file/some.png"
       method="post"
       enctype="multipart/form-data"
 >
-    <input type="file" id="myFiles" multiple size="50">
-    <!--<input type="file" id="myFile">-->
+    <label for="uuid">UUID</label><input id="uuid" type="text" onchange="setAction(this)">
+    <br>
+    <label for="path">path</label><input id="path" type="text" onchange="setAction(this)">
+    <br>
+    <input type="file" multiple size="50" name="field1">
+    <br>
+    <input type="file" multiple size="5" name="field2">
+    <br>
     <input type="submit"/>
 </form>
-<p>NB: Needs server side implementation of multipart/form-data.</p>
 </body>
 </html>
