@@ -33,7 +33,7 @@ package object servlets extends DebugEnhancedLogging {
     BadRequest(s"Bad Request. ${ t.getMessage }")
   }
 
-  implicit class RichIterable[T](val xs: Iterable[Try[T]]) extends AnyVal {
+  implicit class RichIterable[T](val xs: Stream[Try[T]]) extends AnyVal {
     def failFast: Try[Seq[T]] = {
       // TODO dans-lib candidate?
       val successes = Seq.newBuilder[T]
@@ -41,11 +41,10 @@ package object servlets extends DebugEnhancedLogging {
       xs.foreach {
         case Success(t) => successes += t
         case Failure(e) =>
-          return Failure(FailedFastException(e, successes.result()))
+          return Failure(e)
       }
 
       Success(successes.result())
     }
   }
-  case class FailedFastException[T](cause: Throwable, successes: Seq[T]) extends Exception(cause)
 }

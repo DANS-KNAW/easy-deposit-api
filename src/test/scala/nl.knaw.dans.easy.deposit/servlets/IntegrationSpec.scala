@@ -16,9 +16,11 @@
 package nl.knaw.dans.easy.deposit.servlets
 
 import java.nio.file.Files
+import java.nio.file.Files.setPosixFilePermissions
+import java.nio.file.attribute.PosixFilePermissions
+import java.nio.file.attribute.PosixFilePermissions.fromString
 import java.util.UUID
 
-import better.files.File
 import nl.knaw.dans.easy.deposit.PidRequesterComponent.PidRequester
 import nl.knaw.dans.easy.deposit.PidRequesterComponent.PidType.PidType
 import nl.knaw.dans.easy.deposit.authentication.AuthenticationMocker._
@@ -185,18 +187,40 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
       new String(bodyBytes)
     }
     val uuid = DepositInfo(responseBody).map(_.id.toString).getOrRecover(e => fail(e.toString, e))
+    val depositDir = testDir / "drafts" / "foo" / uuid.toString
+    val relativeTarget = "path/to/dir"
+    val absoluteTarget = depositDir / "bag/data" / relativeTarget
+    (testDir / "input").createDirectory()
+    Seq(
+      ("1.txt", "Lorem ipsum dolor sit amet"),
+      ("2.txt", "consectetur adipiscing elit"),
+      ("3.txt", "sed do eiusmod tempor incididunt ut labore et dolore magna aliqua"),
+      ("4.txt", "Ut enim ad minim veniam")
+    ).foreach { case (name, content) => (testDir / "input" / name).write(content) }
 
     // upload files with "multipart/form-data"
     expectsUserFooBar
     val files = Iterable(
-      ("some", File(".gitignore").toJava), // emulates a <input type="file">
-      ("others", File("README.md").toJava) // emulates another <input type="file">
+      ("some", (testDir / "input/1.txt").toJava), // emulates a <input type="file">
+      ("some", (testDir / "input/2.txt").toJava),
+      ("others", (testDir / "input/3.txt").toJava),
+      ("others", (testDir / "input/4.txt").toJava),
     )
-    post(uri = s"/deposit/$uuid/file/path/to/dir", params = Iterable(), headers = Seq(basicAuthentication), files = files) {
+    post(uri = s"/deposit/$uuid/file/$relativeTarget", params = Iterable(), headers = Seq(basicAuthentication), files = files) {
       status shouldBe OK_200
-      (testDir / "drafts" / "foo" / uuid.toString / "bag/data/path/to/dir")
-        .list.foreach(file => file.contentAsString shouldBe File(file.name).contentAsString)
+       absoluteTarget
+         .list.foreach(file => file.contentAsString shouldBe (testDir / "input" / file.name).contentAsString)
       body shouldBe ""
+    }
+
+    // same upload with failure
+    // TODO make it impossible to write just one of the files (absoluteTarget / "2.txt") now the log won't show a partial success
+    setPosixFilePermissions(absoluteTarget.createDirectories().path, fromString("r--r--r--"))
+    expectsUserFooBar
+    post(uri = s"/deposit/$uuid/file/$relativeTarget", params = Iterable(), headers = Seq(basicAuthentication), files = files) {
+      setPosixFilePermissions(absoluteTarget.path, fromString("rwxr-xr-x")) // restore
+      status shouldBe INTERNAL_SERVER_ERROR_500
+      body shouldBe "Internal Server Error"
     }
 
     // upload dataset metadata
@@ -209,7 +233,7 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
     }
 
     // avoid having to mock the pid-service
-    (testDir / "drafts" / "foo" / uuid.toString / "deposit.properties").append(s"identifier.doi=$doi")
+    (depositDir / "deposit.properties").append(s"identifier.doi=$doi")
 
     // submit
     expectsUserFooBar
@@ -220,7 +244,7 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
       status shouldBe NO_CONTENT_204
 
       // +3 is difference in number of files in metadata directory: json versus xml's
-      ((testDir / "drafts" / "foo" / uuid.toString).walk().size + 3) shouldBe (testDir / "easy-ingest-flow-inbox" / uuid.toString).walk().size
+      (depositDir.walk().size + 3) shouldBe (testDir / "easy-ingest-flow-inbox" / uuid.toString).walk().size
     }
   }
 

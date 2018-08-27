@@ -128,7 +128,8 @@ class DepositServlet(app: EasyDepositApiApp)
       uuid <- getUUID
       path <- getPath
       _ <- isMultipart
-      newFileItems <- getFileItems(uuid, path)
+      newFileItems <- getFileItems
+        .toStream
         .withFilter(_.name.blankOption.isDefined)
         .map { fileItem => postFileItem(uuid, path, fileItem) }
         .failFast
@@ -161,9 +162,6 @@ class DepositServlet(app: EasyDepositApiApp)
     managed(item.getInputStream)
       .apply(app.writeDepositFile(_, user.id, uuid, fullPath))
       .map((_, item))
-      .recoverWith{case e: Throwable => Failure(
-        new Exception(s"Could not save ${item.name} in list ${item.fieldName}: ${e.getMessage}", e)
-      )}
   }
 
   private def respond(t: Throwable): ActionResult = t match {
@@ -220,11 +218,11 @@ class DepositServlet(app: EasyDepositApiApp)
     Failure(InvalidResourceException(s"Invalid path."))
   }
 
-  private def getFileItems(uuid: UUID, path: File): Iterable[FileItem] = {
+  private def getFileItems: Iterable[FileItem] = {
     val fileItems = fileMultiParams.values.flatten
     logger.info(fileItems
       .map(i => s"size=${ i.size } charset=${ i.charset } contentType=${ i.contentType } fieldName=${ i.fieldName } name=${ i.name }")
-      .mkString(s"${ user.id }/$uuid/$path: ", "; ", ".")
+      .mkString(s"user=${ user.id }; ${request.uri.getPath}: ", "; ", ".")
     )
     fileItems
   }
