@@ -131,12 +131,10 @@ class SessionSpec extends TestSupportFixture with ServletFixture with ScalatraSu
     ) {
       status shouldBe NO_CONTENT_204
       body shouldBe ""
-      header("Content-Type") shouldBe "text/html;charset=UTF-8"
       header("Expires") shouldBe "Thu, 01 Jan 1970 00:00:00 GMT" // page cache
       header("REMOTE_USER") shouldBe "foo"
       val newCookie = header("Set-Cookie")
-      newCookie should startWith("scentry.auth.default.user=")
-      newCookie shouldNot startWith("scentry.auth.default.user=;")
+      newCookie should startWith regex "scentry.auth.default.user=[^;].+;"
       newCookie should include(";Path=/")
       newCookie should include(";HttpOnly")
       cookieAge(newCookie) should be < 1000L
@@ -151,12 +149,10 @@ class SessionSpec extends TestSupportFixture with ServletFixture with ScalatraSu
     ) {
       body shouldBe ""
       status shouldBe NO_CONTENT_204
-      header("Content-Type") shouldBe "text/html;charset=UTF-8"
       header("Expires") shouldBe "Thu, 01 Jan 1970 00:00:00 GMT" // page cache
       header("REMOTE_USER") shouldBe "foo"
       val newCookie = header("Set-Cookie")
-      newCookie should startWith("scentry.auth.default.user=")
-      newCookie shouldNot startWith("scentry.auth.default.user=;")
+      newCookie should startWith regex "scentry.auth.default.user=[^;].+;"
       newCookie should include(";Path=/")
       newCookie should include(";HttpOnly")
       cookieAge(newCookie) should be < 1000L
