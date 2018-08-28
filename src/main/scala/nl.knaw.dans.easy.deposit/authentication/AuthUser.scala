@@ -61,7 +61,7 @@ object AuthUser {
 
   def fromJson(input: String): Try[AuthUser] = {
     Try(parse(input).extract[ActiveAuthUser]).recoverWith { case t =>
-      Failure(new Exception(s"parse error [${ t.getClass }: ${ t.getMessage }] for: $input", t))
+      Failure(new Exception(s"parse error [$t] for: $input", t))
     }
   }
 }

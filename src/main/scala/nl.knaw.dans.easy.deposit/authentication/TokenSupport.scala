@@ -71,6 +71,6 @@ object TokenSupport {
   private case class Token(exp: Long, iat: Long, uid: String)
   private def fromJson(token: String) = Try(parse(token).extract[Token])
     .recoverWith { case t =>
-      Failure(new Exception(s"parse error [${ t.getClass }: ${ t.getMessage }] for: $token", t))
+      Failure(new Exception(s"parse error [$t] for: $token", t))
     }
 }
