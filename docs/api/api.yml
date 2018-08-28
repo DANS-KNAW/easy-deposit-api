@@ -411,7 +411,7 @@ paths:
             schema:
               type: string
               format: binary
-          multi-part/formdata:
+          multipart/form-data:
             schema:
               type: array
               items:
