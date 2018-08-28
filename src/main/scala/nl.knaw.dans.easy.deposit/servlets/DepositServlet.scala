@@ -15,10 +15,12 @@
  */
 package nl.knaw.dans.easy.deposit.servlets
 
+import java.io.InputStream
+import java.nio.charset.Charset
 import java.nio.file.{ NoSuchFileException, Path, Paths }
 import java.util.UUID
+import java.util.zip.{ ZipEntry, ZipException, ZipInputStream }
 
-import better.files.File
 import nl.knaw.dans.easy.deposit.authentication.ServletEnhancedLogging._
 import nl.knaw.dans.easy.deposit.docs.JsonUtil.{ InvalidDocumentException, toJson }
 import nl.knaw.dans.easy.deposit.docs.{ DatasetMetadata, DepositInfo, StateInfo }
@@ -131,7 +133,7 @@ class DepositServlet(app: EasyDepositApiApp)
       newFileItems <- getFileItems
         .toStream
         .withFilter(_.name.blankOption.isDefined)
-        .map { fileItem => postFileItem(uuid, path, fileItem) }
+        .map(uploadFileItem(uuid, path, _))
         .failFast
         .map(_.withFilter(_._1).map(_._2))
     } yield Ok() // TODO create multiple location headers from newFileItems?
@@ -157,11 +159,49 @@ class DepositServlet(app: EasyDepositApiApp)
       ).getOrRecoverResponse(respond)
   }
 
-  private def postFileItem(uuid: UUID, path: Path, item: FileItem): Try[(Boolean, FileItem)] = {
-    val fullPath = path.resolve(item.name)
-    managed(item.getInputStream)
-      .apply(app.writeDepositFile(_, user.id, uuid, fullPath))
-      .map((_, item))
+  private def uploadFileItem(uuid: UUID, path: Path, uploadItem: FileItem): Try[(Boolean, FileItem)] = {
+    val extensionIsZip = uploadItem.name.matches(".*.g?z(ip)?")
+    lazy val contentTypeIsZip = uploadItem.contentType.exists(_.matches(
+      "(application|multipart)/(x-)?g?zip(-compress(ed)?)?( .*)?"
+    ))
+    logger.debug(s"is it a ZIP? ${ uploadItem.name } : $extensionIsZip; ${ uploadItem.contentType } : $contentTypeIsZip ")
+    if (extensionIsZip || contentTypeIsZip)
+      managed(uploadItem.getInputStream)
+        .apply(uploadZip(uuid, path, uploadItem, _))
+        .map((_, uploadItem))
+    else {
+      val fullPath = path.resolve(uploadItem.name)
+      managed(uploadItem.getInputStream)
+        .apply(app.writeDepositFile(_, user.id, uuid, fullPath))
+        .map((_, uploadItem))
+    }
+  }
+
+  private def uploadZip(uuid: UUID, path: Path, uploadItem: FileItem, uploadInputStream: InputStream): Try[Boolean] = {
+    val zipInputStream = uploadItem.charset
+      .map(charSet => new ZipInputStream(uploadInputStream, Charset.forName(charSet)))
+      .getOrElse(new ZipInputStream(uploadInputStream))
+
+    def handleZipEntry(zipEntry: ZipEntry) = {
+      if (zipEntry.isDirectory) Success(false)
+      else {
+        logger.info(s"extracting ${ zipEntry.getName } size=${ zipEntry.getSize } crc=${ zipEntry.getCrc } method=${ zipEntry.getMethod }")
+        val fullPath = path.resolve(zipEntry.getName)
+        app.writeDepositFile(zipInputStream, user.id, uuid, fullPath)
+      }
+    }
+
+    while (
+      Try(zipInputStream.getNextEntry)
+        .map(Option(_).map(handleZipEntry)) match {
+        case Success(None) => false // end of zip
+        case Success(Some(Success(_))) => true // extracted and uploaded
+        case Success(Some(Failure(e))) => return Failure(e) // could not save
+        case Failure(e) if e.isInstanceOf[ZipException] => // could not extract TODO still fail fast? Other files might hav been uploaded.
+          return Failure(BadRequestException(s"ZIP file is malformed. ${ uploadItem.name } $e"))
+        case Failure(e) => return Failure(e)
+      }) {}
+    Success(false)
   }
 
   private def respond(t: Throwable): ActionResult = t match {
@@ -214,7 +254,7 @@ class DepositServlet(app: EasyDepositApiApp)
   private def getPath: Try[Path] = Try {
     Paths.get(multiParams("splat").find(!_.trim.isEmpty).getOrElse(""))
   }.recoverWith { case t: Throwable =>
-    logWhatIsHiddenForGetOrRecoverResponse(s"bad path:${ t.getClass.getName } ${ t.getMessage }")
+    logWhatIsHiddenForGetOrRecoverResponse(s"bad path:$t")
     Failure(InvalidResourceException(s"Invalid path."))
   }
 
@@ -222,7 +262,7 @@ class DepositServlet(app: EasyDepositApiApp)
     val fileItems = fileMultiParams.values.flatten
     logger.info(fileItems
       .map(i => s"size=${ i.size } charset=${ i.charset } contentType=${ i.contentType } fieldName=${ i.fieldName } name=${ i.name }")
-      .mkString(s"user=${ user.id }; ${request.uri.getPath}: ", "; ", ".")
+      .mkString(s"user=${ user.id }; ${ request.uri.getPath }: ", "; ", ".")
     )
     fileItems
   }
