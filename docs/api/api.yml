@@ -1,10 +1,10 @@
 openapi: 3.0.1
 
 servers:
-- description: Debug environment
-  url: http://localhost:20190/
-- description: Local Vagrant machine
-  url: http://test.dans.knaw.nl
+  - description: Debug environment
+    url: http://localhost:20190/
+  - description: Local Vagrant machine
+    url: http://test.dans.knaw.nl
 info:
   description: Public interface for depositing datasets in EASY.
   version: 1.0.0
@@ -109,7 +109,7 @@ paths:
         500:
           $ref: "#/components/responses/InternalServerError"
       security:
-      - BearerAuth: []
+        - BearerAuth: []
 
   /deposit:
     get:
@@ -267,7 +267,7 @@ paths:
         500:
           $ref: "#/components/responses/InternalServerError"
       security:
-      - BearerAuth: []
+        - BearerAuth: []
 
   /deposit/{id}/state:
     get:
@@ -368,12 +368,12 @@ paths:
                 items:
                   $ref: "#/components/schemas/FileInfo"
                 example:
-                - filename: myfile.txt
-                  dirpath: path/to/parent/dir
-                  sha1sum: ab3aa0555f31a8d7809fae4b03a95195edb01f5c
-                - filename: myfile2.txt
-                  dirpath: path/to/parent/dir
-                  sha1sum: ab3aa0555f31a8d7809fae4b03a95195edb01f5d
+                  - filename: myfile.txt
+                    dirpath: path/to/parent/dir
+                    sha1sum: ab3aa0555f31a8d7809fae4b03a95195edb01f5c
+                  - filename: myfile2.txt
+                    dirpath: path/to/parent/dir
+                    sha1sum: ab3aa0555f31a8d7809fae4b03a95195edb01f5d
 
         401:
           $ref: "#/components/responses/Unauthorized"
@@ -386,7 +386,7 @@ paths:
     post:
       tags:
       - directory
-      summary: Adds one or more files or a subdirectory.
+      summary: Adds one or more files.
       description: |
         Depending on the `Content-Type` header one or multiple files can be sent. The files will
         be added in the directory pointed to by `dir_path`.
@@ -482,8 +482,8 @@ paths:
       - file
       summary: Adds or overwrites the specified file in the deposit.
       parameters:
-      - $ref: "#/components/parameters/DepositId"
-      - $ref: "#/components/parameters/FilePath"
+       - $ref: "#/components/parameters/DepositId"
+       - $ref: "#/components/parameters/FilePath"
       description: If any of `file_path`'s parent do not yet exist, they are first created.
       operationId: writeFile
       requestBody:
@@ -491,7 +491,7 @@ paths:
         required: true
         content:
           '*/*':
-            # any media type is accepted, functionally equivalent to `*/*`
+          # any media type is accepted, functionally equivalent to `*/*`
             schema:
               # a binary file of any type
               type: string
@@ -528,8 +528,8 @@ paths:
       - file
       summary: Deletes a file from deposit.
       parameters:
-      - $ref: "#/components/parameters/DepositId"
-      - $ref: "#/components/parameters/FilePath"
+       - $ref: "#/components/parameters/DepositId"
+       - $ref: "#/components/parameters/FilePath"
       operationId: deleteFile
       responses:
         204:
@@ -649,8 +649,8 @@ components:
     UserInfo:
       type: object
       required:
-      - username
-      - lastName
+        - username
+        - lastName
       example:
         username: "user001"
         firstName: "First"
@@ -698,11 +698,11 @@ components:
           format: "date-time"
           description: "Deposit date"
       example:
-        id: "1d946f5b-e53b-4f71-b1f3-7481475d07db"
-        title: My draft deposit
-        state: DRAFT
-        stateDescription: Deposit is open for modification.
-        date: "2018-01-12T10:40:52Z"
+          id: "1d946f5b-e53b-4f71-b1f3-7481475d07db"
+          title: My draft deposit
+          state: DRAFT
+          stateDescription: Deposit is open for modification.
+          date: "2018-01-12T10:40:52Z"
 
     State:
       type: object
@@ -745,8 +745,8 @@ components:
           items:
             type: string
           example:
-          - "Title 1"
-          - "Title 2"
+            - "Title 1"
+            - "Title 2"
         alternativeTitles:
           $ref: "#/components/schemas/StringArray"
         descriptions:
@@ -775,9 +775,9 @@ components:
           type: array
           items:
             oneOf : [
-            {$ref: "#/components/schemas/Relation"},
-            {$ref: "#/components/schemas/QualifiedSchemedValue"}
-            ]
+              {$ref: "#/components/schemas/Relation"},
+              {$ref: "#/components/schemas/QualifiedSchemedValue"}
+              ]
 
         languagesOfFiles:
           type: array
@@ -880,25 +880,25 @@ components:
         organization:
           type: string
       oneOf:
-      - required:
-        - surname
-        - initials
-      - required:
-        - organization
+        - required:
+          - surname
+          - initials
+        - required:
+          - organization
       example:
         titles: Prof Dr
         initials: A
         insertions:
         surname: Einstein
         role:
-        - scheme: datacite:contributorType
-        - key: DataManager
-        - value: "Data Manager"
+          - scheme: datacite:contributorType
+          - key: DataManager
+          - value: "Data Manager"
         ids:
-        - scheme: DAI
-          value: "123456789x"
-        - scheme: ISNI
-          value: "ISNI:000000012281955X"
+          - scheme: DAI
+            value: "123456789x"
+          - scheme: ISNI
+            value: "ISNI:000000012281955X"
         organization: University of Zurich
 
     Date:
@@ -951,10 +951,10 @@ components:
         title:
           type: string
       oneOf:
-      - required:
-        - title
-      - required:
-        - url
+        - required:
+          - title
+        - required:
+          - url
 
     SchemedValue:
       type: object
@@ -973,9 +973,9 @@ components:
       - value
       properties:
         scheme:
-          type: string
+         type: string
         value:
-          type: string
+         type: string
 
     QualifiedSchemedValue:
       type: object
