@@ -397,7 +397,7 @@ paths:
         unzipped in `dir_path`. For each file in the ZIP file, the path in the deposit will be `dir_path`/`path_in_zip`.
 
         In all other cases the files are all stored in the directory pointed to by `dir_path` and it is not
-        allowed to include any files with `Content-Type: application/zip`. If multiple ZIP Note, that this means that only a flat
+        allowed to include any files with `Content-Type: application/zip`. Note, that this means that only a flat
         list of files can be sent this way, i.e. not including any directory hierarchy.
       parameters:
       - $ref: "#/components/parameters/DepositId"
@@ -415,8 +415,10 @@ paths:
       responses:
         201:
           description: file or subdirectory added
-        400:
+        400.1:
           $ref: "#/components/responses/MalformedZip"
+        400.2:
+          $ref: "#/components/responses/MustBeMultipartFormdata"
         401:
           $ref: "#/components/responses/Unauthorized"
         404:
@@ -646,6 +648,9 @@ components:
 
     MalformedZip:
       description: Bad request. ZIP file is malformed.
+
+    MustBeMultipartFormdata:
+      description: Bad Request. The request body must be multipart/form-data.
 
     ZipFileNotAllowed:
       description: Bad request. Content-Type must not be application/zip.
