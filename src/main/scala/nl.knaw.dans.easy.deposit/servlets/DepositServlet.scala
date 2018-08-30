@@ -195,7 +195,7 @@ class DepositServlet(app: EasyDepositApiApp)
 
   private def noSuchDepositResponse(e: NoSuchDepositException): ActionResult = {
     // returning the message to the client might reveal absolute paths on the server
-    logWhatIsHiddenForGetOrRecoverResponse(e.getMessage)
+    logWhatIsHiddenForGetOrRecoverResponse(s"${user.id} ${request.uri} $e")
     NotFound(body = s"Deposit ${ e.id } not found")
   }
 
