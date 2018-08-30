@@ -134,7 +134,6 @@ class DepositServlet(app: EasyDepositApiApp)
         .withFilter(_.name.blankOption.isDefined)
         .map(uploadFileItem(uuid, path, _))
         .failFast
-        .map(_.withFilter(_._1).map(_._2))
     } yield Ok() // TODO create multiple location headers from newFileItems?
       ).getOrRecoverResponse(respond)
   }
@@ -158,11 +157,11 @@ class DepositServlet(app: EasyDepositApiApp)
       ).getOrRecoverResponse(respond)
   }
 
-  private def uploadFileItem(uuid: UUID, path: Path, uploadItem: FileItem): Try[(Boolean, FileItem)] = {
+  private def uploadFileItem(uuid: UUID, path: Path, uploadItem: FileItem): Try[FileItem] = {
     managed(uploadItem.getInputStream).apply[Try[_]] {
       case is if isZip(uploadItem) => app.unzipDepositFile(is, uploadItem.charset, user.id, uuid, path)
       case is => app.writeDepositFile(is, user.id, uuid, path.resolve(uploadItem.name))
-    }.map(_ => (false, uploadItem))
+    }.map(_ => uploadItem)
   }
 
   private def isZip(uploadItem: FileItem) = {
