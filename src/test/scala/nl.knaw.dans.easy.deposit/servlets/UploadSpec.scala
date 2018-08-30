@@ -40,9 +40,9 @@ class UploadSpec extends TestSupportFixture with ServletFixture with ScalatraSui
         // <input type="file" name="some">
         ("some", (testDir / "input/1.txt").toJava),
         ("some", (testDir / "input/2.txt").toJava),
+        ("some", (testDir / "input/3.txt").toJava),
         // <input type="file" name="others">
-        ("others", (testDir / "input/3.txt").toJava),
-        ("others", (testDir / "input/4.txt").toJava),
+        ("more", (testDir / "input/4.txt").toJava),
       )
     }
     val uuid = createDataset
@@ -59,7 +59,7 @@ class UploadSpec extends TestSupportFixture with ServletFixture with ScalatraSui
       val uploaded = (testDir / "drafts/foo" / uuid.toString / "bag/data" / relativeTarget).list
       uploaded.size shouldBe files.size
       uploaded.foreach(file =>
-        file.contentAsString shouldBe (testDir / "input" / file.name).contentAsString
+          file.contentAsString shouldBe (testDir / "input" / file.name).contentAsString
       )
     }
   }

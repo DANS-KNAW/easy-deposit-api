@@ -15,11 +15,9 @@
  */
 package nl.knaw.dans.easy.deposit.servlets
 
-import java.io.InputStream
-import java.nio.charset.Charset
+import java.io.IOException
 import java.nio.file.{ NoSuchFileException, Path, Paths }
 import java.util.UUID
-import java.util.zip.{ ZipEntry, ZipException, ZipInputStream }
 
 import nl.knaw.dans.easy.deposit.authentication.ServletEnhancedLogging._
 import nl.knaw.dans.easy.deposit.docs.JsonUtil.{ InvalidDocumentException, toJson }
@@ -40,6 +38,7 @@ class DepositServlet(app: EasyDepositApiApp)
   configureMultipartHandling(MultipartConfig())
   error {
     case e: SizeConstraintExceededException => RequestEntityTooLarge(s"too much! ${ e.getMessage }")
+    case e: IOException                      => s"MultipartHandling Exception: $e"
   }
   /*
    * Defensive programming convention at this top level, everything in a for-comprehension:
@@ -129,8 +128,8 @@ class DepositServlet(app: EasyDepositApiApp)
     (for {
       uuid <- getUUID
       path <- getPath
-      _ <- isMultipart
-      newFileItems <- getFileItems
+      _ <- getContentTypeIfMultipart
+      newFileItems <- fileMultiParams.values.flatten // TODO fileParams.values gives the first file of each form-field, why/when/which
         .toStream
         .withFilter(_.name.blankOption.isDefined)
         .map(uploadFileItem(uuid, path, _))
@@ -161,8 +160,8 @@ class DepositServlet(app: EasyDepositApiApp)
 
   private def uploadFileItem(uuid: UUID, path: Path, uploadItem: FileItem): Try[(Boolean, FileItem)] = {
     managed(uploadItem.getInputStream).apply[Try[_]] {
-      case  is if isZip(uploadItem) => app.unzipDepositFile(is, uploadItem.charset, user.id, uuid, path)
-      case  is => app.writeDepositFile(is, user.id, uuid, path.resolve(uploadItem.name))
+      case is if isZip(uploadItem) => app.unzipDepositFile(is, uploadItem.charset, user.id, uuid, path)
+      case is => app.writeDepositFile(is, user.id, uuid, path.resolve(uploadItem.name))
     }.map(_ => (false, uploadItem))
   }
 
@@ -175,10 +174,10 @@ class DepositServlet(app: EasyDepositApiApp)
     extensionIsZip || contentTypeIsZip
   }
 
-  private def isMultipart = {
+  private def getContentTypeIfMultipart = {
     val multiPart = "multipart/"
     request.getHeader("Content-Type").blankOption match {
-      case Some(s) if s.toLowerCase.startsWith(multiPart) => Success(())
+      case Some(s) if s.toLowerCase.startsWith(multiPart) => Success(s)
       case x => Failure(BadRequestException(s"""Content-Type must start with "$multiPart", got $x."""))
     }
   }
@@ -235,15 +234,6 @@ class DepositServlet(app: EasyDepositApiApp)
   }.recoverWith { case t: Throwable =>
     logWhatIsHiddenForGetOrRecoverResponse(s"bad path:$t")
     Failure(InvalidResourceException(s"Invalid path."))
-  }
-
-  private def getFileItems: Iterable[FileItem] = {
-    val fileItems = fileMultiParams.values.flatten
-    logger.info(fileItems
-      .map(i => s"size=${ i.size } charset=${ i.charset } contentType=${ i.contentType } fieldName=${ i.fieldName } name=${ i.name }")
-      .mkString(s"user=${ user.id }; ${ request.uri.getPath }: ", "; ", ".")
-    )
-    fileItems
   }
 
   private def getRequestBodyAsManagedInputStream = {
