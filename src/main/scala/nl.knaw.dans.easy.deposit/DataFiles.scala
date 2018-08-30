@@ -94,13 +94,13 @@ case class DataFiles(bag: DansBag) extends DebugEnhancedLogging {
       }
     }
 
-    while (
+    while ( // TODO https://github.com/DANS-KNAW/easy-deposit-api/pull/65#discussion_r213627555
       Try(zipInputStream.getNextEntry)
         .map(Option(_).map(handleZipEntry)) match {
         case Success(None) => false // end of zip
         case Success(Some(Success(_))) => true // extracted and uploaded
         case Success(Some(Failure(e))) => return Failure(e) // could not save
-        case Failure(e) if e.isInstanceOf[ZipException] => // could not extract TODO still fail fast? Other files might hav been uploaded.
+        case Failure(e) if e.isInstanceOf[ZipException] => // could not extract TODO still fail fast? Other files might have been uploaded.
           return Failure(BadRequestException(s"ZIP file is malformed.  $e"))
         case Failure(e) => return Failure(e)
       }) {}
