@@ -160,15 +160,11 @@ class DepositServlet(app: EasyDepositApiApp)
   }
 
   private def uploadFileItem(uuid: UUID, path: Path, uploadItem: FileItem): Try[(Boolean, FileItem)] = {
-    val extensionIsZip = uploadItem.name.matches(".*.g?z(ip)?")
-    lazy val contentTypeIsZip = uploadItem.contentType.exists(_.matches(
-      "(application|multipart)/(x-)?g?zip(-compress(ed)?)?( .*)?"
-    ))
-    logger.debug(s"is it a ZIP? ${ uploadItem.name } : $extensionIsZip; ${ uploadItem.contentType } : $contentTypeIsZip ")
-    if (extensionIsZip || contentTypeIsZip)
-      managed(uploadItem.getInputStream)
-        .apply(uploadZip(uuid, path, uploadItem, _))
-        .map((_, uploadItem))
+    if (isZip(uploadItem))
+      managed(uploadItem.getInputStream).apply(
+        app.unzipDepositFile(_, uploadItem.charset, user.id, uuid, path)
+          .map(_ => (false, uploadItem))
+      )
     else {
       val fullPath = path.resolve(uploadItem.name)
       managed(uploadItem.getInputStream)
@@ -177,31 +173,14 @@ class DepositServlet(app: EasyDepositApiApp)
     }
   }
 
-  private def uploadZip(uuid: UUID, path: Path, uploadItem: FileItem, uploadInputStream: InputStream): Try[Boolean] = {
-    val zipInputStream = uploadItem.charset
-      .map(charSet => new ZipInputStream(uploadInputStream, Charset.forName(charSet)))
-      .getOrElse(new ZipInputStream(uploadInputStream))
-
-    def handleZipEntry(zipEntry: ZipEntry) = {
-      if (zipEntry.isDirectory) Success(false)
-      else {
-        logger.info(s"extracting ${ zipEntry.getName } size=${ zipEntry.getSize } crc=${ zipEntry.getCrc } method=${ zipEntry.getMethod }")
-        val fullPath = path.resolve(zipEntry.getName)
-        app.writeDepositFile(zipInputStream, user.id, uuid, fullPath)
-      }
-    }
-
-    while (
-      Try(zipInputStream.getNextEntry)
-        .map(Option(_).map(handleZipEntry)) match {
-        case Success(None) => false // end of zip
-        case Success(Some(Success(_))) => true // extracted and uploaded
-        case Success(Some(Failure(e))) => return Failure(e) // could not save
-        case Failure(e) if e.isInstanceOf[ZipException] => // could not extract TODO still fail fast? Other files might hav been uploaded.
-          return Failure(BadRequestException(s"ZIP file is malformed. ${ uploadItem.name } $e"))
-        case Failure(e) => return Failure(e)
-      }) {}
-    Success(false)
+  private def isZip(uploadItem: FileItem) = {
+    val extensionIsZip = uploadItem.name.matches(".*.g?z(ip)?")
+    lazy val contentTypeIsZip = uploadItem.contentType.exists(_.matches(
+      "(application|multipart)/(x-)?g?zip(-compress(ed)?)?( .*)?"
+    ))
+    logger.debug(s"is it a ZIP? ${ uploadItem.name } : $extensionIsZip; ${ uploadItem.contentType } : $contentTypeIsZip ")
+    val isZip = extensionIsZip || contentTypeIsZip
+    isZip
   }
 
   private def respond(t: Throwable): ActionResult = t match {
@@ -283,5 +262,5 @@ class DepositServlet(app: EasyDepositApiApp)
 object DepositServlet {
 
   private case class InvalidResourceException(s: String) extends Exception(s)
-  private case class BadRequestException(s: String) extends Exception(s)
+  case class BadRequestException(s: String) extends Exception(s)
 }

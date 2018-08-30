@@ -17,8 +17,10 @@ package nl.knaw.dans.easy.deposit
 
 import java.io.InputStream
 import java.net.URI
+import java.nio.charset.Charset
 import java.nio.file.{ Path, Paths }
 import java.util.UUID
+import java.util.zip.ZipInputStream
 
 import better.files.File
 import nl.knaw.dans.easy.deposit.PidRequesterComponent.PidRequester
@@ -229,6 +231,17 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
     created <- dataFiles.write(is, path)
     _ = logger.info(s"created=$created $user/$id/$path")
   } yield created
+
+  def unzipDepositFile(is: => InputStream, charset: Option[String], user: String, id: UUID, path: Path): Try[Unit] = for {
+    deposit <- DepositDir.get(draftsDir, user, id)
+    dataFiles <- deposit.getDataFiles
+    zipInputStream = charset
+      .map(charSet => new ZipInputStream(is, Charset.forName(charSet)))
+      .getOrElse(new ZipInputStream(is))
+    _ = logger.info(s"unzipping to [${dataFiles.bag.baseDir}] of [$path]")
+    _ <- dataFiles.unzip(zipInputStream, path)
+    _ = logger.info(s"unzipped $user/$id/$path")
+  } yield ()
 
   /**
    * Deletes the given regular file or directory. The specified `path` must be relative to the content directory.

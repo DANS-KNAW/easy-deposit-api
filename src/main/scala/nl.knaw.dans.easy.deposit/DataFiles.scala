@@ -17,10 +17,12 @@ package nl.knaw.dans.easy.deposit
 
 import java.io.InputStream
 import java.nio.file.{ NoSuchFileException, Path, Paths }
+import java.util.zip.{ ZipEntry, ZipException, ZipInputStream }
 
 import better.files._
 import nl.knaw.dans.bag.ChecksumAlgorithm.SHA1
 import nl.knaw.dans.bag.DansBag
+import nl.knaw.dans.easy.deposit.servlets.DepositServlet.BadRequestException
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 
 import scala.util.{ Failure, Success, Try }
@@ -80,6 +82,29 @@ case class DataFiles(bag: DansBag) extends DebugEnhancedLogging {
       _ <- bag.addPayloadFile(is, path)
       _ <- bag.save
     } yield !fileExists
+  }
+
+  def unzip(zipInputStream: ZipInputStream, path: Path): Try[Unit] = {
+    def handleZipEntry(zipEntry: ZipEntry) = {
+      if (zipEntry.isDirectory) Success(false)
+      else {
+        logger.info(s"extracting ${ zipEntry.getName } size=${ zipEntry.getSize } crc=${ zipEntry.getCrc } method=${ zipEntry.getMethod }")
+        val fullPath = path.resolve(zipEntry.getName)
+        write(zipInputStream, fullPath)
+      }
+    }
+
+    while (
+      Try(zipInputStream.getNextEntry)
+        .map(Option(_).map(handleZipEntry)) match {
+        case Success(None) => false // end of zip
+        case Success(Some(Success(_))) => true // extracted and uploaded
+        case Success(Some(Failure(e))) => return Failure(e) // could not save
+        case Failure(e) if e.isInstanceOf[ZipException] => // could not extract TODO still fail fast? Other files might hav been uploaded.
+          return Failure(BadRequestException(s"ZIP file is malformed.  $e"))
+        case Failure(e) => return Failure(e)
+      }) {}
+    Success(false)
   }
 
   /**
