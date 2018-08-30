@@ -207,8 +207,8 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
     // upload a file
     expectsUserFooBar
     post(uri = s"/deposit/$uuid/file/path/to/", headers = Seq(basicAuthentication), body = randomContent(22)) {
-      status shouldBe NOT_IMPLEMENTED_501
-      body shouldBe "Expecting Content-Type[multipart/form-data], got None."
+      status shouldBe BAD_REQUEST_400
+      body shouldBe """Content-Type must start with "multipart/", got None."""
     }
   }
 

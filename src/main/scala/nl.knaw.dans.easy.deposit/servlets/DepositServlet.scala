@@ -175,6 +175,14 @@ class DepositServlet(app: EasyDepositApiApp)
     extensionIsZip || contentTypeIsZip
   }
 
+  private def isMultipart = {
+    val multiPart = "multipart/"
+    request.getHeader("Content-Type").blankOption match {
+      case Some(s) if s.toLowerCase.startsWith(multiPart) => Success(())
+      case x => Failure(BadRequestException(s"""Content-Type must start with "$multiPart", got $x."""))
+    }
+  }
+
   private def respond(t: Throwable): ActionResult = t match {
     case e: IllegalStateTransitionException => Forbidden(e.getMessage)
     case e: NoSuchDepositException => noSuchDepositResponse(e)
@@ -236,14 +244,6 @@ class DepositServlet(app: EasyDepositApiApp)
       .mkString(s"user=${ user.id }; ${ request.uri.getPath }: ", "; ", ".")
     )
     fileItems
-  }
-
-  private def isMultipart = {
-    val multiPart = "multipart/form-data"
-    request.getHeader("Content-Type").blankOption match {
-      case Some(s) if s.toLowerCase.startsWith(multiPart) => Success(())
-      case x => Failure(new NotImplementedException(s"Expecting Content-Type[$multiPart], got $x."))
-    }
   }
 
   private def getRequestBodyAsManagedInputStream = {
