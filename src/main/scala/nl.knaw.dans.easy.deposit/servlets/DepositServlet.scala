@@ -160,17 +160,10 @@ class DepositServlet(app: EasyDepositApiApp)
   }
 
   private def uploadFileItem(uuid: UUID, path: Path, uploadItem: FileItem): Try[(Boolean, FileItem)] = {
-    if (isZip(uploadItem))
-      managed(uploadItem.getInputStream).apply(
-        app.unzipDepositFile(_, uploadItem.charset, user.id, uuid, path)
-          .map(_ => (false, uploadItem))
-      )
-    else {
-      val fullPath = path.resolve(uploadItem.name)
-      managed(uploadItem.getInputStream)
-        .apply(app.writeDepositFile(_, user.id, uuid, fullPath))
-        .map((_, uploadItem))
-    }
+    managed(uploadItem.getInputStream).apply[Try[_]] {
+      case  is if isZip(uploadItem) => app.unzipDepositFile(is, uploadItem.charset, user.id, uuid, path)
+      case  is => app.writeDepositFile(is, user.id, uuid, path.resolve(uploadItem.name))
+    }.map(_ => (false, uploadItem))
   }
 
   private def isZip(uploadItem: FileItem) = {
@@ -178,9 +171,8 @@ class DepositServlet(app: EasyDepositApiApp)
     lazy val contentTypeIsZip = uploadItem.contentType.exists(_.matches(
       "(application|multipart)/(x-)?g?zip(-compress(ed)?)?( .*)?"
     ))
-    logger.debug(s"is it a ZIP? ${ uploadItem.name } : $extensionIsZip; ${ uploadItem.contentType } : $contentTypeIsZip ")
-    val isZip = extensionIsZip || contentTypeIsZip
-    isZip
+    logger.debug(s"ZIP check: ${ uploadItem.name } : $extensionIsZip; ${ uploadItem.contentType } : $contentTypeIsZip ")
+    extensionIsZip || contentTypeIsZip
   }
 
   private def respond(t: Throwable): ActionResult = t match {
