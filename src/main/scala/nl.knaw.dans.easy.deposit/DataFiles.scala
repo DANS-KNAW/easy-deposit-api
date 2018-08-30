@@ -104,7 +104,7 @@ case class DataFiles(bag: DansBag) extends DebugEnhancedLogging {
           return Failure(BadRequestException(s"ZIP file is malformed.  $e"))
         case Failure(e) => return Failure(e)
       }) {}
-    Success(false)
+    Success(())
   }
 
   /**

@@ -35,7 +35,7 @@ object JsonUtil {
 
   case class InvalidDocumentException(s: String, t: Throwable = null)
     extends Exception(if (t == null) s"invalid $s"
-                      else s"invalid $s: $t", t)
+                      else s"invalid $s: ${ t.getMessage }", t)
 
   class PathSerializer extends CustomSerializer[Path](_ =>
     ( {
