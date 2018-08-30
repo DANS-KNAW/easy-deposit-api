@@ -15,9 +15,7 @@
  */
 package nl.knaw.dans.easy.deposit.servlets
 
-import java.nio.file.Files
 import java.nio.file.Files.setPosixFilePermissions
-import java.nio.file.attribute.PosixFilePermissions
 import java.nio.file.attribute.PosixFilePermissions.fromString
 import java.util.UUID
 
@@ -115,38 +113,6 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
     }
   }
 
-  s"scenario: POST /deposit; twice PUT /deposit/:uuid/file/path/to/text.txt" should "return 201 respectively 200" in {
-
-    // create dataset
-    expectsUserFooBar
-    val responseBody = post(uri = s"/deposit", headers = Seq(basicAuthentication)) {
-      new String(bodyBytes)
-    }
-    val uuid = DepositInfo(responseBody).map(_.id.toString).getOrRecover(e => fail(e.toString, e))
-
-    val dataFilesBase = DepositDir(testDir / "drafts", "foo", UUID.fromString(uuid)).getDataFiles.get.bag.data
-    val times = 500
-    val expectedContentSize = 37 * times - 1
-
-    // upload the file twice
-    expectsUserFooBar
-    val content = randomContent(times)
-    put(uri = s"/deposit/$uuid/file/path/to/text.txt", headers = Seq(basicAuthentication), body = content) {
-      status shouldBe CREATED_201
-      (dataFilesBase / "path" / "to" / "text.txt").contentAsString shouldBe content
-    }
-    expectsUserFooBar
-    put(uri = s"/deposit/$uuid/file/path/to/text.txt", headers = Seq(basicAuthentication), body = "Lorum ipsum") {
-      status shouldBe OK_200
-      (dataFilesBase / "path" / "to" / "text.txt").contentAsString shouldBe "Lorum ipsum"
-    }
-    expectsUserFooBar
-    get(uri = s"/deposit/$uuid/file/path", headers = Seq(basicAuthentication)) {
-      status shouldBe OK_200
-      body shouldBe """[{"fileName":"text.txt","dirPath":"path/to","sha1sum":"c5b8de8cc3587aef4e118a481115391033621e06"}]"""
-    }
-  }
-
   s"scenario: POST /deposit; twice GET /deposit/:uuid/doi" should "return 200" in {
 
     // create dataset
@@ -197,31 +163,6 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
       ("3.txt", "sed do eiusmod tempor incididunt ut labore et dolore magna aliqua"),
       ("4.txt", "Ut enim ad minim veniam")
     ).foreach { case (name, content) => (testDir / "input" / name).write(content) }
-
-    // upload files with "multipart/form-data"
-    expectsUserFooBar
-    val files = Iterable(
-      ("some", (testDir / "input/1.txt").toJava), // emulates a <input type="file">
-      ("some", (testDir / "input/2.txt").toJava),
-      ("others", (testDir / "input/3.txt").toJava),
-      ("others", (testDir / "input/4.txt").toJava),
-    )
-    post(uri = s"/deposit/$uuid/file/$relativeTarget", params = Iterable(), headers = Seq(basicAuthentication), files = files) {
-      status shouldBe OK_200
-       absoluteTarget
-         .list.foreach(file => file.contentAsString shouldBe (testDir / "input" / file.name).contentAsString)
-      body shouldBe ""
-    }
-
-    // same upload with failure
-    // TODO make it impossible to write just one of the files (absoluteTarget / "2.txt") now the log won't show a partial success
-    setPosixFilePermissions(absoluteTarget.createDirectories().path, fromString("r--r--r--"))
-    expectsUserFooBar
-    post(uri = s"/deposit/$uuid/file/$relativeTarget", params = Iterable(), headers = Seq(basicAuthentication), files = files) {
-      setPosixFilePermissions(absoluteTarget.path, fromString("rwxr-xr-x")) // restore
-      status shouldBe INTERNAL_SERVER_ERROR_500
-      body shouldBe "Internal Server Error"
-    }
 
     // upload dataset metadata
     expectsUserFooBar
