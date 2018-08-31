@@ -89,17 +89,18 @@ case class DataFiles(bag: DansBag) extends DebugEnhancedLogging {
       Failure(BadRequestException(s"ZIP file is empty."))
     else {
       Stream.continually(())
-        .takeWhile(_ => zipInputStream.available() > 0)
+        .takeWhile(_ => zipInputStream.available() > 0) // FIXME extracts just one file
         .map(_ =>
           Option(zipInputStream.getNextEntry) match {
             case None => Failure(BadRequestException(s"ZIP file is malformed. Empty entry."))
             case Some(entry) =>
               logger.info(s"Extracting ${ entry.getName } size=${ entry.getSize } compressedSize=${ entry.getCompressedSize } CRC=${ entry.getCrc }")
-              val fileExists = (bag.data / path.toString).exists
+              val fullPath = path.resolve(entry.getName)
               for {
-                _ <- if (fileExists) removeFile(path)
+                _ <- if ((bag.data / fullPath.toString).exists)
+                       removeFile(fullPath)
                      else Success(())
-                _ <- bag.addPayloadFile(zipInputStream, path)
+                _ <- bag.addPayloadFile(zipInputStream, fullPath)
                 _ <- bag.save
               } yield ()
           }

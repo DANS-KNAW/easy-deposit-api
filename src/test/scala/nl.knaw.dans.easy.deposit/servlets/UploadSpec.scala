@@ -157,7 +157,7 @@ class UploadSpec extends TestSupportFixture with ServletFixture with ScalatraSui
     }
   }
 
-  it should "upload a ZIP" in {
+  it should "extract all files from a ZIP" in pendingUntilFixed {
     File("src/test/resources/manual-test/Archive.zip").copyTo(testDir / "input" / "1.zip")
     val uuid = createDataset
     val relativeTarget = "path/to/dir"
@@ -168,7 +168,7 @@ class UploadSpec extends TestSupportFixture with ServletFixture with ScalatraSui
       uri = s"/deposit/$uuid/file/$relativeTarget",
       params = Iterable(),
       headers = Seq(basicAuthentication),
-      files = Seq(("", (testDir / "input/1.zip").toJava))
+      files = Seq(("formFieldName", (testDir / "input/1.zip").toJava))
     ) {
       body shouldBe ""
       status shouldBe OK_200
