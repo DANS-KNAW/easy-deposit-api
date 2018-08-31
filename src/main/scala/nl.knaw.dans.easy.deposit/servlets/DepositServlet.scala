@@ -128,9 +128,9 @@ class DepositServlet(app: EasyDepositApiApp)
     (for {
       uuid <- getUUID
       path <- getPath
-      _ <- getContentTypeIfMultipart
+      _ <- isMultipart
       fileItems = fileMultiParams.valuesIterator.flatten.buffered
-      _ = while (fileItems.head.name.trim.isEmpty) { fileItems.next() }
+      _ = while (fileItems.head.name.trim.isEmpty) { fileItems.next() } // skip leading form fields without selected files
       _ <- if (isZip(fileItems.head))
              uploadZippedItem(uuid, path, fileItems.next, fileItems.hasNext)
            else fileItems.withFilter(_.name.trim.nonEmpty)
@@ -159,8 +159,8 @@ class DepositServlet(app: EasyDepositApiApp)
       ).getOrRecoverResponse(respond)
   }
 
-  private def uploadZippedItem(uuid: UUID, path: Path, uploadItem: FileItem, moreItems: Boolean): Try[Unit] = {
-    if (moreItems)
+  private def uploadZippedItem(uuid: UUID, path: Path, uploadItem: FileItem, hasMoreItems: Boolean): Try[Unit] = {
+    if (hasMoreItems)
       Failure(ZipMustBeOnlyFileException(s"A multipart/form-data message contained a ZIP [${ uploadItem.name }] part but also other parts. Nothing has been uploaded."))
     else
       managed(uploadItem.getInputStream)
@@ -183,10 +183,10 @@ class DepositServlet(app: EasyDepositApiApp)
     extensionIsZip || contentTypeIsZip
   }
 
-  private def getContentTypeIfMultipart = {
+  private def isMultipart = {
     val multiPart = "multipart/"
     request.getHeader("Content-Type").blankOption match {
-      case Some(s) if s.toLowerCase.startsWith(multiPart) => Success(s)
+      case Some(s) if s.toLowerCase.startsWith(multiPart) => Success(())
       case x => Failure(BadRequestException(s"""Must have a Content-Type starting with "$multiPart", got $x."""))
     }
   }

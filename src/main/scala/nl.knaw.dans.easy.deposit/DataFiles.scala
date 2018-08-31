@@ -17,7 +17,7 @@ package nl.knaw.dans.easy.deposit
 
 import java.io.InputStream
 import java.nio.file.{ NoSuchFileException, Path, Paths }
-import java.util.zip.{ ZipEntry, ZipException, ZipInputStream }
+import java.util.zip.ZipInputStream
 
 import better.files._
 import nl.knaw.dans.bag.ChecksumAlgorithm.SHA1
@@ -85,26 +85,28 @@ case class DataFiles(bag: DansBag) extends DebugEnhancedLogging {
   }
 
   def unzip(zipInputStream: ZipInputStream, path: Path): Try[Unit] = {
-    def handleZipEntry(zipEntry: ZipEntry) = {
-      if (zipEntry.isDirectory) Success(false)
-      else {
-        logger.info(s"extracting ${ zipEntry.getName } size=${ zipEntry.getSize } crc=${ zipEntry.getCrc } method=${ zipEntry.getMethod }")
-        val fullPath = path.resolve(zipEntry.getName)
-        write(zipInputStream, fullPath)
-      }
+    if (zipInputStream.available() == 0)
+      Failure(BadRequestException(s"ZIP file is empty."))
+    else {
+      Stream.continually(())
+        .takeWhile(_ => zipInputStream.available() > 0)
+        .map(_ =>
+          Option(zipInputStream.getNextEntry) match {
+            case None => Failure(BadRequestException(s"ZIP file is malformed. Empty entry."))
+            case Some(entry) =>
+              logger.info(s"Extracting ${ entry.getName } size=${ entry.getSize } compressedSize=${ entry.getCompressedSize } CRC=${ entry.getCrc }")
+              val fileExists = (bag.data / path.toString).exists
+              for {
+                _ <- if (fileExists) removeFile(path)
+                     else Success(())
+                _ <- bag.addPayloadFile(zipInputStream, path)
+                _ <- bag.save
+              } yield ()
+          }
+        )
+        .find(_.isFailure)
+        .getOrElse(Success(()))
     }
-
-    while ( // TODO https://github.com/DANS-KNAW/easy-deposit-api/pull/65#discussion_r213627555
-      Try(zipInputStream.getNextEntry)
-        .map(Option(_).map(handleZipEntry)) match {
-        case Success(None) => false // end of zip
-        case Success(Some(Success(_))) => true // extracted and uploaded
-        case Success(Some(Failure(e))) => return Failure(e) // could not save
-        case Failure(e) if e.isInstanceOf[ZipException] => // could not extract TODO still fail fast? Other files might have been uploaded.
-          return Failure(BadRequestException(s"ZIP file is malformed. $e"))
-        case Failure(e) => return Failure(e)
-      }) {}
-    Success(())
   }
 
   /**

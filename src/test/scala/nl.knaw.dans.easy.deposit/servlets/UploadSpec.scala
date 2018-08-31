@@ -139,7 +139,7 @@ class UploadSpec extends TestSupportFixture with ServletFixture with ScalatraSui
     }
   }
 
-  it should "report a malformed ZIP" in pendingUntilFixed {
+  it should "report a malformed ZIP" in {
     val bodyParts = createBodyParts(Seq(
       ("some", "1.zip", "invalid zip content"),
     ))
@@ -155,7 +155,7 @@ class UploadSpec extends TestSupportFixture with ServletFixture with ScalatraSui
     ) {
       absoluteTarget.list.size shouldBe 0
       status shouldBe BAD_REQUEST_400
-      body shouldBe s"ZIP file is malformed. 1.zip"
+      body shouldBe s"ZIP file is malformed. Empty entry."
     }
   }
 

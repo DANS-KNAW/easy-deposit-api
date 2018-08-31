@@ -62,14 +62,14 @@ class DataFilesSpec extends TestSupportFixture {
   }
 
 
-  "unzip" should "report invalid content" in pendingUntilFixed {
+  "unzip" should "report invalid content" in {
     val dataFiles = createDatafiles
     val content = "Lorem ipsum est"
     val fileInBag = "location/in/data/dir/test.txt"
     val zipInputStream = new ZipInputStream(new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8)))
 
     dataFiles.unzip(zipInputStream, Paths.get(fileInBag)) should matchPattern {
-      case Failure(BadRequestException(s)) if s == "" =>
+      case Failure(BadRequestException(s)) if s == "ZIP file is malformed. Empty entry." =>
     }
     zipInputStream.close()
   }
