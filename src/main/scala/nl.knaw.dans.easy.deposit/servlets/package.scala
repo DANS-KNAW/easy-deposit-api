@@ -33,7 +33,7 @@ package object servlets extends DebugEnhancedLogging {
     BadRequest(s"Bad Request. ${ t.getMessage }")
   }
 
-  implicit class RichIterable[T](val xs: Stream[Try[T]]) extends AnyVal {
+  implicit class RichIterator[T](val xs: Iterator[Try[T]]) extends AnyVal {
     def failFast: Try[Seq[T]] = {
       // TODO dans-lib candidate?
       val successes = Seq.newBuilder[T]

@@ -129,8 +129,7 @@ class DepositServlet(app: EasyDepositApiApp)
       uuid <- getUUID
       path <- getPath
       _ <- getContentTypeIfMultipart
-      newFileItems <- fileMultiParams.values.flatten // TODO fileParams.values gives the first file of each form-field, why/when/which
-        .toStream
+      newFileItems <- fileMultiParams.valuesIterator.flatten // TODO fileParams.values gives the first file of each form-field, why/when/which
         .withFilter(_.name.blankOption.isDefined)
         .map(uploadFileItem(uuid, path, _))
         .failFast

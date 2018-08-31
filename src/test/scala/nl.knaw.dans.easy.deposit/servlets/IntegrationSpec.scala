@@ -15,8 +15,6 @@
  */
 package nl.knaw.dans.easy.deposit.servlets
 
-import java.nio.file.Files.setPosixFilePermissions
-import java.nio.file.attribute.PosixFilePermissions.fromString
 import java.util.UUID
 
 import nl.knaw.dans.easy.deposit.PidRequesterComponent.PidRequester
