@@ -69,7 +69,7 @@ class DataFilesSpec extends TestSupportFixture {
     val zipInputStream = new ZipInputStream(new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8)))
 
     dataFiles.unzip(zipInputStream, Paths.get(fileInBag)) should matchPattern {
-      case Failure(BadRequestException(s)) if s == "ZIP file is malformed. Empty entry." =>
+      case Failure(BadRequestException(s)) if s == "ZIP file is malformed. No entries found." =>
     }
     zipInputStream.close()
   }

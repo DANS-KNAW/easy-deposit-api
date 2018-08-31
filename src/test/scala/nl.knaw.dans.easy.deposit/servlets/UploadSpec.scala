@@ -153,11 +153,11 @@ class UploadSpec extends TestSupportFixture with ServletFixture with ScalatraSui
     ) {
       absoluteTarget.list.size shouldBe 0
       status shouldBe BAD_REQUEST_400
-      body shouldBe s"ZIP file is malformed. Empty entry."
+      body shouldBe s"ZIP file is malformed. No entries found."
     }
   }
 
-  it should "extract all files from a ZIP" in pendingUntilFixed {
+  it should "extract all files from a ZIP" in {
     File("src/test/resources/manual-test/Archive.zip").copyTo(testDir / "input" / "1.zip")
     val uuid = createDataset
     val relativeTarget = "path/to/dir"
@@ -172,7 +172,8 @@ class UploadSpec extends TestSupportFixture with ServletFixture with ScalatraSui
     ) {
       body shouldBe ""
       status shouldBe OK_200
-      absoluteTarget.list.size shouldBe 3 // post condition
+      absoluteTarget.walk().map(_.path.getFileName.toString).toList shouldBe
+        List("dir", "login.html", "readme.md", "__MACOSX", "._login.html", "upload.html")
     }
   }
 

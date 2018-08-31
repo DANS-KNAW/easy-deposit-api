@@ -17,7 +17,7 @@ package nl.knaw.dans.easy.deposit
 
 import java.io.InputStream
 import java.nio.file.{ NoSuchFileException, Path, Paths }
-import java.util.zip.ZipInputStream
+import java.util.zip.{ ZipEntry, ZipException, ZipInputStream }
 
 import better.files._
 import nl.knaw.dans.bag.ChecksumAlgorithm.SHA1
@@ -85,28 +85,37 @@ case class DataFiles(bag: DansBag) extends DebugEnhancedLogging {
   }
 
   def unzip(zipInputStream: ZipInputStream, path: Path): Try[Unit] = {
-    if (zipInputStream.available() == 0)
-      Failure(BadRequestException(s"ZIP file is empty."))
-    else {
-      Stream.continually(())
-        .takeWhile(_ => zipInputStream.available() > 0) // FIXME extracts just one file
-        .map(_ =>
-          Option(zipInputStream.getNextEntry) match {
-            case None => Failure(BadRequestException(s"ZIP file is malformed. Empty entry."))
-            case Some(entry) =>
-              logger.info(s"Extracting ${ entry.getName } size=${ entry.getSize } compressedSize=${ entry.getCompressedSize } CRC=${ entry.getCrc }")
-              val fullPath = path.resolve(entry.getName)
-              for {
-                _ <- if ((bag.data / fullPath.toString).exists)
-                       removeFile(fullPath)
-                     else Success(())
-                _ <- bag.addPayloadFile(zipInputStream, fullPath)
-                _ <- bag.save
-              } yield ()
+
+    def extract(entry: ZipEntry) =
+      if (entry.isDirectory)
+        Success(())
+      else {
+        logger.info(s"Extracting ${ entry.getName } size=${ entry.getSize } compressedSize=${ entry.getCompressedSize } CRC=${ entry.getCrc }")
+        val fullPath = path.resolve(entry.getName)
+        for {
+          _ <- if ((bag.data / fullPath.toString).exists)
+                 removeFile(fullPath)
+               else Success(())
+          _ <- bag.addPayloadFile(zipInputStream, fullPath)
+          _ <- bag.save
+          _ = logger.debug(bag.data.listRecursively.toList.toString())
+        } yield ()
+      }
+
+    Option(zipInputStream.getNextEntry) match {
+      case None => Failure(BadRequestException(s"ZIP file is malformed. No entries found."))
+      case Some(firstEntry: ZipEntry) => for {
+        _ <- extract(firstEntry)
+        _ <- Stream.continually(Option(zipInputStream.getNextEntry))
+          .takeWhile(_.nonEmpty)
+          .collect { case Some(entry) => entry }
+          .map(extract)
+          .find(_.isFailure)
+          .getOrElse(Success(()))
+          .recoverWith {
+            case e if e.isInstanceOf[ZipException] => Failure(BadRequestException(s"ZIP file is malformed. $e"))
           }
-        )
-        .find(_.isFailure)
-        .getOrElse(Success(()))
+      } yield ()
     }
   }
 
