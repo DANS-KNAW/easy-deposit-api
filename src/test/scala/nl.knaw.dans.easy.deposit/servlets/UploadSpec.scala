@@ -15,6 +15,7 @@
  */
 package nl.knaw.dans.easy.deposit.servlets
 
+import java.io.File
 import java.nio.file.Files.setPosixFilePermissions
 import java.nio.file.attribute.PosixFilePermissions.fromString
 import java.util.UUID
@@ -44,24 +45,12 @@ class UploadSpec extends TestSupportFixture with ServletFixture with ScalatraSui
   mountServlets(app, mockedAuthenticationProvider)
 
   "POST" should "upload files from multiple form fields" in {
-    val files = {
-      Seq(
-        ("1.txt", "Lorem ipsum dolor sit amet"),
-        ("2.txt", "consectetur adipiscing elit"),
-        ("3.txt", "sed do eiusmod tempor incididunt ut labore et dolore magna aliqua"),
-        ("4.txt", "Ut enim ad minim veniam")
-      ).foreach { case (name, content) => (testDir / "input" / name).write(content) }
-
-      // field values for: <form method="post" enctype="multipart/form-data">
-      Iterable(
-        // <input type="file" name="some">
-        ("some", (testDir / "input/1.txt").toJava),
-        ("some", (testDir / "input/2.txt").toJava),
-        ("some", (testDir / "input/3.txt").toJava),
-        // <input type="file" name="more">
-        ("more", (testDir / "input/4.txt").toJava),
-      )
-    }
+    val bodyParts = createBodyParts(Seq(
+      ("some", "1.txt", "Lorem ipsum dolor sit amet"),
+      ("some", "2.txt", "consectetur adipiscing elit"),
+      ("some", "3.txt", "sed do eiusmod tempor incididunt ut labore et dolore magna aliqua"),
+      ("more", "4.txt", "Ut enim ad minim veniam"),
+    ))
     val uuid = createDataset
     val relativeTarget = "path/to/dir"
     expectsUserFooBar
@@ -69,12 +58,12 @@ class UploadSpec extends TestSupportFixture with ServletFixture with ScalatraSui
       uri = s"/deposit/$uuid/file/$relativeTarget",
       params = Iterable(),
       headers = Seq(basicAuthentication),
-      files = files
+      files = bodyParts
     ) {
       body shouldBe ""
       status shouldBe OK_200
       val uploaded = (testDir / "drafts/foo" / uuid.toString / "bag/data" / relativeTarget).list
-      uploaded.size shouldBe files.size
+      uploaded.size shouldBe bodyParts.size
       uploaded.foreach(file =>
         file.contentAsString shouldBe (testDir / "input" / file.name).contentAsString
       )
@@ -83,19 +72,10 @@ class UploadSpec extends TestSupportFixture with ServletFixture with ScalatraSui
 
   it should "report upload failure" in {
     // need at least two files to show lazy evaluation with the logging: the second file is not tried to process
-    val files = {
-      Seq(
-        ("1.txt", "Lorem ipsum dolor sit amet"),
-        ("2.txt", "consectetur adipiscing elit"),
-      ).foreach { case (name, content) => (testDir / "input" / name).write(content) }
-
-      // field values for: <form method="post" enctype="multipart/form-data">
-      Iterable(
-        // <input type="file" name="some">
-        ("some", (testDir / "input/1.txt").toJava),
-        ("some", (testDir / "input/2.txt").toJava),
-      )
-    }
+    val bodyParts = createBodyParts(Seq(
+      ("some", "1.txt", "Lorem ipsum dolor sit amet"),
+      ("some", "2.txt", "consectetur adipiscing elit"),
+    ))
     val uuid = createDataset
     val relativeTarget = "path/to/dir"
     val absoluteTarget = (testDir / "drafts" / "foo" / uuid.toString / "bag/data" / relativeTarget).createDirectories()
@@ -108,7 +88,7 @@ class UploadSpec extends TestSupportFixture with ServletFixture with ScalatraSui
       uri = s"/deposit/$uuid/file/$relativeTarget",
       params = Iterable(),
       headers = Seq(basicAuthentication),
-      files = files
+      files = bodyParts
     ) {
       setTargetPermissions("rwxr-xr-x") // restore to allow clean up
       body shouldBe "Internal Server Error"
@@ -176,6 +156,20 @@ class UploadSpec extends TestSupportFixture with ServletFixture with ScalatraSui
       (bagBase / "data/path/to/text.txt").contentAsString shouldBe shortContent
       (bagBase / "manifest-sha1.txt").contentAsString shouldBe "c5b8de8cc3587aef4e118a481115391033621e06  data/path/to/text.txt\n"
     }
+  }
+
+  /**
+   * Mimics field values for: `<form method="post" enctype="multipart/form-data">`
+   *
+   * @param files tuples of:
+   *              - name in `<input type="file" name="some">`
+   *              - simple file name
+   *              - content of the file to create
+   * @return
+   */
+  private def createBodyParts(files: Seq[(String, String, String)]): Seq[(String, File)] = {
+    files.foreach { case (_, file, content) => (testDir / "input" / file).write(content) }
+    files.map { case (formField, file, _) => (formField, (testDir / "input" / file).toJava) }
   }
 
   private def createDataset: UUID = {
