@@ -20,8 +20,10 @@ import java.nio.charset.StandardCharsets
 import java.nio.file.attribute.PosixFilePermission
 import java.nio.file.{ AccessDeniedException, NoSuchFileException, Paths }
 import java.util.UUID
+import java.util.zip.ZipInputStream
 
 import nl.knaw.dans.bag.v0.DansV0Bag
+import nl.knaw.dans.easy.deposit.servlets.DepositServlet.BadRequestException
 import nl.knaw.dans.lib.error._
 
 import scala.util.{ Failure, Success }
@@ -45,6 +47,31 @@ class DataFilesSpec extends TestSupportFixture {
 
     (dataFiles.bag.data / fileInBag).contentAsString shouldBe content
     inputStream.close()
+  }
+
+  it should "report write errors" in {
+    val dataFiles = createDatafiles
+    dataFiles.bag.data
+      .createIfNotExists(asDirectory = true, createParents = true)
+      .removePermission(PosixFilePermission.OWNER_WRITE)
+    val inputStream = new ByteArrayInputStream("Lorem ipsum est".getBytes(StandardCharsets.UTF_8))
+
+    dataFiles.write(inputStream, Paths.get("location/in/data/dir/test.txt")).toString shouldBe
+      Failure(new AccessDeniedException((dataFiles.bag.data / "location").toString())).toString
+    inputStream.close()
+  }
+
+
+  "unzip" should "report invalid content" in pendingUntilFixed {
+    val dataFiles = createDatafiles
+    val content = "Lorem ipsum est"
+    val fileInBag = "location/in/data/dir/test.txt"
+    val zipInputStream = new ZipInputStream(new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8)))
+
+    dataFiles.unzip(zipInputStream, Paths.get(fileInBag)) should matchPattern {
+      case Failure(BadRequestException(s)) if s == "" =>
+    }
+    zipInputStream.close()
   }
 
   it should "report write errors" in {

@@ -96,6 +96,69 @@ class UploadSpec extends TestSupportFixture with ServletFixture with ScalatraSui
     }
   }
 
+  it should "report ZIP item found after uploading another" in {
+    // need at least two files to show lazy evaluation with the logging: the second file is not tried to process
+    val bodyParts = createBodyParts(Seq(
+      ("some", "1.txt", "Lorem ipsum dolor sit amet"),
+      ("some", "2.zip", "content doesn't matter"),
+    ))
+    val uuid = createDataset
+    val relativeTarget = "path/to/dir"
+    val absoluteTarget = (testDir / "drafts" / "foo" / uuid.toString / "bag/data" / relativeTarget).createDirectories()
+    expectsUserFooBar
+    post(
+      uri = s"/deposit/$uuid/file/$relativeTarget",
+      params = Iterable(),
+      headers = Seq(basicAuthentication),
+      files = bodyParts
+    ) {
+      body shouldBe "A multipart/form-data message contained a ZIP [2.zip] part but also other parts. At least one part has been uploaded."
+      status shouldBe CONFLICT_409
+      absoluteTarget.list.size shouldBe 1
+    }
+  }
+
+  it should "report ZIP item found without uploading any of the others" in {
+    val bodyParts = createBodyParts(Seq(
+      ("some", "1.zip", "content doesn't matter"),
+      ("some", "2.txt", "Lorem ipsum dolor sit amet"),
+    ))
+    val uuid = createDataset
+    val relativeTarget = "path/to/dir"
+    val absoluteTarget = (testDir / "drafts" / "foo" / uuid.toString / "bag/data" / relativeTarget).createDirectories()
+    expectsUserFooBar
+    post(
+      uri = s"/deposit/$uuid/file/$relativeTarget",
+      params = Iterable(),
+      headers = Seq(basicAuthentication),
+      files = bodyParts
+    ) {
+      body shouldBe "A multipart/form-data message contained a ZIP [1.zip] part but also other parts. Nothing has been uploaded."
+      status shouldBe CONFLICT_409
+      absoluteTarget.list.size shouldBe 0
+    }
+  }
+
+  it should "report a malformed ZIP" in pendingUntilFixed {
+    val bodyParts = createBodyParts(Seq(
+      ("some", "1.zip", "invalid zip content"),
+    ))
+    val uuid = createDataset
+    val relativeTarget = "path/to/dir"
+    val absoluteTarget = (testDir / "drafts" / "foo" / uuid.toString / "bag/data" / relativeTarget).createDirectories()
+    expectsUserFooBar
+    post(
+      uri = s"/deposit/$uuid/file/$relativeTarget",
+      params = Iterable(),
+      headers = Seq(basicAuthentication),
+      files = bodyParts
+    ) {
+      absoluteTarget.list.size shouldBe 0
+      status shouldBe BAD_REQUEST_400
+      body shouldBe s"ZIP file is malformed. 1.zip"
+    }
+  }
+
   it should "report a missing content disposition" in {
     val uuid = createDataset
 

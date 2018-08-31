@@ -22,7 +22,7 @@ import java.util.UUID
 import nl.knaw.dans.easy.deposit.authentication.ServletEnhancedLogging._
 import nl.knaw.dans.easy.deposit.docs.JsonUtil.{ InvalidDocumentException, toJson }
 import nl.knaw.dans.easy.deposit.docs.{ DatasetMetadata, DepositInfo, StateInfo }
-import nl.knaw.dans.easy.deposit.servlets.DepositServlet.{ BadRequestException, InvalidResourceException }
+import nl.knaw.dans.easy.deposit.servlets.DepositServlet.{ BadRequestException, InvalidResourceException, ZipMustBeOnlyFileException }
 import nl.knaw.dans.easy.deposit.{ EasyDepositApiApp, _ }
 import org.apache.commons.lang.NotImplementedException
 import org.scalatra._
@@ -38,7 +38,7 @@ class DepositServlet(app: EasyDepositApiApp)
   configureMultipartHandling(MultipartConfig())
   error {
     case e: SizeConstraintExceededException => RequestEntityTooLarge(s"too much! ${ e.getMessage }")
-    case e: IOException                      => s"MultipartHandling Exception: $e"
+    case e: IOException => s"MultipartHandling Exception: $e"
   }
   /*
    * Defensive programming convention at this top level, everything in a for-comprehension:
@@ -129,11 +129,16 @@ class DepositServlet(app: EasyDepositApiApp)
       uuid <- getUUID
       path <- getPath
       _ <- getContentTypeIfMultipart
-      newFileItems <- fileMultiParams.valuesIterator.flatten // TODO fileParams.values gives the first file of each form-field, why/when/which
-        .withFilter(_.name.blankOption.isDefined)
-        .map(uploadFileItem(uuid, path, _))
-        .failFast
-    } yield Ok() // TODO create multiple location headers from newFileItems?
+      fileItems = fileMultiParams.valuesIterator.flatten.buffered
+      _ = while (fileItems.head.name.trim.isEmpty) { fileItems.next() }
+      _ <- if (isZip(fileItems.head)) {
+        val next = fileItems.next
+        uploadZippedItem(uuid, path, next, fileItems.hasNext)
+      }
+           else fileItems.withFilter(_.name.trim.nonEmpty)
+             .map(uploadPlainItem(uuid, path, _))
+             .failFast
+    } yield Ok()
       ).getOrRecoverResponse(respond)
   }
   put("/:uuid/file/*") { //file
@@ -156,11 +161,19 @@ class DepositServlet(app: EasyDepositApiApp)
       ).getOrRecoverResponse(respond)
   }
 
-  private def uploadFileItem(uuid: UUID, path: Path, uploadItem: FileItem): Try[FileItem] = {
-    managed(uploadItem.getInputStream).apply[Try[_]] {
-      case is if isZip(uploadItem) => app.unzipDepositFile(is, uploadItem.charset, user.id, uuid, path)
-      case is => app.writeDepositFile(is, user.id, uuid, path.resolve(uploadItem.name))
-    }.map(_ => uploadItem)
+  private def uploadZippedItem(uuid: UUID, path: Path, uploadItem: FileItem, moreItems: Boolean): Try[Unit] = {
+    if (moreItems)
+      Failure(ZipMustBeOnlyFileException(s"A multipart/form-data message contained a ZIP [${ uploadItem.name }] part but also other parts. Nothing has been uploaded."))
+    else
+      managed(uploadItem.getInputStream)
+        .apply(app.unzipDepositFile(_, uploadItem.charset, user.id, uuid, path))
+  }
+
+  private def uploadPlainItem(uuid: UUID, path: Path, uploadItem: FileItem): Try[Boolean] = {
+    if (isZip(uploadItem))
+      Failure(ZipMustBeOnlyFileException(s"A multipart/form-data message contained a ZIP [${ uploadItem.name }] part but also other parts. At least one part has been uploaded."))
+    else managed(uploadItem.getInputStream)
+      .apply(app.writeDepositFile(_, user.id, uuid, path.resolve(uploadItem.name)))
   }
 
   private def isZip(uploadItem: FileItem) = {
@@ -187,13 +200,14 @@ class DepositServlet(app: EasyDepositApiApp)
     case e: InvalidResourceException => invalidResourceResponse(e)
     case e: InvalidDocumentException => badDocResponse(e)
     case e: BadRequestException => BadRequest(e.getMessage)
+    case e: ZipMustBeOnlyFileException => Conflict(e.getMessage)
     case e: NotImplementedException => NotImplemented(e.getMessage)
     case _ => internalErrorResponse(t)
   }
 
   private def noSuchDepositResponse(e: NoSuchDepositException): ActionResult = {
     // returning the message to the client might reveal absolute paths on the server
-    logWhatIsHiddenForGetOrRecoverResponse(s"${user.id} ${request.uri} $e")
+    logWhatIsHiddenForGetOrRecoverResponse(s"${ user.id } ${ request.uri } $e")
     NotFound(body = s"Deposit ${ e.id } not found")
   }
 
@@ -241,6 +255,7 @@ class DepositServlet(app: EasyDepositApiApp)
 
 object DepositServlet {
 
+  private case class ZipMustBeOnlyFileException(s: String) extends Exception(s)
   private case class InvalidResourceException(s: String) extends Exception(s)
   case class BadRequestException(s: String) extends Exception(s)
 }
