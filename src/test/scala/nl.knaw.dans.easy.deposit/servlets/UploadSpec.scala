@@ -15,11 +15,11 @@
  */
 package nl.knaw.dans.easy.deposit.servlets
 
-import java.io.File
 import java.nio.file.Files.setPosixFilePermissions
 import java.nio.file.attribute.PosixFilePermissions.fromString
 import java.util.UUID
 
+import better.files.File
 import nl.knaw.dans.easy.deposit.PidRequesterComponent.PidRequester
 import nl.knaw.dans.easy.deposit.authentication.AuthenticationMocker.{ expectsUserFooBar, mockedAuthenticationProvider }
 import nl.knaw.dans.easy.deposit.docs.DepositInfo
@@ -140,9 +140,7 @@ class UploadSpec extends TestSupportFixture with ServletFixture with ScalatraSui
   }
 
   it should "report a malformed ZIP" in {
-    val bodyParts = createBodyParts(Seq(
-      ("some", "1.zip", "invalid zip content"),
-    ))
+    val bodyParts = createBodyParts(Seq(("some", "1.zip", "invalid zip content")))
     val uuid = createDataset
     val relativeTarget = "path/to/dir"
     val absoluteTarget = (testDir / "drafts" / "foo" / uuid.toString / "bag/data" / relativeTarget).createDirectories()
@@ -156,6 +154,25 @@ class UploadSpec extends TestSupportFixture with ServletFixture with ScalatraSui
       absoluteTarget.list.size shouldBe 0
       status shouldBe BAD_REQUEST_400
       body shouldBe s"ZIP file is malformed. Empty entry."
+    }
+  }
+
+  it should "upload a ZIP" in {
+    File("src/test/resources/manual-test/Archive.zip").copyTo(testDir / "input" / "1.zip")
+    val uuid = createDataset
+    val relativeTarget = "path/to/dir"
+    val absoluteTarget = (testDir / "drafts" / "foo" / uuid.toString / "bag/data" / relativeTarget).createDirectories()
+    absoluteTarget.list.size shouldBe 0 // precondition
+    expectsUserFooBar
+    post(
+      uri = s"/deposit/$uuid/file/$relativeTarget",
+      params = Iterable(),
+      headers = Seq(basicAuthentication),
+      files = Seq(("", (testDir / "input/1.zip").toJava))
+    ) {
+      body shouldBe ""
+      status shouldBe OK_200
+      absoluteTarget.list.size shouldBe 3 // post condition
     }
   }
 
@@ -230,7 +247,7 @@ class UploadSpec extends TestSupportFixture with ServletFixture with ScalatraSui
    *              - content of the file to create
    * @return
    */
-  private def createBodyParts(files: Seq[(String, String, String)]): Seq[(String, File)] = {
+  private def createBodyParts(files: Seq[(String, String, String)]): Seq[(String, java.io.File)] = {
     files.foreach { case (_, file, content) => (testDir / "input" / file).write(content) }
     files.map { case (formField, file, _) => (formField, (testDir / "input" / file).toJava) }
   }
