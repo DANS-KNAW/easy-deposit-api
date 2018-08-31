@@ -189,29 +189,6 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
     }
   }
 
-
-  s"scenario: create - POST payload" should "report a missing content disposistion" in {
-
-    val datasetMetadata = getManualTestResource("datasetmetadata-from-ui-all.json")
-    val doi = Try { DatasetMetadata(datasetMetadata).get.identifiers.get.headOption.get.value }
-      .getOrRecover(e => fail("could not get DOI from test input", e))
-    (testDir / "easy-ingest-flow-inbox").createDirectories()
-
-    // create dataset
-    expectsUserFooBar
-    val responseBody = post(uri = s"/deposit", headers = Seq(basicAuthentication)) {
-      new String(bodyBytes)
-    }
-    val uuid = DepositInfo(responseBody).map(_.id.toString).getOrRecover(e => fail(e.toString, e))
-
-    // upload a file
-    expectsUserFooBar
-    post(uri = s"/deposit/$uuid/file/path/to/", headers = Seq(basicAuthentication), body = randomContent(22)) {
-      status shouldBe BAD_REQUEST_400
-      body shouldBe """Content-Type must start with "multipart/", got None."""
-    }
-  }
-
   s"scenario: POST /deposit; hack state to ARCHIVED; SUBMIT" should "reject state transition" in {
 
     // create dataset

@@ -177,7 +177,7 @@ class DepositServlet(app: EasyDepositApiApp)
     val multiPart = "multipart/"
     request.getHeader("Content-Type").blankOption match {
       case Some(s) if s.toLowerCase.startsWith(multiPart) => Success(s)
-      case x => Failure(BadRequestException(s"""Content-Type must start with "$multiPart", got $x."""))
+      case x => Failure(BadRequestException(s"""Must have a Content-Type starting with "$multiPart", got $x."""))
     }
   }
 

@@ -19,12 +19,14 @@ import java.util.UUID
 
 import nl.knaw.dans.easy.deposit.PidRequesterComponent.PidRequester
 import nl.knaw.dans.easy.deposit.authentication.AuthenticationMocker.{ expectsUserFooBar, mockedAuthenticationProvider }
-import nl.knaw.dans.easy.deposit.docs.DepositInfo
+import nl.knaw.dans.easy.deposit.docs.{ DatasetMetadata, DepositInfo }
 import nl.knaw.dans.easy.deposit.{ DepositDir, EasyDepositApiApp, TestSupportFixture }
 import nl.knaw.dans.lib.error._
 import org.eclipse.jetty.http.HttpStatus._
 import org.scalamock.scalatest.MockFactory
 import org.scalatra.test.scalatest.ScalatraSuite
+
+import scala.util.Try
 
 class UploadSpec extends TestSupportFixture with ServletFixture with ScalatraSuite with MockFactory {
 
@@ -56,7 +58,7 @@ class UploadSpec extends TestSupportFixture with ServletFixture with ScalatraSui
         ("some", (testDir / "input/1.txt").toJava),
         ("some", (testDir / "input/2.txt").toJava),
         ("some", (testDir / "input/3.txt").toJava),
-        // <input type="file" name="others">
+        // <input type="file" name="more">
         ("more", (testDir / "input/4.txt").toJava),
       )
     }
@@ -76,6 +78,36 @@ class UploadSpec extends TestSupportFixture with ServletFixture with ScalatraSui
       uploaded.foreach(file =>
           file.contentAsString shouldBe (testDir / "input" / file.name).contentAsString
       )
+    }
+  }
+
+  it should "report a missing content disposition" in {
+    val uuid = createDataset
+
+    // upload a file
+    expectsUserFooBar
+    post(
+      uri = s"/deposit/$uuid/file/path/to/",
+      headers = Seq(basicAuthentication),
+      body = "Lorem ipsum dolor sit amet"
+    ) {
+      status shouldBe BAD_REQUEST_400
+      body shouldBe """Must have a Content-Type starting with "multipart/", got None."""
+    }
+  }
+
+  it should "report an invalid content disposition" in {
+    val uuid = createDataset
+
+    // upload a file
+    expectsUserFooBar
+    post(
+      uri = s"/deposit/$uuid/file/path/to/",
+      headers = Seq(basicAuthentication, ("Content-Type","text/plain")),
+      body = "Lorem ipsum dolor sit amet"
+    ) {
+      status shouldBe BAD_REQUEST_400
+      body shouldBe """Must have a Content-Type starting with "multipart/", got Some(text/plain)."""
     }
   }
 
