@@ -131,10 +131,8 @@ class DepositServlet(app: EasyDepositApiApp)
       _ <- getContentTypeIfMultipart
       fileItems = fileMultiParams.valuesIterator.flatten.buffered
       _ = while (fileItems.head.name.trim.isEmpty) { fileItems.next() }
-      _ <- if (isZip(fileItems.head)) {
-        val next = fileItems.next
-        uploadZippedItem(uuid, path, next, fileItems.hasNext)
-      }
+      _ <- if (isZip(fileItems.head))
+             uploadZippedItem(uuid, path, fileItems.next, fileItems.hasNext)
            else fileItems.withFilter(_.name.trim.nonEmpty)
              .map(uploadPlainItem(uuid, path, _))
              .failFast
