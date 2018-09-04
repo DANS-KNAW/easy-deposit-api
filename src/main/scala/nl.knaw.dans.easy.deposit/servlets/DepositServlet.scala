@@ -18,7 +18,6 @@ package nl.knaw.dans.easy.deposit.servlets
 import java.nio.file.{ NoSuchFileException, Path, Paths }
 import java.util.UUID
 
-import better.files.File
 import nl.knaw.dans.easy.deposit.authentication.ServletEnhancedLogging._
 import nl.knaw.dans.easy.deposit.docs.JsonUtil.{ InvalidDocumentException, toJson }
 import nl.knaw.dans.easy.deposit.docs.{ DatasetMetadata, DepositInfo, StateInfo }
@@ -119,7 +118,8 @@ class DepositServlet(app: EasyDepositApiApp)
     (for {
       uuid <- getUUID
       path <- getPath
-      contents <- app.getFileInfo(user.id, uuid, path)
+      dataFiles <- app.getDataFiles(user.id, uuid)
+      contents <- if (dataFiles.isDirectory(path)) dataFiles.list(path) else dataFiles.fileContents(path)
     } yield Ok(body = toJson(contents))
       ).getOrRecoverResponse(respond)
   }

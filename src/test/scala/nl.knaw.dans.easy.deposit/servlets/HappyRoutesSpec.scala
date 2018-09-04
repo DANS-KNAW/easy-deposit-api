@@ -27,12 +27,14 @@ import org.joda.time.DateTime
 import org.scalamock.scalatest.MockFactory
 import org.scalatra.test.scalatest.ScalatraSuite
 
-import scala.util.Success
+import scala.util.{ Success, Try }
 
 class HappyRoutesSpec extends TestSupportFixture with ServletFixture with ScalatraSuite with MockFactory {
 
   private class MockedApp extends EasyDepositApiApp(minimalAppConfig)
   private val mockedApp = mock[MockedApp]
+  private class MockedDataFiles extends DataFiles(dansBag)
+  private val mockedDataFiles = mock[MockedDataFiles]
   mountServlets(mockedApp, mockedAuthenticationProvider)
 
   "get /" should "be ok" in {
@@ -146,16 +148,38 @@ class HappyRoutesSpec extends TestSupportFixture with ServletFixture with Scalat
     }
   }
 
-  s"get /deposit/:uuid/file/a.txt" should "return FileInfo" in {
+  s"get /deposit/:uuid/file/path/to/directory" should "return FileInfo" in {
     expectsUserFooBar
-    (mockedApp.getFileInfo(_: String, _: UUID, _: Path)) expects("foo", uuid, *) returning
+    (mockedApp.getDataFiles(_: String, _: UUID)) expects("foo", uuid) returning
+      Try(mockedDataFiles)
+    (mockedDataFiles.isDirectory(_: Path)) expects * returning
+      true
+    (mockedDataFiles.list(_: Path)) expects * returning
       Success(Seq(FileInfo("a.txt", Paths.get("files/a.txt"), "x")))
+
+    get(
+      uri = s"/deposit/$uuid/file/path/to/directory",
+      headers = Seq(("Authorization", fooBarBasicAuthHeader))
+    ) {
+      body shouldBe s"""[{"fileName":"a.txt","dirPath":"files/a.txt","sha1sum":"x"}]"""
+      status shouldBe OK_200
+    }
+  }
+
+  s"get /deposit/:uuid/file/a.txt" should "return the contents of the file" in {
+    expectsUserFooBar
+    (mockedApp.getDataFiles(_: String, _: UUID)) expects("foo", uuid) returning
+      Try(mockedDataFiles)
+    (mockedDataFiles.isDirectory(_: Path)) expects * returning
+      false
+    (mockedDataFiles.fileContents(_: Path)) expects * returning
+      Success("this is the file contents")
 
     get(
       uri = s"/deposit/$uuid/file/a.txt",
       headers = Seq(("Authorization", fooBarBasicAuthHeader))
     ) {
-      body shouldBe s"""[{"fileName":"a.txt","dirPath":"files/a.txt","sha1sum":"x"}]"""
+      body.replaceAll("\"", "") shouldBe "this is the file contents"
       status shouldBe OK_200
     }
   }

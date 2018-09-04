@@ -24,7 +24,7 @@ import nl.knaw.dans.bag.DansBag
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 
 import scala.util.{ Failure, Success, Try }
-
+import scala.language.postfixOps
 /**
  * Represents the data files of a deposit. The data files are the content files that the user uploads,
  * i.e. the files that are the actual target of preservation. The dataset metadata is ''not'' included
