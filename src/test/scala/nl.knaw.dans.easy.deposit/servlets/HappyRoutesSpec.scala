@@ -148,7 +148,7 @@ class HappyRoutesSpec extends TestSupportFixture with ServletFixture with Scalat
 
   s"get /deposit/:uuid/file/a.txt" should "return FileInfo" in {
     expectsUserFooBar
-    (mockedApp.getDepositFiles(_: String, _: UUID, _: Path)) expects("foo", uuid, *) returning
+    (mockedApp.getFileInfo(_: String, _: UUID, _: Path)) expects("foo", uuid, *) returning
       Success(Seq(FileInfo("a.txt", Paths.get("files/a.txt"), "x")))
 
     get(

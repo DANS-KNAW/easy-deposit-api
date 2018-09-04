@@ -147,6 +147,34 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
     }
   }
 
+  "scenario: POST /deposit; GET /deposit/:uuid/file/path/to/text.txt" should "return contents of the file" in {
+
+    // create dataset
+    expectsUserFooBar
+    val responseBody = post(uri = s"/deposit", headers = Seq(basicAuthentication)) {
+      new String(bodyBytes)
+    }
+    val uuid = DepositInfo(responseBody).map(_.id.toString).getOrRecover(e => fail(e.toString, e))
+
+    val dataFilesBase = DepositDir(testDir / "drafts", "foo", UUID.fromString(uuid)).getDataFiles.get.bag.data
+    val times = 5
+
+    // upload the file
+    expectsUserFooBar
+    val content = randomContent(times)
+    put(uri = s"/deposit/$uuid/file/path/to/text.txt", headers = Seq(basicAuthentication), body = content) {
+      status shouldBe CREATED_201
+      (dataFilesBase / "path" / "to" / "text.txt").contentAsString shouldBe content
+    }
+
+    // read the file
+    expectsUserFooBar
+    get(uri = s"/deposit/$uuid/file/path/to/text.txt", headers = Seq(basicAuthentication)) {
+      status shouldBe OK_200
+      body.replaceAll("\\\\n", "").replaceAll("\"", "") shouldBe content.replaceAll("\n", "")
+    }
+  }
+
   s"scenario: POST /deposit; twice GET /deposit/:uuid/doi" should "return 200" in {
 
     // create dataset

@@ -34,6 +34,28 @@ import scala.util.{ Failure, Success, Try }
  */
 case class DataFiles(bag: DansBag) extends DebugEnhancedLogging {
 
+  val dataDir = bag.baseDir / "data"
+
+  /**
+   * Returns 'true' if the path points to a directory.
+   *
+   * @param path a relative path.
+   * @return 'true' if directory, else 'false'
+   */
+  def isDirectory(path: Path): Boolean = {
+    dataDir / path.toString isDirectory
+  }
+
+  /**
+   * Returns contents of a file.
+   *
+   * @param path a relative path to a data file.
+   * @return contents of the file
+   */
+  def fileContents(path: Path): Try[String] = Try {
+    dataDir / path.toString contentAsString
+  }
+
   /**
    * Lists information about the files the directory `path` and its subdirectories.
    * A previous crash during a recursive delete process (deleting a directory),
@@ -44,7 +66,7 @@ case class DataFiles(bag: DansBag) extends DebugEnhancedLogging {
    * @return a list of [[FileInfo]] objects
    */
   def list(path: Path = Paths.get("")): Try[Seq[FileInfo]] = {
-    val parentPath = bag.baseDir / "data" / path.toString
+    val parentPath = dataDir / path.toString
     val manifestMap = bag.payloadManifests
 
     def convert(items: Map[File, String]) = {

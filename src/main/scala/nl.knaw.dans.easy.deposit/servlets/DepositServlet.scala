@@ -119,8 +119,8 @@ class DepositServlet(app: EasyDepositApiApp)
     (for {
       uuid <- getUUID
       path <- getPath
-      depositFiles <- app.getDepositFiles(user.id, uuid, path)
-    } yield Ok(body = toJson(depositFiles))
+      contents <- app.getFileInfo(user.id, uuid, path)
+    } yield Ok(body = toJson(contents))
       ).getOrRecoverResponse(respond)
   }
   post("/:uuid/file/*") { //file(s)

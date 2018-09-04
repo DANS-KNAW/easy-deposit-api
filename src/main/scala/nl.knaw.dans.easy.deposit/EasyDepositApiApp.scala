@@ -202,11 +202,11 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
    * @param id   the deposit ID
    * @return
    */
-  def getDepositFiles(user: String, id: UUID, path: Path = Paths.get("")): Try[Seq[FileInfo]] = for {
+  def getFileInfo(user: String, id: UUID, path: Path = Paths.get("")): Try[Object] = for {
     deposit <- DepositDir.get(draftsDir, user, id)
     dataFiles <- deposit.getDataFiles
-    fileInfos <- dataFiles.list(path)
-  } yield fileInfos
+    fileInfo <- if (dataFiles.isDirectory(path)) dataFiles.list(path) else dataFiles.fileContents(path)
+  } yield fileInfo
 
   /**
    * Writes the given input stream to a location in the deposit's content directory. The specified `path`
