@@ -25,6 +25,7 @@ import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 
 import scala.util.{ Failure, Success, Try }
 import scala.language.postfixOps
+
 /**
  * Represents the data files of a deposit. The data files are the content files that the user uploads,
  * i.e. the files that are the actual target of preservation. The dataset metadata is ''not'' included
@@ -81,6 +82,25 @@ case class DataFiles(bag: DansBag) extends DebugEnhancedLogging {
       .orElse(manifestMap.values.headOption)
       .map(items => Success(convert(items)))
       .getOrElse(Failure(new Exception(s"no algorithm for ${ bag.baseDir }")))
+  }
+
+  /**
+   * Lists information about a file.
+   *
+   * @param path a relative path into a data files.
+   * @return a [[FileInfo]] object
+   */
+  def fileInfo(path: Path = Paths.get("")): Try[FileInfo] = {
+    val manifestMap = bag.payloadManifests
+    val absolutePath = dataDir / path.toString
+    val fileExists = manifestMap.get(SHA1).orElse(manifestMap.values.headOption).get.contains(absolutePath)
+    if (fileExists) {
+      val checksum = manifestMap.get(SHA1).orElse(manifestMap.values.headOption) get absolutePath
+      Success(FileInfo(path.getFileName.toString, bag.data.relativize(dataDir / path.toString), checksum))
+    }
+    else {
+      Failure((new NoSuchFileException(s"file ${path.getFileName}")))
+    }
   }
 
   private def toFileInfo(file: File, checksum: String): FileInfo = {

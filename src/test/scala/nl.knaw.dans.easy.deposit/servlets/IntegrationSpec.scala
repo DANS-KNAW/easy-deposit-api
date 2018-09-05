@@ -145,7 +145,7 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
     }
   }
 
-  "scenario: POST /deposit; GET /deposit/:uuid/file/path/to/text.txt" should "return contents of the file" in {
+  "scenario: POST /deposit; GET /deposit/:uuid/file/path/to/text.txt" should "return information of the file" in {
 
     // create dataset
     expectsUserFooBar
@@ -155,21 +155,25 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
     val uuid = DepositInfo(responseBody).map(_.id.toString).getOrRecover(e => fail(e.toString, e))
 
     val dataFilesBase = DepositDir(testDir / "drafts", "foo", UUID.fromString(uuid)).getDataFiles.get.bag.data
-    val times = 5
+    val times = 500
+    val expectedContentSize = 37 * times - 1
 
-    // upload the file
+    // upload the file twice
     expectsUserFooBar
     val content = randomContent(times)
     put(uri = s"/deposit/$uuid/file/path/to/text.txt", headers = Seq(basicAuthentication), body = content) {
       status shouldBe CREATED_201
       (dataFilesBase / "path" / "to" / "text.txt").contentAsString shouldBe content
     }
-
-    // read the file
+    expectsUserFooBar
+    put(uri = s"/deposit/$uuid/file/path/to/text.txt", headers = Seq(basicAuthentication), body = "Lorum ipsum") {
+      status shouldBe OK_200
+      (dataFilesBase / "path" / "to" / "text.txt").contentAsString shouldBe "Lorum ipsum"
+    }
     expectsUserFooBar
     get(uri = s"/deposit/$uuid/file/path/to/text.txt", headers = Seq(basicAuthentication)) {
       status shouldBe OK_200
-      body.replaceAll("\\\\n", "").replaceAll("\"", "") shouldBe content.replaceAll("\n", "")
+      body shouldBe """{"fileName":"text.txt","dirPath":"path/to/text.txt","sha1sum":"c5b8de8cc3587aef4e118a481115391033621e06"}"""
     }
   }
 

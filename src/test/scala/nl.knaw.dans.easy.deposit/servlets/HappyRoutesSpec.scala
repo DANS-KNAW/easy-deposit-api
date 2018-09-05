@@ -172,14 +172,14 @@ class HappyRoutesSpec extends TestSupportFixture with ServletFixture with Scalat
       Try(mockedDataFiles)
     (mockedDataFiles.isDirectory(_: Path)) expects * returning
       false
-    (mockedDataFiles.fileContents(_: Path)) expects * returning
-      Success("this is the file contents")
+    (mockedDataFiles.fileInfo(_: Path)) expects * returning
+      Success(FileInfo("a.txt", Paths.get("files/a.txt"), "x"))
 
     get(
       uri = s"/deposit/$uuid/file/a.txt",
       headers = Seq(("Authorization", fooBarBasicAuthHeader))
     ) {
-      body.replaceAll("\"", "") shouldBe "this is the file contents"
+      body shouldBe s"""{"fileName":"a.txt","dirPath":"files/a.txt","sha1sum":"x"}"""
       status shouldBe OK_200
     }
   }
