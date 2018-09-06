@@ -89,6 +89,8 @@ case class DataFiles(bag: DansBag) extends DebugEnhancedLogging {
     def extract(entry: ZipEntry) =
       if (entry.isDirectory)
         Success(())
+      else if (entry.getName.matches(".*.g?z(ip)?")) // TODO the regexp is duplicated from DespostiServlet
+             Failure(BadRequestException(s"ZIP file is malformed. It contains a Zip ${ entry.getName }. Other files are uploaded."))
       else {
         logger.info(s"Extracting ${ entry.getName } size=${ entry.getSize } compressedSize=${ entry.getCompressedSize } CRC=${ entry.getCrc }")
         val fullPath = path.resolve(entry.getName)
@@ -100,6 +102,8 @@ case class DataFiles(bag: DansBag) extends DebugEnhancedLogging {
           _ <- bag.save
           _ = logger.debug(bag.data.listRecursively.toList.toString())
         } yield ()
+      }.recoverWith {
+        case e if e.isInstanceOf[ZipException] => Failure(BadRequestException(s"ZIP file is malformed. $e"))
       }
 
     Option(zipInputStream.getNextEntry) match {
@@ -110,13 +114,33 @@ case class DataFiles(bag: DansBag) extends DebugEnhancedLogging {
           .takeWhile(_.nonEmpty)
           .collect { case Some(entry) => entry }
           .map(extract)
-          .find(_.isFailure)
-          .getOrElse(Success(()))
-          .recoverWith {
-            case e if e.isInstanceOf[ZipException] => Failure(BadRequestException(s"ZIP file is malformed. $e"))
-          }
+          .filter(_.isFailure)
+          .toList match {
+          case List() => Success(())
+          case List(Failure(e)) => Failure(e)
+          case failures if someBadRequests(failures) => collectBadRequestExceptions(failures)
+          case failures =>
+            failures.foreach { case Failure(e) => logger.error(e.toString, e) }
+            Failure(new Exception("multiple unzip exceptions"))
+        }
       } yield ()
     }
+  }
+
+  private def collectBadRequestExceptions(failures: List[Try[Unit]]) = {
+    failures.foreach {
+      case Failure(e: BadRequestException) =>
+      case Failure(e) => logger.error(e.toString, e)
+    }
+    Failure(BadRequestException(failures.map {
+      case Failure(e: BadRequestException) => e.getMessage
+      case Failure(e) => ""
+    }.mkString(" ")
+    ))
+  }
+
+  private def someBadRequests(failures: List[Try[Unit]]): Boolean = {
+    failures.exists(!_.exception.isInstanceOf[BadRequestException])
   }
 
   /**
