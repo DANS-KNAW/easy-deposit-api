@@ -66,7 +66,7 @@ case class DataFiles(bag: DansBag) extends DebugEnhancedLogging {
    * @param path a relative path into data files directory of the bag.
    * @return a list of [[FileInfo]] objects
    */
-  def list(path: Path = Paths.get("")): Try[Seq[FileInfo]] = {
+  def fileInfoSeq(path: Path = Paths.get("")): Try[Seq[FileInfo]] = {
     val parentPath = dataDir / path.toString
     val manifestMap = bag.payloadManifests
 
@@ -96,10 +96,10 @@ case class DataFiles(bag: DansBag) extends DebugEnhancedLogging {
     val fileExists = manifestMap.get(SHA1).orElse(manifestMap.values.headOption).get.contains(absolutePath)
     if (fileExists) {
       val checksum = manifestMap.get(SHA1).orElse(manifestMap.values.headOption) get absolutePath
-      Success(FileInfo(path.getFileName.toString, bag.data.relativize(dataDir / path.toString), checksum))
+      Success(FileInfo(path.getFileName.toString, bag.data.relativize(absolutePath), checksum))
     }
     else {
-      Failure((new NoSuchFileException(s"file ${path.getFileName}")))
+      Failure((new NoSuchFileException(s"${path.toString}")))
     }
   }
 

@@ -154,7 +154,7 @@ class HappyRoutesSpec extends TestSupportFixture with ServletFixture with Scalat
       Try(mockedDataFiles)
     (mockedDataFiles.isDirectory(_: Path)) expects * returning
       true
-    (mockedDataFiles.list(_: Path)) expects * returning
+    (mockedDataFiles.fileInfoSeq(_: Path)) expects * returning
       Success(Seq(FileInfo("a.txt", Paths.get("files/a.txt"), "x")))
 
     get(

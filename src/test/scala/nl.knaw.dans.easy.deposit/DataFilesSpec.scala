@@ -97,7 +97,7 @@ class DataFilesSpec extends TestSupportFixture {
     }
   }
 
-  "list" should "return the proper number of files" in {
+  "fileInfoSeq" should "return the proper number of files" in {
     val bag = DansV0Bag
       .empty(testDir / "testBag").getOrRecover(fail("could not create test bag", _))
       .addPayloadFile(randomContent)(_ / "1.txt").getOrRecover(payloadFailure)
@@ -108,14 +108,28 @@ class DataFilesSpec extends TestSupportFixture {
     val dataFiles = DataFiles(bag)
     val path2 = Paths.get("folder2")
 
-    dataFiles.list(path2) should matchPattern {
+    dataFiles.fileInfoSeq(path2) should matchPattern {
       case Success(Seq(FileInfo("4.txt", p, _))) if p == path2 => // no order problem as the next cases would have
     }
-    dataFiles.list(Paths.get("folder1")) should matchPattern {
+    dataFiles.fileInfoSeq(Paths.get("folder1")) should matchPattern {
       case Success(Seq(_, _)) =>
     }
-    dataFiles.list(Paths.get("")) should matchPattern {
+    dataFiles.fileInfoSeq(Paths.get("")) should matchPattern {
       case Success(Seq(_, _, _, _)) =>
+    }
+  }
+
+  "fileInfo" should "return proper information about the file" in {
+    val bag = DansV0Bag
+      .empty(testDir / "testBag").getOrRecover(fail("could not create test bag", _))
+      .addPayloadFile(randomContent)(_ / "1.txt").getOrRecover(payloadFailure)
+      .addPayloadFile(randomContent)(_ / "folder1/2.txt").getOrRecover(payloadFailure)
+    bag.save()
+    val dataFiles = DataFiles(bag)
+    val path = Paths.get("folder1/2.txt")
+
+    dataFiles.fileInfo(path) should matchPattern {
+      case Success(FileInfo("2.txt", path, _)) =>
     }
   }
 

@@ -121,23 +121,16 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
       new String(bodyBytes)
     }
     val uuid = DepositInfo(responseBody).map(_.id.toString).getOrRecover(e => fail(e.toString, e))
-
     val dataFilesBase = DepositDir(testDir / "drafts", "foo", UUID.fromString(uuid)).getDataFiles.get.bag.data
-    val times = 500
-    val expectedContentSize = 37 * times - 1
 
-    // upload the file twice
-    expectsUserFooBar
-    val content = randomContent(times)
-    put(uri = s"/deposit/$uuid/file/path/to/text.txt", headers = Seq(basicAuthentication), body = content) {
-      status shouldBe CREATED_201
-      (dataFilesBase / "path" / "to" / "text.txt").contentAsString shouldBe content
-    }
+    // upload the file
     expectsUserFooBar
     put(uri = s"/deposit/$uuid/file/path/to/text.txt", headers = Seq(basicAuthentication), body = "Lorum ipsum") {
-      status shouldBe OK_200
+      status shouldBe CREATED_201
       (dataFilesBase / "path" / "to" / "text.txt").contentAsString shouldBe "Lorum ipsum"
     }
+
+    // get the file information
     expectsUserFooBar
     get(uri = s"/deposit/$uuid/file/path", headers = Seq(basicAuthentication)) {
       status shouldBe OK_200
@@ -156,7 +149,6 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
 
     val dataFilesBase = DepositDir(testDir / "drafts", "foo", UUID.fromString(uuid)).getDataFiles.get.bag.data
     val times = 500
-    val expectedContentSize = 37 * times - 1
 
     // upload the file twice
     expectsUserFooBar
@@ -282,9 +274,6 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
   s"scenario: create - POST payload" should "report a missing content disposistion" in {
 
     val datasetMetadata = getManualTestResource("datasetmetadata-from-ui-all.json")
-    val doi = Try { DatasetMetadata(datasetMetadata).get.identifiers.get.headOption.get.value }
-      .getOrRecover(e => fail("could not get DOI from test input", e))
-    (testDir / "easy-ingest-flow-inbox").createDirectories()
 
     // create dataset
     expectsUserFooBar

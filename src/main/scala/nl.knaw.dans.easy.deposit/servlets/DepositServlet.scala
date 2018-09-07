@@ -119,7 +119,8 @@ class DepositServlet(app: EasyDepositApiApp)
       uuid <- getUUID
       path <- getPath
       dataFiles <- app.getDataFiles(user.id, uuid)
-      contents <- if (dataFiles.isDirectory(path)) dataFiles.list(path) else dataFiles.fileInfo(path)
+      contents <- if (dataFiles.isDirectory(path)) dataFiles.fileInfoSeq(path)
+                  else dataFiles.fileInfo(path)
     } yield Ok(body = toJson(contents))
       ).getOrRecoverResponse(respond)
   }
@@ -222,7 +223,7 @@ class DepositServlet(app: EasyDepositApiApp)
     val fileItems = fileMultiParams.values.flatten
     logger.info(fileItems
       .map(i => s"size=${ i.size } charset=${ i.charset } contentType=${ i.contentType } fieldName=${ i.fieldName } name=${ i.name }")
-      .mkString(s"user=${ user.id }; ${request.uri.getPath}: ", "; ", ".")
+      .mkString(s"user=${ user.id }; ${ request.uri.getPath }: ", "; ", ".")
     )
     fileItems
   }
