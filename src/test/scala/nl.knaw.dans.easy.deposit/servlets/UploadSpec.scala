@@ -16,6 +16,7 @@
 package nl.knaw.dans.easy.deposit.servlets
 
 import java.nio.file.Files.setPosixFilePermissions
+import java.nio.file.attribute.PosixFilePermission
 import java.nio.file.attribute.PosixFilePermissions.fromString
 import java.util.UUID
 
@@ -78,11 +79,11 @@ class UploadSpec extends TestSupportFixture with ServletFixture with ScalatraSui
     ))
     val uuid = createDataset
     val relativeTarget = "path/to/dir"
-    val absoluteTarget = (testDir / "drafts" / "foo" / uuid.toString / "bag/data" / relativeTarget).createDirectories()
+    val absoluteTarget = testDir / "drafts" / "foo" / uuid.toString / "bag/data" / relativeTarget
+    absoluteTarget
+      .createDirectories()
+      .removePermission(PosixFilePermission.OWNER_WRITE)
 
-    def setTargetPermissions(value: String) = setPosixFilePermissions(absoluteTarget.path, fromString(value))
-
-    setTargetPermissions("r--r--r--") // cause an upload failure
     expectsUserFooBar
     post(
       uri = s"/deposit/$uuid/file/$relativeTarget",
@@ -90,7 +91,6 @@ class UploadSpec extends TestSupportFixture with ServletFixture with ScalatraSui
       headers = Seq(basicAuthentication),
       files = bodyParts
     ) {
-      setTargetPermissions("rwxr-xr-x") // restore to allow clean up
       body shouldBe "Internal Server Error"
       status shouldBe INTERNAL_SERVER_ERROR_500
     }

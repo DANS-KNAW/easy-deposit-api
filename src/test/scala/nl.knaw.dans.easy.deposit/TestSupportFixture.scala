@@ -57,6 +57,7 @@ trait TestSupportFixture extends FlatSpec with Matchers with Inside with BeforeA
 
   def minimalAppConfig: Configuration = {
     new Configuration("", new PropertiesConfiguration() {
+      addProperty("deposits.stage.upload", testSubDir("stage-upload").toString())
       addProperty("deposits.stage", testSubDir("stage").toString())
       addProperty("deposits.drafts", testSubDir("drafts").toString())
       addProperty("deposits.submit-to", testSubDir("easy-ingest-flow-inbox").toString())

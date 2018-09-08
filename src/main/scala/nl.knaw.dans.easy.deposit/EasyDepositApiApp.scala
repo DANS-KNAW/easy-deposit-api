@@ -17,12 +17,11 @@ package nl.knaw.dans.easy.deposit
 
 import java.io.InputStream
 import java.net.URI
-import java.nio.charset.Charset
 import java.nio.file.{ Path, Paths }
 import java.util.UUID
-import java.util.zip.ZipInputStream
 
 import better.files.File
+import better.files.File.temporaryDirectory
 import nl.knaw.dans.easy.deposit.PidRequesterComponent.PidRequester
 import nl.knaw.dans.easy.deposit.authentication.LdapAuthentication
 import nl.knaw.dans.easy.deposit.docs.StateInfo.State
@@ -60,6 +59,7 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
     configuration.version
   }
 
+  private val uploadStagingDir = getConfiguredDirectory("deposits.stage.upload")
   private val draftsDir = getConfiguredDirectory("deposits.drafts")
   private val submitter = new Submitter(
     stagingBaseDir = getConfiguredDirectory("deposits.stage"),
@@ -133,8 +133,8 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
    * 3. The deposit directory will be copied to the staging area.
    * 4. The copy will be moved to the deposit area.
    *
-   * @param user  the user ID
-   * @param id    the deposit ID
+   * @param user      the user ID
+   * @param id        the deposit ID
    * @param stateInfo the state to transition to
    * @return
    */
@@ -227,7 +227,7 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
   def writeDepositFile(is: => InputStream, user: String, id: UUID, path: Path): Try[Boolean] = for {
     deposit <- DepositDir.get(draftsDir, user, id)
     dataFiles <- deposit.getDataFiles
-    _ = logger.info(s"uploading to [${dataFiles.bag.baseDir}] of [$path]")
+    _ = logger.info(s"uploading to [${ dataFiles.bag.baseDir }] of [$path]")
     created <- dataFiles.write(is, path)
     _ = logger.info(s"created=$created $user/$id/$path")
   } yield created
@@ -235,12 +235,9 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
   def unzipDepositFile(is: => InputStream, charset: Option[String], user: String, id: UUID, path: Path): Try[Unit] = for {
     deposit <- DepositDir.get(draftsDir, user, id)
     dataFiles <- deposit.getDataFiles
-    zipInputStream = charset
-      .map(charSet => new ZipInputStream(is, Charset.forName(charSet)))
-      .getOrElse(new ZipInputStream(is))
-    _ = logger.info(s"unzipping to [${dataFiles.bag.baseDir}] of [$path]")
-    _ <- dataFiles.unzip(zipInputStream, path)
-    _ = logger.info(s"unzipped $user/$id/$path")
+    stagingDir = temporaryDirectory(s"$user-$id-", Some(uploadStagingDir.createDirectories()))
+    _ <- stagingDir.apply(StagedFiles(_, dataFiles.bag, path).unzip(is, charset))
+    _ = logger.info(s"unzipped to $path of $user/$id")
   } yield ()
 
   /**
