@@ -108,13 +108,13 @@ class DataFilesSpec extends TestSupportFixture {
     val dataFiles = DataFiles(bag)
     val path2 = Paths.get("folder2")
 
-    dataFiles.fileInfoSeq(path2) should matchPattern {
+    dataFiles.list(path2) should matchPattern {
       case Success(Seq(FileInfo("4.txt", p, _))) if p == path2 => // no order problem as the next cases would have
     }
-    dataFiles.fileInfoSeq(Paths.get("folder1")) should matchPattern {
+    dataFiles.list(Paths.get("folder1")) should matchPattern {
       case Success(Seq(_, _)) =>
     }
-    dataFiles.fileInfoSeq(Paths.get("")) should matchPattern {
+    dataFiles.list(Paths.get("")) should matchPattern {
       case Success(Seq(_, _, _, _)) =>
     }
   }
@@ -128,7 +128,7 @@ class DataFilesSpec extends TestSupportFixture {
     val dataFiles = DataFiles(bag)
     val path = Paths.get("folder1/2.txt")
 
-    dataFiles.fileInfo(path) should matchPattern {
+    dataFiles.get(path) should matchPattern {
       case Success(FileInfo("2.txt", path, _)) =>
     }
   }

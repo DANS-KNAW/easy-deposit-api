@@ -209,8 +209,8 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
    */
   def getFileInfo(user: String, id: UUID, path: Path): Try[Object] = for {
     dataFiles <- getDataFiles(user, id)
-    contents <- if (dataFiles.isDirectory(path)) dataFiles.fileInfoSeq(path)
-                else dataFiles.fileInfo(path)
+    contents <- if (dataFiles.isDirectory(path)) dataFiles.list(path)
+                else dataFiles.get(path)
   } yield contents
 
   /**
@@ -220,7 +220,7 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
    * @param id   the deposit ID
    * @return
    */
-  def getDataFiles(user: String, id: UUID): Try[DataFiles] = for {
+  private def getDataFiles(user: String, id: UUID): Try[DataFiles] = for {
     deposit <- getDeposit(user, id)
     dataFiles <- deposit.getDataFiles
   } yield dataFiles

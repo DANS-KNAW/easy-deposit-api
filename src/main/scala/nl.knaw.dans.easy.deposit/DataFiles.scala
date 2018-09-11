@@ -35,8 +35,6 @@ import scala.util.{ Failure, Success, Try }
  */
 case class DataFiles(bag: DansBag) extends DebugEnhancedLogging {
 
-  private val dataDir = bag.baseDir / "data"
-
   /**
    * Returns 'true' if the path points to a directory.
    *
@@ -44,17 +42,7 @@ case class DataFiles(bag: DansBag) extends DebugEnhancedLogging {
    * @return 'true' if directory, else 'false'
    */
   def isDirectory(path: Path): Boolean = {
-    dataDir / path.toString isDirectory
-  }
-
-  /**
-   * Returns contents of a file.
-   *
-   * @param path a relative path to a data file.
-   * @return contents of the file
-   */
-  def fileContents(path: Path): Try[String] = Try {
-    dataDir / path.toString contentAsString
+    bag.data / path.toString isDirectory
   }
 
   /**
@@ -66,8 +54,8 @@ case class DataFiles(bag: DansBag) extends DebugEnhancedLogging {
    * @param path a relative path into data files directory of the bag.
    * @return a list of [[FileInfo]] objects
    */
-  def fileInfoSeq(path: Path = Paths.get("")): Try[Seq[FileInfo]] = {
-    val parentPath = dataDir / path.toString
+  def list(path: Path = Paths.get("")): Try[Seq[FileInfo]] = {
+    val parentPath = bag.data / path.toString
     val manifestMap = bag.payloadManifests
 
     def convert(items: Map[File, String]) = {
@@ -90,10 +78,10 @@ case class DataFiles(bag: DansBag) extends DebugEnhancedLogging {
    * @param path a relative path into a data files.
    * @return a [[FileInfo]] object
    */
-  def fileInfo(path: Path = Paths.get("")): Try[FileInfo] = {
+  def get(path: Path = Paths.get("")): Try[FileInfo] = {
     val manifestMap = bag.payloadManifests
     val manifests = manifestMap.get(SHA1).orElse(manifestMap.values.headOption)
-    val absolutePath = dataDir / path.toString
+    val absolutePath = bag.data / path.toString
     val fileExists = manifests.get.contains(absolutePath)
     if (fileExists) {
       val checksum = manifests get absolutePath
