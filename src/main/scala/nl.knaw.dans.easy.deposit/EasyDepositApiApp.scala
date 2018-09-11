@@ -17,7 +17,7 @@ package nl.knaw.dans.easy.deposit
 
 import java.io.InputStream
 import java.net.URI
-import java.nio.file.{ Path, Paths }
+import java.nio.file.Path
 import java.util.UUID
 
 import better.files.File
@@ -135,8 +135,8 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
    * 3. The deposit directory will be copied to the staging area.
    * 4. The copy will be moved to the deposit area.
    *
-   * @param user  the user ID
-   * @param id    the deposit ID
+   * @param user      the user ID
+   * @param id        the deposit ID
    * @param stateInfo the state to transition to
    * @return
    */
@@ -200,6 +200,20 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
   } yield ()
 
   /**
+   * Returns a list of [[FileInfo]] objects if the path points to a directory, else a single [FileInfo] object
+   *
+   * @param user the user ID
+   * @param id   the deposit ID
+   * @param path path to a directory or a file
+   * @return
+   */
+  def getFileInfo(user: String, id: UUID, path: Path): Try[Object] = for {
+    dataFiles <- getDataFiles(user, id)
+    contents <- if (dataFiles.isDirectory(path)) dataFiles.fileInfoSeq(path)
+                else dataFiles.fileInfo(path)
+  } yield contents
+
+  /**
    * Returns dataset files of the deposit
    *
    * @param user the user ID
@@ -227,7 +241,7 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
    */
   def writeDepositFile(is: => InputStream, user: String, id: UUID, path: Path): Try[Boolean] = for {
     dataFiles <- getDataFiles(user, id)
-    _ = logger.info(s"uploading to [${dataFiles.bag.baseDir}] of [$path]")
+    _ = logger.info(s"uploading to [${ dataFiles.bag.baseDir }] of [$path]")
     created <- dataFiles.write(is, path)
     _ = logger.info(s"created=$created $user/$id/$path")
   } yield created

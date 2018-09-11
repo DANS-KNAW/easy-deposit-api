@@ -33,8 +33,6 @@ class HappyRoutesSpec extends TestSupportFixture with ServletFixture with Scalat
 
   private class MockedApp extends EasyDepositApiApp(minimalAppConfig)
   private val mockedApp = mock[MockedApp]
-  private class MockedDataFiles extends DataFiles(dansBag)
-  private val mockedDataFiles = mock[MockedDataFiles]
   mountServlets(mockedApp, mockedAuthenticationProvider)
 
   "get /" should "be ok" in {
@@ -150,11 +148,7 @@ class HappyRoutesSpec extends TestSupportFixture with ServletFixture with Scalat
 
   s"get /deposit/:uuid/file/path/to/directory" should "return FileInfo" in {
     expectsUserFooBar
-    (mockedApp.getDataFiles(_: String, _: UUID)) expects("foo", uuid) returning
-      Try(mockedDataFiles)
-    (mockedDataFiles.isDirectory(_: Path)) expects * returning
-      true
-    (mockedDataFiles.fileInfoSeq(_: Path)) expects * returning
+    (mockedApp.getFileInfo(_: String, _: UUID, _: Path)) expects("foo", uuid, *) returning
       Success(Seq(FileInfo("a.txt", Paths.get("files/a.txt"), "x")))
 
     get(
@@ -168,11 +162,7 @@ class HappyRoutesSpec extends TestSupportFixture with ServletFixture with Scalat
 
   s"get /deposit/:uuid/file/a.txt" should "return the contents of the file" in {
     expectsUserFooBar
-    (mockedApp.getDataFiles(_: String, _: UUID)) expects("foo", uuid) returning
-      Try(mockedDataFiles)
-    (mockedDataFiles.isDirectory(_: Path)) expects * returning
-      false
-    (mockedDataFiles.fileInfo(_: Path)) expects * returning
+    (mockedApp.getFileInfo(_: String, _: UUID, _: Path)) expects("foo", uuid, *) returning
       Success(FileInfo("a.txt", Paths.get("files/a.txt"), "x"))
 
     get(

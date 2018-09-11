@@ -23,8 +23,8 @@ import nl.knaw.dans.bag.ChecksumAlgorithm.SHA1
 import nl.knaw.dans.bag.DansBag
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 
-import scala.util.{ Failure, Success, Try }
 import scala.language.postfixOps
+import scala.util.{ Failure, Success, Try }
 
 /**
  * Represents the data files of a deposit. The data files are the content files that the user uploads,
@@ -35,7 +35,7 @@ import scala.language.postfixOps
  */
 case class DataFiles(bag: DansBag) extends DebugEnhancedLogging {
 
-  val dataDir = bag.baseDir / "data"
+  private val dataDir = bag.baseDir / "data"
 
   /**
    * Returns 'true' if the path points to a directory.
@@ -99,7 +99,7 @@ case class DataFiles(bag: DansBag) extends DebugEnhancedLogging {
       Success(FileInfo(path.getFileName.toString, bag.data.relativize(absolutePath), checksum))
     }
     else {
-      Failure((new NoSuchFileException(s"${path.toString}")))
+      Failure(new NoSuchFileException(s"${ path.toString }"))
     }
   }
 
