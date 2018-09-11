@@ -92,10 +92,11 @@ case class DataFiles(bag: DansBag) extends DebugEnhancedLogging {
    */
   def fileInfo(path: Path = Paths.get("")): Try[FileInfo] = {
     val manifestMap = bag.payloadManifests
+    val manifests = manifestMap.get(SHA1).orElse(manifestMap.values.headOption)
     val absolutePath = dataDir / path.toString
-    val fileExists = manifestMap.get(SHA1).orElse(manifestMap.values.headOption).get.contains(absolutePath)
+    val fileExists = manifests.get.contains(absolutePath)
     if (fileExists) {
-      val checksum = manifestMap.get(SHA1).orElse(manifestMap.values.headOption) get absolutePath
+      val checksum = manifests get absolutePath
       Success(FileInfo(path.getFileName.toString, bag.data.relativize(absolutePath), checksum))
     }
     else {
