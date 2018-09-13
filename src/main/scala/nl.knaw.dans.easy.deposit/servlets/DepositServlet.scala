@@ -16,9 +16,11 @@
 package nl.knaw.dans.easy.deposit.servlets
 
 import java.io.IOException
-import java.nio.file.{ NoSuchFileException, Path, Paths }
+import java.nio.file.{ Files, NoSuchFileException, Path, Paths }
 import java.util.UUID
 
+import better.files.File
+import better.files.File.temporaryDirectory
 import nl.knaw.dans.easy.deposit.authentication.ServletEnhancedLogging._
 import nl.knaw.dans.easy.deposit.docs.JsonUtil.{ InvalidDocumentException, toJson }
 import nl.knaw.dans.easy.deposit.docs.{ DatasetMetadata, DepositInfo, StateInfo }
@@ -130,15 +132,14 @@ class DepositServlet(app: EasyDepositApiApp)
       path <- getPath
       _ <- isMultipart
       fileItems = fileMultiParams.valuesIterator.flatten.buffered
-      _ = while (fileItems.head.name.trim.isEmpty) { fileItems.next() } // skip leading form fields without selected files
+      _ = while (fileItems.head.name.isBlank) { fileItems.next() } // skip leading form fields without selected files
       _ <- if (isZip(fileItems.head))
              uploadZippedItem(uuid, path, fileItems.next, fileItems.hasNext)
-           else fileItems.withFilter(_.name.trim.nonEmpty)
-             .map(uploadPlainItem(uuid, path, _))
-             .failFast
+           else uploadPlainItems(uuid, path, fileItems)
     } yield Ok()
       ).getOrRecoverResponse(respond)
   }
+
   put("/:uuid/file/*") { //file
     (for {
       uuid <- getUUID
@@ -161,17 +162,33 @@ class DepositServlet(app: EasyDepositApiApp)
 
   private def uploadZippedItem(uuid: UUID, path: Path, uploadItem: FileItem, hasMoreItems: Boolean): Try[Unit] = {
     if (hasMoreItems)
-      Failure(ZipMustBeOnlyFileException(s"A multipart/form-data message contained a ZIP [${ uploadItem.name }] part but also other parts. Nothing has been uploaded."))
+      Failure(ZipMustBeOnlyFileException(uploadItem.name))
     else
       managed(uploadItem.getInputStream)
         .apply(app.unzipDepositFile(_, uploadItem.charset, user.id, uuid, path))
   }
 
-  private def uploadPlainItem(uuid: UUID, path: Path, uploadItem: FileItem): Try[Boolean] = {
+  private def uploadPlainItem(stagedFile: File, uploadItem: FileItem): Try[Unit] = {
     if (isZip(uploadItem))
-      Failure(ZipMustBeOnlyFileException(s"A multipart/form-data message contained a ZIP [${ uploadItem.name }] part but also other parts. At least one part has been uploaded."))
-    else managed(uploadItem.getInputStream)
-      .apply(app.writeDepositFile(_, user.id, uuid, path.resolve(uploadItem.name)))
+      Failure(ZipMustBeOnlyFileException(uploadItem.name))
+    else
+      managed(uploadItem.getInputStream)
+        .apply(inputStream => Try { Files.copy(inputStream, stagedFile.path) })
+  }
+
+  private def uploadPlainItems(uuid: UUID, path: Path, fileItems: Iterator[FileItem]) = {
+    temporaryDirectory(s"${ user.id }-$uuid-", Some(app.uploadStagingDir.createDirectories()))
+      .apply { stagingDir =>
+        for {
+          deposit <- DepositDir.get(app.draftsDir, user.id, uuid)
+          datafiles <- deposit.getDataFiles
+          _ <- fileItems
+            .withFilter(!_.name.isBlank)
+            .map(item => uploadPlainItem(stagingDir / item.name, item))
+            .find(_.isFailure).getOrElse(Success(()))
+          _ <- StagedFiles(stagingDir, datafiles.bag, path).moveAll
+        } yield ()
+      }
   }
 
   private def isZip(uploadItem: FileItem) = {
@@ -253,7 +270,7 @@ class DepositServlet(app: EasyDepositApiApp)
 
 object DepositServlet {
 
-  private case class ZipMustBeOnlyFileException(s: String) extends Exception(s)
+  private case class ZipMustBeOnlyFileException(s: String) extends Exception(s"A multipart/form-data message contained a ZIP [$s] part but also other parts.")
   private case class InvalidResourceException(s: String) extends Exception(s)
   case class BadRequestException(s: String) extends Exception(s)
 }

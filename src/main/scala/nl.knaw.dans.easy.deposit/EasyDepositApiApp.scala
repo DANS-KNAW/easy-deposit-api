@@ -59,8 +59,8 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
     configuration.version
   }
 
-  private val uploadStagingDir = getConfiguredDirectory("deposits.stage.upload")
-  private val draftsDir = getConfiguredDirectory("deposits.drafts")
+  val uploadStagingDir = getConfiguredDirectory("deposits.stage.upload")
+  val draftsDir = getConfiguredDirectory("deposits.drafts")
   private val submitter = new Submitter(
     stagingBaseDir = getConfiguredDirectory("deposits.stage"),
     submitToBaseDir = getConfiguredDirectory("deposits.submit-to"),
@@ -232,12 +232,12 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
     _ = logger.info(s"created=$created $user/$id/$path")
   } yield created
 
-  def unzipDepositFile(is: => InputStream, charset: Option[String], user: String, id: UUID, path: Path): Try[Unit] = for {
-    deposit <- DepositDir.get(draftsDir, user, id)
+  def unzipDepositFile(is: => InputStream, charset: Option[String], userId: String, id: UUID, path: Path): Try[Unit] = for {
+    deposit <- DepositDir.get(draftsDir, userId, id)
     dataFiles <- deposit.getDataFiles
-    stagingDir = temporaryDirectory(s"$user-$id-", Some(uploadStagingDir.createDirectories()))
+    stagingDir = temporaryDirectory(s"$userId-$id-", Some(uploadStagingDir.createDirectories()))
     _ <- stagingDir.apply(StagedFiles(_, dataFiles.bag, path).unzip(is, charset))
-    _ = logger.info(s"unzipped to $path of $user/$id")
+    _ = logger.info(s"unzipped to $path of $userId/$id")
   } yield ()
 
   /**

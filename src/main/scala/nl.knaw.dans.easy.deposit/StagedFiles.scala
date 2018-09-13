@@ -44,7 +44,7 @@ case class StagedFiles(stagingDir: File, draftBag: DansBag, path: Path) extends 
     draftBag.addPayloadFile(file, fullPath) // TODO move, not copy again
   }
 
-  private def moveAll = {
+  def moveAll: Try[Any] = {
     logger.info(s"moving from staging to $target")
     stagingDir
       .walk()
@@ -54,10 +54,11 @@ case class StagedFiles(stagingDir: File, draftBag: DansBag, path: Path) extends 
       .getOrElse(Success(()))
   }
 
-  def unzip(is: InputStream, charset: Option[String]): Try[Unit] = Try(charset
-    .map(charSet => new ZipInputStream(is, Charset.forName(charSet)))
-    .getOrElse(new ZipInputStream(is)))
-    .flatMap { zipInputStream =>
+  def unzip(is: InputStream, charset: Option[String]): Try[Unit] = {
+    Try(charset
+      .map(charSet => new ZipInputStream(is, Charset.forName(charSet)))
+      .getOrElse(new ZipInputStream(is))
+    ).flatMap { zipInputStream =>
 
       def extract(entry: ZipEntry) = {
         if (entry.isDirectory)
@@ -86,4 +87,5 @@ case class StagedFiles(stagingDir: File, draftBag: DansBag, path: Path) extends 
         } yield ()
       }
     }
+  }
 }
