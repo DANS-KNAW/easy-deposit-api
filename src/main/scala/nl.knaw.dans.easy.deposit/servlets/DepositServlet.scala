@@ -232,7 +232,7 @@ class DepositServlet(app: EasyDepositApiApp)
 
 object DepositServlet {
 
-  case class ZipMustBeOnlyFileException(s: String) extends Exception(s"A multipart/form-data message contained a ZIP [$s] part but also other parts.")
   private case class InvalidResourceException(s: String) extends Exception(s)
   case class BadRequestException(s: String) extends Exception(s)
+  case class ZipMustBeOnlyFileException(s: String) extends Exception(s"A multipart/form-data message contained a ZIP [$s] part but also other parts.")
 }

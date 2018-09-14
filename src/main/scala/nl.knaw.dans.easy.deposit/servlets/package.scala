@@ -33,7 +33,7 @@ import scala.util.{ Failure, Success, Try }
 package object servlets extends DebugEnhancedLogging {
 
   private val extensionZipPattern = ".*.g?z(ip)?"
-  val contentTypeZipPattern = "(application|multipart)/(x-)?g?zip(-compress(ed)?)?( .*)?"
+  private val contentTypeZipPattern = "(application|multipart)/(x-)?g?zip(-compress(ed)?)?( .*)?"
 
   def internalErrorResponse(t: Throwable): ActionResult = {
     logger.error(s"Not expected exception: ${ t.getMessage }", t)
