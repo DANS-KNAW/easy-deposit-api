@@ -19,11 +19,12 @@ import java.io.ByteArrayInputStream
 import java.nio.charset.StandardCharsets
 import java.util.zip.ZipInputStream
 
+import better.files.File
 import nl.knaw.dans.easy.deposit.TestSupportFixture
 import nl.knaw.dans.easy.deposit.servlets.DepositServlet.BadRequestException
 import resource.managed
 
-import scala.util.Failure
+import scala.util.{ Failure, Success }
 
 class RichZipInputStreamSpec extends TestSupportFixture {
 
@@ -34,8 +35,16 @@ class RichZipInputStreamSpec extends TestSupportFixture {
 
   "unzipPlainEntriesTo" should "report invalid content" in {
     managed(new ZipInputStream(new ByteArrayInputStream("Lorem ipsum est".getBytes(StandardCharsets.UTF_8)))).apply(
-      _.unzipPlainEntriesTo(testDir / "staging") should matchPattern {
+      _.unzipPlainEntriesTo(testDir / "dummy") should matchPattern {
         case Failure(BadRequestException(s)) if s == "ZIP file is malformed. No entries found." =>
       })
+  }
+
+  it should "extract all files from the zip" in {
+    val stagingDir = testDir / "staging"
+    managed(File("src/test/resources/manual-test/Archive.zip").newZipInputStream).apply(
+      _.unzipPlainEntriesTo(stagingDir.createDirectories()) shouldBe Success(()))
+    stagingDir.walk().map(_.path.getFileName.toString).toList should contain theSameElementsAs
+      List("staging", "login.html", "readme.md", "__MACOSX", "._login.html", "upload.html")
   }
 }

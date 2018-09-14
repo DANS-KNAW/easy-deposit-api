@@ -119,7 +119,7 @@ package object servlets extends DebugEnhancedLogging {
     def nextAsZipIfOnlyOne: Try[Option[ManagedResource[ZipInputStream]]] = {
 
       // forward pointer after checking for leading form fields without selected files
-      while (fileItems.head.name.isBlank) { fileItems.next() }
+      while (fileItems.hasNext && fileItems.head.name.isBlank) { fileItems.next() }
 
       if (!fileItems.head.isZip) Success(None)
       else {
