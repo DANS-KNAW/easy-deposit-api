@@ -17,15 +17,11 @@ package nl.knaw.dans.easy.deposit
 
 import java.io.InputStream
 import java.net.URI
-import java.nio.charset.Charset
 import java.nio.file.{ Path, Paths }
 import java.util.UUID
-import java.util.zip.ZipInputStream
 
-import better.files
-import better.files.{ File, ManagedResource }
 import better.files.File.temporaryDirectory
-import nl.knaw.dans.bag.DansBag
+import better.files.{ File, ManagedResource }
 import nl.knaw.dans.easy.deposit.PidRequesterComponent.PidRequester
 import nl.knaw.dans.easy.deposit.authentication.LdapAuthentication
 import nl.knaw.dans.easy.deposit.docs.StateInfo.State
@@ -63,8 +59,8 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
     configuration.version
   }
 
-  val uploadStagingDir = getConfiguredDirectory("deposits.stage.upload")
-  val draftsDir = getConfiguredDirectory("deposits.drafts")
+  private val uploadStagingDir = getConfiguredDirectory("deposits.stage.upload")
+  private val draftsDir = getConfiguredDirectory("deposits.drafts")
   private val submitter = new Submitter(
     stagingBaseDir = getConfiguredDirectory("deposits.stage"),
     submitToBaseDir = getConfiguredDirectory("deposits.submit-to"),
@@ -236,11 +232,11 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
     _ = logger.info(s"created=$created $user/$id/$path")
   } yield created
 
-  def stagingDir(userId: String, id: UUID): Try[(ManagedResource[File], DansBag)] = for {
+  def stageFiles(userId: String, id: UUID, destination: Path): Try[(ManagedResource[File], StagedFilesTarget)] = for {
     deposit <- DepositDir.get(draftsDir, userId, id)
     dataFiles <- deposit.getDataFiles
     stagingDir = temporaryDirectory(s"$userId-$id-", Some(uploadStagingDir.createDirectories()))
-  } yield (stagingDir, dataFiles.bag)
+  } yield (stagingDir, StagedFilesTarget(dataFiles.bag, destination))
 
   /**
    * Deletes the given regular file or directory. The specified `path` must be relative to the content directory.

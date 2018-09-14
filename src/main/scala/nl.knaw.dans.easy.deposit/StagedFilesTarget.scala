@@ -21,27 +21,27 @@ import better.files.File
 import nl.knaw.dans.bag.DansBag
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 
-import scala.util.Try
+import scala.util.{ Success, Try }
 
 /**
- *
- * @param stagingDir the temporary container for files, unique per request, same mount as bag
- * @param draftBag   the bag that receives the staged files
- * @param path       relative location in the bag's data directory
+ * @param draftBag    the bag that receives the staged files
+ * @param destination relative location in the bag's data directory
  */
-case class StagedFiles(stagingDir: File, draftBag: DansBag, path: Path) extends DebugEnhancedLogging {
+case class StagedFilesTarget(draftBag: DansBag, destination: Path) extends DebugEnhancedLogging {
 
-  private val target: File = draftBag.baseDir / path.toString
-  logger.info(s"staging to $stagingDir for $target")
+  /**
+   * @param stagingDir the temporary container for files, unique per request, same mount as bag
+   * @return
+   */
+  def takeAllFrom(stagingDir: File): Try[Any] = {
+    logger.info(s"moving from staging [$stagingDir] to ${ draftBag.baseDir / destination.toString }")
 
-  private def moveToDraft(file: File): Try[DansBag] = {
-    val fullPath = path.resolve(stagingDir.relativize(file))
-    logger.debug(s"moving to $fullPath")
-    draftBag.addPayloadFile(file, fullPath) // TODO move, not copy again
-  }
+    def moveToDraft(file: File): Try[DansBag] = {
+      val bagRelativePath = destination.resolve(stagingDir.relativize(file))
+      logger.debug(s"moving to $bagRelativePath")
+      draftBag.addPayloadFile(file, bagRelativePath) // TODO move, not copy again
+    }
 
-  def moveAll: Try[Any] = {
-    logger.info(s"moving from staging to $target")
     stagingDir
       .walk()
       .filter(!_.isDirectory)

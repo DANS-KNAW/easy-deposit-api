@@ -34,7 +34,7 @@ class RichZipInputStreamSpec extends TestSupportFixture {
 
   "extractPlainEntriesTo" should "report invalid content" in {
     managed(new ZipInputStream(new ByteArrayInputStream("Lorem ipsum est".getBytes(StandardCharsets.UTF_8)))).apply(
-      _.extractPlainEntriesTo(testDir / "staging") should matchPattern {
+      _.unzipPlainEntriesTo(testDir / "staging") should matchPattern {
         case Failure(BadRequestException(s)) if s == "ZIP file is malformed. No entries found." =>
       })
   }

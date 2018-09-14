@@ -32,6 +32,9 @@ import scala.util.{ Failure, Success, Try }
 
 package object servlets extends DebugEnhancedLogging {
 
+  private val extensionZipPattern = ".*.g?z(ip)?"
+  val contentTypeZipPattern = "(application|multipart)/(x-)?g?zip(-compress(ed)?)?( .*)?"
+
   def internalErrorResponse(t: Throwable): ActionResult = {
     logger.error(s"Not expected exception: ${ t.getMessage }", t)
     InternalServerError("Internal Server Error")
@@ -42,18 +45,26 @@ package object servlets extends DebugEnhancedLogging {
     BadRequest(s"Bad Request. ${ t.getMessage }")
   }
 
+  implicit class RichManagedZipInputStream(val zipInputStream: ManagedResource[ZipInputStream]) extends AnyVal {
+    def unzipPlainEntriesTo(dir: File): Try[Unit] = {
+      zipInputStream.apply(_.unzipPlainEntriesTo(dir))
+    }
+  }
+
   implicit class RichZipInputStream(val zipInputStream: ZipInputStream) extends AnyVal {
-    def extractPlainEntriesTo(dir: File): Try[Unit] = {
+    def unzipPlainEntriesTo(dir: File): Try[Unit] = {
       def extract(entry: ZipEntry) = {
         if (entry.isDirectory)
           Try((dir / entry.getName).createDirectories())
-        else if (entry.getName.matches(".*.g?z(ip)?")) // TODO the regexp is duplicated from servlets/package.scala
-               Failure(BadRequestException(s"ZIP file is malformed. It contains a Zip ${ entry.getName }."))
         else {
-          logger.info(s"Extracting ${ entry.getName } size=${ entry.getSize } compressedSize=${ entry.getCompressedSize } CRC=${ entry.getCrc }")
-          Try(Files.copy(zipInputStream, (dir / entry.getName).path))
-        }.recoverWith {
-          case e if e.isInstanceOf[ZipException] => Failure(BadRequestException(s"ZIP file is malformed. $e"))
+          if (entry.getName.matches(extensionZipPattern))
+            Failure(BadRequestException(s"ZIP file is malformed. It contains a Zip ${ entry.getName }."))
+          else {
+            logger.info(s"Extracting ${ entry.getName } size=${ entry.getSize } compressedSize=${ entry.getCompressedSize } CRC=${ entry.getCrc }")
+            Try(Files.copy(zipInputStream, (dir / entry.getName).path))
+          }.recoverWith {
+            case e if e.isInstanceOf[ZipException] => Failure(BadRequestException(s"ZIP file is malformed. $e"))
+          }
         }
       }
 
@@ -75,10 +86,8 @@ package object servlets extends DebugEnhancedLogging {
   implicit class RichFileItem(val fileItem: FileItem) extends AnyVal {
 
     def isZip: Boolean = {
-      val extensionIsZip = fileItem.name.matches(".*.g?z(ip)?")
-      lazy val contentTypeIsZip = fileItem.contentType.exists(_.matches(
-        "(application|multipart)/(x-)?g?zip(-compress(ed)?)?( .*)?"
-      ))
+      val extensionIsZip = fileItem.name.matches(extensionZipPattern)
+      lazy val contentTypeIsZip = fileItem.contentType.exists(_.matches(contentTypeZipPattern))
       logger.debug(s"ZIP check: ${ fileItem.name } : $extensionIsZip; ${ fileItem.contentType } : $contentTypeIsZip ")
       extensionIsZip || contentTypeIsZip
     }
@@ -89,7 +98,7 @@ package object servlets extends DebugEnhancedLogging {
         .getOrElse(managed(new ZipInputStream(fileItem.getInputStream)))
     }
 
-    def ifNotZipCopyTo(dir: File): Try[Unit] = {
+    def copyNonZipTo(dir: File): Try[Unit] = {
       if (fileItem.name.isBlank) Success(()) // skip form field without selected files
       else if (fileItem.isZip) Failure(ZipMustBeOnlyFileException(fileItem.name))
       else
@@ -102,7 +111,7 @@ package object servlets extends DebugEnhancedLogging {
 
     def copyPlainItemsTo (dir: File): Try[Unit] = {
       fileItems
-        .map(_.ifNotZipCopyTo(dir))
+        .map(_.copyNonZipTo(dir))
         .find(_.isFailure)
         .getOrElse(Success(()))
     }

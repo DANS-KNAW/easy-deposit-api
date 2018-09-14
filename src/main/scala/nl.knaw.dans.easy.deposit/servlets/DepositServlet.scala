@@ -18,10 +18,7 @@ package nl.knaw.dans.easy.deposit.servlets
 import java.io.IOException
 import java.nio.file.{ NoSuchFileException, Path, Paths }
 import java.util.UUID
-import java.util.zip.ZipInputStream
 
-import better.files.File
-import nl.knaw.dans.bag.DansBag
 import nl.knaw.dans.easy.deposit.authentication.ServletEnhancedLogging._
 import nl.knaw.dans.easy.deposit.docs.JsonUtil.{ InvalidDocumentException, toJson }
 import nl.knaw.dans.easy.deposit.docs.{ DatasetMetadata, DepositInfo, StateInfo }
@@ -29,7 +26,7 @@ import nl.knaw.dans.easy.deposit.servlets.DepositServlet.{ BadRequestException, 
 import nl.knaw.dans.easy.deposit.{ EasyDepositApiApp, _ }
 import org.apache.commons.lang.NotImplementedException
 import org.scalatra._
-import org.scalatra.servlet.{ FileItem, FileUploadSupport, MultipartConfig, SizeConstraintExceededException }
+import org.scalatra.servlet.{ FileUploadSupport, MultipartConfig, SizeConstraintExceededException }
 import org.scalatra.util.RicherString._
 import resource.managed
 
@@ -133,11 +130,14 @@ class DepositServlet(app: EasyDepositApiApp)
       path <- getPath
       _ <- isMultipart
       fileItems = fileMultiParams.valuesIterator.flatten.buffered
-      maybeMangedZipIS <- fileItems.nextAsZipIfOnlyOne
-      (managedStagingDir, bag) <- app.stagingDir(user.id, uuid)
-      _ <- maybeMangedZipIS
-        .map(_.apply(zipIS => managedStagingDir.apply(uploadZip(_, bag, path, zipIS))))
-        .getOrElse(managedStagingDir.apply(uploadPlainItems(_, bag, path, fileItems)))
+      maybeZipInputStream <- fileItems.nextAsZipIfOnlyOne
+      (managedStagingDir, stagedFilesTarget) <- app.stageFiles(user.id, uuid, path)
+      _ <- managedStagingDir.apply(stagingDir =>
+        maybeZipInputStream
+          .map(_.unzipPlainEntriesTo(stagingDir))
+          .getOrElse(fileItems.copyPlainItemsTo(stagingDir))
+          .flatMap(_ => stagedFilesTarget.takeAllFrom(stagingDir))
+      )
     } yield Ok()
       ).getOrRecoverResponse(respond)
   }
@@ -160,20 +160,6 @@ class DepositServlet(app: EasyDepositApiApp)
       _ <- app.deleteDepositFile(user.id, uuid, path)
     } yield NoContent()
       ).getOrRecoverResponse(respond)
-  }
-
-  private def uploadZip(stagingDir: File, bag: DansBag, path: Path, zipIS: ZipInputStream) = {
-    for {
-      _ <- zipIS.extractPlainEntriesTo(stagingDir)
-      _ <- StagedFiles(stagingDir, bag, path).moveAll
-    } yield ()
-  }
-
-  private def uploadPlainItems(stagingDir: File, bag: DansBag, path: Path, fileItems: BufferedIterator[FileItem]) = {
-    for {
-      _ <- fileItems.copyPlainItemsTo(stagingDir)
-      _ <- StagedFiles(stagingDir, bag, path).moveAll
-    } yield ()
   }
 
   private def isMultipart = {
