@@ -42,11 +42,11 @@ class StagedFilesSpec extends TestSupportFixture {
     bag.save().getOrRecover(e => fail(e.toString, e))
     val content = "Lorem ipsum est"
     val fileInBag = "location/in/data/dir/test.txt"
-    val inputStream = new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8))
+    val inputStream = new ZipInputStream(new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8)))
 
     temporaryDirectory().apply(
       StagedFiles(_, bag, Paths.get(fileInBag))
-        .unzip(inputStream, None) should matchPattern {
+        .unzip(inputStream) should matchPattern {
         case Failure(BadRequestException(s)) if s == "ZIP file is malformed. No entries found." =>
       })
     inputStream.close()

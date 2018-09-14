@@ -17,11 +17,15 @@ package nl.knaw.dans.easy.deposit
 
 import java.io.InputStream
 import java.net.URI
+import java.nio.charset.Charset
 import java.nio.file.{ Path, Paths }
 import java.util.UUID
+import java.util.zip.ZipInputStream
 
-import better.files.File
+import better.files
+import better.files.{ File, ManagedResource }
 import better.files.File.temporaryDirectory
+import nl.knaw.dans.bag.DansBag
 import nl.knaw.dans.easy.deposit.PidRequesterComponent.PidRequester
 import nl.knaw.dans.easy.deposit.authentication.LdapAuthentication
 import nl.knaw.dans.easy.deposit.docs.StateInfo.State
@@ -232,13 +236,11 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
     _ = logger.info(s"created=$created $user/$id/$path")
   } yield created
 
-  def unzipDepositFile(is: => InputStream, charset: Option[String], userId: String, id: UUID, path: Path): Try[Unit] = for {
+  def stagingDir(userId: String, id: UUID): Try[(ManagedResource[File], DansBag)] = for {
     deposit <- DepositDir.get(draftsDir, userId, id)
     dataFiles <- deposit.getDataFiles
     stagingDir = temporaryDirectory(s"$userId-$id-", Some(uploadStagingDir.createDirectories()))
-    _ <- stagingDir.apply(StagedFiles(_, dataFiles.bag, path).unzip(is, charset))
-    _ = logger.info(s"unzipped to $path of $userId/$id")
-  } yield ()
+  } yield (stagingDir, dataFiles.bag)
 
   /**
    * Deletes the given regular file or directory. The specified `path` must be relative to the content directory.

@@ -18,6 +18,7 @@ package nl.knaw.dans.easy.deposit.servlets
 import java.io.IOException
 import java.nio.file.{ Files, NoSuchFileException, Path, Paths }
 import java.util.UUID
+import java.util.zip.ZipInputStream
 
 import better.files.File
 import better.files.File.temporaryDirectory
@@ -132,9 +133,11 @@ class DepositServlet(app: EasyDepositApiApp)
       path <- getPath
       _ <- isMultipart
       fileItems = fileMultiParams.valuesIterator.flatten.buffered
-      maybeZip <- fileItems.nextIfOnlyZip
-      _ <- maybeZip
-        .map(uploadZippedItem(uuid, path, _))
+      maybeZipItem <- fileItems.nextIfOnlyZip
+      maybeMangedZipIS <- maybeZipItem.map(_.getZipInputStream).insideOut
+      (managedStagingDir, bag) <- app.stagingDir(user.id, uuid)
+      _ <- maybeMangedZipIS
+        .map(_.apply(zipIS => managedStagingDir.apply(StagedFiles(_, bag, path).unzip(zipIS))))
         .getOrElse(uploadPlainItems(uuid, path, fileItems))
     } yield Ok()
       ).getOrRecoverResponse(respond)
@@ -158,11 +161,6 @@ class DepositServlet(app: EasyDepositApiApp)
       _ <- app.deleteDepositFile(user.id, uuid, path)
     } yield NoContent()
       ).getOrRecoverResponse(respond)
-  }
-
-  private def uploadZippedItem(uuid: UUID, path: Path, uploadItem: FileItem): Try[Unit] = {
-      managed(uploadItem.getInputStream)
-        .apply(app.unzipDepositFile(_, uploadItem.charset, user.id, uuid, path))
   }
 
   private def uploadPlainItem(stagedFile: File, uploadItem: FileItem): Try[Unit] = {

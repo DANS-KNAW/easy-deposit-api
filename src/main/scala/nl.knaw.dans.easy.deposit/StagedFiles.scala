@@ -15,8 +15,6 @@
  */
 package nl.knaw.dans.easy.deposit
 
-import java.io.InputStream
-import java.nio.charset.Charset
 import java.nio.file.{ Files, Path }
 import java.util.zip.{ ZipEntry, ZipException, ZipInputStream }
 
@@ -54,38 +52,32 @@ case class StagedFiles(stagingDir: File, draftBag: DansBag, path: Path) extends 
       .getOrElse(Success(()))
   }
 
-  def unzip(is: InputStream, charset: Option[String]): Try[Unit] = {
-    Try(charset
-      .map(charSet => new ZipInputStream(is, Charset.forName(charSet)))
-      .getOrElse(new ZipInputStream(is))
-    ).flatMap { zipInputStream =>
-
-      def extract(entry: ZipEntry) = {
-        if (entry.isDirectory)
-          Try((stagingDir / entry.getName).createDirectories())
-        else if (entry.getName.matches(".*.g?z(ip)?")) // TODO the regexp is duplicated from DepositServlet
-               Failure(BadRequestException(s"ZIP file is malformed. It contains a Zip ${ entry.getName }."))
-        else {
-          logger.info(s"Extracting ${ entry.getName } size=${ entry.getSize } compressedSize=${ entry.getCompressedSize } CRC=${ entry.getCrc }")
-          Try(Files.copy(zipInputStream, (stagingDir / entry.getName).path))
-        }.recoverWith {
-          case e if e.isInstanceOf[ZipException] => Failure(BadRequestException(s"ZIP file is malformed. $e"))
-        }
+  def unzip(zipInputStream: ZipInputStream): Try[Unit] = {
+    def extract(entry: ZipEntry) = {
+      if (entry.isDirectory)
+        Try((stagingDir / entry.getName).createDirectories())
+      else if (entry.getName.matches(".*.g?z(ip)?")) // TODO the regexp is duplicated from DepositServlet
+             Failure(BadRequestException(s"ZIP file is malformed. It contains a Zip ${ entry.getName }."))
+      else {
+        logger.info(s"Extracting ${ entry.getName } size=${ entry.getSize } compressedSize=${ entry.getCompressedSize } CRC=${ entry.getCrc }")
+        Try(Files.copy(zipInputStream, (stagingDir / entry.getName).path))
+      }.recoverWith {
+        case e if e.isInstanceOf[ZipException] => Failure(BadRequestException(s"ZIP file is malformed. $e"))
       }
+    }
 
-      Option(zipInputStream.getNextEntry) match {
-        case None => Failure(BadRequestException(s"ZIP file is malformed. No entries found."))
-        case Some(firstEntry: ZipEntry) => for {
-          _ <- extract(firstEntry)
-          _ <- Stream
-            .continually(zipInputStream.getNextEntry)
-            .takeWhile(Option(_).nonEmpty)
-            .map(extract)
-            .find(_.isFailure)
-            .getOrElse(Success(()))
-          _ <- moveAll
-        } yield ()
-      }
+    Option(zipInputStream.getNextEntry) match {
+      case None => Failure(BadRequestException(s"ZIP file is malformed. No entries found."))
+      case Some(firstEntry: ZipEntry) => for {
+        _ <- extract(firstEntry)
+        _ <- Stream
+          .continually(zipInputStream.getNextEntry)
+          .takeWhile(Option(_).nonEmpty)
+          .map(extract)
+          .find(_.isFailure)
+          .getOrElse(Success(()))
+        _ <- moveAll
+      } yield ()
     }
   }
 }

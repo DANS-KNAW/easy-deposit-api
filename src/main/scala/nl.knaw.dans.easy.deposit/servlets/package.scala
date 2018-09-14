@@ -15,12 +15,18 @@
  */
 package nl.knaw.dans.easy.deposit
 
+import java.io.InputStream
+import java.nio.charset.Charset
+import java.util.zip.ZipInputStream
+
+import better.files.ManagedResource
 import nl.knaw.dans.easy.deposit.docs.JsonUtil.InvalidDocumentException
 import nl.knaw.dans.easy.deposit.servlets.DepositServlet.ZipMustBeOnlyFileException
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.scalatra.servlet.FileItem
 import org.scalatra.util.RicherString._
 import org.scalatra.{ ActionResult, BadRequest, InternalServerError }
+import resource.managed
 
 import scala.util.{ Failure, Success, Try }
 
@@ -51,6 +57,15 @@ package object servlets extends DebugEnhancedLogging {
     }
   }
 
+  implicit class RichOptionTry[T](val ot: Option[Try[T]]) extends AnyVal {
+    // TODO candidate for dans-lib?
+    def insideOut: Try[Option[T]] = ot match {
+      case Some(Success(t)) => Success(Some(t))
+      case Some(Failure(e)) => Failure(e)
+      case None => Success(None)
+    }
+  }
+
   implicit class RichFileItem(val fileItem: FileItem) extends AnyVal {
 
     def isZip: Boolean = {
@@ -60,6 +75,12 @@ package object servlets extends DebugEnhancedLogging {
       ))
       logger.debug(s"ZIP check: ${ fileItem.name } : $extensionIsZip; ${ fileItem.contentType } : $contentTypeIsZip ")
       extensionIsZip || contentTypeIsZip
+    }
+
+    def getZipInputStream: Try[resource.ManagedResource[ZipInputStream]] = Try {
+      fileItem.charset
+        .map(charSet => managed(new ZipInputStream(fileItem.getInputStream, Charset.forName(charSet))))
+        .getOrElse(managed(new ZipInputStream(fileItem.getInputStream)))
     }
   }
 
