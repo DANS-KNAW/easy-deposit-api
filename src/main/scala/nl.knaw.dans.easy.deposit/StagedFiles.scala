@@ -56,7 +56,7 @@ case class StagedFiles(stagingDir: File, draftBag: DansBag, path: Path) extends 
     def extract(entry: ZipEntry) = {
       if (entry.isDirectory)
         Try((stagingDir / entry.getName).createDirectories())
-      else if (entry.getName.matches(".*.g?z(ip)?")) // TODO the regexp is duplicated from DepositServlet
+      else if (entry.getName.matches(".*.g?z(ip)?")) // TODO the regexp is duplicated from servlets/package.scala
              Failure(BadRequestException(s"ZIP file is malformed. It contains a Zip ${ entry.getName }."))
       else {
         logger.info(s"Extracting ${ entry.getName } size=${ entry.getSize } compressedSize=${ entry.getCompressedSize } CRC=${ entry.getCrc }")
@@ -76,7 +76,6 @@ case class StagedFiles(stagingDir: File, draftBag: DansBag, path: Path) extends 
           .map(extract)
           .find(_.isFailure)
           .getOrElse(Success(()))
-        _ <- moveAll
       } yield ()
     }
   }

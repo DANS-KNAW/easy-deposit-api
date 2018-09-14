@@ -16,12 +16,12 @@
 package nl.knaw.dans.easy.deposit.servlets
 
 import java.io.IOException
-import java.nio.file.{ Files, NoSuchFileException, Path, Paths }
+import java.nio.file.{ NoSuchFileException, Path, Paths }
 import java.util.UUID
 import java.util.zip.ZipInputStream
 
 import better.files.File
-import better.files.File.temporaryDirectory
+import nl.knaw.dans.bag.DansBag
 import nl.knaw.dans.easy.deposit.authentication.ServletEnhancedLogging._
 import nl.knaw.dans.easy.deposit.docs.JsonUtil.{ InvalidDocumentException, toJson }
 import nl.knaw.dans.easy.deposit.docs.{ DatasetMetadata, DepositInfo, StateInfo }
@@ -137,8 +137,8 @@ class DepositServlet(app: EasyDepositApiApp)
       maybeMangedZipIS <- maybeZipItem.map(_.getZipInputStream).insideOut
       (managedStagingDir, bag) <- app.stagingDir(user.id, uuid)
       _ <- maybeMangedZipIS
-        .map(_.apply(zipIS => managedStagingDir.apply(StagedFiles(_, bag, path).unzip(zipIS))))
-        .getOrElse(uploadPlainItems(uuid, path, fileItems))
+        .map(_.apply(zipIS => managedStagingDir.apply(uploadZip(_, bag, path, zipIS))))
+        .getOrElse(managedStagingDir.apply(uploadPlainItems(_, bag, path, fileItems)))
     } yield Ok()
       ).getOrRecoverResponse(respond)
   }
@@ -163,27 +163,19 @@ class DepositServlet(app: EasyDepositApiApp)
       ).getOrRecoverResponse(respond)
   }
 
-  private def uploadPlainItem(stagedFile: File, uploadItem: FileItem): Try[Unit] = {
-    if (uploadItem.isZip)
-      Failure(ZipMustBeOnlyFileException(uploadItem.name))
-    else
-      managed(uploadItem.getInputStream)
-        .apply(inputStream => Try { Files.copy(inputStream, stagedFile.path) })
+  private def uploadZip(stagingDir: File, bag: DansBag, path: Path, zipIS: ZipInputStream) = {
+    val stagedFiles = StagedFiles(stagingDir, bag, path)
+    for {
+      _ <- stagedFiles.unzip(zipIS)
+      _ <- stagedFiles.moveAll
+    } yield ()
   }
 
-  private def uploadPlainItems(uuid: UUID, path: Path, fileItems: Iterator[FileItem]) = {
-    temporaryDirectory(s"${ user.id }-$uuid-", Some(app.uploadStagingDir.createDirectories()))
-      .apply { stagingDir =>
-        for {
-          deposit <- DepositDir.get(app.draftsDir, user.id, uuid)
-          datafiles <- deposit.getDataFiles
-          _ <- fileItems
-            .withFilter(!_.name.isBlank)
-            .map(item => uploadPlainItem(stagingDir / item.name, item))
-            .find(_.isFailure).getOrElse(Success(()))
-          _ <- StagedFiles(stagingDir, datafiles.bag, path).moveAll
-        } yield ()
-      }
+  private def uploadPlainItems(stagingDir: File, bag: DansBag, path: Path, fileItems: Iterator[FileItem]) = {
+    fileItems
+      .map(_.ifNotZipCopyTo(stagingDir))
+      .find(_.isFailure)
+      .getOrElse(StagedFiles(stagingDir, bag, path).moveAll)
   }
 
   private def isMultipart = {

@@ -15,11 +15,11 @@
  */
 package nl.knaw.dans.easy.deposit
 
-import java.io.InputStream
 import java.nio.charset.Charset
+import java.nio.file.Files
 import java.util.zip.ZipInputStream
 
-import better.files.ManagedResource
+import better.files.File
 import nl.knaw.dans.easy.deposit.docs.JsonUtil.InvalidDocumentException
 import nl.knaw.dans.easy.deposit.servlets.DepositServlet.ZipMustBeOnlyFileException
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
@@ -57,9 +57,9 @@ package object servlets extends DebugEnhancedLogging {
     }
   }
 
-  implicit class RichOptionTry[T](val ot: Option[Try[T]]) extends AnyVal {
+  implicit class RichMaybeTried[T](val maybeTried: Option[Try[T]]) extends AnyVal {
     // TODO candidate for dans-lib?
-    def insideOut: Try[Option[T]] = ot match {
+    def insideOut: Try[Option[T]] = maybeTried match {
       case Some(Success(t)) => Success(Some(t))
       case Some(Failure(e)) => Failure(e)
       case None => Success(None)
@@ -81,6 +81,16 @@ package object servlets extends DebugEnhancedLogging {
       fileItem.charset
         .map(charSet => managed(new ZipInputStream(fileItem.getInputStream, Charset.forName(charSet))))
         .getOrElse(managed(new ZipInputStream(fileItem.getInputStream)))
+    }
+
+    def ifNotZipCopyTo(dir: File): Try[Unit] = {
+      if (fileItem.name.isBlank) // skip form field without selected files
+        Success(())
+      else if (fileItem.isZip)
+             Failure(ZipMustBeOnlyFileException(fileItem.name))
+      else
+        managed(fileItem.getInputStream)
+          .apply(inputStream => Try { Files.copy(inputStream, (dir / fileItem.name).path) })
     }
   }
 
