@@ -26,7 +26,7 @@ import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.scalatra.servlet.FileItem
 import org.scalatra.util.RicherString._
 import org.scalatra.{ ActionResult, BadRequest, InternalServerError }
-import resource.managed
+import resource.{ ManagedResource, managed }
 
 import scala.util.{ Failure, Success, Try }
 
@@ -57,15 +57,6 @@ package object servlets extends DebugEnhancedLogging {
     }
   }
 
-  implicit class RichMaybeTried[T](val maybeTried: Option[Try[T]]) extends AnyVal {
-    // TODO candidate for dans-lib?
-    def insideOut: Try[Option[T]] = maybeTried match {
-      case Some(Success(t)) => Success(Some(t))
-      case Some(Failure(e)) => Failure(e)
-      case None => Success(None)
-    }
-  }
-
   implicit class RichFileItem(val fileItem: FileItem) extends AnyVal {
 
     def isZip: Boolean = {
@@ -84,10 +75,8 @@ package object servlets extends DebugEnhancedLogging {
     }
 
     def ifNotZipCopyTo(dir: File): Try[Unit] = {
-      if (fileItem.name.isBlank) // skip form field without selected files
-        Success(())
-      else if (fileItem.isZip)
-             Failure(ZipMustBeOnlyFileException(fileItem.name))
+      if (fileItem.name.isBlank) Success(()) // skip form field without selected files
+      else if (fileItem.isZip) Failure(ZipMustBeOnlyFileException(fileItem.name))
       else
         managed(fileItem.getInputStream)
           .apply(inputStream => Try { Files.copy(inputStream, (dir / fileItem.name).path) })
@@ -96,17 +85,17 @@ package object servlets extends DebugEnhancedLogging {
 
   implicit class RichFileItems(val fileItems: BufferedIterator[FileItem]) extends AnyVal {
 
-    def nextIfOnlyZip: Try[Option[FileItem]] = {
+    def nextAsZipIfOnlyOne: Try[Option[ManagedResource[ZipInputStream]]] = {
 
       // forward pointer after checking for leading form fields without selected files
       while (fileItems.head.name.isBlank) { fileItems.next() }
 
       if (!fileItems.head.isZip) Success(None)
       else {
-        val zipItem = fileItems.next()
+        val zipItem = fileItems.next() // TODO only empty form fields would be OK
         if (fileItems.hasNext)
           Failure(ZipMustBeOnlyFileException(zipItem.name))
-        else Success(Some(zipItem))
+        else zipItem.getZipInputStream.map(Some(_))
       }
     }
   }

@@ -133,8 +133,7 @@ class DepositServlet(app: EasyDepositApiApp)
       path <- getPath
       _ <- isMultipart
       fileItems = fileMultiParams.valuesIterator.flatten.buffered
-      maybeZipItem <- fileItems.nextIfOnlyZip
-      maybeMangedZipIS <- maybeZipItem.map(_.getZipInputStream).insideOut
+      maybeMangedZipIS <- fileItems.nextAsZipIfOnlyOne
       (managedStagingDir, bag) <- app.stagingDir(user.id, uuid)
       _ <- maybeMangedZipIS
         .map(_.apply(zipIS => managedStagingDir.apply(uploadZip(_, bag, path, zipIS))))
