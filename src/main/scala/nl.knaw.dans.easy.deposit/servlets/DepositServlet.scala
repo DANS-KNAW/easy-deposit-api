@@ -132,10 +132,10 @@ class DepositServlet(app: EasyDepositApiApp)
       path <- getPath
       _ <- isMultipart
       fileItems = fileMultiParams.valuesIterator.flatten.buffered
-      _ = while (fileItems.head.name.isBlank) { fileItems.next() } // skip leading form fields without selected files
-      _ <- if (isZip(fileItems.head))
-             uploadZippedItem(uuid, path, fileItems.next, fileItems.hasNext)
-           else uploadPlainItems(uuid, path, fileItems)
+      maybeZip <- fileItems.nextIfOnlyZip
+      _ <- maybeZip
+        .map(uploadZippedItem(uuid, path, _))
+        .getOrElse(uploadPlainItems(uuid, path, fileItems))
     } yield Ok()
       ).getOrRecoverResponse(respond)
   }
@@ -160,16 +160,13 @@ class DepositServlet(app: EasyDepositApiApp)
       ).getOrRecoverResponse(respond)
   }
 
-  private def uploadZippedItem(uuid: UUID, path: Path, uploadItem: FileItem, hasMoreItems: Boolean): Try[Unit] = {
-    if (hasMoreItems)
-      Failure(ZipMustBeOnlyFileException(uploadItem.name))
-    else
+  private def uploadZippedItem(uuid: UUID, path: Path, uploadItem: FileItem): Try[Unit] = {
       managed(uploadItem.getInputStream)
         .apply(app.unzipDepositFile(_, uploadItem.charset, user.id, uuid, path))
   }
 
   private def uploadPlainItem(stagedFile: File, uploadItem: FileItem): Try[Unit] = {
-    if (isZip(uploadItem))
+    if (uploadItem.isZip)
       Failure(ZipMustBeOnlyFileException(uploadItem.name))
     else
       managed(uploadItem.getInputStream)
@@ -189,15 +186,6 @@ class DepositServlet(app: EasyDepositApiApp)
           _ <- StagedFiles(stagingDir, datafiles.bag, path).moveAll
         } yield ()
       }
-  }
-
-  private def isZip(uploadItem: FileItem) = {
-    val extensionIsZip = uploadItem.name.matches(".*.g?z(ip)?")
-    lazy val contentTypeIsZip = uploadItem.contentType.exists(_.matches(
-      "(application|multipart)/(x-)?g?zip(-compress(ed)?)?( .*)?"
-    ))
-    logger.debug(s"ZIP check: ${ uploadItem.name } : $extensionIsZip; ${ uploadItem.contentType } : $contentTypeIsZip ")
-    extensionIsZip || contentTypeIsZip
   }
 
   private def isMultipart = {
@@ -270,7 +258,7 @@ class DepositServlet(app: EasyDepositApiApp)
 
 object DepositServlet {
 
-  private case class ZipMustBeOnlyFileException(s: String) extends Exception(s"A multipart/form-data message contained a ZIP [$s] part but also other parts.")
+  case class ZipMustBeOnlyFileException(s: String) extends Exception(s"A multipart/form-data message contained a ZIP [$s] part but also other parts.")
   private case class InvalidResourceException(s: String) extends Exception(s)
   case class BadRequestException(s: String) extends Exception(s)
 }

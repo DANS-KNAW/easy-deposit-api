@@ -133,7 +133,7 @@ class UploadSpec extends TestSupportFixture with ServletFixture with ScalatraSui
       headers = Seq(basicAuthentication),
       files = bodyParts
     ) {
-      body shouldBe "A multipart/form-data message contained a ZIP [1.zip] part but also other parts. Nothing has been uploaded."
+      body shouldBe "A multipart/form-data message contained a ZIP [1.zip] part but also other parts."
       status shouldBe CONFLICT_409
       absoluteTarget.list.size shouldBe 0
     }

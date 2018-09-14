@@ -16,7 +16,10 @@
 package nl.knaw.dans.easy.deposit
 
 import nl.knaw.dans.easy.deposit.docs.JsonUtil.InvalidDocumentException
+import nl.knaw.dans.easy.deposit.servlets.DepositServlet.ZipMustBeOnlyFileException
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
+import org.scalatra.servlet.FileItem
+import org.scalatra.util.RicherString._
 import org.scalatra.{ ActionResult, BadRequest, InternalServerError }
 
 import scala.util.{ Failure, Success, Try }
@@ -45,6 +48,35 @@ package object servlets extends DebugEnhancedLogging {
       }
 
       Success(successes.result())
+    }
+  }
+
+  implicit class RichFileItem(val fileItem: FileItem) extends AnyVal {
+
+    def isZip: Boolean = {
+      val extensionIsZip = fileItem.name.matches(".*.g?z(ip)?")
+      lazy val contentTypeIsZip = fileItem.contentType.exists(_.matches(
+        "(application|multipart)/(x-)?g?zip(-compress(ed)?)?( .*)?"
+      ))
+      logger.debug(s"ZIP check: ${ fileItem.name } : $extensionIsZip; ${ fileItem.contentType } : $contentTypeIsZip ")
+      extensionIsZip || contentTypeIsZip
+    }
+  }
+
+  implicit class RichFileItems(val fileItems: BufferedIterator[FileItem]) extends AnyVal {
+
+    def nextIfOnlyZip: Try[Option[FileItem]] = {
+
+      // forward pointer after checking for leading form fields without selected files
+      while (fileItems.head.name.isBlank) { fileItems.next() }
+
+      if (!fileItems.head.isZip) Success(None)
+      else {
+        val zipItem = fileItems.next()
+        if (fileItems.hasNext)
+          Failure(ZipMustBeOnlyFileException(zipItem.name))
+        else Success(Some(zipItem))
+      }
     }
   }
 }
