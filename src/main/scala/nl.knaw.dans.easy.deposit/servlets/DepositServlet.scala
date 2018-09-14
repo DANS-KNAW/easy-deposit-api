@@ -162,14 +162,6 @@ class DepositServlet(app: EasyDepositApiApp)
       ).getOrRecoverResponse(respond)
   }
 
-  private def isMultipart = {
-    val multiPart = "multipart/"
-    request.getHeader("Content-Type").blankOption match {
-      case Some(s) if s.toLowerCase.startsWith(multiPart) => Success(())
-      case x => Failure(BadRequestException(s"""Must have a Content-Type starting with "$multiPart", got $x."""))
-    }
-  }
-
   private def respond(t: Throwable): ActionResult = t match {
     case e: IllegalStateTransitionException => Forbidden(e.getMessage)
     case e: NoSuchDepositException => noSuchDepositResponse(e)
@@ -223,6 +215,14 @@ class DepositServlet(app: EasyDepositApiApp)
   }.recoverWith { case t: Throwable =>
     logWhatIsHiddenForGetOrRecoverResponse(s"bad path:$t")
     Failure(InvalidResourceException(s"Invalid path."))
+  }
+
+  private def isMultipart = {
+    val multiPart = "multipart/"
+    request.getHeader("Content-Type").blankOption match {
+      case Some(s) if s.toLowerCase.startsWith(multiPart) => Success(())
+      case x => Failure(BadRequestException(s"""Must have a Content-Type starting with "$multiPart", got $x."""))
+    }
   }
 
   private def getRequestBodyAsManagedInputStream = {
