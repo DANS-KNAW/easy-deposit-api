@@ -17,11 +17,11 @@ package nl.knaw.dans.easy.deposit
 
 import java.nio.charset.Charset
 import java.nio.file.Files
-import java.util.zip.ZipInputStream
+import java.util.zip.{ ZipEntry, ZipException, ZipInputStream }
 
 import better.files.File
 import nl.knaw.dans.easy.deposit.docs.JsonUtil.InvalidDocumentException
-import nl.knaw.dans.easy.deposit.servlets.DepositServlet.ZipMustBeOnlyFileException
+import nl.knaw.dans.easy.deposit.servlets.DepositServlet.{ BadRequestException, ZipMustBeOnlyFileException }
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.scalatra.servlet.FileItem
 import org.scalatra.util.RicherString._
@@ -40,6 +40,36 @@ package object servlets extends DebugEnhancedLogging {
   def badDocResponse(t: InvalidDocumentException): ActionResult = {
     logger.error(t.getMessage)
     BadRequest(s"Bad Request. ${ t.getMessage }")
+  }
+
+  implicit class RichZipInputStream(val zipInputStream: ZipInputStream) extends AnyVal {
+    def extractPlainEntriesTo(dir: File): Try[Unit] = {
+      def extract(entry: ZipEntry) = {
+        if (entry.isDirectory)
+          Try((dir / entry.getName).createDirectories())
+        else if (entry.getName.matches(".*.g?z(ip)?")) // TODO the regexp is duplicated from servlets/package.scala
+               Failure(BadRequestException(s"ZIP file is malformed. It contains a Zip ${ entry.getName }."))
+        else {
+          logger.info(s"Extracting ${ entry.getName } size=${ entry.getSize } compressedSize=${ entry.getCompressedSize } CRC=${ entry.getCrc }")
+          Try(Files.copy(zipInputStream, (dir / entry.getName).path))
+        }.recoverWith {
+          case e if e.isInstanceOf[ZipException] => Failure(BadRequestException(s"ZIP file is malformed. $e"))
+        }
+      }
+
+      Option(zipInputStream.getNextEntry) match {
+        case None => Failure(BadRequestException(s"ZIP file is malformed. No entries found."))
+        case Some(firstEntry: ZipEntry) => for {
+          _ <- extract(firstEntry)
+          _ <- Stream
+            .continually(zipInputStream.getNextEntry)
+            .takeWhile(Option(_).nonEmpty)
+            .map(extract)
+            .find(_.isFailure)
+            .getOrElse(Success(()))
+        } yield ()
+      }
+    }
   }
 
   implicit class RichFileItem(val fileItem: FileItem) extends AnyVal {

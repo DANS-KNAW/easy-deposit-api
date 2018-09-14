@@ -163,18 +163,16 @@ class DepositServlet(app: EasyDepositApiApp)
   }
 
   private def uploadZip(stagingDir: File, bag: DansBag, path: Path, zipIS: ZipInputStream) = {
-    val stagedFiles = StagedFiles(stagingDir, bag, path)
     for {
-      _ <- stagedFiles.unzip(zipIS)
-      _ <- stagedFiles.moveAll
+      _ <- zipIS.extractPlainEntriesTo(stagingDir)
+      _ <- StagedFiles(stagingDir, bag, path).moveAll
     } yield ()
   }
 
   private def uploadPlainItems(stagingDir: File, bag: DansBag, path: Path, fileItems: BufferedIterator[FileItem]) = {
-    val stagedFiles = StagedFiles(stagingDir, bag, path)
     for {
       _ <- fileItems.copyPlainItemsTo(stagingDir)
-      _ <- stagedFiles.moveAll
+      _ <- StagedFiles(stagingDir, bag, path).moveAll
     } yield ()
   }
 

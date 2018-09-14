@@ -15,15 +15,13 @@
  */
 package nl.knaw.dans.easy.deposit
 
-import java.nio.file.{ Files, Path }
-import java.util.zip.{ ZipEntry, ZipException, ZipInputStream }
+import java.nio.file.Path
 
 import better.files.File
 import nl.knaw.dans.bag.DansBag
-import nl.knaw.dans.easy.deposit.servlets.DepositServlet.BadRequestException
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 
-import scala.util.{ Failure, Success, Try }
+import scala.util.Try
 
 /**
  *
@@ -50,33 +48,5 @@ case class StagedFiles(stagingDir: File, draftBag: DansBag, path: Path) extends 
       .map(moveToDraft)
       .find(_.isFailure)
       .getOrElse(Success(()))
-  }
-
-  def unzip(zipInputStream: ZipInputStream): Try[Unit] = {
-    def extract(entry: ZipEntry) = {
-      if (entry.isDirectory)
-        Try((stagingDir / entry.getName).createDirectories())
-      else if (entry.getName.matches(".*.g?z(ip)?")) // TODO the regexp is duplicated from servlets/package.scala
-             Failure(BadRequestException(s"ZIP file is malformed. It contains a Zip ${ entry.getName }."))
-      else {
-        logger.info(s"Extracting ${ entry.getName } size=${ entry.getSize } compressedSize=${ entry.getCompressedSize } CRC=${ entry.getCrc }")
-        Try(Files.copy(zipInputStream, (stagingDir / entry.getName).path))
-      }.recoverWith {
-        case e if e.isInstanceOf[ZipException] => Failure(BadRequestException(s"ZIP file is malformed. $e"))
-      }
-    }
-
-    Option(zipInputStream.getNextEntry) match {
-      case None => Failure(BadRequestException(s"ZIP file is malformed. No entries found."))
-      case Some(firstEntry: ZipEntry) => for {
-        _ <- extract(firstEntry)
-        _ <- Stream
-          .continually(zipInputStream.getNextEntry)
-          .takeWhile(Option(_).nonEmpty)
-          .map(extract)
-          .find(_.isFailure)
-          .getOrElse(Success(()))
-      } yield ()
-    }
   }
 }
