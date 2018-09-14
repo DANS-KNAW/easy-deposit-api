@@ -170,11 +170,12 @@ class DepositServlet(app: EasyDepositApiApp)
     } yield ()
   }
 
-  private def uploadPlainItems(stagingDir: File, bag: DansBag, path: Path, fileItems: Iterator[FileItem]) = {
-    fileItems
-      .map(_.ifNotZipCopyTo(stagingDir))
-      .find(_.isFailure)
-      .getOrElse(StagedFiles(stagingDir, bag, path).moveAll)
+  private def uploadPlainItems(stagingDir: File, bag: DansBag, path: Path, fileItems: BufferedIterator[FileItem]) = {
+    val stagedFiles = StagedFiles(stagingDir, bag, path)
+    for {
+      _ <- fileItems.copyPlainItemsTo(stagingDir)
+      _ <- stagedFiles.moveAll
+    } yield ()
   }
 
   private def isMultipart = {

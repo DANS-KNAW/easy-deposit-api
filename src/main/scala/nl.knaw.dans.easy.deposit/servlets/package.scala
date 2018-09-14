@@ -70,6 +70,13 @@ package object servlets extends DebugEnhancedLogging {
 
   implicit class RichFileItems(val fileItems: BufferedIterator[FileItem]) extends AnyVal {
 
+    def copyPlainItemsTo (dir: File): Try[Unit] = {
+      fileItems
+        .map(_.ifNotZipCopyTo(dir))
+        .find(_.isFailure)
+        .getOrElse(Success(()))
+    }
+
     def nextAsZipIfOnlyOne: Try[Option[ManagedResource[ZipInputStream]]] = {
 
       // forward pointer after checking for leading form fields without selected files
