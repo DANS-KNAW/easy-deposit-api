@@ -42,21 +42,6 @@ package object servlets extends DebugEnhancedLogging {
     BadRequest(s"Bad Request. ${ t.getMessage }")
   }
 
-  implicit class RichIterator[T](val xs: Iterator[Try[T]]) extends AnyVal {
-    def failFast: Try[Seq[T]] = {
-      // TODO dans-lib candidate?
-      val successes = Seq.newBuilder[T]
-
-      xs.foreach {
-        case Success(t) => successes += t
-        case Failure(e) =>
-          return Failure(e)
-      }
-
-      Success(successes.result())
-    }
-  }
-
   implicit class RichFileItem(val fileItem: FileItem) extends AnyVal {
 
     def isZip: Boolean = {
