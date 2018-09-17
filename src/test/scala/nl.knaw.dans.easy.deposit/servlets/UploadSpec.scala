@@ -61,11 +61,13 @@ class UploadSpec extends TestSupportFixture with ServletFixture with ScalatraSui
     ) {
       body shouldBe ""
       status shouldBe OK_200
-      val uploaded = (testDir / "drafts/foo" / uuid.toString / "bag/data" / relativeTarget).list
+      val bagDir = testDir / "drafts/foo" / uuid.toString / "bag"
+      val uploaded = (bagDir / "data" / relativeTarget).list
       uploaded.size shouldBe bodyParts.size
       uploaded.foreach(file =>
         file.contentAsString shouldBe (testDir / "input" / file.name).contentAsString
       )
+      (bagDir / "manifest-sha1.txt").lines.size shouldBe bodyParts.size
     }
   }
 
@@ -159,7 +161,8 @@ class UploadSpec extends TestSupportFixture with ServletFixture with ScalatraSui
     File("src/test/resources/manual-test/Archive.zip").copyTo(testDir / "input" / "1.zip")
     val uuid = createDataset
     val relativeTarget = "path/to/dir"
-    val absoluteTarget = (testDir / "drafts" / "foo" / uuid.toString / "bag/data" / relativeTarget).createDirectories()
+    val bagDir = testDir / "drafts" / "foo" / uuid.toString / "bag"
+    val absoluteTarget = (bagDir / "data" / relativeTarget).createDirectories()
     absoluteTarget.list.size shouldBe 0 // precondition
     expectsUserFooBar
     post(
@@ -170,8 +173,15 @@ class UploadSpec extends TestSupportFixture with ServletFixture with ScalatraSui
     ) {
       body shouldBe ""
       status shouldBe OK_200
-      absoluteTarget.walk().map(_.name).toList should contain theSameElementsAs
-        List("dir", "login.html", "readme.md", "__MACOSX", "._login.html", "upload.html")
+      absoluteTarget.walk().map(_.name).toList should contain theSameElementsAs List(
+          "dir", "login.html", "readme.md", "__MACOSX", "._login.html", "upload.html"
+      )
+      (bagDir / "manifest-sha1.txt")
+        .lines
+        .map(_.replaceAll(".* +", "")) should contain theSameElementsAs List(
+          "login.html", "readme.md", "__MACOSX/._login.html", "upload.html"
+        ).map("data/path/to/dir/" + _)
+
     }
   }
 
