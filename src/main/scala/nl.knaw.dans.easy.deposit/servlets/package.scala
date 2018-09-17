@@ -118,16 +118,20 @@ package object servlets extends DebugEnhancedLogging {
 
     def nextAsZipIfOnlyOne: Try[Option[ManagedResource[ZipInputStream]]] = {
 
-      // forward pointer after checking for leading form fields without selected files
-      while (fileItems.hasNext && fileItems.head.name.isBlank) { fileItems.next() }
-
-      if (!fileItems.head.isZip) Success(None)
+      skipLeadingEmptyFormFields()
+      if (!fileItems.headOption.exists(_.isZip)) Success(None)
       else {
-        val zipItem = fileItems.next() // TODO only empty form fields would be OK
+        val leadingZipItem = fileItems.next()
+        skipLeadingEmptyFormFields()
         if (fileItems.hasNext)
-          Failure(ZipMustBeOnlyFileException(zipItem.name))
-        else zipItem.getZipInputStream.map(Some(_))
+          Failure(ZipMustBeOnlyFileException(leadingZipItem.name))
+        else leadingZipItem.getZipInputStream.map(Some(_))
       }
+    }
+
+    private def skipLeadingEmptyFormFields(): Unit = {
+      // forward pointer after check
+      while (fileItems.headOption.exists(_.name.isBlank)) { fileItems.next() }
     }
   }
 }

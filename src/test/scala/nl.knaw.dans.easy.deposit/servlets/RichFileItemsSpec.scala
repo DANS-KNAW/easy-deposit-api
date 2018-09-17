@@ -15,10 +15,14 @@
  */
 package nl.knaw.dans.easy.deposit.servlets
 
+import java.util.zip.ZipInputStream
+
 import javax.servlet.http.Part
 import nl.knaw.dans.easy.deposit.TestSupportFixture
 import org.scalamock.scalatest.MockFactory
 import org.scalatra.servlet.FileItem
+
+import scala.util.Success
 
 class RichFileItemsSpec extends TestSupportFixture with MockFactory {
 
@@ -27,33 +31,33 @@ class RichFileItemsSpec extends TestSupportFixture with MockFactory {
     clearTestDir()
   }
 
-  "nextAsZipIfOnlyOne" should "return nothing" in pendingUntilFixed {
+  "nextAsZipIfOnlyOne" should "return nothing" in {
     val fileItems = Iterator[FileItem]().buffered
-    fileItems.nextAsZipIfOnlyOne shouldBe None
+    fileItems.nextAsZipIfOnlyOne shouldBe Success(None)
     fileItems.hasNext shouldBe false
   }
 
-  it should "return a zip item" in pendingUntilFixed {
+  it should "return a zip item" in {
     val mocked = mock[Part]
     mocked.getSize _ expects() returning 20
     mocked.getName _ expects() returning "some.zip"
     mocked.getHeader _ expects * returning null anyNumberOfTimes()
-    mocked.getContentType _ expects () returning null
-    val fileItems: BufferedIterator[FileItem] = Iterator(FileItem(mocked)).buffered
+    mocked.getContentType _ expects() returning null
+    val fileItems = Iterator(FileItem(mocked)).buffered
 
-    fileItems.nextAsZipIfOnlyOne shouldBe ""
+    fileItems.nextAsZipIfOnlyOne shouldBe Success(Some[ZipInputStream](_))
     fileItems.hasNext shouldBe false
   }
 
-  it should "return a plain item" in pendingUntilFixed {
+  it should "return a plain item" in {
     val mocked = mock[Part]
     mocked.getSize _ expects() returning 20
     mocked.getName _ expects() returning "some.txt"
     mocked.getHeader _ expects * returning null anyNumberOfTimes()
-    mocked.getContentType _ expects () returning null
-    val fileItems: BufferedIterator[FileItem] = Iterator(FileItem(mocked)).buffered
+    mocked.getContentType _ expects() returning null
+    val fileItems = Iterator(FileItem(mocked)).buffered
 
-    fileItems.nextAsZipIfOnlyOne shouldBe None
+    fileItems.nextAsZipIfOnlyOne shouldBe Success(None)
     fileItems.hasNext shouldBe true
   }
 }
