@@ -170,7 +170,7 @@ class UploadSpec extends TestSupportFixture with ServletFixture with ScalatraSui
     ) {
       body shouldBe ""
       status shouldBe OK_200
-      absoluteTarget.walk().map(_.path.getFileName.toString).toList should contain theSameElementsAs
+      absoluteTarget.walk().map(_.name).toList should contain theSameElementsAs
         List("dir", "login.html", "readme.md", "__MACOSX", "._login.html", "upload.html")
     }
   }

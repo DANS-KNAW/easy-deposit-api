@@ -33,7 +33,9 @@ import scala.util.{ Failure, Success, Try }
 package object servlets extends DebugEnhancedLogging {
 
   private val extensionZipPattern = ".*.g?z(ip)?"
-  private val contentTypeZipPattern = "(application|multipart)/(x-)?g?zip(-compress(ed)?)?( .*)?"
+  private val pre = "(x-)?g?zip"
+  private val post = "-compress(ed)?"
+  private val contentTypeZipPattern = s"application/(($pre($post)?)|(x$post))"
 
   def internalErrorResponse(t: Throwable): ActionResult = {
     logger.error(s"Not expected exception: ${ t.getMessage }", t)
@@ -109,7 +111,7 @@ package object servlets extends DebugEnhancedLogging {
 
   implicit class RichFileItems(val fileItems: BufferedIterator[FileItem]) extends AnyVal {
 
-    def copyPlainItemsTo (dir: File): Try[Unit] = {
+    def copyPlainItemsTo(dir: File): Try[Unit] = {
       fileItems
         .map(_.copyNonZipTo(dir))
         .find(_.isFailure)
@@ -117,7 +119,6 @@ package object servlets extends DebugEnhancedLogging {
     }
 
     def nextAsZipIfOnlyOne: Try[Option[ManagedResource[ZipInputStream]]] = {
-
       skipLeadingEmptyFormFields()
       if (!fileItems.headOption.exists(_.isZip)) Success(None)
       else {

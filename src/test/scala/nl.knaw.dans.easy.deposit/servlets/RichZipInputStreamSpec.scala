@@ -44,7 +44,7 @@ class RichZipInputStreamSpec extends TestSupportFixture {
     val stagingDir = testDir / "staging"
     managed(File("src/test/resources/manual-test/Archive.zip").newZipInputStream).apply(
       _.unzipPlainEntriesTo(stagingDir.createDirectories()) shouldBe Success(()))
-    stagingDir.walk().map(_.path.getFileName.toString).toList should contain theSameElementsAs
+    stagingDir.walk().map(_.name).toList should contain theSameElementsAs
       List("staging", "login.html", "readme.md", "__MACOSX", "._login.html", "upload.html")
   }
 }

@@ -15,14 +15,16 @@
  */
 package nl.knaw.dans.easy.deposit.servlets
 
-import java.util.zip.ZipInputStream
+import java.io.ByteArrayInputStream
+import java.nio.charset.StandardCharsets
 
 import javax.servlet.http.Part
 import nl.knaw.dans.easy.deposit.TestSupportFixture
+import nl.knaw.dans.easy.deposit.servlets.DepositServlet.ZipMustBeOnlyFileException
 import org.scalamock.scalatest.MockFactory
 import org.scalatra.servlet.FileItem
 
-import scala.util.Success
+import scala.util.{ Failure, Success }
 
 class RichFileItemsSpec extends TestSupportFixture with MockFactory {
 
@@ -37,27 +39,92 @@ class RichFileItemsSpec extends TestSupportFixture with MockFactory {
     fileItems.hasNext shouldBe false
   }
 
-  it should "return a zip item" in {
-    val mocked = mock[Part]
-    mocked.getSize _ expects() returning 20
-    mocked.getName _ expects() returning "some.zip"
-    mocked.getHeader _ expects * returning null anyNumberOfTimes()
-    mocked.getContentType _ expects() returning null
-    val fileItems = Iterator(FileItem(mocked)).buffered
-
-    fileItems.nextAsZipIfOnlyOne shouldBe Success(Some[ZipInputStream](_))
+  it should "return the zip item between form fields without selected files" in {
+    val fileItems = Iterator(
+      mockFileItem(""),
+      mockFileItem("some.zip"),
+      mockFileItem(""),
+    ).buffered
+    fileItems.nextAsZipIfOnlyOne should matchPattern { case Success(Some(_)) => }
     fileItems.hasNext shouldBe false
   }
 
-  it should "return a plain item" in {
-    val mocked = mock[Part]
-    mocked.getSize _ expects() returning 20
-    mocked.getName _ expects() returning "some.txt"
-    mocked.getHeader _ expects * returning null anyNumberOfTimes()
-    mocked.getContentType _ expects() returning null
-    val fileItems = Iterator(FileItem(mocked)).buffered
+  it should "recognize a zip by all possible extensions and mime-types" in {
+    val fileItems: Seq[FileItem] = Seq(
+      "zip",
+      "gzip",
+      "z",
+      "gz"
+    ).map(ext => mockFileItem(s"some.$ext")) ++ Seq(
+      "application/zip",
+      "application/gzip",
+      "application/x-compress",
+      "application/x-compressed",
+      "application/x-zip-compress",
+      "application/x-zip-compressed",
+      "application/x-gzip-compress",
+      "application/x-gzip-compressed",
+      "application/x-zip",
+      "application/x-gzip",
+    ).map(mockFileItem(s"some.thing", _))
+    fileItems.map { Iterator(_)
+        .buffered
+        .nextAsZipIfOnlyOne
+        .map(_.isDefined)
+        .toString
+    }.mkString("") shouldBe ("Success(true)" * fileItems.size)
+  }
 
+  it should "refuse a zip item if there are more items" in {
+    val fileItems = Iterator(
+      mockFileItem(""),
+      mockFileItem("some.zip"),
+      mockFileItem(""),
+      mockFileItem("other.zip"),
+      mockFileItem(""),
+    ).buffered
+    fileItems.nextAsZipIfOnlyOne should matchPattern {
+      case Failure(ZipMustBeOnlyFileException("some.zip")) =>
+    }
+  }
+
+  "copyPlainItemsTo" should "copy the plain item between form fields without selected files" in {
+    val stagingDir = (testDir / "staging").createDirectories()
+    val fileItems = Iterator(
+      mockFileItem(""),
+      mockFileItem("some.txt"),
+      mockFileItem(""),
+      mockFileItem("more.txt"),
+      mockFileItem(""),
+    ).buffered
     fileItems.nextAsZipIfOnlyOne shouldBe Success(None)
-    fileItems.hasNext shouldBe true
+    fileItems.copyPlainItemsTo(stagingDir) shouldBe Success(())
+    stagingDir.walk().map(_.name).toList should
+      contain theSameElementsAs List("staging", "some.txt", "more.txt")
+  }
+
+  it should "refuse to copy a zip as plain item" in {
+    val stagingDir = (testDir / "staging").createDirectories()
+    val fileItems = Iterator(
+      mockFileItem("some.txt"),
+      mockFileItem("other.zip"),
+    ).buffered
+    fileItems.nextAsZipIfOnlyOne shouldBe Success(None)
+    fileItems.copyPlainItemsTo(stagingDir) should matchPattern {
+      case Failure(ZipMustBeOnlyFileException("other.zip")) =>
+    }
+    stagingDir.walk().map(_.name).toList should
+      contain theSameElementsAs List("staging", "some.txt")
+  }
+
+  private def mockFileItem(fileName: String, contentType: String = null) = {
+    val mocked = mock[Part]
+    mocked.getSize _ expects() returning 20 anyNumberOfTimes()
+    mocked.getName _ expects() returning "formFieldName" anyNumberOfTimes()
+    mocked.getHeader _ expects "content-disposition" returning "filename=" + fileName anyNumberOfTimes()
+    mocked.getHeader _ expects "content-type" returning contentType anyNumberOfTimes()
+    mocked.getContentType _ expects() returning contentType anyNumberOfTimes()
+    mocked.getInputStream _ expects() returning new ByteArrayInputStream("Lorem ipsum est".getBytes(StandardCharsets.UTF_8)) anyNumberOfTimes()
+    FileItem(mocked)
   }
 }
