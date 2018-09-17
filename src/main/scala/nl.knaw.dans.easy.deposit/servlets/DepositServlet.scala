@@ -18,7 +18,6 @@ package nl.knaw.dans.easy.deposit.servlets
 import java.nio.file.{ NoSuchFileException, Path, Paths }
 import java.util.UUID
 
-import better.files.File
 import nl.knaw.dans.easy.deposit.authentication.ServletEnhancedLogging._
 import nl.knaw.dans.easy.deposit.docs.JsonUtil.{ InvalidDocumentException, toJson }
 import nl.knaw.dans.easy.deposit.docs.{ DatasetMetadata, DepositInfo, StateInfo }
@@ -119,8 +118,8 @@ class DepositServlet(app: EasyDepositApiApp)
     (for {
       uuid <- getUUID
       path <- getPath
-      depositFiles <- app.getDepositFiles(user.id, uuid, path)
-    } yield Ok(body = toJson(depositFiles))
+      contents <- app.getFileInfo(user.id, uuid, path)
+    } yield Ok(body = toJson(contents))
       ).getOrRecoverResponse(respond)
   }
   post("/:uuid/file/*") { //file(s)
@@ -222,7 +221,7 @@ class DepositServlet(app: EasyDepositApiApp)
     val fileItems = fileMultiParams.values.flatten
     logger.info(fileItems
       .map(i => s"size=${ i.size } charset=${ i.charset } contentType=${ i.contentType } fieldName=${ i.fieldName } name=${ i.name }")
-      .mkString(s"user=${ user.id }; ${request.uri.getPath}: ", "; ", ".")
+      .mkString(s"user=${ user.id }; ${ request.uri.getPath }: ", "; ", ".")
     )
     fileItems
   }
