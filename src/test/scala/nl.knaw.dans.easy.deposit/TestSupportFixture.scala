@@ -19,9 +19,12 @@ import java.util.{ Base64, TimeZone, UUID }
 
 import better.files.File
 import better.files.File._
+import nl.knaw.dans.bag.DansBag
+import nl.knaw.dans.bag.v0.DansV0Bag
 import nl.knaw.dans.easy.deposit.authentication.AuthenticationMocker.mockedAuthenticationProvider
 import nl.knaw.dans.easy.deposit.authentication.TokenSupport.TokenConfig
 import nl.knaw.dans.easy.deposit.authentication.{ AuthConfig, AuthUser, AuthenticationProvider, TokenSupport }
+import nl.knaw.dans.easy.deposit.docs.DepositInfo
 import org.apache.commons.configuration.PropertiesConfiguration
 import org.joda.time.{ DateTime, DateTimeUtils, DateTimeZone }
 import org.scalatest._
@@ -68,6 +71,13 @@ trait TestSupportFixture extends FlatSpec with Matchers with Inside with BeforeA
       addProperty("users.ldap-admin-password", "-")
       addProperty("users.ldap-user-id-attr-name", "-")
     })
+  }
+
+  def dansBag: DansBag = {
+    val depositInfo = DepositInfo()
+    val deposit = DepositDir(testDir, "foo", depositInfo.id)
+    val depositDir = deposit.baseDir / "foo" / depositInfo.id.toString
+    DansV0Bag.empty(depositDir / "bag").getOrElse(null)
   }
 
   private def testSubDir(drafts: String) = {

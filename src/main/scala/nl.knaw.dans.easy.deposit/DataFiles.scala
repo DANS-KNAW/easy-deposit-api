@@ -23,6 +23,7 @@ import nl.knaw.dans.bag.ChecksumAlgorithm.SHA1
 import nl.knaw.dans.bag.DansBag
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 
+import scala.language.postfixOps
 import scala.util.{ Failure, Success, Try }
 
 /**
@@ -35,6 +36,16 @@ import scala.util.{ Failure, Success, Try }
 case class DataFiles(bag: DansBag) extends DebugEnhancedLogging {
 
   /**
+   * Returns 'true' if the path points to a directory.
+   *
+   * @param path a relative path.
+   * @return 'true' if directory, else 'false'
+   */
+  def isDirectory(path: Path): Boolean = {
+    bag.data / path.toString isDirectory
+  }
+
+  /**
    * Lists information about the files the directory `path` and its subdirectories.
    * A previous crash during a recursive delete process (deleting a directory),
    * or between deleting a single file and updating the manifest,
@@ -44,7 +55,7 @@ case class DataFiles(bag: DansBag) extends DebugEnhancedLogging {
    * @return a list of [[FileInfo]] objects
    */
   def list(path: Path = Paths.get("")): Try[Seq[FileInfo]] = {
-    val parentPath = bag.baseDir / "data" / path.toString
+    val parentPath = bag.data / path.toString
     val manifestMap = bag.payloadManifests
 
     def convert(items: Map[File, String]) = {
@@ -59,6 +70,26 @@ case class DataFiles(bag: DansBag) extends DebugEnhancedLogging {
       .orElse(manifestMap.values.headOption)
       .map(items => Success(convert(items)))
       .getOrElse(Failure(new Exception(s"no algorithm for ${ bag.baseDir }")))
+  }
+
+  /**
+   * Lists information about a file.
+   *
+   * @param path a relative path into a data files.
+   * @return a [[FileInfo]] object
+   */
+  def get(path: Path = Paths.get("")): Try[FileInfo] = {
+    val manifestMap = bag.payloadManifests
+    val manifests = manifestMap.get(SHA1).orElse(manifestMap.values.headOption)
+    val absolutePath = bag.data / path.toString
+    val fileExists = manifests.get.contains(absolutePath)
+    if (fileExists) {
+      val checksum = manifests get absolutePath
+      Success(FileInfo(path.getFileName.toString, bag.data.relativize(absolutePath), checksum))
+    }
+    else {
+      Failure(new NoSuchFileException(s"${ path.toString }"))
+    }
   }
 
   private def toFileInfo(file: File, checksum: String): FileInfo = {

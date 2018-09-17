@@ -386,13 +386,19 @@ paths:
     post:
       tags:
       - directory
-      summary: Adds a file or a subdirectory.
+      summary: Adds one or more files.
       description: |
-        Sub request of a request with `Content-Type` value `multipart/form-data`.
-        By default the files listed in the body of the main request are saved in `dir_path` under the file name provided
-        in the `Content-Disposition` header. However, if a file has the extension ZIP, it
-        is extracted in `dir_path` and `Content-Disposition` is ignored (and may be left out).
-        If `dir_path`, or any of its parents do not exist yet, they are first created.
+        The `Content-Type` must always be `multipart/form-data`, which means the body is formatted using the
+        [multipart media type](https://tools.ietf.org/html/rfc2046.html#section-5.1); each part contains one file.
+        The header area of each part specifies the file name using a `Content-Disposition` header.
+
+        If the body contains only one part and that part has `Content-Type: application/zip`, then the body
+        is a file in ZIP format. This ZIP file can contain a directory hierarchy. The ZIP file will be
+        unzipped in `dir_path`. For each file in the ZIP file, the path in the deposit will be `dir_path`/`path_in_zip`.
+
+        In all other cases the files are all stored in the directory pointed to by `dir_path` and it is not
+        allowed to include any files with `Content-Type: application/zip`. Note, that this means that only a flat
+        list of files can be sent this way, i.e. not including any directory hierarchy.
       parameters:
       - $ref: "#/components/parameters/DepositId"
       - $ref: "#/components/parameters/DirPath"
@@ -400,24 +406,25 @@ paths:
       requestBody:
         required: true
         content:
-          application/octet-stream:
+          multipart/form-data:
             schema:
-              # a binary file of any type
-              type: string
-              format: binary
-          application/zip:
-            schema:
-              type: string
-              format: binary
+              type: array
+              items:
+                type: string
+                format: binary
       responses:
         201:
           description: file or subdirectory added
-        400:
+        400.1:
           $ref: "#/components/responses/MalformedZip"
+        400.2:
+          $ref: "#/components/responses/MustBeMultipartFormdata"
         401:
           $ref: "#/components/responses/Unauthorized"
         404:
           $ref: "#/components/responses/NotFound"
+        409:
+          $ref: "#/components/responses/ConflictZipMustBeOnlyFile"
         500:
           $ref: "#/components/responses/InternalServerError"
       security:
@@ -472,7 +479,9 @@ paths:
       parameters:
        - $ref: "#/components/parameters/DepositId"
        - $ref: "#/components/parameters/FilePath"
-      description: If any of `file_path`'s parent do not yet exist, they are first created.
+      description: |
+        If any of `file_path`'s parent do not yet exist, they are first created. The Content-Type may
+        be anything except `application/zip`.
       operationId: writeFile
       requestBody:
         description: file data
@@ -502,6 +511,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/FileInfo"
+        400:
+          $ref: "#/components/responses/ZipFileNotAllowed"
         401:
           $ref: "#/components/responses/Unauthorized"
         404:
@@ -583,9 +594,14 @@ components:
         type: string
 
     ContentDisposition:
-      name: "Content-Disposition; filename"
+      name: "Content-Disposition"
       in: header
-      description: the name to use for the new file in the deposit; required unless Content-Type is `application/zip`.
+      description: |
+        Used to specify the `filename` of a message part. The first parameter is always `form-data`.
+        Additional parameters are case-insensitive and have arguments that use quoted-string syntax
+        after the '=' sign.Multiple parameters are separated by a semi-colon (';').
+      example:
+        '`Content-Disposition: form-data; filename="myfile.txt"`'
       required: true
       schema:
         type: "string"
@@ -614,6 +630,9 @@ components:
         Not found. The client may derive from this response that the containing deposit does
         not exist, either.
 
+    ConflictZipMustBeOnlyFile:
+      description: A multipart/form-data message contained a ZIP part but also other parts.
+
     Gone:
       description: |
         Gone. The metadata is no longer available, because the deposit has been fully processed.
@@ -629,6 +648,12 @@ components:
 
     MalformedZip:
       description: Bad request. ZIP file is malformed.
+
+    MustBeMultipartFormdata:
+      description: Bad Request. The request body must be multipart/form-data.
+
+    ZipFileNotAllowed:
+      description: Bad request. Content-Type must not be application/zip.
 
   schemas:
 

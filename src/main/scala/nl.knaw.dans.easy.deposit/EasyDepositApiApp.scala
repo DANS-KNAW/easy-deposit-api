@@ -77,6 +77,10 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
     dir
   }
 
+  private def getDeposit(user: String, id: UUID): Try[DepositDir] = {
+    DepositDir.get(draftsDir, user, id)
+  }
+
   def getUser(user: String): Try[Map[String, Seq[String]]] = authentication.getUser(user)
 
   /**
@@ -113,7 +117,7 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
    */
   def getDepositState(user: String, id: UUID): Try[StateInfo] = {
     for {
-      deposit <- DepositDir.get(draftsDir, user, id)
+      deposit <- getDeposit(user, id)
       state <- deposit.getStateInfo
     } yield state
   }
@@ -139,7 +143,7 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
    * @return
    */
   def setDepositState(stateInfo: StateInfo, user: String, id: UUID): Try[Unit] = for {
-    deposit <- DepositDir.get(draftsDir, user, id)
+    deposit <- getDeposit(user, id)
     _ <- deposit.checkStateTransition(stateInfo.state)
     _ <- if (stateInfo.state == State.submitted)
            submitter.submit(deposit) // also changes the state
@@ -154,7 +158,7 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
    * @return
    */
   def deleteDeposit(user: String, id: UUID): Try[Unit] = for {
-    deposit <- DepositDir.get(draftsDir, user, id)
+    deposit <- getDeposit(user, id)
     _ <- deposit.delete()
   } yield ()
 
@@ -166,7 +170,7 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
    * @return
    */
   def getDoi(user: String, id: UUID): Try[String] = for {
-    deposit <- DepositDir.get(draftsDir, user, id)
+    deposit <- getDeposit(user, id)
     doi <- deposit.getDOI(pidRequester)
   } yield doi
 
@@ -178,7 +182,7 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
    * @return
    */
   def getDatasetMetadataForDeposit(user: String, id: UUID): Try[DatasetMetadata] = for {
-    deposit <- DepositDir.get(draftsDir, user, id)
+    deposit <- getDeposit(user, id)
     md <- deposit.getDatasetMetadata
   } yield md
 
@@ -193,22 +197,35 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
    * @return
    */
   def writeDataMetadataToDeposit(dm: DatasetMetadata, user: String, id: UUID): Try[Unit] = for {
-    deposit <- DepositDir.get(draftsDir, user, id)
+    deposit <- getDeposit(user, id)
     _ <- deposit.writeDatasetMetadataJson(dm)
   } yield ()
 
   /**
-   * Returns the list of [[FileInfo]] objects for the dataset files in this deposit.
+   * Returns a list of [[FileInfo]] objects if the path points to a directory, else a single [FileInfo] object
+   *
+   * @param user the user ID
+   * @param id   the deposit ID
+   * @param path path to a directory or a file
+   * @return
+   */
+  def getFileInfo(user: String, id: UUID, path: Path): Try[Object] = for {
+    dataFiles <- getDataFiles(user, id)
+    contents <- if (dataFiles.isDirectory(path)) dataFiles.list(path)
+                else dataFiles.get(path)
+  } yield contents
+
+  /**
+   * Returns dataset files of the deposit
    *
    * @param user the user ID
    * @param id   the deposit ID
    * @return
    */
-  def getDepositFiles(user: String, id: UUID, path: Path = Paths.get("")): Try[Seq[FileInfo]] = for {
-    deposit <- DepositDir.get(draftsDir, user, id)
+  private def getDataFiles(user: String, id: UUID): Try[DataFiles] = for {
+    deposit <- getDeposit(user, id)
     dataFiles <- deposit.getDataFiles
-    fileInfos <- dataFiles.list(path)
-  } yield fileInfos
+  } yield dataFiles
 
   /**
    * Writes the given input stream to a location in the deposit's content directory. The specified `path`
@@ -225,8 +242,7 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
    * @return `true` if a new file was created, `false` otherwise
    */
   def writeDepositFile(is: => InputStream, user: String, id: UUID, path: Path): Try[Boolean] = for {
-    deposit <- DepositDir.get(draftsDir, user, id)
-    dataFiles <- deposit.getDataFiles
+    dataFiles <- getDataFiles(user, id)
     _ = logger.info(s"uploading to [${ dataFiles.bag.baseDir }] of [$path]")
     created <- dataFiles.write(is, path)
     _ = logger.info(s"created=$created $user/$id/$path")
@@ -248,8 +264,7 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
    * @return
    */
   def deleteDepositFile(user: String, id: UUID, path: Path): Try[Unit] = for {
-    deposit <- DepositDir.get(draftsDir, user, id)
-    dataFiles <- deposit.getDataFiles
+    dataFiles <- getDataFiles(user, id)
     _ <- dataFiles.delete(path)
   } yield ()
 }
