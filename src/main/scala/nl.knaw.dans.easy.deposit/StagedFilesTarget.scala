@@ -38,14 +38,14 @@ case class StagedFilesTarget(draftBag: DansBag, destination: Path) extends Debug
 
     def moveToDraft(file: File): Try[Unit] = {
       val bagRelativePath = destination.resolve(stagingDir.relativize(file))
-      logger.debug(s"moving to $bagRelativePath")
-      // check fetch files just in case pruning gets implemented, for example after rejecting or un-publishing
-      val exists =
-        (draftBag.data / bagRelativePath.toString).exists ||
-        draftBag.fetchFiles.map(_.file).contains(destination)// TODO check and provide proof
+      // handle fetch items files just in case pruning gets implemented, for example after rejecting or un-publishing
+      val isPayload = (draftBag.data / bagRelativePath.toString).exists
+      lazy val isFetchItem = draftBag.fetchFiles.map(_.file).contains(draftBag.data / bagRelativePath.toString)
+      logger.debug(s"moving to $bagRelativePath isPayload=$isPayload isFetchItem=$isFetchItem") // TODO lazy?
       for {
-        _ <- if (exists) draftBag.removePayloadFile(bagRelativePath)
-             else Success(())
+        _ <- if (isPayload) draftBag.removePayloadFile(bagRelativePath)
+             else if (isFetchItem) draftBag.removeFetchItem(bagRelativePath)
+             else Success(draftBag.save())
         _ <- draftBag.addPayloadFile(file, bagRelativePath)
       } yield ()
     }
