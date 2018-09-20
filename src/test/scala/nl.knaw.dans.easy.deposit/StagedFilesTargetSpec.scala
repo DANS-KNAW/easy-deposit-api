@@ -34,54 +34,72 @@ class StagedFilesTargetSpec extends TestSupportFixture {
     stagedDir.createDirectories()
   }
 
-  "takeAllFrom" should "replace fetch file" in  {
+  "takeAllFrom" should "add payload files" in {
+    (stagedDir / "sub/path").createDirectories()
+    (stagedDir / "sub/path/some.thing").createFile().write("new content")
+    (stagedDir / "some.thing").createFile().write("new content")
+    val bag = newEmptyBag
+    bag.save()
+    bag.data.list.size shouldBe 0
+    bag.fetchFiles.size shouldBe 0
+
+    StagedFilesTarget(bag, Paths.get("path/to"))
+      .takeAllFrom(stagedDir) shouldBe Success(())
+
+    val newBag = DansV0Bag.read(draftDir).getOrRecover(e => fail(e))
+    (newBag.data / "path/to/some.thing").contentAsString shouldBe "new content"
+    (newBag.data / "path/to/sub/path/some.thing").contentAsString shouldBe "new content"
+    newBag.fetchFiles.size shouldBe 0
+  }
+
+  it should "add a payload file to the root of the data folder" in {
+    (stagedDir / "some.thing").createFile().write("new content")
+    val bag = newEmptyBag
+    bag.save()
+
+    StagedFilesTarget(bag, Paths.get(""))
+      .takeAllFrom(stagedDir) shouldBe Success(())
+
+    val newBag = readDraftBag
+    (newBag.data / "some.thing").contentAsString shouldBe "new content"
+    newBag.fetchFiles.size shouldBe 0
+  }
+
+  it should "replace a fetch file" in {
     (stagedDir / "some.thing").createFile().write("new content")
     val url = new URL("https://raw.githubusercontent.com/DANS-KNAW/easy-deposit-api/master/README.md")
-    val bag = DansV0Bag
-      .empty(draftDir).getOrRecover(e => fail(e))
-      .addFetchItem(url, Paths.get("path/to/some.thing")).getOrRecover(e => fail(e))
+    val bag = newEmptyBag.addFetchItem(url, Paths.get("path/to/some.thing")).getOrRecover(e => fail(e))
     bag.save()
-    (bag.data / "path/to/some.thing") shouldNot exist
+    bag.data.list.size shouldBe 0
     bag.fetchFiles.size shouldBe 1
 
     StagedFilesTarget(bag, Paths.get("path/to"))
-        .takeAllFrom(stagedDir) shouldBe Success(())
+      .takeAllFrom(stagedDir) shouldBe Success(())
 
-    val newBag = DansV0Bag.read(draftDir).getOrRecover(e => fail(e))
+    val newBag = readDraftBag
     (newBag.data / "path/to/some.thing").contentAsString shouldBe "new content"
     newBag.fetchFiles.size shouldBe 0
   }
 
-  "takeAllFrom" should "replace payload file" in  {
+  it should "replace a payload file" in {
     (stagedDir / "some.thing").createFile().write("new content")
-    val bag = DansV0Bag
-      .empty(draftDir).getOrRecover(e => fail(e))
-      .addPayloadFile("Lorum ipsum".asInputStream, Paths.get("path/to/some.thing")).getOrRecover(e => fail(e))
+    val bag = newEmptyBag.addPayloadFile("Lorum ipsum".asInputStream, Paths.get("path/to/some.thing")).getOrRecover(e => fail(e))
     bag.save()
     (bag.data / "path/to/some.thing").contentAsString shouldBe "Lorum ipsum"
-    bag.fetchFiles.size shouldBe 0
 
     StagedFilesTarget(bag, Paths.get("path/to"))
-        .takeAllFrom(stagedDir) shouldBe Success(())
+      .takeAllFrom(stagedDir) shouldBe Success(())
 
-    val newBag = DansV0Bag.read(draftDir).getOrRecover(e => fail(e))
+    val newBag = readDraftBag
     (newBag.data / "path/to/some.thing").contentAsString shouldBe "new content"
     newBag.fetchFiles.size shouldBe 0
   }
 
-  "takeAllFrom" should "add payload file" in  {
-    (stagedDir / "some.thing").createFile().write("new content")
-    val bag = DansV0Bag
-      .empty(draftDir).getOrRecover(e => fail(e))
-    bag.save()
-    (bag.data / "path/to/some.thing") shouldNot exist
-    bag.fetchFiles.size shouldBe 0
+  private def newEmptyBag = {
+    DansV0Bag.empty(draftDir).getOrRecover(e => fail(e))
+  }
 
-    StagedFilesTarget(bag, Paths.get("path/to"))
-        .takeAllFrom(stagedDir) shouldBe Success(())
-
-    val newBag = DansV0Bag.read(draftDir).getOrRecover(e => fail(e))
-    (newBag.data / "path/to/some.thing").contentAsString shouldBe "new content"
-    newBag.fetchFiles.size shouldBe 0
+  private def readDraftBag = {
+    DansV0Bag.read(draftDir).getOrRecover(e => fail(e))
   }
 }
