@@ -28,8 +28,10 @@ import nl.knaw.dans.easy.deposit.docs.DepositInfo
 import org.apache.commons.configuration.PropertiesConfiguration
 import org.joda.time.{ DateTime, DateTimeUtils, DateTimeZone }
 import org.scalatest._
+import org.scalatest.enablers.Existence
 
 trait TestSupportFixture extends FlatSpec with Matchers with Inside with BeforeAndAfterEach {
+  implicit def existenceOfFile[FILE <: better.files.File]: Existence[FILE] = _.exists
 
   lazy val testDir: File = currentWorkingDirectory / "target" / "test" / getClass.getSimpleName
   lazy val uuid: UUID = UUID.randomUUID()

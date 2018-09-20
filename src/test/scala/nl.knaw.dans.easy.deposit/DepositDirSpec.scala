@@ -49,15 +49,15 @@ class DepositDirSpec extends TestSupportFixture with MockFactory {
     inside(tryDeposit) {
       case Success(d) =>
         val dir = draftsDir / "user001" / d.id.toString
-        dir.toJava should exist
-        (dir / "deposit.properties").toJava should exist
-        (dir / "bag").toJava should exist
-        (dir / "bag/bag-info.txt").toJava should exist
-        (dir / "bag/bagit.txt").toJava should exist
-        (dir / "bag/manifest-sha1.txt").toJava should exist
-        (dir / "bag/tagmanifest-sha1.txt").toJava should exist
-        (dir / "bag/data").toJava should exist
-        (dir / "bag/metadata").toJava should exist
+        dir should exist
+        (dir / "deposit.properties") should exist
+        (dir / "bag") should exist
+        (dir / "bag/bag-info.txt") should exist
+        (dir / "bag/bagit.txt") should exist
+        (dir / "bag/manifest-sha1.txt") should exist
+        (dir / "bag/tagmanifest-sha1.txt") should exist
+        (dir / "bag/data") should exist
+        (dir / "bag/metadata") should exist
     }
   }
 

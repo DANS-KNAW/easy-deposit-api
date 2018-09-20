@@ -34,15 +34,48 @@ class StagedFilesTargetSpec extends TestSupportFixture {
     stagedDir.createDirectories()
   }
 
-  "takeAllFrom" should "overwrite fetch file" in  {
+  "takeAllFrom" should "replace fetch file" in  {
     (stagedDir / "some.thing").createFile().write("new content")
     val url = new URL("https://raw.githubusercontent.com/DANS-KNAW/easy-deposit-api/master/README.md")
     val bag = DansV0Bag
       .empty(draftDir).getOrRecover(e => fail(e))
       .addFetchItem(url, Paths.get("path/to/some.thing")).getOrRecover(e => fail(e))
     bag.save()
-    (bag.data / "path/to/some.thing").toJava shouldNot exist
+    (bag.data / "path/to/some.thing") shouldNot exist
     bag.fetchFiles.size shouldBe 1
+
+    StagedFilesTarget(bag, Paths.get("path/to"))
+        .takeAllFrom(stagedDir) shouldBe Success(())
+
+    val newBag = DansV0Bag.read(draftDir).getOrRecover(e => fail(e))
+    (newBag.data / "path/to/some.thing").contentAsString shouldBe "new content"
+    newBag.fetchFiles.size shouldBe 0
+  }
+
+  "takeAllFrom" should "replace payload file" in  {
+    (stagedDir / "some.thing").createFile().write("new content")
+    val bag = DansV0Bag
+      .empty(draftDir).getOrRecover(e => fail(e))
+      .addPayloadFile("Lorum ipsum".asInputStream, Paths.get("path/to/some.thing")).getOrRecover(e => fail(e))
+    bag.save()
+    (bag.data / "path/to/some.thing").contentAsString shouldBe "Lorum ipsum"
+    bag.fetchFiles.size shouldBe 0
+
+    StagedFilesTarget(bag, Paths.get("path/to"))
+        .takeAllFrom(stagedDir) shouldBe Success(())
+
+    val newBag = DansV0Bag.read(draftDir).getOrRecover(e => fail(e))
+    (newBag.data / "path/to/some.thing").contentAsString shouldBe "new content"
+    newBag.fetchFiles.size shouldBe 0
+  }
+
+  "takeAllFrom" should "add payload file" in  {
+    (stagedDir / "some.thing").createFile().write("new content")
+    val bag = DansV0Bag
+      .empty(draftDir).getOrRecover(e => fail(e))
+    bag.save()
+    (bag.data / "path/to/some.thing") shouldNot exist
+    bag.fetchFiles.size shouldBe 0
 
     StagedFilesTarget(bag, Paths.get("path/to"))
         .takeAllFrom(stagedDir) shouldBe Success(())

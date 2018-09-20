@@ -60,7 +60,7 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
     ) {
       status shouldBe NO_CONTENT_204
     }
-    (testDir / "drafts" / "foo" / uuid.toString / "bag" / "metadata" / "dataset.json").toJava should exist
+    (testDir / "drafts" / "foo" / uuid.toString / "bag" / "metadata" / "dataset.json") should exist
 
     // get dataset metadata
     expectsUserFooBar
@@ -246,7 +246,7 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
     }
 
     // submit did not complain about missing metadata, so the state transition check indeed came first
-    (testDir / "drafts" / "foo" / uuid.toString / "bag" / "metatada").toJava shouldNot exist
+    (testDir / "drafts" / "foo" / uuid.toString / "bag" / "metatada") shouldNot exist
   }
 
   private def randomContent(times: Int) = {
