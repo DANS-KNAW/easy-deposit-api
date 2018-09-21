@@ -46,6 +46,7 @@ class Submitter(stagingBaseDir: File,
    */
   def submit(depositDir: DepositDir): Try[Unit] = {
     val propsFileName = "deposit.properties"
+    println(s"submitter: pidRequester =  $pidRequester")
     for {
       // TODO cache json read (and possibly rewritten) by getDOI and  getDatasetMetadata?
       // EASY-1464 step 3.3.1 - 3.3.3

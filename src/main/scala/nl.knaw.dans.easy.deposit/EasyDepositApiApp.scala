@@ -61,7 +61,7 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
 
   private val uploadStagingDir = getConfiguredDirectory("deposits.stage.upload")
   private val draftsDir = getConfiguredDirectory("deposits.drafts")
-  private val submitter = new Submitter(
+  private lazy val submitter = new Submitter(
     stagingBaseDir = getConfiguredDirectory("deposits.stage"),
     submitToBaseDir = getConfiguredDirectory("deposits.submit-to"),
     pidRequester
