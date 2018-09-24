@@ -195,6 +195,12 @@ case class DepositDir private(baseDir: File, user: String, id: UUID) extends Deb
     _ <- maybeTriedDOI.getOrElse(writeDatasetMetadataJson(dm.setDoi(doi)))
   } yield doi
 
+  def sameDOIs(dm: DatasetMetadata): Try[Unit] = for {
+    props <- getDepositProps
+    maybeDOI = Option(props.getString("identifier.doi", null))
+    _ <- doisMatch(dm, maybeDOI)
+  } yield ()
+
   private def doisMatch(dm: DatasetMetadata, doi: Option[String]) = {
     if (doi == dm.doi) Success(())
     else {

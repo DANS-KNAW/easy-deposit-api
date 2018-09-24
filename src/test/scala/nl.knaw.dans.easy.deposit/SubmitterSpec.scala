@@ -57,7 +57,7 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
     }
 
     // the test
-    new Submitter(testDir / "staged", testDir / "submitted", null)
+    new Submitter(testDir / "staged", testDir / "submitted")
       .submit(depositDir) should matchPattern { case Success(()) => }
 
     // post conditions
@@ -86,25 +86,11 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
     (bagDir.parent / "deposit.properties").append(s"identifier.doi=$doi")
     (testDir / "submitted").createDirectories()
 
-    new Submitter(testDir / "staged", testDir / "submitted", null)
+    new Submitter(testDir / "staged", testDir / "submitted")
       .submit(depositDir) should matchPattern { case Success(()) => }
 
     (testDir / "submitted" / depositDir.id.toString / "bag" / "metadata" / "message-from-depositor.txt")
       .contentAsString shouldBe ""
-  }
-
-  it should "add DOI to props and json" in {
-
-    val depositDir = createDeposit(datasetMetadata.copy(identifiers = None))
-    val pidMocker = mock[PidRequester]
-    val mockedPid = "12345"
-    (pidMocker.requestPid(_: PidType)) expects * once() returning Success(mockedPid)
-    (testDir / "submitted").createDirectories()
-
-    new Submitter(testDir / "staged", testDir / "submitted", pidMocker)
-      .submit(depositDir) should matchPattern { case Success(()) => }
-
-    depositDir.getDOI(null) shouldBe Success(mockedPid)
   }
 
   it should "report a file missing in the draft" in {
@@ -118,7 +104,7 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
     // add file to manifest that does not exist
     (bag.baseDir / "manifest-sha1.txt").append("chk file")
 
-    new Submitter(testDir / "staged", testDir / "submitted", null).submit(depositDir) should matchPattern {
+    new Submitter(testDir / "staged", testDir / "submitted").submit(depositDir) should matchPattern {
       case Failure(e) if e.getMessage == s"invalid bag, missing [files, checksums]: [Set($testDir/drafts/user/${ depositDir.id }/bag/file), Set()]" =>
     }
   }
@@ -135,7 +121,7 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
     val manifest = bag.baseDir / "manifest-sha1.txt"
     manifest.write(manifest.contentAsString.replaceAll(" +","xxx  "))
 
-    new Submitter(testDir / "staged", testDir / "submitted", null).submit(depositDir) should matchPattern {
+    new Submitter(testDir / "staged", testDir / "submitted").submit(depositDir) should matchPattern {
       case Failure(e) if e.getMessage == s"staged and draft bag [${bag.baseDir.parent}] have different payload manifest elements: (Set((data/file.txt,a57ec0c3239f30b29f1e9270581be50a70c74c04)),Set((data/file.txt,a57ec0c3239f30b29f1e9270581be50a70c74c04xxx)))" =>
     }
   }
@@ -144,8 +130,10 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
     // invalid state transition is tested with IntegrationSpec
 
     val depositDir = createDeposit(datasetMetadata)
+    (testDir / "submitted").createDirectories()
+    //(depositDir.getDataFiles.getOrRecover(e => fail(e)).bag.parent / "deposit.properties").createFile()
 
-    new Submitter(testDir / "staged", testDir / "submitted", null).submit(depositDir) should matchPattern {
+    new Submitter(testDir / "staged", testDir / "submitted").submit(depositDir) should matchPattern {
       case Failure(e) if e.isInstanceOf[CorruptDepositException] =>
     }
   }
@@ -156,9 +144,8 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
     val depositDir = createDeposit(DatasetMetadata())
     val pidMocker = mock[PidRequester]
     val mockedPid = "12345"
-    (pidMocker.requestPid(_: PidType)) expects * once() returning Success(mockedPid)
 
-    new Submitter(testDir / "staged", testDir / "submitted", pidMocker).submit(depositDir) should matchPattern {
+    new Submitter(testDir / "staged", testDir / "submitted").submit(depositDir) should matchPattern {
       case Failure(e) if e.isInstanceOf[InvalidDocumentException] =>
     }
   }

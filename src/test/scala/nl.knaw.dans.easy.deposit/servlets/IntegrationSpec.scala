@@ -207,80 +207,36 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
     }
   }
 
-  s"scenario: create - ... - sumbit" should "assign the DOI at submit" in {
+  s"scenario: create - sumbit" should "refuse a submit without DOI" in {
     (testDir / "stage").createDirectories()
     (testDir / "easy-ingest-flow-inbox").createDirectories()
+    val metadataWithoutDOI = JsonUtil.toJson(
+      DatasetMetadata(
+        getManualTestResource("datasetmetadata-from-ui-all.json")).getOrRecover(e => fail(e)
+      ).copy(identifiers = None)
+    )
 
     // create dataset
     expectsUserFooBar
     val responseBody = post(uri = s"/deposit", headers = Seq(basicAuthentication)) { body }
-    val uuid = DepositInfo(responseBody).map(_.id.toString).getOrRecover(e => fail(e.toString, e))
 
-    // upload dataset metadata without DOI
+    val uuid = DepositInfo(responseBody).map(_.id.toString).getOrRecover(e => fail(e.toString, e))
+    // upload dataset metadata
     expectsUserFooBar
     put(s"/deposit/$uuid/metadata", headers = Seq(basicAuthentication),
-      body = JsonUtil.toJson(
-        DatasetMetadata(getManualTestResource("datasetmetadata-from-ui-all.json"))
-          .getOrRecover(e => fail(e))
-          .copy(identifiers = None) // no DOI
-      )
+      body = metadataWithoutDOI
     ) {
       body shouldBe ""
       status shouldBe NO_CONTENT_204
     }
-    println(s"pidRequester = ${ app.pidRequester }")
 
-    (app.pidRequester.requestPid(_: PidType)) expects * once() returning Success("mocked-doi")
     // submit
     expectsUserFooBar
     put(s"/deposit/$uuid/state", headers = Seq(basicAuthentication),
       body = """{"state":"SUBMITTED","stateDescription":"blabla"}"""
     ) {
-      body shouldBe ""
-      status shouldBe NO_CONTENT_204
-    }
-  }
-
-  s"scenario: create - submit - metadata - sumbit" should "assign the DOI at submit" in pendingUntilFixed {
-    (testDir / "stage").createDirectories()
-    (testDir / "easy-ingest-flow-inbox").createDirectories()
-
-    // create dataset
-    expectsUserFooBar
-    val responseBody = post(uri = s"/deposit", headers = Seq(basicAuthentication)) { body }
-    val uuid = DepositInfo(responseBody).map(_.id.toString).getOrRecover(e => fail(e.toString, e))
-
-    // submit
-    (app.pidRequester.requestPid(_: PidType)) expects * once() returning Success("mocked-doi")
-    expectsUserFooBar
-    put(s"/deposit/$uuid/state", headers = Seq(basicAuthentication),
-      body = """{"state":"SUBMITTED","stateDescription":"blabla"}"""
-    ) {
-      body shouldBe "Bad Request. invalid Please set AcceptLicenseAgreement in DatasetMetadata"
+      body shouldBe "Bad Request. invalid DatasetMetadata: no content for mandatory dcterms:identifier xsi:type='id-type:DOI'"
       status shouldBe BAD_REQUEST_400
-    }
-
-    // upload dataset metadata without DOI
-    expectsUserFooBar
-    put(s"/deposit/$uuid/metadata", headers = Seq(basicAuthentication),
-      body = JsonUtil.toJson(
-        DatasetMetadata(getManualTestResource("datasetmetadata-from-ui-all.json"))
-          .getOrRecover(e => fail(e))
-          .copy(identifiers = None) // no DOI
-      )
-    ) {
-      body shouldBe ""
-      status shouldBe NO_CONTENT_204
-    }
-
-    (app.pidRequester.requestPid(_: PidType)) expects * once() returning Success("mocked-doi")
-    // submit
-    expectsUserFooBar
-    put(s"/deposit/$uuid/state", headers = Seq(basicAuthentication),
-      body = """{"state":"SUBMITTED","stateDescription":"blabla"}"""
-    ) {
-      body shouldBe "" // TODO fails: DOI in datasetmetadata.json [None] does not equal DOI in deposit.properties [Some(mocked-doi)]
-      status shouldBe NO_CONTENT_204
     }
   }
 

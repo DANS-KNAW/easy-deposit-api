@@ -78,7 +78,7 @@ case class DatasetMetadata(identifiers: Option[Seq[SchemedValue[String]]] = None
 object DatasetMetadata {
   def apply(input: JsonInput): Try[DatasetMetadata] = input.deserialize[DatasetMetadata]
 
-  private val doiScheme = "id-type:DOI"
+  val doiScheme = "id-type:DOI"
 
   type Date = QualifiedSchemedValue[String, DateQualifier]
 

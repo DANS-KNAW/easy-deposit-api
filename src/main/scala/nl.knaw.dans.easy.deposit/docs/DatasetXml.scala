@@ -29,6 +29,7 @@ object DatasetXml {
 
     val authors = SubmittedAuthors(dm)
     val dates = SubmittedDates(dm)
+    dm.doi.getOrElse(throwNoContentFor(s"dcterms:identifier xsi:type='${DatasetMetadata.doiScheme}'"))
 
     <ddm:DDM
       xmlns:dc="http://purl.org/dc/elements/1.1/"

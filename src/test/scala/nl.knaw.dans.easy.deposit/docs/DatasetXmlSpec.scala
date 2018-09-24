@@ -37,6 +37,7 @@ class DatasetXmlSpec extends TestSupportFixture with DdmBehavior {
 
   private val minimal = DatasetMetadata(
     """{
+      |  "identifiers": [{"scheme":"id-type:DOI", "value":"mocked-DOI"}],
       |  "titles": ["Lorum ipsum"],
       |  "descriptions": ["dolor"],
       |  "dates": [
@@ -213,7 +214,7 @@ class DatasetXmlSpec extends TestSupportFixture with DdmBehavior {
   }
 
   "datasetmetadata.json" should behave like validDatasetMetadata(
-    input = parseTestResource("datasetmetadata.json")
+    input = parseTestResource("datasetmetadata.json").map(_.setDoi("mocked_DOI"))
   )
   // TODO keep resources in sync with UI module: https://github.com/DANS-KNAW/easy-deposit-ui/blob/784fdc5/src/test/typescript/mockserver/metadata.ts#L246
   "datasetmetadata-from-ui-some.json" should behave like validDatasetMetadata(

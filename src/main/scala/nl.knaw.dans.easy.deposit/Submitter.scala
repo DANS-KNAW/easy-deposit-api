@@ -21,7 +21,6 @@ import better.files.File
 import nl.knaw.dans.bag.ChecksumAlgorithm.ChecksumAlgorithm
 import nl.knaw.dans.bag.DansBag
 import nl.knaw.dans.bag.v0.DansV0Bag
-import nl.knaw.dans.easy.deposit.PidRequesterComponent.PidRequester
 import nl.knaw.dans.easy.deposit.docs.{ AgreementsXml, DatasetXml, FilesXml, StateInfo }
 import org.joda.time.DateTime
 
@@ -34,8 +33,7 @@ import scala.util.{ Failure, Success, Try }
  * @param submitToBaseDir the directory to which the staged copy must be moved.
  */
 class Submitter(stagingBaseDir: File,
-                submitToBaseDir: File,
-                pidRequester: PidRequester) {
+                submitToBaseDir: File) {
 
   /**
    * Submits `depositDir` by writing the file metadata, updating the bag checksums, staging a copy
@@ -46,21 +44,18 @@ class Submitter(stagingBaseDir: File,
    */
   def submit(depositDir: DepositDir): Try[Unit] = {
     val propsFileName = "deposit.properties"
-    println(s"submitter: pidRequester =  $pidRequester")
     for {
-      // TODO cache json read (and possibly rewritten) by getDOI and  getDatasetMetadata?
-      // EASY-1464 step 3.3.1 - 3.3.3
-      _ <- depositDir.getDOI(pidRequester)
       // EASY-1464 step 3.3.4 validation
       //   [v] mandatory fields are present and not empty (by DatasetXml(datasetMetadata) in createXMLs)
-      //   [v] DOI in json matches properties (by getDOI)
+      //   [v] DOI in json matches properties
       //   [ ] URLs are valid
       //   [ ] ...
       // EASY-1464 3.3.5.a: generate (with some implicit validation) content for metadata files
       draftBag <- depositDir.getDataFiles.map(_.bag)
-      datasetMetadata <- depositDir.getDatasetMetadata // TODO skip recover: internal error if not catched by getDOI
-      agreementsXml <- AgreementsXml(depositDir.user, DateTime.now, datasetMetadata)
+      datasetMetadata <- depositDir.getDatasetMetadata
       datasetXml <- DatasetXml(datasetMetadata)
+      agreementsXml <- AgreementsXml(depositDir.user, DateTime.now, datasetMetadata)
+      _ <- depositDir.sameDOIs(datasetMetadata)
       msg = datasetMetadata.messageForDataManager.getOrElse("")
       filesXml <- FilesXml(draftBag.data)
       _ <- sameFiles(draftBag.payloadManifests, draftBag.baseDir / "data")
@@ -111,7 +106,7 @@ class Submitter(stagingBaseDir: File,
         (xs.diff(ys), ys.diff(xs))
       }
       .find(diffs => diffs._1.nonEmpty || diffs._2.nonEmpty)
-      .map(diffs => Failure(new Exception(s"staged and draft bag [${draft.baseDir.parent}] have different payload manifest elements: $diffs")))
+      .map(diffs => Failure(new Exception(s"staged and draft bag [${ draft.baseDir.parent }] have different payload manifest elements: $diffs")))
       .getOrElse(Success(()))
   }
 
