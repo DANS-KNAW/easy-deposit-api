@@ -63,7 +63,7 @@ class DataFilesSpec extends TestSupportFixture {
     val bag = DansV0Bag.empty(testDir / "bag").getOrRecover(e => fail(s"could not create test bag $e"))
     bag.addPayloadFile("Lorum ipsum est".asInputStream, Paths.get("file.txt"))
     bag.save
-    (bag.data / "file.txt").toJava should exist
+    (bag.data / "file.txt") should exist
     (bag.data.parent / "manifest-sha1.txt").lines.size shouldBe 1
 
     DataFiles(bag)

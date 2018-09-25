@@ -1,12 +1,13 @@
-JSON files for manual tests
----------------------------
+JSON/ZIP files for manual tests
+-------------------------------
+
+All `json` and `zip` files could be used for manual tests.
+The expected results are documented with unit tests such as `DatasetXmlSpec` and `UploadSpec`.
 
 The files with `datasetmetadata-from-ui-` in their name are derived from the mockserver of [easy-deposit-ui].
 
-All `json` files could be used for manual tests. The expected results are documented with unit tests such as `DatasetXmlSpec`.
-
 `servlet\IntegrationSpec` specifies only some scenarios that could be performed by the UI or manual tests.
-Other tests in the `servlets` package emulate just a single step.
+Other tests in the `servlets` package document just a single step.
 
 
 Purpose of HTML files

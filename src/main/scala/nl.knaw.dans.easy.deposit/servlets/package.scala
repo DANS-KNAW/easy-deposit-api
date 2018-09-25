@@ -15,13 +15,27 @@
  */
 package nl.knaw.dans.easy.deposit
 
+import java.nio.charset.Charset
+import java.nio.file.Files
+import java.util.zip.{ ZipEntry, ZipException, ZipInputStream }
+
+import better.files.File
 import nl.knaw.dans.easy.deposit.docs.JsonUtil.InvalidDocumentException
+import nl.knaw.dans.easy.deposit.servlets.DepositServlet.{ BadRequestException, ZipMustBeOnlyFileException }
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
+import org.scalatra.servlet.FileItem
+import org.scalatra.util.RicherString._
 import org.scalatra.{ ActionResult, BadRequest, InternalServerError }
+import resource.{ ManagedResource, managed }
 
 import scala.util.{ Failure, Success, Try }
 
 package object servlets extends DebugEnhancedLogging {
+
+  private val extensionZipPattern = ".*.g?z(ip)?"
+  private val pre = "(x-)?g?zip"
+  private val post = "-compress(ed)?"
+  private val contentTypeZipPattern = s"application/(($pre($post)?)|(x$post))"
 
   def internalErrorResponse(t: Throwable): ActionResult = {
     logger.error(s"Not expected exception: ${ t.getMessage }", t)
@@ -33,18 +47,92 @@ package object servlets extends DebugEnhancedLogging {
     BadRequest(s"Bad Request. ${ t.getMessage }")
   }
 
-  implicit class RichIterable[T](val xs: Stream[Try[T]]) extends AnyVal {
-    def failFast: Try[Seq[T]] = {
-      // TODO dans-lib candidate?
-      val successes = Seq.newBuilder[T]
+  implicit class RichManagedZipInputStream(val zipInputStream: ManagedResource[ZipInputStream]) extends AnyVal {
+    def unzipPlainEntriesTo(dir: File): Try[Unit] = {
+      zipInputStream.apply(_.unzipPlainEntriesTo(dir))
+    }
+  }
 
-      xs.foreach {
-        case Success(t) => successes += t
-        case Failure(e) =>
-          return Failure(e)
+  implicit class RichZipInputStream(val zipInputStream: ZipInputStream) extends AnyVal {
+    def unzipPlainEntriesTo(dir: File): Try[Unit] = {
+      def extract(entry: ZipEntry) = {
+        if (entry.isDirectory)
+          Try((dir / entry.getName).createDirectories())
+        else {
+          if (entry.getName.matches(extensionZipPattern))
+            Failure(BadRequestException(s"ZIP file is malformed. It contains a Zip ${ entry.getName }."))
+          else {
+            logger.info(s"Extracting ${ entry.getName } size=${ entry.getSize } compressedSize=${ entry.getCompressedSize } CRC=${ entry.getCrc }")
+            Try(Files.copy(zipInputStream, (dir / entry.getName).path))
+          }.recoverWith {
+            case e if e.isInstanceOf[ZipException] => Failure(BadRequestException(s"ZIP file is malformed. $e"))
+          }
+        }
       }
 
-      Success(successes.result())
+      Option(zipInputStream.getNextEntry) match {
+        case None => Failure(BadRequestException(s"ZIP file is malformed. No entries found."))
+        case Some(firstEntry: ZipEntry) => for {
+          _ <- extract(firstEntry)
+          _ <- Stream
+            .continually(zipInputStream.getNextEntry)
+            .takeWhile(Option(_).nonEmpty)
+            .map(extract)
+            .find(_.isFailure)
+            .getOrElse(Success(()))
+        } yield ()
+      }
+    }
+  }
+
+  implicit class RichFileItem(val fileItem: FileItem) extends AnyVal {
+
+    def isZip: Boolean = {
+      val extensionIsZip = fileItem.name.matches(extensionZipPattern)
+      lazy val contentTypeIsZip = fileItem.contentType.exists(_.matches(contentTypeZipPattern))
+      logger.debug(s"ZIP check: ${ fileItem.name } : $extensionIsZip; ${ fileItem.contentType } : $contentTypeIsZip ")
+      extensionIsZip || contentTypeIsZip
+    }
+
+    def getZipInputStream: Try[resource.ManagedResource[ZipInputStream]] = Try {
+      fileItem.charset
+        .map(charSet => managed(new ZipInputStream(fileItem.getInputStream, Charset.forName(charSet))))
+        .getOrElse(managed(new ZipInputStream(fileItem.getInputStream)))
+    }
+
+    def copyNonZipTo(dir: File): Try[Unit] = {
+      if (fileItem.name.isBlank) Success(()) // skip form field without selected files
+      else if (fileItem.isZip) Failure(ZipMustBeOnlyFileException(fileItem.name))
+      else
+        managed(fileItem.getInputStream)
+          .apply(inputStream => Try { Files.copy(inputStream, (dir / fileItem.name).path) })
+    }
+  }
+
+  implicit class RichFileItems(val fileItems: BufferedIterator[FileItem]) extends AnyVal {
+
+    def copyPlainItemsTo(dir: File): Try[Unit] = {
+      fileItems
+        .map(_.copyNonZipTo(dir))
+        .find(_.isFailure)
+        .getOrElse(Success(()))
+    }
+
+    def nextAsZipIfOnlyOne: Try[Option[ManagedResource[ZipInputStream]]] = {
+      skipLeadingEmptyFormFields()
+      if (!fileItems.headOption.exists(_.isZip)) Success(None)
+      else {
+        val leadingZipItem = fileItems.next()
+        skipLeadingEmptyFormFields()
+        if (fileItems.hasNext)
+          Failure(ZipMustBeOnlyFileException(leadingZipItem.name))
+        else leadingZipItem.getZipInputStream.map(Some(_))
+      }
+    }
+
+    private def skipLeadingEmptyFormFields(): Unit = {
+      // forward pointer after check
+      while (fileItems.headOption.exists(_.name.isBlank)) { fileItems.next() }
     }
   }
 }
