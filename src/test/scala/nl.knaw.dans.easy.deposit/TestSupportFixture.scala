@@ -47,8 +47,9 @@ trait TestSupportFixture extends FlatSpec with Matchers with Inside with BeforeA
       testDir.delete().createDirectories()
   }
 
-  val now = "2018-03-22T21:43:01.576"
-  val nowUTC = "2018-03-22T20:43:01Z"
+  val nowYMD = "2018-03-22"
+  val now = s"${nowYMD}T21:43:01.576"
+  val nowUTC = s"${nowYMD}T20:43:01Z"
   /** Causes DateTime.now() to return a predefined value. */
   DateTimeUtils.setCurrentMillisFixed(new DateTime(nowUTC).getMillis)
   DateTimeZone.setDefault(DateTimeZone.forTimeZone(TimeZone.getTimeZone("Europe/Amsterdam")))

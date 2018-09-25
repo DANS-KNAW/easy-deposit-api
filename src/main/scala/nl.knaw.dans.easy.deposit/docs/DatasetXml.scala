@@ -29,7 +29,7 @@ object DatasetXml {
 
     val authors = SubmittedAuthors(dm)
     val dates = SubmittedDates(dm)
-    dm.doi.getOrElse(throw InvalidDocumentException("DatasetMetadata", new Exception(s"Please first GET a DOI for this deposit")))
+    dm.doi.getOrElse(throwInvalidDocumentException(s"Please first GET a DOI for this deposit"))
 
     <ddm:DDM
       xmlns:dc="http://purl.org/dc/elements/1.1/"
@@ -102,7 +102,7 @@ object DatasetXml {
     val available: Date = getMandatorySingleDate(DateQualifier.available)
     val (schemed, plain) = {
       if (flattenedDates.exists(_.qualifier == DateQualifier.dateSubmitted))
-        throw InvalidDocumentException(s"No ${ DateQualifier.dateSubmitted } allowed in DatasetMetadata")
+        throwInvalidDocumentException(s"No ${ DateQualifier.dateSubmitted } allowed")
       (flattenedDates :+ Date(DateTime.now(), DateQualifier.dateSubmitted)
         ).filterNot(date => specialDateQualifiers.contains(date.qualifier))
     }.partition(_.hasScheme)
@@ -110,7 +110,7 @@ object DatasetXml {
     private def getMandatorySingleDate(qualifier: DateQualifier): Date = {
       val seq: Seq[Date] = flattenedDates.filter(_.qualifier == qualifier)
       if (seq.size > 1)
-        throw InvalidDocumentException(s"Just one $qualifier allowed in DatasetMetadata")
+        throwInvalidDocumentException(s"Just one $qualifier allowed")
       else seq.headOption
         .getOrElse(throw missingValue(s"a date with qualifier: $qualifier"))
     }
@@ -128,14 +128,19 @@ object DatasetXml {
       str.split(":") match {
         case Array(label) => elem.copy(label = label)
         case Array(prefix, label) => elem.copy(prefix = prefix, label = label)
-        case a => throw InvalidDocumentException("DatasetMetadata", new Exception(
+        case a => throwInvalidDocumentException(
           s"expecting (label) or (prefix:label); got [${ a.mkString(":") }] to adjust the <key> of ${ Utility.trim(elem) }"
-        ))
+        )
       }
     }
 
     def addAttr(lang: Option[Attribute]): Elem = lang.map(elem % _).getOrElse(elem)
   }
+
+  private def throwInvalidDocumentException(msg: String) = {
+    throw InvalidDocumentException("DatasetMetadata", new Exception(msg))
+  }
+
 
   /** @param elems the sequence of XML elements to adjust */
   private implicit class RichElems(val elems: Seq[Elem]) extends AnyVal {

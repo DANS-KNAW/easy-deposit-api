@@ -161,13 +161,10 @@ class DatasetXmlSpec extends TestSupportFixture with DdmBehavior {
   "minimal with all types of dates (except submitted)" should behave like {
     val date = "2018-06-14"
     val dates = DateQualifier.values.toSeq
+      .withFilter(_ != DateQualifier.dateSubmitted)
       .map { q => DatasetMetadata.Date(date, q) }
-      .filterNot(_.qualifier == DateQualifier.dateSubmitted)
-    val someDates = Some( // one type of date twice with different precision
-      dates :+ DatasetMetadata.Date("2018-01", DateQualifier.modified)
-    )
     validDatasetMetadata(
-      input = Success(minimal.copy(dates = someDates)),
+      input = Success(minimal.copy(dates = Some(dates))),
       subset = actualDDM => dcmiMetadata(actualDDM),
       expectedDdmContent =
         // the dateSubmitted specified above is replaced by "now" as set by the fixture
@@ -180,8 +177,59 @@ class DatasetXmlSpec extends TestSupportFixture with DdmBehavior {
           <dcterms:issued xsi:type="dcterms:W3CDTF">{ date }</dcterms:issued>
           <dcterms:modified xsi:type="dcterms:W3CDTF">{ date }</dcterms:modified>
           <dcterms:valid xsi:type="dcterms:W3CDTF">{ date }</dcterms:valid>
-          <dcterms:modified xsi:type="dcterms:W3CDTF">2018-01</dcterms:modified>
           <dcterms:dateSubmitted xsi:type="dcterms:W3CDTF">2018-03-22</dcterms:dateSubmitted>
+        </ddm:dcmiMetadata>
+    )
+  }
+
+  "minimal with date submitted" should "be rejected" in {
+    val json =
+      """{  "dates": [
+        |    { "value": "2018", "qualifier": "dcterms:created" },
+        |    { "value": "2018", "qualifier": "dcterms:available" },
+        |    { "qualifier": "dcterms:dateSubmitted", "value": "2018-12", "scheme": "dcterms:W3CDTF" }
+        |  ]
+        |}
+        |""".stripMargin
+    val dm = DatasetMetadata(json)
+      .map(dm => minimal.copy(dates = dm.dates))
+      .getOrRecover(e => fail(e))
+
+    DatasetXml(dm) should matchPattern {
+      case Failure(e: InvalidDocumentException) if e.getMessage.endsWith("No dcterms:dateSubmitted allowed") =>
+    }
+  }
+
+  "minimal with various types of dates" should behave like {
+    // with and without qualifier, varying precision
+    val json =
+      """{  "dates": [
+        |    { "value": "2018", "qualifier": "dcterms:created" },
+        |    { "value": "2018", "qualifier": "dcterms:available" },
+        |    { "value": "Groundhog day", "qualifier": "dcterms:dateAccepted" }
+        |    { "value": "Groundhog day", "qualifier": "dcterms:dateCopyrighted" }
+        |    { "value": "Groundhog day", "qualifier": "dcterms:issued" }
+        |    { "value": "Groundhog day", "qualifier": "dcterms:modified" }
+        |    { "qualifier": "dcterms:valid", "value": "Groundhog day" }
+        |    { "qualifier": "dcterms:valid", "value": "2018"   , "scheme": "dcterms:W3CDTF" }
+        |    { "qualifier": "dcterms:valid", "value": "2018-12", "scheme": "dcterms:W3CDTF" }
+        |  ]
+        |}
+        |""".stripMargin
+    validDatasetMetadata(
+      input = DatasetMetadata(json).map(dm => minimal.copy(dates = dm.dates)),
+      subset = actualDDM => dcmiMetadata(actualDDM),
+      expectedDdmContent =
+        <ddm:dcmiMetadata>
+          <dcterms:identifier xsi:type="id-type:DOI">mocked-DOI</dcterms:identifier>
+          <dcterms:valid xsi:type="dcterms:W3CDTF">2018</dcterms:valid>
+          <dcterms:valid xsi:type="dcterms:W3CDTF">2018-12</dcterms:valid>
+          <dcterms:dateSubmitted xsi:type="dcterms:W3CDTF">{ nowYMD }</dcterms:dateSubmitted>
+          <dcterms:dateAccepted>Groundhog day</dcterms:dateAccepted>
+          <dcterms:dateCopyrighted>Groundhog day</dcterms:dateCopyrighted>
+          <dcterms:issued>Groundhog day</dcterms:issued>
+          <dcterms:modified>Groundhog day</dcterms:modified>
+          <dcterms:valid>Groundhog day</dcterms:valid>
         </ddm:dcmiMetadata>
     )
   }
@@ -221,8 +269,9 @@ class DatasetXmlSpec extends TestSupportFixture with DdmBehavior {
     input = parseTestResource("datasetmetadata.json").map(_.setDoi("mocked_DOI"))
   )
   // TODO keep resources in sync with UI module: https://github.com/DANS-KNAW/easy-deposit-ui/blob/784fdc5/src/test/typescript/mockserver/metadata.ts#L246
-  "datasetmetadata-from-ui-some.json" should behave like validDatasetMetadata(
-    input = parseTestResource("datasetmetadata-from-ui-some.json").map(_.copy(identifiers = Some(Seq(SchemedValue(DatasetMetadata.doiScheme,"mocked-doi")))))
+  "datasetmetadata-from-ui-some.json with an additional DOI" should behave like validDatasetMetadata(
+    input = parseTestResource("datasetmetadata-from-ui-some.json")
+      .map(_.copy(identifiers = Some(Seq(SchemedValue(DatasetMetadata.doiScheme, "mocked-doi")))))
   )
   "datasetmetadata-from-ui-all.json without one of the authors" should behave like validDatasetMetadata(
     input = parseTestResource("datasetmetadata-from-ui-all.json"),
@@ -309,12 +358,12 @@ trait DdmBehavior {
   val emptyDDM: Elem
 
   lazy val triedSchema: Try[Schema] = Try { // loading postponed until we actually start validating
-    val schemas = emptyDDM.attribute("http://www.w3.org/2001/XMLSchema-instance","schemaLocation")
+    val schemas = emptyDDM.attribute("http://www.w3.org/2001/XMLSchema-instance", "schemaLocation")
       .getOrElse(fail("no schemaLocation attribute"))
       .headOption
       .getOrElse(fail("no schemaLocation value"))
       .text
-      .replaceAll(".* ","") :: Nil
+      .replaceAll(".* ", "") :: Nil
     SchemaFactory
       .newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI)
       .newSchema(schemas.map(xsd => new StreamSource(xsd)).toArray[Source])
