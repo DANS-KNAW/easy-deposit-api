@@ -88,9 +88,6 @@ class DatasetXmlSpec extends TestSupportFixture with DdmBehavior {
         <dc:title>Lorum</dc:title>
         <dc:title>ipsum</dc:title>
       </ddm:profile>
-      <ddm:dcmiMetadata>
-        <dcterms:identifier xsi:type="id-type:DOI">mocked-DOI</dcterms:identifier>
-      </ddm:dcmiMetadata>
   )
 
   "minimal with multiple descriptions" should behave like validDatasetMetadata(
