@@ -235,7 +235,7 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
     put(s"/deposit/$uuid/state", headers = Seq(basicAuthentication),
       body = """{"state":"SUBMITTED","stateDescription":"blabla"}"""
     ) {
-      body shouldBe "Bad Request. invalid DatasetMetadata: no content for mandatory dcterms:identifier xsi:type='id-type:DOI'"
+      body shouldBe "Bad Request. invalid DatasetMetadata: Please first GET a DOI for this deposit"
       status shouldBe BAD_REQUEST_400
     }
   }

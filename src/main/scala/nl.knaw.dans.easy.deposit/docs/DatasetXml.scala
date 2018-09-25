@@ -29,7 +29,7 @@ object DatasetXml {
 
     val authors = SubmittedAuthors(dm)
     val dates = SubmittedDates(dm)
-    dm.doi.getOrElse(throwNoContentFor(s"dcterms:identifier xsi:type='${DatasetMetadata.doiScheme}'"))
+    dm.doi.getOrElse(throw InvalidDocumentException("DatasetMetadata", new Exception(s"Please first GET a DOI for this deposit")))
 
     <ddm:DDM
       xmlns:dc="http://purl.org/dc/elements/1.1/"
@@ -40,13 +40,13 @@ object DatasetXml {
       xsi:schemaLocation="http://easy.dans.knaw.nl/schemas/md/ddm/ https://easy.dans.knaw.nl/schemas/md/2017/09/ddm.xsd"
     >
       <ddm:profile>
-        { dm.titles.getNonEmpty.map(src => <dc:title>{ src }</dc:title>).addAttr(lang).mustBeNonEmpty("dc:title") }
-        { dm.descriptions.getNonEmpty.map(src => <dcterms:description>{ src }</dcterms:description>).addAttr(lang).mustBeNonEmpty("dc:title") }
-        { authors.creators.map(author => <dcx-dai:creatorDetails>{ authorDetails(author) }</dcx-dai:creatorDetails>).mustBeNonEmpty("dcx-dai:creatorDetails") }
+        { dm.titles.getNonEmpty.map(src => <dc:title>{ src }</dc:title>).addAttr(lang).mustBeNonEmpty("a title") }
+        { dm.descriptions.getNonEmpty.map(src => <dcterms:description>{ src }</dcterms:description>).addAttr(lang).mustBeNonEmpty("a description") }
+        { authors.creators.map(author => <dcx-dai:creatorDetails>{ authorDetails(author) }</dcx-dai:creatorDetails>).mustBeNonEmpty("a creator") }
         { <ddm:created>{ dates.created.value }</ddm:created> }
         { <ddm:available>{ dates.available.value }</ddm:available> }
-        { dm.audiences.getNonEmpty.map(src => <ddm:audience>{ src.key }</ddm:audience>).mustBeNonEmpty("ddm:audience") }
-        { dm.accessRights.map(src => <ddm:accessRights>{ src.category.toString }</ddm:accessRights>).toSeq.mustBeNonEmpty("ddm:accessRights") }
+        { dm.audiences.getNonEmpty.map(src => <ddm:audience>{ src.key }</ddm:audience>).mustBeNonEmpty("an audience") }
+        { dm.accessRights.map(src => <ddm:accessRights>{ src.category.toString }</ddm:accessRights>).toSeq.mustBeNonEmpty("the accessRights") }
       </ddm:profile>
       <ddm:dcmiMetadata>
         { dm.alternativeTitles.getNonEmpty.map(str => <dcterms:alternative>{ str }</dcterms:alternative>).addAttr(lang) }
@@ -110,7 +110,7 @@ object DatasetXml {
       if (seq.size > 1)
         throw InvalidDocumentException(s"Just one $qualifier allowed in DatasetMetadata")
       else seq.headOption
-        .getOrElse(throw missingValue(qualifier.toString))
+        .getOrElse(throw missingValue(s"a date with qualifier: $qualifier"))
     }
   }
 
@@ -142,7 +142,7 @@ object DatasetXml {
     def withLabel(str: String): Seq[Elem] = elems.map(_.copy(label = str))
 
     def mustBeNonEmpty(str: String): Seq[Elem] = {
-      if (elems.isEmpty) throwNoContentFor(str)
+      if (elems.isEmpty) throw missingValue(str)
       else elems
     }
   }
@@ -159,12 +159,5 @@ object DatasetXml {
       case source: String => source.trim.isEmpty
       case _ => false
     }
-  }
-
-  private def throwNoContentFor[T](fieldName: String) = {
-    throw InvalidDocumentException(
-      "DatasetMetadata",
-      new Exception(s"no content for mandatory $fieldName")
-    )
   }
 }

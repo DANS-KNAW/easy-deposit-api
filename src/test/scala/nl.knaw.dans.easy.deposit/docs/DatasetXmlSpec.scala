@@ -195,21 +195,21 @@ class DatasetXmlSpec extends TestSupportFixture with DdmBehavior {
   "apply" should "report a missing title" in {
     DatasetXml(minimal.copy(titles = None)) should matchPattern {
       case Failure(InvalidDocumentException(_, e)) if e.getMessage ==
-        "no content for mandatory dc:title" =>
+        "Please set a title" =>
     }
   }
 
   it should "report an empty list of titles" in {
     DatasetXml(minimal.copy(titles = Some(Seq.empty))) should matchPattern {
       case Failure(InvalidDocumentException(_, e)) if e.getMessage ==
-        "no content for mandatory dc:title" =>
+        "Please set a title" =>
     }
   }
 
   it should "report an empty string as title" in {
     DatasetXml(minimal.copy(titles = Some(Seq("   \t")))) should matchPattern {
       case Failure(InvalidDocumentException(_, e)) if e.getMessage ==
-        "no content for mandatory dc:title" =>
+        "Please set a title" =>
     }
   }
 

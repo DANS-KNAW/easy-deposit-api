@@ -91,7 +91,7 @@ object DatasetMetadata {
   )
 
   def missingValue(label: String): InvalidDocumentException = {
-    InvalidDocumentException(s"Please set $label in DatasetMetadata")
+    InvalidDocumentException("DatasetMetadata", new Exception(s"Please set $label"))
   }
 
   object PrivacySensitiveDataPresent extends Enumeration {
