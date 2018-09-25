@@ -24,7 +24,7 @@ import javax.xml.transform.Source
 import javax.xml.transform.stream.StreamSource
 import javax.xml.validation.{ Schema, SchemaFactory }
 import nl.knaw.dans.easy.deposit.TestSupportFixture
-import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.{ Author, DateQualifier, SchemedKeyValue }
+import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.{ Author, DateQualifier, SchemedKeyValue, SchemedValue }
 import nl.knaw.dans.easy.deposit.docs.JsonUtil.InvalidDocumentException
 import nl.knaw.dans.lib.error._
 import org.xml.sax.SAXParseException
@@ -75,6 +75,7 @@ class DatasetXmlSpec extends TestSupportFixture with DdmBehavior {
         <ddm:accessRights>OPEN_ACCESS</ddm:accessRights>
       </ddm:profile>
       <ddm:dcmiMetadata>
+        <dcterms:identifier xsi:type="id-type:DOI">mocked-DOI</dcterms:identifier>
         <dcterms:dateSubmitted xsi:type="dcterms:W3CDTF">2018-03-22</dcterms:dateSubmitted>
       </ddm:dcmiMetadata>
   )
@@ -87,6 +88,9 @@ class DatasetXmlSpec extends TestSupportFixture with DdmBehavior {
         <dc:title>Lorum</dc:title>
         <dc:title>ipsum</dc:title>
       </ddm:profile>
+      <ddm:dcmiMetadata>
+        <dcterms:identifier xsi:type="id-type:DOI">mocked-DOI</dcterms:identifier>
+      </ddm:dcmiMetadata>
   )
 
   "minimal with multiple descriptions" should behave like validDatasetMetadata(
@@ -117,6 +121,7 @@ class DatasetXmlSpec extends TestSupportFixture with DdmBehavior {
     subset = actualDDM => dcmiMetadata(actualDDM),
     expectedDdmContent =
       <ddm:dcmiMetadata>
+        <dcterms:identifier xsi:type="id-type:DOI">mocked-DOI</dcterms:identifier>
         <dcterms:alternative>Lorum</dcterms:alternative>
         <dcterms:alternative>ipsum</dcterms:alternative>
         <dcterms:dateSubmitted xsi:type="dcterms:W3CDTF">2018-03-22</dcterms:dateSubmitted>
@@ -148,6 +153,7 @@ class DatasetXmlSpec extends TestSupportFixture with DdmBehavior {
       expectedDdmContent =
         //N.B: creators in ddm:profile unless they are rightsHolders
         <ddm:dcmiMetadata>
+          <dcterms:identifier xsi:type="id-type:DOI">mocked-DOI</dcterms:identifier>
           <dcterms:rightsHolder>A.S. Terix</dcterms:rightsHolder>
           <dcterms:rightsHolder>O. Belix</dcterms:rightsHolder>
           <dcterms:dateSubmitted xsi:type="dcterms:W3CDTF">2018-03-22</dcterms:dateSubmitted>
@@ -170,6 +176,7 @@ class DatasetXmlSpec extends TestSupportFixture with DdmBehavior {
         // the dateSubmitted specified above is replaced by "now" as set by the fixture
         // dateCreated and dateAvailable are documented with the pure minimal test
         <ddm:dcmiMetadata>
+          <dcterms:identifier xsi:type="id-type:DOI">mocked-DOI</dcterms:identifier>
           <dc:date xsi:type="dcterms:W3CDTF">{ date }</dc:date>
           <dcterms:dateAccepted xsi:type="dcterms:W3CDTF">{ date }</dcterms:dateAccepted>
           <dcterms:dateCopyrighted xsi:type="dcterms:W3CDTF">{ date }</dcterms:dateCopyrighted>
@@ -218,7 +225,7 @@ class DatasetXmlSpec extends TestSupportFixture with DdmBehavior {
   )
   // TODO keep resources in sync with UI module: https://github.com/DANS-KNAW/easy-deposit-ui/blob/784fdc5/src/test/typescript/mockserver/metadata.ts#L246
   "datasetmetadata-from-ui-some.json" should behave like validDatasetMetadata(
-    input = parseTestResource("datasetmetadata-from-ui-some.json")
+    input = parseTestResource("datasetmetadata-from-ui-some.json").map(_.copy(identifiers = Some(Seq(SchemedValue(DatasetMetadata.doiScheme,"mocked-doi")))))
   )
   "datasetmetadata-from-ui-all.json without one of the authors" should behave like validDatasetMetadata(
     input = parseTestResource("datasetmetadata-from-ui-all.json"),
@@ -253,6 +260,7 @@ class DatasetXmlSpec extends TestSupportFixture with DdmBehavior {
         <ddm:accessRights>OPEN_ACCESS</ddm:accessRights>
       </ddm:profile>
       <ddm:dcmiMetadata>
+        <dcterms:identifier xsi:type="id-type:DOI">doi:10.17632/DANS.6wg5xccnjd.1</dcterms:identifier>
         <dcterms:alternative xml:lang="nld">alternative title 1</dcterms:alternative>
         <dcterms:alternative xml:lang="nld">alternative title2</dcterms:alternative>
         <dcx-dai:contributorDetails>

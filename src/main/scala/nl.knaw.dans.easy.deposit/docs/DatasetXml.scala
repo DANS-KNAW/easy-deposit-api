@@ -37,6 +37,7 @@ object DatasetXml {
       xmlns:dcterms="http://purl.org/dc/terms/"
       xmlns:dcx-dai="http://easy.dans.knaw.nl/schemas/dcx/dai/"
       xmlns:ddm="http://easy.dans.knaw.nl/schemas/md/ddm/"
+      xmlns:id-type="http://easy.dans.knaw.nl/schemas/vocab/identifier-type/"
       xsi:schemaLocation="http://easy.dans.knaw.nl/schemas/md/ddm/ https://easy.dans.knaw.nl/schemas/md/2017/09/ddm.xsd"
     >
       <ddm:profile>
@@ -49,6 +50,7 @@ object DatasetXml {
         { dm.accessRights.map(src => <ddm:accessRights>{ src.category.toString }</ddm:accessRights>).toSeq.mustBeNonEmpty("the accessRights") }
       </ddm:profile>
       <ddm:dcmiMetadata>
+        { dm.identifiers.getNonEmpty.map(id => <dcterms:identifier xsi:type={ id.scheme }>{ id.value }</dcterms:identifier>) }
         { dm.alternativeTitles.getNonEmpty.map(str => <dcterms:alternative>{ str }</dcterms:alternative>).addAttr(lang) }
         { authors.contributors.map(author => <dcx-dai:contributorDetails>{ authorDetails(author) }</dcx-dai:contributorDetails>) }
         { authors.rightsHolders.map(author => <dcterms:rightsHolder>{ author.toString }</dcterms:rightsHolder>) }
