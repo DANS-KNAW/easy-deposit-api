@@ -67,7 +67,7 @@ case class DatasetMetadata(identifiers: Option[Seq[SchemedValue[String]]] = None
   }
 
   lazy val licenceAccepted: Try[Unit] = if (acceptLicenseAgreement) Success(())
-                                        else Failure(DatasetMetadata.missingValue("AcceptLicenseAgreement"))
+                                        else Failure(missingValue("AcceptLicenseAgreement"))
 
   def setDoi(value: String): DatasetMetadata = {
     val ids = identifiers.getOrElse(Seq.empty).filterNot(_.scheme == doiScheme)

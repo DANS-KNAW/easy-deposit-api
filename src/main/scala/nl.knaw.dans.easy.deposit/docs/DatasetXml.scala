@@ -29,6 +29,8 @@ object DatasetXml {
 
     val authors = SubmittedAuthors(dm)
     val dates = SubmittedDates(dm)
+
+    // validation like RichElems.mustBeNonEmpty and SubmittedDates.getMandatorySingleDate
     dm.doi.getOrElse(throwInvalidDocumentException(s"Please first GET a DOI for this deposit"))
 
     <ddm:DDM
