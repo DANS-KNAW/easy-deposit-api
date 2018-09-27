@@ -53,8 +53,8 @@ class Submitter(stagingBaseDir: File,
       // EASY-1464 3.3.5.a: generate (with some implicit validation) content for metadata files
       draftBag <- depositDir.getDataFiles.map(_.bag)
       datasetMetadata <- depositDir.getDatasetMetadata
-      datasetXml <- DatasetXml(datasetMetadata)
       agreementsXml <- AgreementsXml(depositDir.user, DateTime.now, datasetMetadata)
+      datasetXml <- DatasetXml(datasetMetadata)
       _ <- depositDir.sameDOIs(datasetMetadata)
       msg = datasetMetadata.messageForDataManager.getOrElse("")
       filesXml <- FilesXml(draftBag.data)

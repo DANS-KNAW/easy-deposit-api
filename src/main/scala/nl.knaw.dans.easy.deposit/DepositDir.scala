@@ -188,7 +188,6 @@ case class DepositDir private(baseDir: File, user: String, id: UUID) extends Deb
     maybeDOI = Option(props.getString("identifier.doi", null))
     _ <- doisMatch(dm, maybeDOI)
     maybeTriedDOI = maybeDOI.map(Success(_))
-    _ = println(s"$maybeTriedDOI $pidRequester")
     doi <- maybeTriedDOI.getOrElse(pidRequester.requestPid(PidType.doi))
     _ = props.addProperty("identifier.doi", doi)
     _ <- maybeTriedDOI.getOrElse(Try { props.save(depositPropertiesFile.toJava) })
