@@ -155,7 +155,7 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
 
     new Submitter(testDir / "staged", testDir / "submitted").submit(depositDir) should matchPattern {
       case Failure(e: InvalidDocumentException) if e.document == "DatasetMetadata" &&
-        e.getMessage.contains("Please set a date with qualifier: dcterms:created") =>
+        e.getMessage.contains("Please set AcceptLicenseAgreement") =>
     }
   }
 
