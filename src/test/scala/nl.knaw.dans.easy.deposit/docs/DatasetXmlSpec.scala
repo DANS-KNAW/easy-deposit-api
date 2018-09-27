@@ -24,8 +24,10 @@ import javax.xml.transform.Source
 import javax.xml.transform.stream.StreamSource
 import javax.xml.validation.{ Schema, SchemaFactory }
 import nl.knaw.dans.easy.deposit.TestSupportFixture
-import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.{ Author, DateQualifier, SchemedKeyValue, SchemedValue }
+import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.{ SchemedKeyValue, SchemedValue }
 import nl.knaw.dans.easy.deposit.docs.JsonUtil.InvalidDocumentException
+import nl.knaw.dans.easy.deposit.docs.dm.DateScheme.W3CDTF
+import nl.knaw.dans.easy.deposit.docs.dm.{ Author, Date, DateQualifier }
 import nl.knaw.dans.lib.error._
 import org.xml.sax.SAXParseException
 import resource.Using
@@ -48,8 +50,7 @@ class DatasetXmlSpec extends TestSupportFixture with DdmBehavior {
       |  "accessRights": { "category": "OPEN_ACCESS" },
       |  "audiences": [ { "scheme": "blabla", "key": "D35200", "value": "some audience"} ]
       |}""".stripMargin)
-    .doIfFailure { case e => println(e) }
-    .getOrRecover(e => fail(e.toString))
+    .getOrRecover(e => fail(e))
 
   /** provides the verbose namespaces for inline DDM */
   override val emptyDDM: Elem = DatasetXml(minimal)
@@ -162,7 +163,7 @@ class DatasetXmlSpec extends TestSupportFixture with DdmBehavior {
     val date = "2018-06-14"
     val dates = DateQualifier.values.toSeq
       .withFilter(_ != DateQualifier.dateSubmitted)
-      .map { q => DatasetMetadata.Date(date, q) }
+      .map { qualifier => Date(Some(W3CDTF.toString), date, qualifier) }
     validDatasetMetadata(
       input = Success(minimal.copy(dates = Some(dates))),
       subset = actualDDM => dcmiMetadata(actualDDM),
@@ -171,13 +172,13 @@ class DatasetXmlSpec extends TestSupportFixture with DdmBehavior {
         // dateCreated and dateAvailable are documented with the pure minimal test
         <ddm:dcmiMetadata>
           <dcterms:identifier xsi:type="id-type:DOI">mocked-DOI</dcterms:identifier>
+          <dcterms:dateSubmitted xsi:type="dcterms:W3CDTF">2018-03-22</dcterms:dateSubmitted>
           <dc:date xsi:type="dcterms:W3CDTF">{ date }</dc:date>
           <dcterms:dateAccepted xsi:type="dcterms:W3CDTF">{ date }</dcterms:dateAccepted>
           <dcterms:dateCopyrighted xsi:type="dcterms:W3CDTF">{ date }</dcterms:dateCopyrighted>
           <dcterms:issued xsi:type="dcterms:W3CDTF">{ date }</dcterms:issued>
           <dcterms:modified xsi:type="dcterms:W3CDTF">{ date }</dcterms:modified>
           <dcterms:valid xsi:type="dcterms:W3CDTF">{ date }</dcterms:valid>
-          <dcterms:dateSubmitted xsi:type="dcterms:W3CDTF">2018-03-22</dcterms:dateSubmitted>
         </ddm:dcmiMetadata>
     )
   }
@@ -222,14 +223,14 @@ class DatasetXmlSpec extends TestSupportFixture with DdmBehavior {
       expectedDdmContent =
         <ddm:dcmiMetadata>
           <dcterms:identifier xsi:type="id-type:DOI">mocked-DOI</dcterms:identifier>
-          <dcterms:valid xsi:type="dcterms:W3CDTF">2018</dcterms:valid>
-          <dcterms:valid xsi:type="dcterms:W3CDTF">2018-12</dcterms:valid>
           <dcterms:dateSubmitted xsi:type="dcterms:W3CDTF">{ nowYMD }</dcterms:dateSubmitted>
           <dcterms:dateAccepted>Groundhog day</dcterms:dateAccepted>
           <dcterms:dateCopyrighted>Groundhog day</dcterms:dateCopyrighted>
           <dcterms:issued>Groundhog day</dcterms:issued>
           <dcterms:modified>Groundhog day</dcterms:modified>
           <dcterms:valid>Groundhog day</dcterms:valid>
+          <dcterms:valid xsi:type="dcterms:W3CDTF">2018</dcterms:valid>
+          <dcterms:valid xsi:type="dcterms:W3CDTF">2018-12</dcterms:valid>
         </ddm:dcmiMetadata>
     )
   }
@@ -328,9 +329,9 @@ class DatasetXmlSpec extends TestSupportFixture with DdmBehavior {
         <dcterms:publisher xml:lang="nld">pub2</dcterms:publisher>
         <dc:source xml:lang="nld">source1</dc:source>
         <dc:source xml:lang="nld">source2</dc:source>
+        <dcterms:dateSubmitted xsi:type="dcterms:W3CDTF">2018-03-22</dcterms:dateSubmitted>
         <dcterms:dateCopyrighted xsi:type="dcterms:W3CDTF">2018-03-18</dcterms:dateCopyrighted>
         <dcterms:valid xsi:type="dcterms:W3CDTF">2018-03-17</dcterms:valid>
-        <dcterms:dateSubmitted xsi:type="dcterms:W3CDTF">2018-03-22</dcterms:dateSubmitted>
         <dcterms:modified>2018-02-02</dcterms:modified>
         <dcterms:issued>Groundhog day</dcterms:issued>
         <dcterms:license>http://creativecommons.org/publicdomain/zero/1.0</dcterms:license>

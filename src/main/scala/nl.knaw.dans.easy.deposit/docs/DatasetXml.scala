@@ -15,10 +15,10 @@
  */
 package nl.knaw.dans.easy.deposit.docs
 
-import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.DateQualifier.DateQualifier
-import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.{ DateQualifier, _ }
+import nl.knaw.dans.easy.deposit.docs.DatasetMetadata._
 import nl.knaw.dans.easy.deposit.docs.JsonUtil.InvalidDocumentException
-import org.joda.time.DateTime
+import nl.knaw.dans.easy.deposit.docs.dm.DateQualifier.DateQualifier
+import nl.knaw.dans.easy.deposit.docs.dm.{ Author, Date, DateQualifier }
 
 import scala.util.Try
 import scala.xml._
@@ -58,8 +58,7 @@ object DatasetXml {
         { authors.rightsHolders.map(author => <dcterms:rightsHolder>{ author.toString }</dcterms:rightsHolder>) }
         { dm.publishers.getNonEmpty.map(str => <dcterms:publisher>{ str }</dcterms:publisher>).addAttr(lang) }
         { dm.sources.getNonEmpty.map(str => <dc:source>{ str }</dc:source>).addAttr(lang) }
-        { dates.schemed.map(date => <x xsi:type={date.scheme.getOrElse("")}>{ date.value }</x>.withLabel(date.qualifier.toString)) }
-        { dates.plain.map(date => <x>{ date.value }</x>.withLabel(date.qualifier.toString)) }
+        { dates.others.map(date => <x xsi:type={date.schemeAsString}>{ date.value }</x>.withLabel(date.qualifier.toString)) }
         { dm.license.getNonEmpty.map(str => <dcterms:license>{ str }</dcterms:license>) /* xsi:type="dcterms:URI" not supported by json */ }
       </ddm:dcmiMetadata>
     </ddm:DDM>
@@ -100,14 +99,14 @@ object DatasetXml {
       DateQualifier.created, // for ddm:profile
       DateQualifier.available, // for ddm:profile
     )
+    if (flattenedDates.exists(_.qualifier == DateQualifier.dateSubmitted))
+      throwInvalidDocumentException(s"No ${ DateQualifier.dateSubmitted } allowed")
     val created: Date = getMandatorySingleDate(DateQualifier.created)
     val available: Date = getMandatorySingleDate(DateQualifier.available)
-    val (schemed, plain) = {
-      if (flattenedDates.exists(_.qualifier == DateQualifier.dateSubmitted))
-        throwInvalidDocumentException(s"No ${ DateQualifier.dateSubmitted } allowed")
-      (flattenedDates :+ Date(DateTime.now(), DateQualifier.dateSubmitted)
-        ).filterNot(date => specialDateQualifiers.contains(date.qualifier))
-    }.partition(_.hasScheme)
+    val others: Seq[Date] = Date.submitted() +:
+      flattenedDates.filterNot(date =>
+        specialDateQualifiers.contains(date.qualifier)
+      )
 
     private def getMandatorySingleDate(qualifier: DateQualifier): Date = {
       val seq: Seq[Date] = flattenedDates.filter(_.qualifier == qualifier)
@@ -120,11 +119,8 @@ object DatasetXml {
 
   /** @param elem XML element to be adjusted */
   implicit class RichElem(val elem: Elem) extends AnyVal {
-    // TODO make private once the thrown error can be tested through apply (when using a non-enum for withLabel)
 
-    /**
-     * @param str the desired tag (namespace:label)
-     */
+    /** @param str the desired tag (namespace:label) or (label) */
     @throws[InvalidDocumentException]("when str is not a valid XML label (has more than one ':')")
     def withLabel(str: String): Elem = {
       str.split(":") match {

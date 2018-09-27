@@ -18,8 +18,8 @@ package nl.knaw.dans.easy.deposit.docs
 import java.lang.reflect.InvocationTargetException
 import java.nio.file.{ Path, Paths }
 
-import nl.knaw.dans.easy.deposit.docs.DatasetMetadata._
 import nl.knaw.dans.easy.deposit.docs.StateInfo.State
+import nl.knaw.dans.easy.deposit.docs.dm._
 import org.json4s.Extraction.decompose
 import org.json4s.JsonAST.{ JValue, _ }
 import org.json4s.JsonDSL._
