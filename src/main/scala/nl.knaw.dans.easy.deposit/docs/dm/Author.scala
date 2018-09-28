@@ -7,8 +7,8 @@ case class Author(titles: Option[String] = None,
                   initials: Option[String] = None,
                   insertions: Option[String] = None,
                   surname: Option[String] = None,
-                  role: Option[SchemedKeyValue[String]] = None,
-                  ids: Option[Seq[SchemedValue[String]]] = None,
+                  role: Option[SchemedKeyValue] = None,
+                  ids: Option[Seq[SchemedValue]] = None,
                   organization: Option[String] = None,
                  ) {
   private val hasMandatory: Boolean = organization.isProvided || (surname.isProvided && initials.isProvided)

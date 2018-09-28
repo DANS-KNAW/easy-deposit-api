@@ -23,18 +23,18 @@ import org.json4s.JsonInput
 
 import scala.util.{ Failure, Success, Try }
 
-case class DatasetMetadata(identifiers: Option[Seq[SchemedValue[String]]] = None,
-                           languageOfDescription: Option[SchemedKeyValue[String]] = None,
+case class DatasetMetadata(identifiers: Option[Seq[SchemedValue]] = None,
+                           languageOfDescription: Option[SchemedKeyValue] = None,
                            titles: Option[Seq[String]] = None,
                            alternativeTitles: Option[Seq[String]] = None,
                            descriptions: Option[Seq[String]] = None,
                            creators: Option[Seq[Author]] = None,
                            contributors: Option[Seq[Author]] = None,
-                           audiences: Option[Seq[SchemedKeyValue[String]]] = None,
-                           subjects: Option[Seq[PossiblySchemedKeyValue[String]]] = None,
-                           alternativeIdentifiers: Option[Seq[SchemedValue[String]]] = None,
+                           audiences: Option[Seq[SchemedKeyValue]] = None,
+                           subjects: Option[Seq[PossiblySchemedKeyValue]] = None,
+                           alternativeIdentifiers: Option[Seq[SchemedValue]] = None,
                            relations: Option[Seq[RelationType]] = None,
-                           languagesOfFiles: Option[Seq[PossiblySchemedKeyValue[String]]] = None,
+                           languagesOfFiles: Option[Seq[PossiblySchemedKeyValue]] = None,
                            dates: Option[Seq[Date]] = None,
                            sources: Option[Seq[String]] = None,
                            instructionsForReuse: Option[Seq[String]] = None,
@@ -42,12 +42,12 @@ case class DatasetMetadata(identifiers: Option[Seq[SchemedValue[String]]] = None
                            accessRights: Option[AccessRights] = None,
                            license: Option[String] = None,
                            typesDcmi: Option[Seq[String]] = None,
-                           types: Option[Seq[PossiblySchemedValue[String]]] = None,
-                           formats: Option[Seq[PossiblySchemedValue[String]]] = None,
-                           temporalCoverages: Option[Seq[PossiblySchemedKeyValue[String]]] = None,
+                           types: Option[Seq[PossiblySchemedValue]] = None,
+                           formats: Option[Seq[PossiblySchemedValue]] = None,
+                           temporalCoverages: Option[Seq[PossiblySchemedKeyValue]] = None,
                            spatialPoints: Option[Seq[SpatialPoint]] = None,
                            spatialBoxes: Option[Seq[SpatialBox]] = None,
-                           spatialCoverages: Option[Seq[PossiblySchemedKeyValue[String]]] = None,
+                           spatialCoverages: Option[Seq[PossiblySchemedKeyValue]] = None,
                            messageForDataManager: Option[String] = None,
                            privacySensitiveDataPresent: PrivacySensitiveDataPresent = PrivacySensitiveDataPresent.unspecified,
                            acceptLicenseAgreement: Boolean = false,
@@ -97,39 +97,32 @@ object DatasetMetadata {
     }
   }
 
-  case class QualifiedSchemedValue[S, Q](scheme: Option[S],
-                                         value: String,
-                                         qualifier: Q
-                                        ) extends RequiresNonEmpty {
-    requireNonEmptyString(value, "value")
-  }
-
-  case class SchemedValue[S](scheme: S,
-                             value: String,
-                            ) extends RequiresNonEmpty {
+  case class SchemedValue(scheme: String,
+                          value: String,
+                         ) extends RequiresNonEmpty {
     requireNonEmptyString(scheme, "scheme")
     requireNonEmptyString(value, "value")
   }
 
-  case class PossiblySchemedValue[S](scheme: Option[S],
-                                     value: String,
-                                    ) extends RequiresNonEmpty {
+  case class PossiblySchemedValue(scheme: Option[String],
+                                  value: String,
+                                 ) extends RequiresNonEmpty {
     requireNonEmptyString(value, "value")
   }
 
-  case class SchemedKeyValue[S](scheme: S,
-                                key: String,
-                                value: String,
-                               ) extends RequiresNonEmpty {
+  case class SchemedKeyValue(scheme: String,
+                             key: String,
+                             value: String,
+                            ) extends RequiresNonEmpty {
     requireNonEmptyString(scheme, "scheme")
     requireNonEmptyString(value, "value")
     requireNonEmptyString(key, "key")
   }
 
-  case class PossiblySchemedKeyValue[S](scheme: Option[S],
-                                        key: Option[String],
-                                        value: String,
-                                       ) extends RequiresNonEmpty {
+  case class PossiblySchemedKeyValue(scheme: Option[String],
+                                     key: Option[String],
+                                     value: String,
+                                    ) extends RequiresNonEmpty {
     requireNonEmptyString(value, "value")
   }
 }

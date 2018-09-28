@@ -79,7 +79,7 @@ object DatasetXml {
       </dcx-dai:author>
   }
 
-  private def orgDetails(role: Option[SchemedKeyValue[String]] = None)
+  private def orgDetails(role: Option[SchemedKeyValue] = None)
                         (organization: String)
                         (implicit lang: Option[Attribute]) =
       <dcx-dai:organization>

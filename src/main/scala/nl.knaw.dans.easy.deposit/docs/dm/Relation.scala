@@ -37,9 +37,11 @@ object RelationQualifier extends Enumeration {
   val conformsTo: RelationQualifier = Value("dcterms:conformsTo")
 }
 
-trait RelationType
+trait RelationType {
+  val qualifier: RelationQualifier
+}
 
-case class Relation(qualifier: RelationQualifier,
+case class Relation(override val qualifier: RelationQualifier,
                     url: Option[String],
                     title: Option[String],
                    ) extends RequiresNonEmpty with RelationType {
@@ -48,7 +50,7 @@ case class Relation(qualifier: RelationQualifier,
 
 case class RelatedIdentifier(scheme: Option[String],
                              value: String,
-                             qualifier: RelationQualifier
+                             override val qualifier: RelationQualifier
                             ) extends RelationType with RequiresNonEmpty {
   requireNonEmptyString(value, "value")
 }
