@@ -1,11 +1,12 @@
 {
-  "identifier": [{
+  "identifiers": [{
     "scheme": "id-type:DOI",
     "value": "10.5072/dans-xz4-ttwa"
   }],
   "languageOfDescription": {
     "scheme": "dcterms:ISO639-2",
-    "value": "eng"
+    "key": "eng",
+    "value": "English"
   },
   "titles": [
     "Title 1",
@@ -18,11 +19,11 @@
     "initials": "A.",
     "insertions": "",
     "surname": "Einstein",
-    "role": [{
+    "role": {
       "scheme": "datacite:contributorType",
       "key": "DataManager",
       "value": "Data Manager"
-    }],
+    },
     "ids": [
       {
         "scheme": "id-type:DAI",
@@ -37,11 +38,11 @@
   }],
   "contributors": [
     {
-      "role": [{
+      "role": {
         "scheme": "datacite:contributorType",
         "key": "RightsHolder",
         "value": "rightsholder"
-      }],
+      },
       "organization": "University of Zurich"
     },
     {
@@ -89,12 +90,12 @@
       "title": "SAI en Plan van Aanpak AAI. Calamiteitenberging Woudse Polder, V106 (Vestigia B.V.)"
     },
     {
-      "qualifier": "",
+      "qualifier": "dcterms:relation",
       "url": "http://example.com",
       "title": ""
     },
     {
-      "qualifier": "",
+      "qualifier": "dcterms:relation",
       "url": "",
       "title": "some text to show a relation"
     }
@@ -113,12 +114,12 @@
   ],
   "dates": [
     {
-      "qualifier": "dcterms:modified",
       "scheme": "dcterms:W3CDTF",
+      "qualifier": "dcterms:modified",
       "value": "1995-11"
     },
     {
-      "qualifier": "date",
+      "qualifier": "dc:date",
       "scheme": "",
       "value": "survey between 1991 and feb 1992"
     },
@@ -133,7 +134,7 @@
       "value": "1994"
     },
     {
-      "qualifier": "dcterms:dateSubmitted",
+      "qualifier": "dcterms:issued",
       "scheme": "dcterms:W3CDTF",
       "value": "1994-11-05T13:15:30Z"
     }
@@ -142,7 +143,7 @@
   "instructionsForReuse": ["how to use this data"],
   "publishers": ["publisher1"],
   "accessRights": {
-    "category": "restricted_group",
+    "category": "GROUP_ACCESS",
     "group": "Archaelogy"
   },
   "license": "http://license/cc",
@@ -196,10 +197,10 @@
     "south": 436172.5,
     "west": 91232.016
   }],
-  "spatialCoverage": [{
+  "spatialCoverages": [{
     "scheme": "dcterms:ISO3166",
-    "value": "Nederland",
-    "key": "NLD"
+    "key": "NLD",
+    "value": "Nederland"
   }],
   "messageForDataManager": "",
   "privacySensitiveDataPresent": "unspecified",

@@ -100,7 +100,10 @@ object DatasetMetadata {
   trait PossiblySchemed {
     val scheme: Option[String]
 
-    def schemeAsString: String = scheme.map(_.toString).orNull
+    def schemeAsString: String = scheme match {
+      case Some(s: String) if s.trim.nonEmpty => s.trim
+      case _ => null
+    }
   }
 
   case class SchemedValue(scheme: String,
