@@ -15,13 +15,10 @@
  */
 package nl.knaw.dans.easy.deposit
 
-import nl.knaw.dans.easy.deposit.PidRequesterComponent.PidRequester
-import nl.knaw.dans.easy.deposit.PidRequesterComponent.PidType.PidType
 import nl.knaw.dans.easy.deposit.docs.JsonUtil.InvalidDocumentException
 import nl.knaw.dans.easy.deposit.docs.StateInfo.State
 import nl.knaw.dans.easy.deposit.docs.{ DatasetMetadata, StateInfo }
 import nl.knaw.dans.lib.error._
-import org.scalactic.Fail
 import org.scalamock.scalatest.MockFactory
 
 import scala.util.{ Failure, Success, Try }
@@ -57,7 +54,7 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
     }
 
     // the test
-    new Submitter(testDir / "staged", testDir / "submitted", null)
+    new Submitter(testDir / "staged", testDir / "submitted")
       .submit(depositDir) should matchPattern { case Success(()) => }
 
     // post conditions
@@ -86,25 +83,11 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
     (bagDir.parent / "deposit.properties").append(s"identifier.doi=$doi")
     (testDir / "submitted").createDirectories()
 
-    new Submitter(testDir / "staged", testDir / "submitted", null)
+    new Submitter(testDir / "staged", testDir / "submitted")
       .submit(depositDir) should matchPattern { case Success(()) => }
 
     (testDir / "submitted" / depositDir.id.toString / "bag" / "metadata" / "message-from-depositor.txt")
       .contentAsString shouldBe ""
-  }
-
-  it should "add DOI to props and json" in {
-
-    val depositDir = createDeposit(datasetMetadata.copy(identifiers = None))
-    val pidMocker = mock[PidRequester]
-    val mockedPid = "12345"
-    (pidMocker.requestPid(_: PidType)) expects * once() returning Success(mockedPid)
-    (testDir / "submitted").createDirectories()
-
-    new Submitter(testDir / "staged", testDir / "submitted", pidMocker)
-      .submit(depositDir) should matchPattern { case Success(()) => }
-
-    depositDir.getDOI(null) shouldBe Success(mockedPid)
   }
 
   it should "report a file missing in the draft" in {
@@ -118,7 +101,7 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
     // add file to manifest that does not exist
     (bag.baseDir / "manifest-sha1.txt").append("chk file")
 
-    new Submitter(testDir / "staged", testDir / "submitted", null).submit(depositDir) should matchPattern {
+    new Submitter(testDir / "staged", testDir / "submitted").submit(depositDir) should matchPattern {
       case Failure(e) if e.getMessage == s"invalid bag, missing [files, checksums]: [Set($testDir/drafts/user/${ depositDir.id }/bag/file), Set()]" =>
     }
   }
@@ -133,10 +116,12 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
 
     // change a checksum in the manifest
     val manifest = bag.baseDir / "manifest-sha1.txt"
-    manifest.write(manifest.contentAsString.replaceAll(" +","xxx  "))
+    manifest.write(manifest.contentAsString.replaceAll(" +", "xxx  "))
 
-    new Submitter(testDir / "staged", testDir / "submitted", null).submit(depositDir) should matchPattern {
-      case Failure(e) if e.getMessage == s"staged and draft bag [${bag.baseDir.parent}] have different payload manifest elements: (Set((data/file.txt,a57ec0c3239f30b29f1e9270581be50a70c74c04)),Set((data/file.txt,a57ec0c3239f30b29f1e9270581be50a70c74c04xxx)))" =>
+    val checksum = "a57ec0c3239f30b29f1e9270581be50a70c74c04"
+    new Submitter(testDir / "staged", testDir / "submitted").submit(depositDir) should matchPattern {
+      case Failure(e)
+        if e.getMessage == s"staged and draft bag [${ bag.baseDir.parent }] have different payload manifest elements: (Set((data/file.txt,$checksum)),Set((data/file.txt,${checksum}xxx)))" =>
     }
   }
 
@@ -144,9 +129,22 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
     // invalid state transition is tested with IntegrationSpec
 
     val depositDir = createDeposit(datasetMetadata)
+    (testDir / "submitted").createDirectories()
+    //(depositDir.getDataFiles.getOrRecover(e => fail(e)).bag.parent / "deposit.properties").createFile()
 
-    new Submitter(testDir / "staged", testDir / "submitted", null).submit(depositDir) should matchPattern {
-      case Failure(e) if e.isInstanceOf[CorruptDepositException] =>
+    new Submitter(testDir / "staged", testDir / "submitted").submit(depositDir) should matchPattern {
+      case Failure(e: CorruptDepositException) if e.getMessage.endsWith(
+        s"DOI in datasetmetadata.json [${datasetMetadata.doi}] does not equal DOI in deposit.properties [None]"
+      ) =>
+    }
+  }
+
+  it should "reject a missing DOI" in {
+    val depositDir = createDeposit(datasetMetadata.copy(identifiers = None))
+
+    new Submitter(testDir / "staged", testDir / "submitted").submit(depositDir) should matchPattern {
+      case Failure(e: InvalidDocumentException) if e.document == "DatasetMetadata" &&
+        e.getMessage.endsWith( "Please first GET a DOI for this deposit") =>
     }
   }
 
@@ -154,12 +152,10 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
     // other validation errors are tested with DatasetXmlSpec and DepositDirSpec
 
     val depositDir = createDeposit(DatasetMetadata())
-    val pidMocker = mock[PidRequester]
-    val mockedPid = "12345"
-    (pidMocker.requestPid(_: PidType)) expects * once() returning Success(mockedPid)
 
-    new Submitter(testDir / "staged", testDir / "submitted", pidMocker).submit(depositDir) should matchPattern {
-      case Failure(e) if e.isInstanceOf[InvalidDocumentException] =>
+    new Submitter(testDir / "staged", testDir / "submitted").submit(depositDir) should matchPattern {
+      case Failure(e: InvalidDocumentException) if e.document == "DatasetMetadata" &&
+        e.getMessage.contains("Please set AcceptLicenseAgreement") =>
     }
   }
 

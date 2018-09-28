@@ -20,7 +20,7 @@ import java.util.UUID
 import nl.knaw.dans.easy.deposit.PidRequesterComponent.PidRequester
 import nl.knaw.dans.easy.deposit.PidRequesterComponent.PidType.PidType
 import nl.knaw.dans.easy.deposit.authentication.AuthenticationMocker._
-import nl.knaw.dans.easy.deposit.docs.{ DatasetMetadata, DepositInfo }
+import nl.knaw.dans.easy.deposit.docs.{ DatasetMetadata, DepositInfo, JsonUtil }
 import nl.knaw.dans.easy.deposit.{ EasyDepositApiApp, _ }
 import nl.knaw.dans.lib.error._
 import org.eclipse.jetty.http.HttpStatus._
@@ -47,9 +47,7 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
 
     // create dataset
     expectsUserFooBar
-    val responseBody = post(uri = s"/deposit", headers = Seq(basicAuthentication)) {
-      new String(bodyBytes)
-    }
+    val responseBody = post(uri = s"/deposit", headers = Seq(basicAuthentication)) { body }
     val uuid = DepositInfo(responseBody).map(_.id.toString).getOrRecover(e => fail(e.toString, e))
     val metadataURI = s"/deposit/$uuid/metadata"
 
@@ -115,9 +113,7 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
 
     // create dataset
     expectsUserFooBar
-    val responseBody = post(uri = s"/deposit", headers = Seq(basicAuthentication)) {
-      new String(bodyBytes)
-    }
+    val responseBody = post(uri = s"/deposit", headers = Seq(basicAuthentication)) { body }
     val uuid = DepositInfo(responseBody).map(_.id.toString).getOrRecover(e => fail(e.toString, e))
 
     val dataFilesBase = DepositDir(testDir / "drafts", "foo", UUID.fromString(uuid)).getDataFiles.get.bag.data
@@ -130,7 +126,7 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
     }
 
     val expectedItem = """{"fileName":"text.txt","dirPath":"path/to/text.txt","sha1sum":"c5b8de8cc3587aef4e118a481115391033621e06"}"""
-    val expectedListItem = expectedItem.replace("/text.txt","")
+    val expectedListItem = expectedItem.replace("/text.txt", "")
 
     // get file
     expectsUserFooBar
@@ -151,9 +147,7 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
 
     // create dataset
     expectsUserFooBar
-    val responseBody = post(uri = s"/deposit", headers = Seq(basicAuthentication)) {
-      new String(bodyBytes)
-    }
+    val responseBody = post(uri = s"/deposit", headers = Seq(basicAuthentication)) { body }
     val uuid = DepositInfo(responseBody).map(_.id.toString).getOrRecover(e => fail(e.toString, e))
 
     // expect a new doi once
@@ -180,23 +174,13 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
     val doi = Try { DatasetMetadata(datasetMetadata).get.identifiers.get.headOption.get.value }
       .getOrRecover(e => fail("could not get DOI from test input", e))
     (testDir / "easy-ingest-flow-inbox").createDirectories()
+    (testDir / "stage").createDirectories()
 
     // create dataset
     expectsUserFooBar
-    val responseBody = post(uri = s"/deposit", headers = Seq(basicAuthentication)) {
-      new String(bodyBytes)
-    }
+    val responseBody = post(uri = s"/deposit", headers = Seq(basicAuthentication)) { body }
     val uuid = DepositInfo(responseBody).map(_.id.toString).getOrRecover(e => fail(e.toString, e))
     val depositDir = testDir / "drafts" / "foo" / uuid.toString
-    val relativeTarget = "path/to/dir"
-    val absoluteTarget = depositDir / "bag/data" / relativeTarget
-    (testDir / "input").createDirectory()
-    Seq(
-      ("1.txt", "Lorem ipsum dolor sit amet"),
-      ("2.txt", "consectetur adipiscing elit"),
-      ("3.txt", "sed do eiusmod tempor incididunt ut labore et dolore magna aliqua"),
-      ("4.txt", "Ut enim ad minim veniam")
-    ).foreach { case (name, content) => (testDir / "input" / name).write(content) }
 
     // upload dataset metadata
     expectsUserFooBar
@@ -207,7 +191,7 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
       status shouldBe NO_CONTENT_204
     }
 
-    // avoid having to mock the pid-service
+    // copy DOI from metadata into deposit.properties
     (depositDir / "deposit.properties").append(s"identifier.doi=$doi")
 
     // submit
@@ -223,13 +207,44 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
     }
   }
 
+  s"scenario: create - sumbit" should "refuse a submit without DOI" in {
+    (testDir / "stage").createDirectories()
+    (testDir / "easy-ingest-flow-inbox").createDirectories()
+    val metadataWithoutDOI = JsonUtil.toJson(
+      DatasetMetadata(
+        getManualTestResource("datasetmetadata-from-ui-all.json")).getOrRecover(e => fail(e)
+      ).copy(identifiers = None)
+    )
+
+    // create dataset
+    expectsUserFooBar
+    val responseBody = post(uri = s"/deposit", headers = Seq(basicAuthentication)) { body }
+
+    val uuid = DepositInfo(responseBody).map(_.id.toString).getOrRecover(e => fail(e.toString, e))
+    // upload dataset metadata
+    expectsUserFooBar
+    put(s"/deposit/$uuid/metadata", headers = Seq(basicAuthentication),
+      body = metadataWithoutDOI
+    ) {
+      body shouldBe ""
+      status shouldBe NO_CONTENT_204
+    }
+
+    // submit
+    expectsUserFooBar
+    put(s"/deposit/$uuid/state", headers = Seq(basicAuthentication),
+      body = """{"state":"SUBMITTED","stateDescription":"blabla"}"""
+    ) {
+      body shouldBe "Bad Request. invalid DatasetMetadata: Please first GET a DOI for this deposit"
+      status shouldBe BAD_REQUEST_400
+    }
+  }
+
   s"scenario: POST /deposit; hack state to ARCHIVED; SUBMIT" should "reject state transition" in {
 
     // create dataset
     expectsUserFooBar
-    val responseBody = post(uri = s"/deposit", headers = Seq(basicAuthentication)) {
-      new String(bodyBytes)
-    }
+    val responseBody = post(uri = s"/deposit", headers = Seq(basicAuthentication)) { body }
     val uuid = DepositInfo(responseBody).map(_.id.toString).getOrRecover(e => fail(e.toString, e))
 
     // hack state
@@ -247,9 +262,5 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
 
     // submit did not complain about missing metadata, so the state transition check indeed came first
     (testDir / "drafts" / "foo" / uuid.toString / "bag" / "metatada") shouldNot exist
-  }
-
-  private def randomContent(times: Int) = {
-    (0 until times).map(_ => UUID.randomUUID().toString).mkString("\n")
   }
 }

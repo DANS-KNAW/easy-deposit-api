@@ -67,7 +67,7 @@ case class DatasetMetadata(identifiers: Option[Seq[SchemedValue[String]]] = None
   }
 
   lazy val licenceAccepted: Try[Unit] = if (acceptLicenseAgreement) Success(())
-                                        else Failure(DatasetMetadata.missingValue("AcceptLicenseAgreement"))
+                                        else Failure(missingValue("AcceptLicenseAgreement"))
 
   def setDoi(value: String): DatasetMetadata = {
     val ids = identifiers.getOrElse(Seq.empty).filterNot(_.scheme == doiScheme)
@@ -78,7 +78,7 @@ case class DatasetMetadata(identifiers: Option[Seq[SchemedValue[String]]] = None
 object DatasetMetadata {
   def apply(input: JsonInput): Try[DatasetMetadata] = input.deserialize[DatasetMetadata]
 
-  private val doiScheme = "id-type:DOI"
+  val doiScheme = "id-type:DOI"
 
   type Date = QualifiedSchemedValue[String, DateQualifier]
 
@@ -91,7 +91,7 @@ object DatasetMetadata {
   )
 
   def missingValue(label: String): InvalidDocumentException = {
-    InvalidDocumentException(s"Please set $label in DatasetMetadata")
+    InvalidDocumentException("DatasetMetadata", new Exception(s"Please set $label"))
   }
 
   object PrivacySensitiveDataPresent extends Enumeration {
