@@ -70,6 +70,7 @@ class DepositServletErrorSpec extends TestSupportFixture with ServletFixture wit
   }
 
   s"put /:uuid/metadata" should "report a lost dataset" in {
+    assumeSchemaAvailable
     expectsUserFooBar
     (mockedApp.writeDataMetadataToDeposit(_: DatasetMetadata, _: String, _: UUID)) expects(*, "foo", uuid) returning
       Failure(NoSuchDepositException("foo", uuid, new Exception()))
@@ -88,6 +89,7 @@ class DepositServletErrorSpec extends TestSupportFixture with ServletFixture wit
     (mockedApp.getDatasetMetadataForDeposit(_: String, _: UUID)) expects("foo", uuid) returning
       Failure(CorruptDepositException("foo", uuid.toString, new Exception("invalid json")))
 
+    assumeSchemaAvailable
     expectsUserFooBar
     get(
       uri = s"/$uuid/metadata",
@@ -102,6 +104,7 @@ class DepositServletErrorSpec extends TestSupportFixture with ServletFixture wit
     (mockedApp.getDatasetMetadataForDeposit(_: String, _: UUID)) expects("foo", uuid) returning
       Failure(NoSuchDepositException("foo", uuid, new Exception("file not found")))
 
+    assumeSchemaAvailable
     expectsUserFooBar
     get(
       uri = s"/$uuid/metadata",

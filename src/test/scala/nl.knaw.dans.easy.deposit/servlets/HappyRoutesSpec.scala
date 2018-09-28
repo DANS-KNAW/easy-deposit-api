@@ -175,6 +175,7 @@ class HappyRoutesSpec extends TestSupportFixture with ServletFixture with Scalat
   }
 
   "put /deposit/:uuid/metadata" should "reject invalid datasetmetadata.json" in {
+    assumeSchemaAvailable
     expectsUserFooBar
 
     put(

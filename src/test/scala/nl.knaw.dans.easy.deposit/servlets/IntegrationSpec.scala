@@ -52,6 +52,7 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
     val metadataURI = s"/deposit/$uuid/metadata"
 
     // create dataset metadata
+    assumeSchemaAvailable
     expectsUserFooBar
     put(metadataURI, headers = Seq(basicAuthentication),
       body = """{"titles":["blabla"]}""" // more variations in DepositDirSpec
@@ -84,7 +85,6 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
       status shouldBe NOT_FOUND_404
     }
   }
-
 
   s"scenario: POST /deposit twice; GET /deposit" should "return a list of datasets" in {
 
@@ -183,6 +183,7 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
     val depositDir = testDir / "drafts" / "foo" / uuid.toString
 
     // upload dataset metadata
+    assumeSchemaAvailable
     expectsUserFooBar
     put(s"/deposit/$uuid/metadata", headers = Seq(basicAuthentication),
       body = datasetMetadata
@@ -222,6 +223,7 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
 
     val uuid = DepositInfo(responseBody).map(_.id.toString).getOrRecover(e => fail(e.toString, e))
     // upload dataset metadata
+    assumeSchemaAvailable
     expectsUserFooBar
     put(s"/deposit/$uuid/metadata", headers = Seq(basicAuthentication),
       body = metadataWithoutDOI

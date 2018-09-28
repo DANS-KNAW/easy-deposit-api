@@ -15,15 +15,29 @@
  */
 package nl.knaw.dans.easy.deposit.docs
 
+import java.io.{ BufferedInputStream, ByteArrayInputStream }
+import java.net.UnknownHostException
+import java.nio.charset.StandardCharsets
+
+import javax.xml.XMLConstants
+import javax.xml.transform.Source
+import javax.xml.transform.stream.StreamSource
+import javax.xml.validation.{ Schema, SchemaFactory }
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata._
 import nl.knaw.dans.easy.deposit.docs.JsonUtil.InvalidDocumentException
 import nl.knaw.dans.easy.deposit.docs.dm.DateQualifier.DateQualifier
 import nl.knaw.dans.easy.deposit.docs.dm.{ Author, Date, DateQualifier }
+import nl.knaw.dans.lib.logging.DebugEnhancedLogging
+import org.xml.sax.SAXParseException
+import resource.{ ManagedResource, Using }
 
-import scala.util.Try
+import scala.util.{ Failure, Try }
 import scala.xml._
 
-object DatasetXml {
+object DatasetXml extends DebugEnhancedLogging {
+  val ddmSchemaNameSpace: String = "http://easy.dans.knaw.nl/schemas/md/ddm/"
+  val ddmSchemaLocation: String = "https://easy.dans.knaw.nl/schemas/md/2017/09/ddm.xsd"
+
   def apply(dm: DatasetMetadata): Try[Elem] = Try {
     implicit val lang: Option[Attribute] = dm.languageOfDescription.map(l => new PrefixedAttribute("xml", "lang", l.key, Null))
 
@@ -40,7 +54,7 @@ object DatasetXml {
       xmlns:dcx-dai="http://easy.dans.knaw.nl/schemas/dcx/dai/"
       xmlns:ddm="http://easy.dans.knaw.nl/schemas/md/ddm/"
       xmlns:id-type="http://easy.dans.knaw.nl/schemas/vocab/identifier-type/"
-      xsi:schemaLocation="http://easy.dans.knaw.nl/schemas/md/ddm/ https://easy.dans.knaw.nl/schemas/md/2017/09/ddm.xsd"
+      xsi:schemaLocation={s"$ddmSchemaNameSpace $ddmSchemaLocation"}
     >
       <ddm:profile>
         { dm.titles.getNonEmpty.map(src => <dc:title>{ src }</dc:title>).addAttr(lang).mustBeNonEmpty("a title") }
@@ -136,9 +150,8 @@ object DatasetXml {
   }
 
   private def throwInvalidDocumentException(msg: String) = {
-    throw InvalidDocumentException("DatasetMetadata", new Exception(msg))
+    throw invalidDatasetMetadataException(new Exception(msg))
   }
-
 
   /** @param elems the sequence of XML elements to adjust */
   private implicit class RichElems(val elems: Seq[Elem]) extends AnyVal {
@@ -164,5 +177,46 @@ object DatasetXml {
       case source: String => source.trim.isEmpty
       case _ => false
     }
+  }
+
+  // pretty provides friendly trouble shooting for complex XML's
+  private val prettyPrinter: PrettyPrinter = new scala.xml.PrettyPrinter(1024, 2)
+
+  lazy val triedSchema: Try[Schema] = Try { // loading postponed until we actually start validating
+    SchemaFactory
+      .newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI)
+      .newSchema(Array(new StreamSource(ddmSchemaLocation)).toArray[Source])
+  }
+
+  def validate(ddm: Elem): Try[Unit] = {
+    triedSchema.map(schema =>
+      managedInputStream(ddm)
+        .apply(inputStream => schema
+          .newValidator()
+          .validate(new StreamSource(inputStream))
+        )
+    )
+  }.recoverWith {
+    case e: SAXParseException if e.getCause.isInstanceOf[UnknownHostException] =>
+      logger.error(e.getMessage, e)
+      Failure(SchemaNotAvailableException(e))
+    case e: SAXParseException => Failure(invalidDatasetMetadataException(e))
+    case e => Failure(e)
+  }
+
+  private def invalidDatasetMetadataException(exception: Exception) = {
+    InvalidDocumentException("DatasetMetadata", exception)
+  }
+
+  case class SchemaNotAvailableException(t: Throwable = null)
+    extends Exception(s"Schema's for validation not available, please try again later.", t)
+
+  def managedInputStream(ddm: Elem): ManagedResource[BufferedInputStream] = {
+    Using.bufferedInputStream(
+      new ByteArrayInputStream(
+        prettyPrinter
+          .format(ddm)
+          .getBytes(StandardCharsets.UTF_8)
+      ))
   }
 }

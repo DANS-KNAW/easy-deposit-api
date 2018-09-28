@@ -15,10 +15,6 @@
  */
 package nl.knaw.dans.easy.deposit.docs
 
-import java.io.ByteArrayInputStream
-import java.net.UnknownHostException
-import java.nio.charset.StandardCharsets
-
 import javax.xml.XMLConstants
 import javax.xml.transform.Source
 import javax.xml.transform.stream.StreamSource
@@ -29,8 +25,6 @@ import nl.knaw.dans.easy.deposit.docs.JsonUtil.InvalidDocumentException
 import nl.knaw.dans.easy.deposit.docs.dm.DateScheme.W3CDTF
 import nl.knaw.dans.easy.deposit.docs.dm.{ Author, Date, DateQualifier }
 import nl.knaw.dans.lib.error._
-import org.xml.sax.SAXParseException
-import resource.Using
 
 import scala.util.{ Failure, Success, Try }
 import scala.xml._
@@ -387,33 +381,18 @@ trait DdmBehavior {
                            subset: Elem => Elem = identity,
                            expectedDdmContent: Seq[Node] = Seq.empty
                           ): Unit = {
-    lazy val datasetMetadata = input
-      .doIfFailure { case e => println(s"$e") }
-      .getOrRecover(e => fail(e.toString))
-    lazy val ddm = DatasetXml(datasetMetadata)
-      .doIfFailure { case e => println(s"$e") }
-      .getOrRecover(e => fail(e.toString))
+    lazy val datasetMetadata = input.getOrRecover(e => fail(e))
+    lazy val triedDDM = DatasetXml(datasetMetadata)
 
     if (expectedDdmContent.nonEmpty) it should "generate expected DDM" in {
-      prettyPrinter.format(subset(ddm)) shouldBe
+      assumeSchemaAvailable
+      prettyPrinter.format(subset(triedDDM.getOrRecover(e => fail(e)))) shouldBe
         prettyPrinter.format(emptyDDM.copy(child = expectedDdmContent))
     }
 
     it should "generate valid DDM" in {
-      val unknownHost = triedSchema match {
-        case _: Success[_] => false
-        case Failure(e: SAXParseException) if e.getCause.isInstanceOf[UnknownHostException] => true
-        case _ => false
-      }
-      assume(!unknownHost)
-      val validator = triedSchema.getOrRecover(e => fail(s"could not load schema: $e")).newValidator()
-      val xmlString = prettyPrinter.format(ddm)
-      Using.bufferedInputStream(new ByteArrayInputStream(
-        xmlString.getBytes(StandardCharsets.UTF_8)
-      )).map(inputStream =>
-        validator.validate(new StreamSource(inputStream))
-      ).tried // println to troubleshoot a failing test: the error message shows a line number
-        .doIfFailure { case _ => println(xmlString) } shouldBe a[Success[_]]
+      assumeSchemaAvailable
+      triedDDM shouldBe a[Success[_]]
     }
   }
 }

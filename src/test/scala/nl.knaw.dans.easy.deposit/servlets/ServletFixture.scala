@@ -15,11 +15,18 @@
  */
 package nl.knaw.dans.easy.deposit.servlets
 
+import java.net.UnknownHostException
+
 import nl.knaw.dans.easy.deposit.EasyDepositApiApp
 import nl.knaw.dans.easy.deposit.authentication.AuthenticationProvider
+import nl.knaw.dans.easy.deposit.docs.DatasetXml
 import org.eclipse.jetty.server.nio.SelectChannelConnector
+import org.scalatest.Assertion
 import org.scalatra.test.EmbeddedJettyContainer
 import org.scalatra.test.scalatest.ScalatraSuite
+
+import scala.util.Failure
+import scala.xml.SAXParseException
 
 /**
  * This Suite relies on Jetty 9.x, while we still require Jetty 8.x

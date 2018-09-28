@@ -55,6 +55,7 @@ class Submitter(stagingBaseDir: File,
       datasetMetadata <- depositDir.getDatasetMetadata
       agreementsXml <- AgreementsXml(depositDir.user, DateTime.now, datasetMetadata)
       datasetXml <- DatasetXml(datasetMetadata)
+      _ <- DatasetXml.validate(datasetXml)
       _ <- depositDir.sameDOIs(datasetMetadata)
       msg = datasetMetadata.messageForDataManager.getOrElse("")
       filesXml <- FilesXml(draftBag.data)
