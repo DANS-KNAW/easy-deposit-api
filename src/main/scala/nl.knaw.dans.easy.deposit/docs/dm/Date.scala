@@ -15,7 +15,7 @@
  */
 package nl.knaw.dans.easy.deposit.docs.dm
 
-import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.RequiresNonEmpty
+import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.{ PossiblySchemed, RequiresNonEmpty }
 import nl.knaw.dans.easy.deposit.docs.dm.DateQualifier.DateQualifier
 import org.joda.time.DateTime
 import org.joda.time.format.ISODateTimeFormat
@@ -39,15 +39,14 @@ object DateScheme extends Enumeration {
 }
 
 case class Date(
-                 scheme: Option[String],
+                 override val scheme: Option[String],
                  value: String,
                  qualifier: DateQualifier,
-               ) extends RequiresNonEmpty {
+               ) extends PossiblySchemed with RequiresNonEmpty {
   requireNonEmptyString(value, "value")
   requireNonEmptyString(value, "qualifier")
-
-  def schemeAsString: String = scheme.map(_.toString).orNull
 }
+
 object Date {
   def submitted(): Date = Date(
     Some(DateScheme.W3CDTF.toString),

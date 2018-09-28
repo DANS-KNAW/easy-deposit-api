@@ -8,7 +8,7 @@ case class Author(titles: Option[String] = None,
                   insertions: Option[String] = None,
                   surname: Option[String] = None,
                   role: Option[SchemedKeyValue] = None,
-                  ids: Option[Seq[SchemedValue]] = None,
+                  ids: Option[Seq[SchemedValue]] = None,// TODO xml
                   organization: Option[String] = None,
                  ) {
   private val hasMandatory: Boolean = organization.isProvided || (surname.isProvided && initials.isProvided)
@@ -23,7 +23,7 @@ case class Author(titles: Option[String] = None,
   def isRightsHolder: Boolean = role.exists(_.key == "RightsHolder")
 
 
-  override def toString: String = { // TODO ID's when DatasetXml implements ID's for Author fields
+  override def toString: String = { // TODO ID's for rightsHolders
     val name = Seq(titles, initials, insertions, surname)
       .filter(_.isProvided)
       .map(_.getOrElse(""))

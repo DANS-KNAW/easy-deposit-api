@@ -44,13 +44,13 @@ trait RelationType {
 case class Relation(override val qualifier: RelationQualifier,
                     url: Option[String],
                     title: Option[String],
-                   ) extends RequiresNonEmpty with RelationType {
+                   ) extends RelationType with RequiresNonEmpty {
   require(title.isProvided || url.isProvided, s"Relation needs at least one of (title | url) got: ${ toJson(this) }")
 }
 
-case class RelatedIdentifier(scheme: Option[String],
+case class RelatedIdentifier(override val scheme: Option[String],
                              value: String,
                              override val qualifier: RelationQualifier
-                            ) extends RelationType with RequiresNonEmpty {
+                            ) extends RelationType with PossiblySchemed with RequiresNonEmpty {
   requireNonEmptyString(value, "value")
 }

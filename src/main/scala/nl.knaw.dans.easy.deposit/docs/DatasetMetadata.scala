@@ -31,9 +31,9 @@ case class DatasetMetadata(identifiers: Option[Seq[SchemedValue]] = None,
                            creators: Option[Seq[Author]] = None,
                            contributors: Option[Seq[Author]] = None,
                            audiences: Option[Seq[SchemedKeyValue]] = None,
-                           subjects: Option[Seq[PossiblySchemedKeyValue]] = None,
-                           alternativeIdentifiers: Option[Seq[SchemedValue]] = None,
-                           relations: Option[Seq[RelationType]] = None,
+                           subjects: Option[Seq[PossiblySchemedKeyValue]] = None, //TODO xml
+                           alternativeIdentifiers: Option[Seq[SchemedValue]] = None, //TODO xml
+                           relations: Option[Seq[RelationType]] = None, //TODO xml
                            languagesOfFiles: Option[Seq[PossiblySchemedKeyValue]] = None,
                            dates: Option[Seq[Date]] = None,
                            sources: Option[Seq[String]] = None,
@@ -41,13 +41,13 @@ case class DatasetMetadata(identifiers: Option[Seq[SchemedValue]] = None,
                            publishers: Option[Seq[String]] = None,
                            accessRights: Option[AccessRights] = None,
                            license: Option[String] = None,
-                           typesDcmi: Option[Seq[String]] = None,
-                           types: Option[Seq[PossiblySchemedValue]] = None,
-                           formats: Option[Seq[PossiblySchemedValue]] = None,
-                           temporalCoverages: Option[Seq[PossiblySchemedKeyValue]] = None,
-                           spatialPoints: Option[Seq[SpatialPoint]] = None,
-                           spatialBoxes: Option[Seq[SpatialBox]] = None,
-                           spatialCoverages: Option[Seq[PossiblySchemedKeyValue]] = None,
+                           typesDcmi: Option[Seq[String]] = None, //TODO xml
+                           types: Option[Seq[PossiblySchemedValue]] = None, //TODO xml
+                           formats: Option[Seq[PossiblySchemedValue]] = None, //TODO xml
+                           temporalCoverages: Option[Seq[PossiblySchemedKeyValue]] = None, //TODO xml
+                           spatialPoints: Option[Seq[SpatialPoint]] = None, //TODO xml
+                           spatialBoxes: Option[Seq[SpatialBox]] = None, //TODO xml
+                           spatialCoverages: Option[Seq[PossiblySchemedKeyValue]] = None, //TODO xml
                            messageForDataManager: Option[String] = None,
                            privacySensitiveDataPresent: PrivacySensitiveDataPresent = PrivacySensitiveDataPresent.unspecified,
                            acceptLicenseAgreement: Boolean = false,
@@ -97,6 +97,12 @@ object DatasetMetadata {
     }
   }
 
+  trait PossiblySchemed {
+    val scheme: Option[String]
+
+    def schemeAsString: String = scheme.map(_.toString).orNull
+  }
+
   case class SchemedValue(scheme: String,
                           value: String,
                          ) extends RequiresNonEmpty {
@@ -104,9 +110,9 @@ object DatasetMetadata {
     requireNonEmptyString(value, "value")
   }
 
-  case class PossiblySchemedValue(scheme: Option[String],
+  case class PossiblySchemedValue(override val scheme: Option[String],
                                   value: String,
-                                 ) extends RequiresNonEmpty {
+                                 ) extends PossiblySchemed with RequiresNonEmpty {
     requireNonEmptyString(value, "value")
   }
 
@@ -119,10 +125,10 @@ object DatasetMetadata {
     requireNonEmptyString(key, "key")
   }
 
-  case class PossiblySchemedKeyValue(scheme: Option[String],
+  case class PossiblySchemedKeyValue(override val scheme: Option[String],
                                      key: Option[String],
                                      value: String,
-                                    ) extends RequiresNonEmpty {
+                                    ) extends PossiblySchemed with RequiresNonEmpty {
     requireNonEmptyString(value, "value")
   }
 }
