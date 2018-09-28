@@ -1,0 +1,207 @@
+{
+  "identifier": [{
+    "scheme": "id-type:DOI",
+    "value": "10.5072/dans-xz4-ttwa"
+  }],
+  "languageOfDescription": {
+    "scheme": "dcterms:ISO639-2",
+    "value": "eng"
+  },
+  "titles": [
+    "Title 1",
+    "Title 2"
+  ],
+  "alternativeTitles": ["alternative title"],
+  "descriptions": ["description of the deposit"],
+  "creators": [{
+    "titles": "Drs",
+    "initials": "A.",
+    "insertions": "",
+    "surname": "Einstein",
+    "role": [{
+      "scheme": "datacite:contributorType",
+      "key": "DataManager",
+      "value": "Data Manager"
+    }],
+    "ids": [
+      {
+        "scheme": "id-type:DAI",
+        "value": "123456789x"
+      },
+      {
+        "scheme": "id-type:ISNI",
+        "value": "ISNI:000000012281955X"
+      }
+    ],
+    "organization": "University of Zurich"
+  }],
+  "contributors": [
+    {
+      "role": [{
+        "scheme": "datacite:contributorType",
+        "key": "RightsHolder",
+        "value": "rightsholder"
+      }],
+      "organization": "University of Zurich"
+    },
+    {
+      "titles": "Msc.",
+      "initials": "E",
+      "surname": "Ind",
+      "ids": [{
+        "scheme": "DAI",
+        "value": "13313935x"
+      }]
+    }
+  ],
+  "audiences": [{
+    "scheme": "narcis:DisciplineType",
+    "key": "D31000",
+    "value": "Literature"
+  }],
+  "subjects": [
+    {
+      "scheme": "https://data.cultureelerfgoed.nl/term/id/abr/e9546020-4b28-4819-b0c2-29e7c864c5c0",
+      "key": "https://data.cultureelerfgoed.nl/term/id/abr/4da951ec-8a4a-4b74-8022-d04be774d126",
+      "value": "pottenbakkerij"
+    },
+    {
+      "scheme": "abr:ABRcomplex",
+      "key": "IX",
+      "value": "Infrastructuur, onbepaald"
+    },
+    {"value": "scherf"}
+  ],
+  "alternativeIdentifiers": [
+    {
+      "scheme": "id-type:ARCHIS-ZAAK-IDENTIFICATIE",
+      "value": "4131"
+    },
+    {
+      "scheme": "id-type:ISSN",
+      "value": "1573 - 9406"
+    }
+  ],
+  "relations": [
+    {
+      "qualifier": "dcterms:replaces",
+      "url": "http://www.persistent-identifier.nl/?identifier=urn:nbn:nl:ui:13-r72-ugy",
+      "title": "SAI en Plan van Aanpak AAI. Calamiteitenberging Woudse Polder, V106 (Vestigia B.V.)"
+    },
+    {
+      "qualifier": "",
+      "url": "http://example.com",
+      "title": ""
+    },
+    {
+      "qualifier": "",
+      "url": "",
+      "title": "some text to show a relation"
+    }
+  ],
+  "languagesOfFiles": [
+    {
+      "scheme": "dcterms:ISO639-2",
+      "key": "deu",
+      "value": "german"
+    },
+    {
+      "scheme": "dcterms:ISO639-2",
+      "key": "nld",
+      "value": "dutch"
+    }
+  ],
+  "dates": [
+    {
+      "qualifier": "dcterms:modified",
+      "scheme": "dcterms:W3CDTF",
+      "value": "1995-11"
+    },
+    {
+      "qualifier": "date",
+      "scheme": "",
+      "value": "survey between 1991 and feb 1992"
+    },
+    {
+      "qualifier": "dcterms:created",
+      "scheme": "dcterms:W3CDTF",
+      "value": "1994-11-05T08:15:30-05:00"
+    },
+    {
+      "qualifier": "dcterms:available",
+      "scheme": "dcterms:W3CDTF",
+      "value": "1994"
+    },
+    {
+      "qualifier": "dcterms:dateSubmitted",
+      "scheme": "dcterms:W3CDTF",
+      "value": "1994-11-05T13:15:30Z"
+    }
+  ],
+  "sources": ["source 1"],
+  "instructionsForReuse": ["how to use this data"],
+  "publishers": ["publisher1"],
+  "accessRights": {
+    "category": "restricted_group",
+    "group": "Archaelogy"
+  },
+  "license": "http://license/cc",
+  "types": [
+    {
+      "scheme": "dcterms:DCMIType",
+      "value": "Image"
+    },
+    {
+      "scheme": "",
+      "value": "drawings"
+    }
+  ],
+  "formats": [
+    {
+      "scheme": "dcterms:IMT",
+      "value": "image/png"
+    },
+    {
+      "scheme": "dcterms:IMT",
+      "value": "application/x-cmdi+xml"
+    }
+  ],
+  "temporalCoverages": [{
+    "scheme": "https://data.cultureelerfgoed.nl/term/id/abr/9b688754-1315-484b-9c89-8817e87c1e84",
+    "key": "https://data.cultureelerfgoed.nl/term/id/abr/405d4012-5845-4837-8051-2a559679c30e",
+    "value": "Midden Bronstijd"
+  },
+    {
+      "scheme": "abr:ABRperiode",
+      "key": "PALEOLB",
+      "value": "Paleolithicum laat B: 18000 C14 -8800 vC"
+    }
+  ],
+  "spatialPoints": [
+    {
+      "scheme": "RD",
+      "x": 79500,
+      "y": 446750
+    },
+    {
+      "scheme": "degrees",
+      "x": 52.0811,
+      "y": 4.34521
+    }
+  ],
+  "spatialBoxes": [{
+    "scheme": "RD",
+    "north": 486890.5,
+    "east": 121811.88,
+    "south": 436172.5,
+    "west": 91232.016
+  }],
+  "spatialCoverage": [{
+    "scheme": "dcterms:ISO3166",
+    "value": "Nederland",
+    "key": "NLD"
+  }],
+  "messageForDataManager": "",
+  "privacySensitiveDataPresent": "unspecified",
+  "acceptLicenseAgreement": false
+}

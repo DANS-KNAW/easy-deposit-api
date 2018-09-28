@@ -266,6 +266,10 @@ class DatasetXmlSpec extends TestSupportFixture with DdmBehavior {
     }
   }
 
+  "issue-1538.json" should behave like validDatasetMetadata(
+    input = parseTestResource("issue-1538.json").map(_.setDoi("mocked_DOI"))
+  )
+
   "datasetmetadata.json" should behave like validDatasetMetadata(
     input = parseTestResource("datasetmetadata.json").map(_.setDoi("mocked_DOI"))
   )
