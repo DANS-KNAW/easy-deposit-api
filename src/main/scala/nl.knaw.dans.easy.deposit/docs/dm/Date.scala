@@ -48,7 +48,7 @@ case class Date(
 }
 
 object Date {
-  def submitted(): Date = Date(
+  def dateSubmitted(): Date = Date(
     Some(DateScheme.W3CDTF.toString),
     DateTime.now().toString(ISODateTimeFormat.date()),
     DateQualifier.dateSubmitted

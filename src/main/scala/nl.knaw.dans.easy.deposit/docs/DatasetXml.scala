@@ -25,6 +25,7 @@ import javax.xml.transform.stream.StreamSource
 import javax.xml.validation.{ Schema, SchemaFactory }
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata._
 import nl.knaw.dans.easy.deposit.docs.JsonUtil.InvalidDocumentException
+import nl.knaw.dans.easy.deposit.docs.dm.Date.dateSubmitted
 import nl.knaw.dans.easy.deposit.docs.dm.DateQualifier.DateQualifier
 import nl.knaw.dans.easy.deposit.docs.dm.{ Author, Date, DateQualifier }
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
@@ -42,7 +43,6 @@ object DatasetXml extends DebugEnhancedLogging {
     implicit val lang: Option[Attribute] = dm.languageOfDescription.map(l => new PrefixedAttribute("xml", "lang", l.key, Null))
 
     val authors = SubmittedAuthors(dm)
-    val dates = SubmittedDates(dm)
 
     // validation like RichElems.mustBeNonEmpty and SubmittedDates.getMandatorySingleDate
     dm.doi.getOrElse(throwInvalidDocumentException(s"Please first GET a DOI for this deposit"))
@@ -60,8 +60,8 @@ object DatasetXml extends DebugEnhancedLogging {
         { dm.titles.getNonEmpty.map(src => <dc:title>{ src }</dc:title>).addAttr(lang).mustBeNonEmpty("a title") }
         { dm.descriptions.getNonEmpty.map(src => <dcterms:description>{ src }</dcterms:description>).addAttr(lang).mustBeNonEmpty("a description") }
         { authors.creators.map(author => <dcx-dai:creatorDetails>{ authorDetails(author) }</dcx-dai:creatorDetails>).mustBeNonEmpty("a creator") }
-        { <ddm:created>{ dates.created.value }</ddm:created> }
-        { <ddm:available>{ dates.available.value }</ddm:available> }
+        { dm.dateCreated.map(src => <ddm:created>{ src.value }</ddm:created>).mustBeExactlyOne(DateQualifier.dateSubmitted) }
+        { dm.dateAvailable.map(src => <ddm:available>{ src.value }</ddm:available>).mustBeExactlyOne(DateQualifier.available) }
         { dm.audiences.getNonEmpty.map(src => <ddm:audience>{ src.key }</ddm:audience>).mustBeNonEmpty("an audience") }
         { dm.accessRights.map(src => <ddm:accessRights>{ src.category.toString }</ddm:accessRights>).toSeq.mustBeNonEmpty("the accessRights") }
       </ddm:profile>
@@ -72,7 +72,7 @@ object DatasetXml extends DebugEnhancedLogging {
         { authors.rightsHolders.map(author => <dcterms:rightsHolder>{ author.toString }</dcterms:rightsHolder>) }
         { dm.publishers.getNonEmpty.map(str => <dcterms:publisher>{ str }</dcterms:publisher>).addAttr(lang) }
         { dm.sources.getNonEmpty.map(str => <dc:source>{ str }</dc:source>).addAttr(lang) }
-        { dates.others.map(date => <x xsi:type={date.schemeAsString}>{ date.value }</x>.withLabel(date.qualifier.toString)) }
+        { (dm.otherDates :+ dateSubmitted()).map(date => <x xsi:type={date.schemeAsString}>{ date.value }</x>.withLabel(date.qualifier.toString)) }
         { dm.license.getNonEmpty.map(str => <dcterms:license>{ str }</dcterms:license>) /* xsi:type="dcterms:URI" not supported by json */ }
       </ddm:dcmiMetadata>
     </ddm:DDM>
@@ -107,30 +107,6 @@ object DatasetXml extends DebugEnhancedLogging {
     val rightsHolders: Seq[Author] = rightsHoldingContributors ++ rightsHoldingCreators
   }
 
-  private case class SubmittedDates(dm: DatasetMetadata) {
-    private val flattenedDates: Seq[Date] = dm.dates.toSeq.flatten
-    private val specialDateQualifiers = Seq(
-      DateQualifier.created, // for ddm:profile
-      DateQualifier.available, // for ddm:profile
-    )
-    if (flattenedDates.exists(_.qualifier == DateQualifier.dateSubmitted))
-      throwInvalidDocumentException(s"No ${ DateQualifier.dateSubmitted } allowed")
-    val created: Date = getMandatorySingleDate(DateQualifier.created)
-    val available: Date = getMandatorySingleDate(DateQualifier.available)
-    val others: Seq[Date] = Date.submitted() +:
-      flattenedDates.filterNot(date =>
-        specialDateQualifiers.contains(date.qualifier)
-      )
-
-    private def getMandatorySingleDate(qualifier: DateQualifier): Date = {
-      val seq: Seq[Date] = flattenedDates.filter(_.qualifier == qualifier)
-      if (seq.size > 1)
-        throwInvalidDocumentException(s"Just one $qualifier allowed")
-      else seq.headOption
-        .getOrElse(throw missingValue(s"a date with qualifier: $qualifier"))
-    }
-  }
-
   /** @param elem XML element to be adjusted */
   implicit class RichElem(val elem: Elem) extends AnyVal {
 
@@ -162,6 +138,12 @@ object DatasetXml extends DebugEnhancedLogging {
     def mustBeNonEmpty(str: String): Seq[Elem] = {
       if (elems.isEmpty) throw missingValue(str)
       else elems
+    }
+
+    def mustBeExactlyOne(dateQualifier: DateQualifier): Seq[Elem] = elems match {
+      case Seq() => throw missingValue(dateQualifier.toString)
+      case Seq(_) => elems
+      case _ => throwInvalidDocumentException(s"Just one $dateQualifier allowed")
     }
   }
 

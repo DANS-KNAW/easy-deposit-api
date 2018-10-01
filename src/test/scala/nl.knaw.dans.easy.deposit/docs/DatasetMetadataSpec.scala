@@ -197,6 +197,19 @@ class DatasetMetadataSpec extends TestSupportFixture {
     shouldReturnCustomMessage(s, """requirement failed: Author without surname should have neither titles nor insertions; got: {"insertions":"van der","organization":"University of Zurich"}""")
   }
 
+  it should "reject date submitted" in {
+    val s: JsonInput =
+      """{  "dates": [
+        |    { "value": "2018", "qualifier": "dcterms:created" },
+        |    { "value": "2018", "qualifier": "dcterms:available" },
+        |    { "qualifier": "dcterms:dateSubmitted", "value": "2018-12", "scheme": "dcterms:W3CDTF" }
+        |  ]
+        |}
+        |""".stripMargin
+
+    shouldReturnCustomMessage(s, """requirement failed: No dcterms:dateSubmitted allowed""")
+  }
+
   /** Performs a test that (among others) might break after an upgrade of the json4s library
    *
    * @param s               json string to be deserialized

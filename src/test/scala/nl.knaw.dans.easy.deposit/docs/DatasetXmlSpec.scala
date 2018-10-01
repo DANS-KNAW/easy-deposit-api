@@ -166,33 +166,15 @@ class DatasetXmlSpec extends TestSupportFixture with DdmBehavior {
         // dateCreated and dateAvailable are documented with the pure minimal test
         <ddm:dcmiMetadata>
           <dcterms:identifier xsi:type="id-type:DOI">mocked-DOI</dcterms:identifier>
-          <dcterms:dateSubmitted xsi:type="dcterms:W3CDTF">2018-03-22</dcterms:dateSubmitted>
           <dc:date xsi:type="dcterms:W3CDTF">{ date }</dc:date>
           <dcterms:dateAccepted xsi:type="dcterms:W3CDTF">{ date }</dcterms:dateAccepted>
           <dcterms:dateCopyrighted xsi:type="dcterms:W3CDTF">{ date }</dcterms:dateCopyrighted>
           <dcterms:issued xsi:type="dcterms:W3CDTF">{ date }</dcterms:issued>
           <dcterms:modified xsi:type="dcterms:W3CDTF">{ date }</dcterms:modified>
           <dcterms:valid xsi:type="dcterms:W3CDTF">{ date }</dcterms:valid>
+          <dcterms:dateSubmitted xsi:type="dcterms:W3CDTF">2018-03-22</dcterms:dateSubmitted>
         </ddm:dcmiMetadata>
     )
-  }
-
-  "minimal with date submitted" should "be rejected" in {
-    val json =
-      """{  "dates": [
-        |    { "value": "2018", "qualifier": "dcterms:created" },
-        |    { "value": "2018", "qualifier": "dcterms:available" },
-        |    { "qualifier": "dcterms:dateSubmitted", "value": "2018-12", "scheme": "dcterms:W3CDTF" }
-        |  ]
-        |}
-        |""".stripMargin
-    val dm = DatasetMetadata(json)
-      .map(dm => minimal.copy(dates = dm.dates))
-      .getOrRecover(e => fail(e))
-
-    DatasetXml(dm) should matchPattern {
-      case Failure(e: InvalidDocumentException) if e.getMessage.endsWith("No dcterms:dateSubmitted allowed") =>
-    }
   }
 
   "minimal with various types of dates" should behave like {
@@ -217,7 +199,6 @@ class DatasetXmlSpec extends TestSupportFixture with DdmBehavior {
       expectedDdmContent =
         <ddm:dcmiMetadata>
           <dcterms:identifier xsi:type="id-type:DOI">mocked-DOI</dcterms:identifier>
-          <dcterms:dateSubmitted xsi:type="dcterms:W3CDTF">{ nowYMD }</dcterms:dateSubmitted>
           <dcterms:dateAccepted>Groundhog day</dcterms:dateAccepted>
           <dcterms:dateCopyrighted>Groundhog day</dcterms:dateCopyrighted>
           <dcterms:issued>Groundhog day</dcterms:issued>
@@ -225,6 +206,7 @@ class DatasetXmlSpec extends TestSupportFixture with DdmBehavior {
           <dcterms:valid>Groundhog day</dcterms:valid>
           <dcterms:valid xsi:type="dcterms:W3CDTF">2018</dcterms:valid>
           <dcterms:valid xsi:type="dcterms:W3CDTF">2018-12</dcterms:valid>
+          <dcterms:dateSubmitted xsi:type="dcterms:W3CDTF">{ nowYMD }</dcterms:dateSubmitted>
         </ddm:dcmiMetadata>
     )
   }
@@ -327,11 +309,11 @@ class DatasetXmlSpec extends TestSupportFixture with DdmBehavior {
         <dcterms:publisher xml:lang="nld">pub2</dcterms:publisher>
         <dc:source xml:lang="nld">source1</dc:source>
         <dc:source xml:lang="nld">source2</dc:source>
-        <dcterms:dateSubmitted xsi:type="dcterms:W3CDTF">2018-03-22</dcterms:dateSubmitted>
         <dcterms:dateCopyrighted xsi:type="dcterms:W3CDTF">2018-03-18</dcterms:dateCopyrighted>
         <dcterms:valid xsi:type="dcterms:W3CDTF">2018-03-17</dcterms:valid>
         <dcterms:modified>2018-02-02</dcterms:modified>
         <dcterms:issued>Groundhog day</dcterms:issued>
+        <dcterms:dateSubmitted xsi:type="dcterms:W3CDTF">2018-03-22</dcterms:dateSubmitted>
         <dcterms:license>http://creativecommons.org/publicdomain/zero/1.0</dcterms:license>
       </ddm:dcmiMetadata>
   )

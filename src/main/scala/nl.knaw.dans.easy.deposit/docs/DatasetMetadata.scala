@@ -52,10 +52,6 @@ case class DatasetMetadata(identifiers: Option[Seq[SchemedValue]] = None,
                            privacySensitiveDataPresent: PrivacySensitiveDataPresent = PrivacySensitiveDataPresent.unspecified,
                            acceptLicenseAgreement: Boolean = false,
                           ) {
-  lazy val doi: Option[String] = identifiers.flatMap(_.collectFirst {
-    case SchemedValue(`doiScheme`, value) => value
-  })
-
   lazy val privacyBoolean: Try[Boolean] = privacySensitiveDataPresent match {
     case PrivacySensitiveDataPresent.yes => Success(true)
     case PrivacySensitiveDataPresent.no => Success(false)
@@ -64,6 +60,20 @@ case class DatasetMetadata(identifiers: Option[Seq[SchemedValue]] = None,
 
   lazy val licenceAccepted: Try[Unit] = if (acceptLicenseAgreement) Success(())
                                         else Failure(missingValue("AcceptLicenseAgreement"))
+
+  private val specialDateQualifiers = Seq(DateQualifier.created, DateQualifier.available)
+  private val flattenedDates: Seq[Date] = dates.toSeq.flatten
+  require(!flattenedDates.exists(_.qualifier == DateQualifier.dateSubmitted), s"No ${ DateQualifier.dateSubmitted } allowed")
+
+  lazy val dateCreated: Seq[Date] = flattenedDates.filter(_.qualifier == DateQualifier.created)
+  lazy val dateAvailable: Seq[Date] = flattenedDates.filter(_.qualifier == DateQualifier.available)
+  lazy val otherDates: Seq[Date] = flattenedDates.filterNot(date =>
+    specialDateQualifiers.contains(date.qualifier)
+  )
+
+  lazy val doi: Option[String] = identifiers.flatMap(_.collectFirst {
+    case SchemedValue(`doiScheme`, value) => value
+  })
 
   def setDoi(value: String): DatasetMetadata = {
     val ids = identifiers.getOrElse(Seq.empty).filterNot(_.scheme == doiScheme)
