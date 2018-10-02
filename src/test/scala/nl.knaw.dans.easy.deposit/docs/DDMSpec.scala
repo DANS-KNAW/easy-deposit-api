@@ -288,6 +288,10 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
       </ddm:profile>
       <ddm:dcmiMetadata>
         <dcterms:identifier xsi:type="id-type:DOI">doi:10.17632/DANS.6wg5xccnjd.1</dcterms:identifier>
+        <dcterms:identifier xsi:type="id-type:ISBN">test identifier 1</dcterms:identifier>
+        <dcterms:identifier xsi:type="id-type:NWO-PROJECTNR">test identifier 2</dcterms:identifier>
+        <dcterms:identifier xsi:type="id-type:ARCHIS-ZAAK-IDENTIFICATIE">archis nr. 1</dcterms:identifier>
+        <dcterms:identifier xsi:type="id-type:ARCHIS-ZAAK-IDENTIFICATIE">archis nr. 2</dcterms:identifier>
         <dcterms:alternative xml:lang="nld">alternative title 1</dcterms:alternative>
         <dcterms:alternative xml:lang="nld">alternative title2</dcterms:alternative>
         <dcx-dai:contributorDetails>

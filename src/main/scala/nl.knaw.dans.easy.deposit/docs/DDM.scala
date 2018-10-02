@@ -63,7 +63,7 @@ object DDM extends DebugEnhancedLogging {
         { dm.accessRights.map(src => <ddm:accessRights>{ src.category.toString }</ddm:accessRights>).toSeq.mustBeNonEmpty("the accessRights") }
       </ddm:profile>
       <ddm:dcmiMetadata>
-        { dm.identifiers.getNonEmpty.map(id => <dcterms:identifier xsi:type={ id.scheme }>{ id.value }</dcterms:identifier>) }
+        { dm.allIdentifiers.map(id => <dcterms:identifier xsi:type={ id.scheme }>{ id.value }</dcterms:identifier>) }
         { dm.alternativeTitles.getNonEmpty.map(str => <dcterms:alternative>{ str }</dcterms:alternative>).addAttr(lang) }
         { dm.contributorsWithoutRights.map(author => <dcx-dai:contributorDetails>{ authorDetails(author) }</dcx-dai:contributorDetails>) }
         { dm.rightsHolders.map(author => <dcterms:rightsHolder>{ author.toString }</dcterms:rightsHolder>) }

@@ -37,7 +37,7 @@ case class DatasetMetadata(identifiers: Option[Seq[SchemedValue]] = None,
                            contributors: Option[Seq[Author]] = None,
                            audiences: Option[Seq[SchemedKeyValue]] = None,
                            subjects: Option[Seq[PossiblySchemedKeyValue]] = None, //TODO xml
-                           alternativeIdentifiers: Option[Seq[SchemedValue]] = None, //TODO xml
+                           alternativeIdentifiers: Option[Seq[SchemedValue]] = None,
                            relations: Option[Seq[RelationType]] = None, //TODO xml
                            languagesOfFiles: Option[Seq[PossiblySchemedKeyValue]] = None,
                            dates: Option[Seq[Date]] = None,
@@ -80,6 +80,7 @@ case class DatasetMetadata(identifiers: Option[Seq[SchemedValue]] = None,
   lazy val (rightsHoldingContributors, contributorsWithoutRights) = contributors.getOrElse(Seq.empty).partition(_.isRightsHolder)
   lazy val rightsHolders: Seq[Author] = rightsHoldingContributors ++ rightsHoldingCreators
 
+  lazy val allIdentifiers: Seq[SchemedValue] = identifiers.getOrElse(Seq()) ++ alternativeIdentifiers.getOrElse(Seq())
   lazy val allTypes: Seq[PossiblySchemedValue] = types.getOrElse(Seq()) ++ typesDcmi.getOrElse(Seq()).map(
     PossiblySchemedValue(Some("dcterms:DCMIType"), _)
   )
