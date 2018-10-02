@@ -46,9 +46,9 @@ case class DatasetMetadata(identifiers: Option[Seq[SchemedValue]] = None,
                            publishers: Option[Seq[String]] = None,
                            accessRights: Option[AccessRights] = None,
                            license: Option[String] = None,
-                           typesDcmi: Option[Seq[String]] = None, //TODO xml
-                           types: Option[Seq[PossiblySchemedValue]] = None, //TODO xml
-                           formats: Option[Seq[PossiblySchemedValue]] = None, //TODO xml
+                           typesDcmi: Option[Seq[String]] = None,
+                           types: Option[Seq[PossiblySchemedValue]] = None,
+                           formats: Option[Seq[PossiblySchemedValue]] = None,
                            temporalCoverages: Option[Seq[PossiblySchemedKeyValue]] = None, //TODO xml
                            spatialPoints: Option[Seq[SpatialPoint]] = None, //TODO xml
                            spatialBoxes: Option[Seq[SpatialBox]] = None, //TODO xml
@@ -79,6 +79,10 @@ case class DatasetMetadata(identifiers: Option[Seq[SchemedValue]] = None,
   lazy val (rightsHoldingCreators, creatorsWithoutRights) = creators.getOrElse(Seq.empty).partition(_.isRightsHolder)
   lazy val (rightsHoldingContributors, contributorsWithoutRights) = contributors.getOrElse(Seq.empty).partition(_.isRightsHolder)
   lazy val rightsHolders: Seq[Author] = rightsHoldingContributors ++ rightsHoldingCreators
+
+  lazy val allTypes: Seq[PossiblySchemedValue] = types.getOrElse(Seq()) ++ typesDcmi.getOrElse(Seq()).map(
+    PossiblySchemedValue(Some("dcterms:DCMIType"), _)
+  )
 
   lazy val doi: Option[String] = identifiers.flatMap(_.collectFirst {
     case SchemedValue(`doiScheme`, value) => value

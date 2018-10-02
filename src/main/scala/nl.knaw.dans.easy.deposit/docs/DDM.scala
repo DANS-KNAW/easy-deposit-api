@@ -69,7 +69,9 @@ object DDM extends DebugEnhancedLogging {
         { dm.rightsHolders.map(author => <dcterms:rightsHolder>{ author.toString }</dcterms:rightsHolder>) }
         { dm.publishers.getNonEmpty.map(str => <dcterms:publisher>{ str }</dcterms:publisher>).addAttr(lang) }
         { dm.sources.getNonEmpty.map(str => <dc:source>{ str }</dc:source>).addAttr(lang) }
-        { dm.otherDates.map(date => <x xsi:type={date.schemeAsString}>{ date.value }</x>.withLabel(date.qualifier.toString)) }
+        { dm.allTypes.map(src => <dcterms:type xsi:type={ src.schemeAsString }>{ src.value }</dcterms:type>) }
+        { dm.formats.getNonEmpty.map(src => <dcterms:format xsi:type={ src.schemeAsString }>{ src.value }</dcterms:format>) }
+        { dm.otherDates.map(date => <x xsi:type={ date.schemeAsString }>{ date.value }</x>.withLabel(date.qualifier.toString)) }
         { dm.license.getNonEmpty.map(str => <dcterms:license>{ str }</dcterms:license>) /* xsi:type="dcterms:URI" not supported by json */ }
       </ddm:dcmiMetadata>
     </ddm:DDM>

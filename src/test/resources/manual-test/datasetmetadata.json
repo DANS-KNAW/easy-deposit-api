@@ -123,14 +123,14 @@
   "license": "string",
   "types": [
     {
-      "scheme": "string",
-      "value": "string"
+      "scheme": "dcterms:DCMIType",
+      "value": "Software"
     }
   ],
   "formats": [
     {
-      "scheme": "string",
-      "value": "string"
+      "scheme": "dcterms:IMT",
+      "value": "image/jpg"
     }
   ],
   "temporalCoverages": [

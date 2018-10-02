@@ -309,6 +309,15 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
         <dcterms:publisher xml:lang="nld">pub2</dcterms:publisher>
         <dc:source xml:lang="nld">source1</dc:source>
         <dc:source xml:lang="nld">source2</dc:source>
+        <dcterms:type xsi:type="dcterms:DCMIType">Dataset</dcterms:type>
+        <dcterms:type xsi:type="dcterms:DCMIType">Software</dcterms:type>
+        <dcterms:type>drawings</dcterms:type>
+        <dcterms:type>paintings</dcterms:type>
+        <dcterms:format xsi:type="dcterms:IMT">text/plain</dcterms:format>
+        <dcterms:format xsi:type="dcterms:IMT">image/tiff</dcterms:format>
+        <dcterms:format>paperback</dcterms:format>
+        <dcterms:format>audiobook</dcterms:format>
+        <dcterms:format xsi:type="dcterms:IMT">application/x-cmdi+xml</dcterms:format>
         <dcterms:dateCopyrighted xsi:type="dcterms:W3CDTF">2018-03-18</dcterms:dateCopyrighted>
         <dcterms:valid xsi:type="dcterms:W3CDTF">2018-03-17</dcterms:valid>
         <dcterms:modified>2018-02-02</dcterms:modified>
