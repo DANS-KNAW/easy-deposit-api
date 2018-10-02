@@ -17,6 +17,7 @@ package nl.knaw.dans.easy.deposit.docs
 
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata._
 import nl.knaw.dans.easy.deposit.docs.JsonUtil.{ InvalidDocumentException, RichJsonInput }
+import nl.knaw.dans.easy.deposit.docs.dm.Date.dateSubmitted
 import nl.knaw.dans.easy.deposit.docs.dm.PrivacySensitiveDataPresent.PrivacySensitiveDataPresent
 import nl.knaw.dans.easy.deposit.docs.dm._
 import org.json4s.JsonInput
@@ -56,7 +57,7 @@ case class DatasetMetadata(identifiers: Option[Seq[SchemedValue]] = None,
                            privacySensitiveDataPresent: PrivacySensitiveDataPresent = PrivacySensitiveDataPresent.unspecified,
                            acceptLicenseAgreement: Boolean = false,
                           ) {
-  lazy val privacyBoolean: Try[Boolean] = privacySensitiveDataPresent match {
+  lazy val hasPrivacyData: Try[Boolean] = privacySensitiveDataPresent match {
     case PrivacySensitiveDataPresent.yes => Success(true)
     case PrivacySensitiveDataPresent.no => Success(false)
     case PrivacySensitiveDataPresent.unspecified => Failure(missingValue("PrivacySensitiveDataPresent"))
@@ -69,11 +70,15 @@ case class DatasetMetadata(identifiers: Option[Seq[SchemedValue]] = None,
   private val flattenedDates: Seq[Date] = dates.toSeq.flatten
   require(!flattenedDates.exists(_.qualifier == DateQualifier.dateSubmitted), s"No ${ DateQualifier.dateSubmitted } allowed")
 
-  lazy val dateCreated: Seq[Date] = flattenedDates.filter(_.qualifier == DateQualifier.created)
-  lazy val dateAvailable: Seq[Date] = flattenedDates.filter(_.qualifier == DateQualifier.available)
+  lazy val datesCreated: Seq[Date] = flattenedDates.filter(_.qualifier == DateQualifier.created)
+  lazy val datesAvailable: Seq[Date] = flattenedDates.filter(_.qualifier == DateQualifier.available)
   lazy val otherDates: Seq[Date] = flattenedDates.filterNot(date =>
     specialDateQualifiers.contains(date.qualifier)
-  )
+  ) :+ dateSubmitted()
+
+  lazy val (rightsHoldingCreators, creatorsWithoutRights) = creators.getOrElse(Seq.empty).partition(_.isRightsHolder)
+  lazy val (rightsHoldingContributors, contributorsWithoutRights) = contributors.getOrElse(Seq.empty).partition(_.isRightsHolder)
+  lazy val rightsHolders: Seq[Author] = rightsHoldingContributors ++ rightsHoldingCreators
 
   lazy val doi: Option[String] = identifiers.flatMap(_.collectFirst {
     case SchemedValue(`doiScheme`, value) => value

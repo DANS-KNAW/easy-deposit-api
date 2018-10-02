@@ -25,7 +25,6 @@ import javax.xml.transform.stream.StreamSource
 import javax.xml.validation.{ Schema, SchemaFactory }
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata._
 import nl.knaw.dans.easy.deposit.docs.JsonUtil.InvalidDocumentException
-import nl.knaw.dans.easy.deposit.docs.dm.Date.dateSubmitted
 import nl.knaw.dans.easy.deposit.docs.dm.DateQualifier.DateQualifier
 import nl.knaw.dans.easy.deposit.docs.dm.{ Author, DateQualifier }
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
@@ -36,15 +35,13 @@ import scala.util.{ Failure, Try }
 import scala.xml._
 
 object DDM extends DebugEnhancedLogging {
-  val ddmSchemaNameSpace: String = "http://easy.dans.knaw.nl/schemas/md/ddm/"
-  val ddmSchemaLocation: String = "https://easy.dans.knaw.nl/schemas/md/2017/09/ddm.xsd"
+  val schemaNameSpace: String = "http://easy.dans.knaw.nl/schemas/md/ddm/"
+  val schemaLocation: String = "https://easy.dans.knaw.nl/schemas/md/2017/09/ddm.xsd"
 
   def apply(dm: DatasetMetadata): Try[Elem] = Try {
     implicit val lang: Option[Attribute] = dm.languageOfDescription.map(l => new PrefixedAttribute("xml", "lang", l.key, Null))
 
-    val authors = SubmittedAuthors(dm)
-
-    // validation like RichElems.mustBeNonEmpty and SubmittedDates.getMandatorySingleDate
+    // validation like mustBeNonEmpty and mustHaveOne
     dm.doi.getOrElse(throwInvalidDocumentException(s"Please first GET a DOI for this deposit"))
 
     <ddm:DDM
@@ -54,25 +51,25 @@ object DDM extends DebugEnhancedLogging {
       xmlns:dcx-dai="http://easy.dans.knaw.nl/schemas/dcx/dai/"
       xmlns:ddm="http://easy.dans.knaw.nl/schemas/md/ddm/"
       xmlns:id-type="http://easy.dans.knaw.nl/schemas/vocab/identifier-type/"
-      xsi:schemaLocation={s"$ddmSchemaNameSpace $ddmSchemaLocation"}
+      xsi:schemaLocation={s"$schemaNameSpace $schemaLocation"}
     >
       <ddm:profile>
         { dm.titles.getNonEmpty.map(src => <dc:title>{ src }</dc:title>).addAttr(lang).mustBeNonEmpty("a title") }
         { dm.descriptions.getNonEmpty.map(src => <dcterms:description>{ src }</dcterms:description>).addAttr(lang).mustBeNonEmpty("a description") }
-        { authors.creators.map(author => <dcx-dai:creatorDetails>{ authorDetails(author) }</dcx-dai:creatorDetails>).mustBeNonEmpty("a creator") }
-        { dm.dateCreated.map(src => <ddm:created>{ src.value }</ddm:created>).mustBeExactlyOne(DateQualifier.dateSubmitted) }
-        { dm.dateAvailable.map(src => <ddm:available>{ src.value }</ddm:available>).mustBeExactlyOne(DateQualifier.available) }
+        { dm.creatorsWithoutRights.map(author => <dcx-dai:creatorDetails>{ authorDetails(author) }</dcx-dai:creatorDetails>).mustBeNonEmpty("a creator") }
+        { dm.datesCreated.map(src => <ddm:created>{ src.value }</ddm:created>).mustHaveOne(DateQualifier.dateSubmitted) }
+        { dm.datesAvailable.map(src => <ddm:available>{ src.value }</ddm:available>).mustHaveOne(DateQualifier.available) }
         { dm.audiences.getNonEmpty.map(src => <ddm:audience>{ src.key }</ddm:audience>).mustBeNonEmpty("an audience") }
         { dm.accessRights.map(src => <ddm:accessRights>{ src.category.toString }</ddm:accessRights>).toSeq.mustBeNonEmpty("the accessRights") }
       </ddm:profile>
       <ddm:dcmiMetadata>
         { dm.identifiers.getNonEmpty.map(id => <dcterms:identifier xsi:type={ id.scheme }>{ id.value }</dcterms:identifier>) }
         { dm.alternativeTitles.getNonEmpty.map(str => <dcterms:alternative>{ str }</dcterms:alternative>).addAttr(lang) }
-        { authors.contributors.map(author => <dcx-dai:contributorDetails>{ authorDetails(author) }</dcx-dai:contributorDetails>) }
-        { authors.rightsHolders.map(author => <dcterms:rightsHolder>{ author.toString }</dcterms:rightsHolder>) }
+        { dm.contributorsWithoutRights.map(author => <dcx-dai:contributorDetails>{ authorDetails(author) }</dcx-dai:contributorDetails>) }
+        { dm.rightsHolders.map(author => <dcterms:rightsHolder>{ author.toString }</dcterms:rightsHolder>) }
         { dm.publishers.getNonEmpty.map(str => <dcterms:publisher>{ str }</dcterms:publisher>).addAttr(lang) }
         { dm.sources.getNonEmpty.map(str => <dc:source>{ str }</dc:source>).addAttr(lang) }
-        { (dm.otherDates :+ dateSubmitted()).map(date => <x xsi:type={date.schemeAsString}>{ date.value }</x>.withLabel(date.qualifier.toString)) }
+        { dm.otherDates.map(date => <x xsi:type={date.schemeAsString}>{ date.value }</x>.withLabel(date.qualifier.toString)) }
         { dm.license.getNonEmpty.map(str => <dcterms:license>{ str }</dcterms:license>) /* xsi:type="dcterms:URI" not supported by json */ }
       </ddm:dcmiMetadata>
     </ddm:DDM>
@@ -82,7 +79,7 @@ object DDM extends DebugEnhancedLogging {
                            (implicit lang: Option[Attribute]) = {
     if (author.surname.isEmpty)
       author.organization.toSeq.map(orgDetails(author.role))
-    else
+    else // TODO ids
       <dcx-dai:author>
         { author.titles.getNonEmpty.map(str => <dcx-dai:titles>{ str }</dcx-dai:titles>).addAttr(lang) }
         { author.initials.getNonEmpty.map(str => <dcx-dai:initials>{ str }</dcx-dai:initials>) }
@@ -100,12 +97,6 @@ object DDM extends DebugEnhancedLogging {
         { role.toSeq.map(role => <dcx-dai:role>{ role.key }</dcx-dai:role>) }
         { <dcx-dai:name>{ organization }</dcx-dai:name>.addAttr(lang) }
       </dcx-dai:organization>
-
-  private case class SubmittedAuthors(dm: DatasetMetadata) {
-    val (rightsHoldingCreators, creators) = dm.creators.getOrElse(Seq.empty).partition(_.isRightsHolder)
-    val (rightsHoldingContributors, contributors) = dm.contributors.getOrElse(Seq.empty).partition(_.isRightsHolder)
-    val rightsHolders: Seq[Author] = rightsHoldingContributors ++ rightsHoldingCreators
-  }
 
   /** @param elem XML element to be adjusted */
   implicit class RichElem(val elem: Elem) extends AnyVal {
@@ -125,10 +116,6 @@ object DDM extends DebugEnhancedLogging {
     def addAttr(lang: Option[Attribute]): Elem = lang.map(elem % _).getOrElse(elem)
   }
 
-  private def throwInvalidDocumentException(msg: String) = {
-    throw invalidDatasetMetadataException(new Exception(msg))
-  }
-
   /** @param elems the sequence of XML elements to adjust */
   private implicit class RichElems(val elems: Seq[Elem]) extends AnyVal {
     def addAttr(lang: Option[Attribute]): Seq[Elem] = elems.map(_.addAttr(lang))
@@ -140,7 +127,7 @@ object DDM extends DebugEnhancedLogging {
       else elems
     }
 
-    def mustBeExactlyOne(dateQualifier: DateQualifier): Seq[Elem] = elems match {
+    def mustHaveOne(dateQualifier: DateQualifier): Seq[Elem] = elems match {
       case Seq() => throw missingValue(dateQualifier.toString)
       case Seq(_) => elems
       case _ => throwInvalidDocumentException(s"Just one $dateQualifier allowed")
@@ -167,7 +154,7 @@ object DDM extends DebugEnhancedLogging {
   lazy val triedSchema: Try[Schema] = Try { // loading postponed until we actually start validating
     SchemaFactory
       .newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI)
-      .newSchema(Array(new StreamSource(ddmSchemaLocation)).toArray[Source])
+      .newSchema(Array(new StreamSource(schemaLocation)).toArray[Source])
   }
 
   private def validate(ddm: Elem): Try[Elem] = {
@@ -187,13 +174,6 @@ object DDM extends DebugEnhancedLogging {
       case e => Failure(e)
     }
 
-  private def invalidDatasetMetadataException(exception: Exception) = {
-    InvalidDocumentException("DatasetMetadata", exception)
-  }
-
-  case class SchemaNotAvailableException(t: Throwable = null)
-    extends Exception(s"Schema's for validation not available, please try again later.", t)
-
   def managedInputStream(ddm: Elem): ManagedResource[BufferedInputStream] = {
     Using.bufferedInputStream(
       new ByteArrayInputStream(
@@ -202,4 +182,15 @@ object DDM extends DebugEnhancedLogging {
           .getBytes(StandardCharsets.UTF_8)
       ))
   }
+
+  private def throwInvalidDocumentException(msg: String) = {
+    throw invalidDatasetMetadataException(new Exception(msg))
+  }
+
+  private def invalidDatasetMetadataException(exception: Exception) = {
+    InvalidDocumentException("DatasetMetadata", exception)
+  }
+
+  case class SchemaNotAvailableException(t: Throwable = null)
+    extends Exception(s"Schema's for validation not available, please try again later.", t)
 }
