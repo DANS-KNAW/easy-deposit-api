@@ -25,7 +25,7 @@ import nl.knaw.dans.bag.v0.DansV0Bag
 import nl.knaw.dans.easy.deposit.authentication.AuthenticationMocker.mockedAuthenticationProvider
 import nl.knaw.dans.easy.deposit.authentication.TokenSupport.TokenConfig
 import nl.knaw.dans.easy.deposit.authentication.{ AuthConfig, AuthUser, AuthenticationProvider, TokenSupport }
-import nl.knaw.dans.easy.deposit.docs.{ DatasetXml, DepositInfo }
+import nl.knaw.dans.easy.deposit.docs.{ DDM, DepositInfo }
 import org.apache.commons.configuration.PropertiesConfiguration
 import org.joda.time.{ DateTime, DateTimeUtils, DateTimeZone }
 import org.scalatest._
@@ -52,8 +52,8 @@ trait TestSupportFixture extends FlatSpec with Matchers with Inside with BeforeA
   }
 
   val nowYMD = "2018-03-22"
-  val now = s"${nowYMD}T21:43:01.576"
-  val nowUTC = s"${nowYMD}T20:43:01Z"
+  val now = s"${ nowYMD }T21:43:01.576"
+  val nowUTC = s"${ nowYMD }T20:43:01Z"
   /** Causes DateTime.now() to return a predefined value. */
   DateTimeUtils.setCurrentMillisFixed(new DateTime(nowUTC).getMillis)
   DateTimeZone.setDefault(DateTimeZone.forTimeZone(TimeZone.getTimeZone("Europe/Amsterdam")))
@@ -108,7 +108,7 @@ trait TestSupportFixture extends FlatSpec with Matchers with Inside with BeforeA
   }
 
   def assumeSchemaAvailable: Assertion = {
-    assume(DatasetXml.triedSchema match {
+    assume(DDM.triedSchema match {
       case Failure(e: SAXParseException) if e.getCause.isInstanceOf[UnknownHostException] => false
       case _ => true
     })

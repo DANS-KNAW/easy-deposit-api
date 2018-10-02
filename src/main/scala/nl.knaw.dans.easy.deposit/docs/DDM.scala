@@ -27,7 +27,7 @@ import nl.knaw.dans.easy.deposit.docs.DatasetMetadata._
 import nl.knaw.dans.easy.deposit.docs.JsonUtil.InvalidDocumentException
 import nl.knaw.dans.easy.deposit.docs.dm.Date.dateSubmitted
 import nl.knaw.dans.easy.deposit.docs.dm.DateQualifier.DateQualifier
-import nl.knaw.dans.easy.deposit.docs.dm.{ Author, Date, DateQualifier }
+import nl.knaw.dans.easy.deposit.docs.dm.{ Author, DateQualifier }
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.xml.sax.SAXParseException
 import resource.{ ManagedResource, Using }
@@ -35,7 +35,7 @@ import resource.{ ManagedResource, Using }
 import scala.util.{ Failure, Try }
 import scala.xml._
 
-object DatasetXml extends DebugEnhancedLogging {
+object DDM extends DebugEnhancedLogging {
   val ddmSchemaNameSpace: String = "http://easy.dans.knaw.nl/schemas/md/ddm/"
   val ddmSchemaLocation: String = "https://easy.dans.knaw.nl/schemas/md/2017/09/ddm.xsd"
 
@@ -180,12 +180,12 @@ object DatasetXml extends DebugEnhancedLogging {
     )
   }.map(_ => ddm)
     .recoverWith {
-    case e: SAXParseException if e.getCause.isInstanceOf[UnknownHostException] =>
-      logger.error(e.getMessage, e)
-      Failure(SchemaNotAvailableException(e))
-    case e: SAXParseException => Failure(invalidDatasetMetadataException(e))
-    case e => Failure(e)
-  }
+      case e: SAXParseException if e.getCause.isInstanceOf[UnknownHostException] =>
+        logger.error(e.getMessage, e)
+        Failure(SchemaNotAvailableException(e))
+      case e: SAXParseException => Failure(invalidDatasetMetadataException(e))
+      case e => Failure(e)
+    }
 
   private def invalidDatasetMetadataException(exception: Exception) = {
     InvalidDocumentException("DatasetMetadata", exception)

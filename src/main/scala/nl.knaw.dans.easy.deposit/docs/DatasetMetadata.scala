@@ -23,6 +23,10 @@ import org.json4s.JsonInput
 
 import scala.util.{ Failure, Success, Try }
 
+/**
+ * Params are (de)serialized by [[JsonUtil]].
+ * Public vals remix the params for serialization with [[DDM]].
+ */
 case class DatasetMetadata(identifiers: Option[Seq[SchemedValue]] = None,
                            languageOfDescription: Option[SchemedKeyValue] = None,
                            titles: Option[Seq[String]] = None,

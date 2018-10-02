@@ -29,7 +29,7 @@ import nl.knaw.dans.lib.error._
 import scala.util.{ Failure, Success, Try }
 import scala.xml._
 
-class DatasetXmlSpec extends TestSupportFixture with DdmBehavior {
+class DDMSpec extends TestSupportFixture with DdmBehavior {
 
   private val minimal = DatasetMetadata(
     """{
@@ -47,7 +47,7 @@ class DatasetXmlSpec extends TestSupportFixture with DdmBehavior {
     .getOrRecover(e => fail(e))
 
   /** provides the verbose namespaces for inline DDM */
-  override val emptyDDM: Elem = DatasetXml(minimal)
+  override val emptyDDM: Elem = DDM(minimal)
     .doIfFailure { case e => println(e) }
     .getOrRecover(e => fail(e.toString))
     .copy(child = Seq())
@@ -212,7 +212,7 @@ class DatasetXmlSpec extends TestSupportFixture with DdmBehavior {
   }
 
   "RichElem.withLabel" should "report an error" in {
-    import DatasetXml.RichElem
+    import DDM.RichElem
     Try {
       <key>Lorum Ipsum</key>.withLabel("a:b:c")
     } should matchPattern {
@@ -222,21 +222,21 @@ class DatasetXmlSpec extends TestSupportFixture with DdmBehavior {
   }
 
   "apply" should "report a missing title" in {
-    DatasetXml(minimal.copy(titles = None)) should matchPattern {
+    DDM(minimal.copy(titles = None)) should matchPattern {
       case Failure(InvalidDocumentException(_, e)) if e.getMessage ==
         "Please set a title" =>
     }
   }
 
   it should "report an empty list of titles" in {
-    DatasetXml(minimal.copy(titles = Some(Seq.empty))) should matchPattern {
+    DDM(minimal.copy(titles = Some(Seq.empty))) should matchPattern {
       case Failure(InvalidDocumentException(_, e)) if e.getMessage ==
         "Please set a title" =>
     }
   }
 
   it should "report an empty string as title" in {
-    DatasetXml(minimal.copy(titles = Some(Seq("   \t")))) should matchPattern {
+    DDM(minimal.copy(titles = Some(Seq("   \t")))) should matchPattern {
       case Failure(InvalidDocumentException(_, e)) if e.getMessage ==
         "Please set a title" =>
     }
@@ -364,7 +364,7 @@ trait DdmBehavior {
                            expectedDdmContent: Seq[Node] = Seq.empty
                           ): Unit = {
     lazy val datasetMetadata = input.getOrRecover(e => fail(e))
-    lazy val triedDDM = DatasetXml(datasetMetadata)
+    lazy val triedDDM = DDM(datasetMetadata)
 
     if (expectedDdmContent.nonEmpty) it should "generate expected DDM" in {
       assumeSchemaAvailable

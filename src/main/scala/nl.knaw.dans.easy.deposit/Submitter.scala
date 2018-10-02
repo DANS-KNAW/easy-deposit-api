@@ -21,7 +21,7 @@ import better.files.File
 import nl.knaw.dans.bag.ChecksumAlgorithm.ChecksumAlgorithm
 import nl.knaw.dans.bag.DansBag
 import nl.knaw.dans.bag.v0.DansV0Bag
-import nl.knaw.dans.easy.deposit.docs.{ AgreementsXml, DatasetXml, FilesXml, StateInfo }
+import nl.knaw.dans.easy.deposit.docs.{ AgreementsXml, DDM, FilesXml, StateInfo }
 import org.joda.time.DateTime
 
 import scala.util.{ Failure, Success, Try }
@@ -54,7 +54,7 @@ class Submitter(stagingBaseDir: File,
       draftBag <- depositDir.getDataFiles.map(_.bag)
       datasetMetadata <- depositDir.getDatasetMetadata
       agreementsXml <- AgreementsXml(depositDir.user, DateTime.now, datasetMetadata)
-      datasetXml <- DatasetXml(datasetMetadata)
+      datasetXml <- DDM(datasetMetadata)
       _ <- depositDir.sameDOIs(datasetMetadata)
       msg = datasetMetadata.messageForDataManager.getOrElse("")
       filesXml <- FilesXml(draftBag.data)
