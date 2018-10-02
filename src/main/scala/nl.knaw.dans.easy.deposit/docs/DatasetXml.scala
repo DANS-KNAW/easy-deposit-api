@@ -76,7 +76,7 @@ object DatasetXml extends DebugEnhancedLogging {
         { dm.license.getNonEmpty.map(str => <dcterms:license>{ str }</dcterms:license>) /* xsi:type="dcterms:URI" not supported by json */ }
       </ddm:dcmiMetadata>
     </ddm:DDM>
-  }
+  }.flatMap(validate)
 
   private def authorDetails(author: Author)
                            (implicit lang: Option[Attribute]) = {
@@ -170,7 +170,7 @@ object DatasetXml extends DebugEnhancedLogging {
       .newSchema(Array(new StreamSource(ddmSchemaLocation)).toArray[Source])
   }
 
-  def validate(ddm: Elem): Try[Unit] = {
+  private def validate(ddm: Elem): Try[Elem] = {
     triedSchema.map(schema =>
       managedInputStream(ddm)
         .apply(inputStream => schema
@@ -178,7 +178,8 @@ object DatasetXml extends DebugEnhancedLogging {
           .validate(new StreamSource(inputStream))
         )
     )
-  }.recoverWith {
+  }.map(_ => ddm)
+    .recoverWith {
     case e: SAXParseException if e.getCause.isInstanceOf[UnknownHostException] =>
       logger.error(e.getMessage, e)
       Failure(SchemaNotAvailableException(e))
