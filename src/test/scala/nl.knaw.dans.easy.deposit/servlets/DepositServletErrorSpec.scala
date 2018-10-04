@@ -86,6 +86,7 @@ class DepositServletErrorSpec extends TestSupportFixture with ServletFixture wit
   }
 
   s"get /:uuid/metadata" should "report a corrupt dataset" in {
+    assumeSchemaAvailable
     (mockedApp.getDatasetMetadataForDeposit(_: String, _: UUID)) expects("foo", uuid) returning
       Failure(CorruptDepositException("foo", uuid.toString, new Exception("invalid json")))
 
@@ -101,6 +102,7 @@ class DepositServletErrorSpec extends TestSupportFixture with ServletFixture wit
   }
 
   it should "report a missing dataset" in {
+    assumeSchemaAvailable
     (mockedApp.getDatasetMetadataForDeposit(_: String, _: UUID)) expects("foo", uuid) returning
       Failure(NoSuchDepositException("foo", uuid, new Exception("file not found")))
 

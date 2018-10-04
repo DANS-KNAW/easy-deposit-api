@@ -26,7 +26,7 @@ import scala.util.{ Failure, Success, Try }
 
 /**
  * Params are (de)serialized by [[JsonUtil]].
- * Public vals remix the params for serialization with [[DDM]].
+ * Lazy public values remix the params for XML serialization with [[DDM]].
  */
 case class DatasetMetadata(identifiers: Option[Seq[SchemedValue]] = None,
                            languageOfDescription: Option[SchemedKeyValue] = None,
@@ -50,8 +50,8 @@ case class DatasetMetadata(identifiers: Option[Seq[SchemedValue]] = None,
                            types: Option[Seq[PossiblySchemedValue]] = None,
                            formats: Option[Seq[PossiblySchemedValue]] = None,
                            temporalCoverages: Option[Seq[PossiblySchemedKeyValue]] = None, //TODO xml
-                           spatialPoints: Option[Seq[SpatialPoint]] = None, //TODO xml
-                           spatialBoxes: Option[Seq[SpatialBox]] = None, //TODO xml
+                           spatialPoints: Option[Seq[SpatialPoint]] = None,
+                           spatialBoxes: Option[Seq[SpatialBox]] = None,
                            spatialCoverages: Option[Seq[PossiblySchemedKeyValue]] = None, //TODO xml
                            messageForDataManager: Option[String] = None,
                            privacySensitiveDataPresent: PrivacySensitiveDataPresent = PrivacySensitiveDataPresent.unspecified,
@@ -126,7 +126,7 @@ object DatasetMetadata {
 
     def schemeAsString: String = scheme match {
       case Some(s: String) if s.trim.nonEmpty => s.trim
-      case _ => null
+      case _ => null // will suppress the XML attribute
     }
   }
 

@@ -26,7 +26,7 @@ import javax.xml.validation.{ Schema, SchemaFactory }
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata._
 import nl.knaw.dans.easy.deposit.docs.JsonUtil.InvalidDocumentException
 import nl.knaw.dans.easy.deposit.docs.dm.DateQualifier.DateQualifier
-import nl.knaw.dans.easy.deposit.docs.dm.{ Author, DateQualifier }
+import nl.knaw.dans.easy.deposit.docs.dm.{ Author, DateQualifier, SpatialBox, SpatialPoint }
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.xml.sax.SAXParseException
 import resource.{ ManagedResource, Using }
@@ -49,6 +49,8 @@ object DDM extends DebugEnhancedLogging {
       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
       xmlns:dcterms="http://purl.org/dc/terms/"
       xmlns:dcx-dai="http://easy.dans.knaw.nl/schemas/dcx/dai/"
+      xmlns:dcx-gml="http://easy.dans.knaw.nl/schemas/dcx/gml/"
+      xmlns:gml="http://www.opengis.net/gml"
       xmlns:ddm="http://easy.dans.knaw.nl/schemas/md/ddm/"
       xmlns:id-type="http://easy.dans.knaw.nl/schemas/vocab/identifier-type/"
       xsi:schemaLocation={s"$schemaNameSpace $schemaLocation"}
@@ -56,7 +58,7 @@ object DDM extends DebugEnhancedLogging {
       <ddm:profile>
         { dm.titles.getNonEmpty.map(src => <dc:title>{ src }</dc:title>).addAttr(lang).mustBeNonEmpty("a title") }
         { dm.descriptions.getNonEmpty.map(src => <dcterms:description>{ src }</dcterms:description>).addAttr(lang).mustBeNonEmpty("a description") }
-        { dm.creatorsWithoutRights.map(author => <dcx-dai:creatorDetails>{ authorDetails(author) }</dcx-dai:creatorDetails>).mustBeNonEmpty("a creator") }
+        { dm.creatorsWithoutRights.map(author => <dcx-dai:creatorDetails>{ details(author) }</dcx-dai:creatorDetails>).mustBeNonEmpty("a creator") }
         { dm.datesCreated.map(src => <ddm:created>{ src.value }</ddm:created>).mustHaveOne(DateQualifier.dateSubmitted) }
         { dm.datesAvailable.map(src => <ddm:available>{ src.value }</ddm:available>).mustHaveOne(DateQualifier.available) }
         { dm.audiences.getNonEmpty.map(src => <ddm:audience>{ src.key }</ddm:audience>).mustBeNonEmpty("an audience") }
@@ -65,20 +67,37 @@ object DDM extends DebugEnhancedLogging {
       <ddm:dcmiMetadata>
         { dm.allIdentifiers.map(id => <dcterms:identifier xsi:type={ id.scheme }>{ id.value }</dcterms:identifier>) }
         { dm.alternativeTitles.getNonEmpty.map(str => <dcterms:alternative>{ str }</dcterms:alternative>).addAttr(lang) }
-        { dm.contributorsWithoutRights.map(author => <dcx-dai:contributorDetails>{ authorDetails(author) }</dcx-dai:contributorDetails>) }
+        { dm.contributorsWithoutRights.map(author => <dcx-dai:contributorDetails>{ details(author) }</dcx-dai:contributorDetails>) }
         { dm.rightsHolders.map(author => <dcterms:rightsHolder>{ author.toString }</dcterms:rightsHolder>) }
         { dm.publishers.getNonEmpty.map(str => <dcterms:publisher>{ str }</dcterms:publisher>).addAttr(lang) }
         { dm.sources.getNonEmpty.map(str => <dc:source>{ str }</dc:source>).addAttr(lang) }
         { dm.allTypes.map(src => <dcterms:type xsi:type={ src.schemeAsString }>{ src.value }</dcterms:type>) }
         { dm.formats.getNonEmpty.map(src => <dcterms:format xsi:type={ src.schemeAsString }>{ src.value }</dcterms:format>) }
         { dm.otherDates.map(date => <x xsi:type={ date.schemeAsString }>{ date.value }</x>.withLabel(date.qualifier.toString)) }
+        { dm.spatialPoints.getNonEmpty.map(point => <dcx-gml:spatial srsName={ point.srsName }>{ details(point) }</dcx-gml:spatial>) }
+        { dm.spatialBoxes.getNonEmpty.map(point => <dcx-gml:spatial>{ details(point) }</dcx-gml:spatial>) }
         { dm.license.getNonEmpty.map(str => <dcterms:license>{ str }</dcterms:license>) /* xsi:type="dcterms:URI" not supported by json */ }
       </ddm:dcmiMetadata>
     </ddm:DDM>
   }.flatMap(validate)
 
-  private def authorDetails(author: Author)
-                           (implicit lang: Option[Attribute]) = {
+  private def details(point: SpatialPoint) = {
+    <Point xmlns="http://www.opengis.net/gml">
+        <pos>{ point.pos }</pos>
+    </Point>
+  }
+
+  private def details(box: SpatialBox) = {
+    <gml:boundedBy xmlns="http://www.opengis.net/gml">
+        <gml:Envelope srsName={ box.srsName }>
+            <gml:lowerCorner>{ box.upper }</gml:lowerCorner>
+            <gml:upperCorner>{ box.lower }</gml:upperCorner>
+        </gml:Envelope>
+    </gml:boundedBy>
+  }
+
+  private def details(author: Author)
+                     (implicit lang: Option[Attribute]) = {
     if (author.surname.isEmpty)
       author.organization.toSeq.map(orgDetails(author.role))
     else // TODO ids

@@ -44,12 +44,11 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
       |  "accessRights": { "category": "OPEN_ACCESS" },
       |  "audiences": [ { "scheme": "blabla", "key": "D35200", "value": "some audience"} ]
       |}""".stripMargin)
-    .getOrRecover(e => fail(e))
+    .getOrRecover(fail(_))
 
   /** provides the verbose namespaces for inline DDM */
-  override val emptyDDM: Elem = DDM(minimal)
-    .doIfFailure { case e => println(e) }
-    .getOrRecover(e => fail(e.toString))
+  lazy override val emptyDDM: Elem = DDM(minimal)
+    .getOrRecover(fail(_))
     .copy(child = Seq())
 
   "minimal" should behave like validDatasetMetadata(
@@ -327,6 +326,32 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
         <dcterms:modified>2018-02-02</dcterms:modified>
         <dcterms:issued>Groundhog day</dcterms:issued>
         <dcterms:dateSubmitted xsi:type="dcterms:W3CDTF">2018-03-22</dcterms:dateSubmitted>
+        <dcx-gml:spatial srsName="http://www.opengis.net/def/crs/EPSG/0/28992">
+          <Point xmlns="http://www.opengis.net/gml">
+            <pos>12 34</pos>
+          </Point>
+        </dcx-gml:spatial>
+        <dcx-gml:spatial srsName="http://www.opengis.net/def/crs/EPSG/0/4326">
+          <Point xmlns="http://www.opengis.net/gml">
+            <pos>78 56</pos>
+          </Point>
+        </dcx-gml:spatial>
+        <dcx-gml:spatial>
+          <gml:boundedBy xmlns="http://www.opengis.net/gml">
+            <gml:Envelope srsName="http://www.opengis.net/def/crs/EPSG/0/28992">
+            <gml:lowerCorner>2 1</gml:lowerCorner>
+            <gml:upperCorner>4 3</gml:upperCorner>
+            </gml:Envelope>
+          </gml:boundedBy>
+        </dcx-gml:spatial>
+        <dcx-gml:spatial>
+          <gml:boundedBy xmlns="http://www.opengis.net/gml">
+            <gml:Envelope srsName="http://www.opengis.net/def/crs/EPSG/0/4326">
+            <gml:lowerCorner>5 6</gml:lowerCorner>
+            <gml:upperCorner>7 8</gml:upperCorner>
+            </gml:Envelope>
+          </gml:boundedBy>
+        </dcx-gml:spatial>
         <dcterms:license>http://creativecommons.org/publicdomain/zero/1.0</dcterms:license>
       </ddm:dcmiMetadata>
   )

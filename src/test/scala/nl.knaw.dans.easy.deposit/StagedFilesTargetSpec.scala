@@ -68,6 +68,7 @@ class StagedFilesTargetSpec extends TestSupportFixture {
   it should "replace a fetch file" in {
     (stagedDir / "some.thing").createFile().write("new content")
     val url = new URL("https://raw.githubusercontent.com/DANS-KNAW/easy-deposit-api/master/README.md")
+    assumeSchemaAvailable
     val bag = newEmptyBag.addFetchItem(url, Paths.get("path/to/some.thing")).getOrRecover(e => fail(e))
     bag.save()
     bag.data.list.size shouldBe 0
