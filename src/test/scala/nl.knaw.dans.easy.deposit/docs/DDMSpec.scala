@@ -210,6 +210,53 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
     )
   }
 
+  "minimal with points and boxes of issue 1538" should behave like {
+    val json =
+      """{
+        |  "spatialPoints": [
+        |    { "scheme": "RD", "x": 79500, "y": 446750 },
+        |    { "scheme": "degrees", "x": 52.0811, "y": 4.34521 }
+        |  ],
+        |  "spatialBoxes": [{
+        |    "scheme": "RD",
+        |    "north": 486890.5,
+        |    "east": 121811.88,
+        |    "south": 436172.5,
+        |    "west": 91232.016
+        |  }],
+        |}
+        |""".stripMargin
+    validDatasetMetadata(
+      input = DatasetMetadata(json).map(dm => minimal.copy(
+        spatialPoints = dm.spatialPoints,
+        spatialBoxes = dm.spatialBoxes)
+      ), subset = actualDDM => dcmiMetadata(actualDDM),
+      expectedDdmContent =
+        <ddm:dcmiMetadata>
+          <dcterms:identifier xsi:type="id-type:DOI">mocked-DOI</dcterms:identifier>
+          <dcterms:dateSubmitted xsi:type="dcterms:W3CDTF">{ nowYMD }</dcterms:dateSubmitted>
+          <dcx-gml:spatial srsName="http://www.opengis.net/def/crs/EPSG/0/28992">
+              <Point xmlns="http://www.opengis.net/gml">
+                  <pos>83575.4 455271.2</pos>
+              </Point>
+          </dcx-gml:spatial>
+          <dcx-gml:spatial>
+              <Point xmlns="http://www.opengis.net/gml">
+                  <pos>52.08110 4.34521</pos>
+              </Point>
+          </dcx-gml:spatial>
+          <dcx-gml:spatial>
+              <gml:boundedBy>
+                  <gml:Envelope srsName="http://www.opengis.net/def/crs/EPSG/0/28992">
+                      <gml:lowerCorner>436172.5 91232.0162</gml:lowerCorner>
+                      <gml:upperCorner>486890.5 121811.88</gml:upperCorner>
+                  </gml:Envelope>
+              </gml:boundedBy>
+          </dcx-gml:spatial>
+        </ddm:dcmiMetadata>
+    )
+  }
+
   "RichElem.withLabel" should "report an error" in {
     import DDM.RichElem
     Try {
