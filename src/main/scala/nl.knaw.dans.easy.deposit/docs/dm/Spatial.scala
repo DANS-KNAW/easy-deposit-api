@@ -31,8 +31,9 @@ case class SpatialPoint(override val scheme: String,
                         y: String,
                        ) extends RequiresNonEmpty with SchemedSpatial {
   // using doubles as arguments could change precision in the XML output by adding ".0"
-  require(Try(x.toDouble).isSuccess, s"not a number: x=$x")
-  require(Try(y.toDouble).isSuccess, s"not a number: y=$y")
+  require(Try(x.toDouble).isSuccess, msg("x"))
+  require(Try(y.toDouble).isSuccess, msg("y"))
+  def msg(s: String) = s"$s is not a number in {scheme:$scheme, x:$x, y:$y}"
 
   lazy val pos: String = srsName match {
     case Spatial.RD_SRS_NAME => s"$x $y"
@@ -48,10 +49,11 @@ case class SpatialBox(override val scheme: String,
                       west: String,
                      ) extends RequiresNonEmpty  with SchemedSpatial {
   // using doubles as arguments could change precision in the XML output by adding ".0"
-  require(Try(north.toDouble).isSuccess, s"Not a number: north=$north")
-  require(Try(east.toDouble).isSuccess, s"Not a number: east=$east")
-  require(Try(south.toDouble).isSuccess, s"Not a number: south=$south")
-  require(Try(west.toDouble).isSuccess, s"Not a number: west=$west")
+  require(Try(north.toDouble).isSuccess, msg("north"))
+  require(Try(east.toDouble).isSuccess, msg("east"))
+  require(Try(south.toDouble).isSuccess, msg("south"))
+  require(Try(west.toDouble).isSuccess, msg("west"))
+  def msg(s: String) = s"$s is not a number in {scheme:$scheme, north:$north, east:$east, south:$south, wets:$west}"
 
   /*
    * Note that Y is along North - South and X is along East - West

@@ -31,19 +31,7 @@ import scala.xml._
 
 class DDMSpec extends TestSupportFixture with DdmBehavior {
 
-  private val minimal = DatasetMetadata(
-    """{
-      |  "identifiers": [{"scheme":"id-type:DOI", "value":"mocked-DOI"}],
-      |  "titles": ["Lorum ipsum"],
-      |  "descriptions": ["dolor"],
-      |  "dates": [
-      |    { "scheme": "dcterms:W3CDTF", "value": "2018", "qualifier": "dcterms:created" },
-      |    { "scheme": "dcterms:W3CDTF", "value": "2018", "qualifier": "dcterms:available" },
-      |  ],
-      |  "creators": [ { "initials": "B.A.R.", "surname": "Foo" } ],
-      |  "accessRights": { "category": "OPEN_ACCESS" },
-      |  "audiences": [ { "scheme": "blabla", "key": "D35200", "value": "some audience"} ]
-      |}""".stripMargin)
+  private val minimal = DatasetMetadata(minimalJsonString)
     .getOrRecover(fail(_))
 
   /** provides the verbose namespaces for inline DDM */

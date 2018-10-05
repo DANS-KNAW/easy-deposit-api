@@ -86,6 +86,27 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
     }
   }
 
+  s"POST /deposit/:uuid/metadata" should "report an invalid json field" in {
+
+    // create dataset
+    expectsUserFooBar
+    val responseBody = post(uri = s"/deposit", headers = Seq(basicAuthentication)) { body }
+    val uuid = DepositInfo(responseBody).map(_.id.toString).getOrRecover(e => fail(e.toString, e))
+    val metadataURI = s"/deposit/$uuid/metadata"
+
+    // create dataset metadata
+    assumeSchemaAvailable
+    expectsUserFooBar
+    val value = """"spatialPoints": [{ "scheme": "RD", "x": "795,00", "y": "446750Z" }],"""
+    put(metadataURI, headers = Seq(basicAuthentication),
+      // more variants in DDMSpec and DatasetMetadataSpec
+      body = minimalJsonString.replace("{",s"{$value")
+    ) {
+      body shouldBe "Bad Request. invalid DatasetMetadata: requirement failed: x is not a number in {scheme:RD, x:795,00, y:446750Z}"
+      status shouldBe BAD_REQUEST_400
+    }
+  }
+
   s"scenario: POST /deposit twice; GET /deposit" should "return a list of datasets" in {
 
     // create two deposits
