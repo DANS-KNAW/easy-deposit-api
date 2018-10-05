@@ -200,8 +200,7 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
 
   "minimal with points and boxes of issue 1538" should behave like {
     val json =
-      """{
-        |  "spatialPoints": [
+      """  "spatialPoints": [
         |    { "scheme": "RD", "x": 79500, "y": 446750 },
         |    { "scheme": "degrees", "x": 52.0811, "y": 4.34521 }
         |  ],
@@ -212,13 +211,10 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
         |    "south": 436172.5,
         |    "west": 91232.016
         |  }],
-        |}
         |""".stripMargin
     validDatasetMetadata(
-      input = DatasetMetadata(json).map(dm => minimal.copy(
-        spatialPoints = dm.spatialPoints,
-        spatialBoxes = dm.spatialBoxes)
-      ), subset = actualDDM => dcmiMetadata(actualDDM),
+      input = minimalWith(json),
+      subset = actualDDM => dcmiMetadata(actualDDM),
       expectedDdmContent =
         <ddm:dcmiMetadata>
           <dcterms:identifier xsi:type="id-type:DOI">mocked-DOI</dcterms:identifier>
@@ -245,15 +241,19 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
     )
   }
 
+  private def minimalWith(json: String) = {
+    DatasetMetadata(minimalJsonString.replaceAll("^\\{", s"{$json"))
+  }
+
   "minimal with points from split-multi-deposit" should behave like {
     val json =
-      """{"spatialPoints":[
+      """  "spatialPoints":[
         |  { "x": 1, "y": 2, "scheme":"RD" },
         |  { "x": 3, "y": 4, "scheme":"http://some.example.com" },
         |  { "x": 5, "y": 6, "scheme":"degrees" },
-        |]}""".stripMargin
+        |]""".stripMargin
     validDatasetMetadata(
-      input = DatasetMetadata(json).map(dm => minimal.copy(spatialPoints = dm.spatialPoints)),
+      input = minimalWith(json),
       subset = actualDDM => dcmiMetadata(actualDDM),
       expectedDdmContent =
         <ddm:dcmiMetadata>
@@ -280,13 +280,13 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
 
   "minimal with boxes from split-multi-deposit" should behave like {
     val json =
-      """{"spatialBoxes":[
+      """  "spatialBoxes":[
         |  {"north": 1, "south": 2,  "east": 3,  "west": 4, "scheme":"RD"},
         |  {"north": 5, "south": 6,  "east": 7,  "west": 8, "scheme":"xyz"},
         |  {"north": 9, "south": 10, "east": 11, "west": 12, "scheme":"degrees"}
-        |]}""".stripMargin
+        |]""".stripMargin
     validDatasetMetadata(
-      input = DatasetMetadata(json).map(dm => minimal.copy(spatialBoxes = dm.spatialBoxes)),
+      input = minimalWith(json),
       subset = actualDDM => dcmiMetadata(actualDDM),
       expectedDdmContent =
         <ddm:dcmiMetadata>
