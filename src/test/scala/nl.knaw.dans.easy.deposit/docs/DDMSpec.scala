@@ -403,6 +403,12 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
         <dcterms:identifier xsi:type="id-type:ARCHIS-ZAAK-IDENTIFICATIE">archis nr. 2</dcterms:identifier>
         <dcterms:alternative xml:lang="nld">alternative title 1</dcterms:alternative>
         <dcterms:alternative xml:lang="nld">alternative title2</dcterms:alternative>
+        <dcterms:isReferencedBy xsi:type="id-type:ISSN">2123-34X</dcterms:isReferencedBy>
+        <ddm:conformsTo xml:lang="nld" href="http://x">title1</ddm:conformsTo>
+        <dcterms:requires xml:lang="nld">title2</dcterms:requires>
+        <ddm:isReplacedBy href="http://y">http://y</ddm:isReplacedBy>
+        <ddm:relation href="http://z">http://z</ddm:relation>
+        <dcterms:relation xml:lang="nld">title3</dcterms:relation>
         <dcx-dai:contributorDetails>
           <dcx-dai:author>
             <dcx-dai:titles xml:lang="nld">Dr.</dcx-dai:titles>

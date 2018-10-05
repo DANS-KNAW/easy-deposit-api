@@ -39,6 +39,9 @@ object RelationQualifier extends Enumeration {
 
 trait RelationType {
   val qualifier: RelationQualifier
+
+  /** @return this with Some-s of empty strings as None-s */
+  def withCleanOptions: RelationType
 }
 
 case class Relation(override val qualifier: RelationQualifier,
@@ -46,6 +49,12 @@ case class Relation(override val qualifier: RelationQualifier,
                     title: Option[String],
                    ) extends RelationType with RequiresNonEmpty {
   require(title.isProvided || url.isProvided, s"Relation needs at least one of (title | url) got: ${ toJson(this) }")
+  requireNonEmptyString(qualifier, "qualifier")
+
+  override def withCleanOptions: RelationType = this.copy(
+    url = url.find(_.trim.nonEmpty),
+    title = title.find(_.trim.nonEmpty),
+  )
 }
 
 case class RelatedIdentifier(override val scheme: Option[String],
@@ -53,4 +62,7 @@ case class RelatedIdentifier(override val scheme: Option[String],
                              override val qualifier: RelationQualifier
                             ) extends RelationType with PossiblySchemed with RequiresNonEmpty {
   requireNonEmptyString(value, "value")
+  requireNonEmptyString(qualifier, "qualifier")
+
+  override def withCleanOptions: RelationType = this
 }

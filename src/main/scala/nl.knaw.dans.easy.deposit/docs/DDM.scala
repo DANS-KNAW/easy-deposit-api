@@ -26,7 +26,7 @@ import javax.xml.validation.{ Schema, SchemaFactory }
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata._
 import nl.knaw.dans.easy.deposit.docs.JsonUtil.InvalidDocumentException
 import nl.knaw.dans.easy.deposit.docs.dm.DateQualifier.DateQualifier
-import nl.knaw.dans.easy.deposit.docs.dm.{ Author, DateQualifier, SpatialBox, SpatialPoint }
+import nl.knaw.dans.easy.deposit.docs.dm._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.xml.sax.SAXParseException
 import resource.{ ManagedResource, Using }
@@ -67,6 +67,7 @@ object DDM extends DebugEnhancedLogging {
       <ddm:dcmiMetadata>
         { dm.allIdentifiers.map(id => <dcterms:identifier xsi:type={ id.scheme }>{ id.value }</dcterms:identifier>) }
         { dm.alternativeTitles.getNonEmpty.map(str => <dcterms:alternative>{ str }</dcterms:alternative>).addAttr(lang) }
+        { dm.relations.getNonEmpty.map(src => details(src.withCleanOptions)) }
         { dm.contributorsWithoutRights.map(author => <dcx-dai:contributorDetails>{ details(author) }</dcx-dai:contributorDetails>) }
         { dm.rightsHolders.map(author => <dcterms:rightsHolder>{ author.toString }</dcterms:rightsHolder>) }
         { dm.publishers.getNonEmpty.map(str => <dcterms:publisher>{ str }</dcterms:publisher>).addAttr(lang) }
@@ -95,6 +96,20 @@ object DDM extends DebugEnhancedLogging {
         </Envelope>
     </boundedBy>
   }
+
+  private def details(relation: RelationType)
+                     (implicit lang: Option[Attribute]) = {
+    relation match {
+      case Relation(_, Some(url: String), Some(title: String)) => <x href={ url }>{ title }</x>.addAttr(lang)
+      case Relation(_, Some(url: String), None) => <x href={ url }>{ url }</x>
+      case Relation(_, None, Some(title: String)) => <x>{ title }</x>.addAttr(lang)
+      case relatedID: RelatedIdentifier => <x  xsi:type={ relatedID.schemeAsString }>{ relatedID.value }</x>
+    }
+  }.withLabel(relation match {
+    case Relation(_, None,_) |
+         RelatedIdentifier(_,_,_)  => relation.qualifier.toString
+    case Relation(qualifier, Some(_),_) => qualifier.toString.replace("dcterms", "ddm")
+  })
 
   private def details(author: Author)
                      (implicit lang: Option[Attribute]) = {
@@ -179,6 +194,7 @@ object DDM extends DebugEnhancedLogging {
   }
 
   private def validate(ddm: Elem): Try[Elem] = {
+    logger.debug(prettyPrinter.format(ddm))
     triedSchema.map(schema =>
       managedInputStream(ddm)
         .apply(inputStream => schema
@@ -195,7 +211,7 @@ object DDM extends DebugEnhancedLogging {
       case e => Failure(e)
     }
 
-  def managedInputStream(ddm: Elem): ManagedResource[BufferedInputStream] = {
+  private def managedInputStream(ddm: Elem): ManagedResource[BufferedInputStream] = {
     Using.bufferedInputStream(
       new ByteArrayInputStream(
         prettyPrinter
