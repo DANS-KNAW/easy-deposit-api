@@ -23,7 +23,7 @@ import nl.knaw.dans.easy.deposit.TestSupportFixture
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.{ SchemedKeyValue, SchemedValue }
 import nl.knaw.dans.easy.deposit.docs.JsonUtil.InvalidDocumentException
 import nl.knaw.dans.easy.deposit.docs.dm.DateScheme.W3CDTF
-import nl.knaw.dans.easy.deposit.docs.dm.{ Author, Date, DateQualifier }
+import nl.knaw.dans.easy.deposit.docs.dm._
 import nl.knaw.dans.lib.error._
 
 import scala.util.{ Failure, Success, Try }
@@ -257,6 +257,81 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
     )
   }
 
+  "minimal with points from split-multi-deposit" should behave like {
+    val json =
+      """{"spatialPoints":[
+        |  { "x": 1, "y": 2, "scheme":"RD" },
+        |  { "x": 3, "y": 4, "scheme":"http://some.example.com" },
+        |  { "x": 5, "y": 6, "scheme":"degrees" },
+        |]}""".stripMargin
+    validDatasetMetadata(
+      input = DatasetMetadata(json).map(dm => minimal.copy(spatialPoints = dm.spatialPoints)),
+      subset = actualDDM => dcmiMetadata(actualDDM),
+      expectedDdmContent =
+        <ddm:dcmiMetadata>
+          <dcterms:identifier xsi:type="id-type:DOI">mocked-DOI</dcterms:identifier>
+          <dcterms:dateSubmitted xsi:type="dcterms:W3CDTF">{ nowYMD }</dcterms:dateSubmitted>
+          <dcx-gml:spatial srsName="http://www.opengis.net/def/crs/EPSG/0/28992">
+            <Point xmlns="http://www.opengis.net/gml">
+              <pos>1 2</pos>
+            </Point>
+          </dcx-gml:spatial>
+          <dcx-gml:spatial srsName="http://some.example.com">
+            <Point xmlns="http://www.opengis.net/gml">
+              <pos>4 3</pos>
+            </Point>
+          </dcx-gml:spatial>
+          <dcx-gml:spatial srsName="http://www.opengis.net/def/crs/EPSG/0/4326">
+            <Point xmlns="http://www.opengis.net/gml">
+              <pos>6 5</pos>
+            </Point>
+          </dcx-gml:spatial>
+        </ddm:dcmiMetadata>
+    )
+  }
+
+  "minimal with boxes from split-multi-deposit" should behave like {
+    val json =
+      """{"spatialBoxes":[
+        |  {"north": 1, "south": 2,  "east": 3,  "west": 4, "scheme":"RD"},
+        |  {"north": 5, "south": 6,  "east": 7,  "west": 8, "scheme":"xyz"},
+        |  {"north": 9, "south": 10, "east": 11, "west": 12, "scheme":"degrees"}
+        |]}""".stripMargin
+    validDatasetMetadata(
+      input = DatasetMetadata(json).map(dm => minimal.copy(spatialBoxes = dm.spatialBoxes)),
+      subset = actualDDM => dcmiMetadata(actualDDM),
+      expectedDdmContent =
+        <ddm:dcmiMetadata>
+          <dcterms:identifier xsi:type="id-type:DOI">mocked-DOI</dcterms:identifier>
+          <dcterms:dateSubmitted xsi:type="dcterms:W3CDTF">{ nowYMD }</dcterms:dateSubmitted>
+          <dcx-gml:spatial>
+            <boundedBy xmlns="http://www.opengis.net/gml">
+              <Envelope srsName="http://www.opengis.net/def/crs/EPSG/0/28992">
+                <lowerCorner>4 2</lowerCorner>
+                <upperCorner>3 1</upperCorner>
+              </Envelope>
+            </boundedBy>
+          </dcx-gml:spatial>
+          <dcx-gml:spatial>
+            <boundedBy xmlns="http://www.opengis.net/gml">
+              <Envelope srsName="xyz">
+                <lowerCorner>6 8</lowerCorner>
+                <upperCorner>5 7</upperCorner>
+              </Envelope>
+            </boundedBy>
+          </dcx-gml:spatial>
+          <dcx-gml:spatial>
+            <boundedBy xmlns="http://www.opengis.net/gml">
+              <Envelope srsName="http://www.opengis.net/def/crs/EPSG/0/4326">
+                <lowerCorner>10 12</lowerCorner>
+                <upperCorner>9 11</upperCorner>
+              </Envelope>
+            </boundedBy>
+          </dcx-gml:spatial>
+        </ddm:dcmiMetadata>
+    )
+  }
+
   "RichElem.withLabel" should "report an error" in {
     import DDM.RichElem
     Try {
@@ -384,20 +459,20 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
           </Point>
         </dcx-gml:spatial>
         <dcx-gml:spatial>
-          <gml:boundedBy xmlns="http://www.opengis.net/gml">
-            <gml:Envelope srsName="http://www.opengis.net/def/crs/EPSG/0/28992">
-            <gml:lowerCorner>2 1</gml:lowerCorner>
-            <gml:upperCorner>4 3</gml:upperCorner>
-            </gml:Envelope>
-          </gml:boundedBy>
+          <boundedBy xmlns="http://www.opengis.net/gml">
+            <Envelope srsName="http://www.opengis.net/def/crs/EPSG/0/28992">
+              <lowerCorner>4 3</lowerCorner>
+              <upperCorner>2 1</upperCorner>
+            </Envelope>
+          </boundedBy>
         </dcx-gml:spatial>
         <dcx-gml:spatial>
-          <gml:boundedBy xmlns="http://www.opengis.net/gml">
-            <gml:Envelope srsName="http://www.opengis.net/def/crs/EPSG/0/4326">
-            <gml:lowerCorner>5 6</gml:lowerCorner>
-            <gml:upperCorner>7 8</gml:upperCorner>
-            </gml:Envelope>
-          </gml:boundedBy>
+          <boundedBy xmlns="http://www.opengis.net/gml">
+            <Envelope srsName="http://www.opengis.net/def/crs/EPSG/0/4326">
+              <lowerCorner>7 8</lowerCorner>
+              <upperCorner>5 6</upperCorner>
+            </Envelope>
+          </boundedBy>
         </dcx-gml:spatial>
         <dcterms:license>http://creativecommons.org/publicdomain/zero/1.0</dcterms:license>
       </ddm:dcmiMetadata>

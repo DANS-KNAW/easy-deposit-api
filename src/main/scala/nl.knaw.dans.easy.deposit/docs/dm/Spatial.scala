@@ -4,10 +4,10 @@ import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.RequiresNonEmpty
 
 object Spatial {
   /** coordinate order y, x = latitude (DCX_SPATIAL_Y), longitude (DCX_SPATIAL_X) */
-  val RD_SRS_NAME = "http://www.opengis.net/def/crs/EPSG/0/28992"
+  val DEGREES_SRS_NAME = "http://www.opengis.net/def/crs/EPSG/0/4326"
 
   /** coordinate order x, y = longitude (DCX_SPATIAL_X), latitude (DCX_SPATIAL_Y) */
-  val DEGREES_SRS_NAME = "http://www.opengis.net/def/crs/EPSG/0/4326"
+  val RD_SRS_NAME = "http://www.opengis.net/def/crs/EPSG/0/28992"
 }
 
 trait SchemedSpatial extends RequiresNonEmpty {
@@ -35,31 +35,31 @@ case class SpatialPoint(override val scheme: String,
   }
 }
 
-/**
- * Note that Y is along North - South and X is along East - West
- * The lower corner is with the minimal coordinate values and upper corner with the maximal coordinate values
- * If x was increasing from West to East and y was increasing from South to North we would have
- * lower corner (x,y) = (West,South) and upper corner (x,y) = (East,North)
- * as shown in the schematic drawing of the box below.
- * This is the case for the WGS84 and RD coordinate systems, but not per se for any other system!
- *
- *                upper(x,y)=(E,N)
- *       *---N---u
- *       |       |
- *       W       E
- * / \   |       |
- *  |    l---S---*
- *  |  lower(x,y)=(W,S)
- *  y
- *   x -->
- *
- **/
 case class SpatialBox(override val scheme: String,
                       north: Int,
                       east: Int,
                       south: Int,
                       west: Int,
                      ) extends RequiresNonEmpty  with SchemedSpatial {
+  /*
+   * Note that Y is along North - South and X is along East - West
+   * The lower corner is with the minimal coordinate values and upper corner with the maximal coordinate values
+   * If x was increasing from West to East and y was increasing from South to North we would have
+   * lower corner (x,y) = (West,South) and upper corner (x,y) = (East,North)
+   * as shown in the schematic drawing of the box below.
+   * This is the case for the WGS84 and RD coordinate systems, but not per se for any other system!
+   *
+   *                upper(x,y)=(E,N)
+   *       *---N---u
+   *       |       |
+   *       W       E
+   *  ^    |       |
+   *  |    l---S---*
+   *  |  lower(x,y)=(W,S)
+   *  y
+   *   x -->
+   *
+   */
   private lazy val xy = (s"$west $south", s"$east $north")
   private lazy val yx = (s"$south $west", s"$north $east")
   lazy val (lower:String, upper: String) = srsName match {

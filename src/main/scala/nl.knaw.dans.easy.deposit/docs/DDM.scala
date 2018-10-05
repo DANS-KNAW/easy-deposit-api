@@ -88,12 +88,12 @@ object DDM extends DebugEnhancedLogging {
   }
 
   private def details(box: SpatialBox) = {
-    <gml:boundedBy xmlns="http://www.opengis.net/gml">
-        <gml:Envelope srsName={ box.srsName }>
-            <gml:lowerCorner>{ box.upper }</gml:lowerCorner>
-            <gml:upperCorner>{ box.lower }</gml:upperCorner>
-        </gml:Envelope>
-    </gml:boundedBy>
+    <boundedBy xmlns="http://www.opengis.net/gml">
+        <Envelope srsName={ box.srsName }>
+            <lowerCorner>{ box.lower }</lowerCorner>
+            <upperCorner>{ box.upper }</upperCorner>
+        </Envelope>
+    </boundedBy>
   }
 
   private def details(author: Author)
