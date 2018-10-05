@@ -143,17 +143,17 @@
   "spatialPoints": [
     {
       "scheme": "http://www.opengis.net/def/crs/EPSG/0/28992",
-      "x": 0,
-      "y": 0
+      "x": "0",
+      "y": "0"
     }
   ],
   "spatialBoxes": [
     {
       "scheme": "http://www.opengis.net/def/crs/EPSG/0/4326",
-      "north": 0,
-      "east": 0,
-      "south": 0,
-      "west": 0
+      "north": "0",
+      "east": "0",
+      "south": "0",
+      "west": "0"
     }
   ],
   "spatialCoverages": [

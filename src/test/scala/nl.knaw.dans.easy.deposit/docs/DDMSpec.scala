@@ -237,21 +237,21 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
           <dcterms:dateSubmitted xsi:type="dcterms:W3CDTF">{ nowYMD }</dcterms:dateSubmitted>
           <dcx-gml:spatial srsName="http://www.opengis.net/def/crs/EPSG/0/28992">
               <Point xmlns="http://www.opengis.net/gml">
-                  <pos>83575.4 455271.2</pos>
+                  <pos>79500 446750</pos>
               </Point>
           </dcx-gml:spatial>
-          <dcx-gml:spatial>
+          <dcx-gml:spatial srsName="http://www.opengis.net/def/crs/EPSG/0/4326">
               <Point xmlns="http://www.opengis.net/gml">
-                  <pos>52.08110 4.34521</pos>
+                  <pos>4.34521 52.0811</pos>
               </Point>
           </dcx-gml:spatial>
           <dcx-gml:spatial>
-              <gml:boundedBy>
-                  <gml:Envelope srsName="http://www.opengis.net/def/crs/EPSG/0/28992">
-                      <gml:lowerCorner>436172.5 91232.0162</gml:lowerCorner>
-                      <gml:upperCorner>486890.5 121811.88</gml:upperCorner>
-                  </gml:Envelope>
-              </gml:boundedBy>
+              <boundedBy xmlns="http://www.opengis.net/gml">
+                  <Envelope srsName="http://www.opengis.net/def/crs/EPSG/0/28992">
+                      <lowerCorner>91232.016 436172.5</lowerCorner>
+                      <upperCorner>121811.88 486890.5</upperCorner>
+                  </Envelope>
+              </boundedBy>
           </dcx-gml:spatial>
         </ddm:dcmiMetadata>
     )
