@@ -105,9 +105,8 @@ object DDM extends DebugEnhancedLogging {
       case relatedID: RelatedIdentifier => <x  xsi:type={ relatedID.schemeAsString }>{ relatedID.value }</x>
     }
   }.withLabel(relation match {
-    case Relation(_, None,_) |
-         RelatedIdentifier(_,_,_)  => relation.qualifier.toString
     case Relation(qualifier, Some(_),_) => qualifier.toString.replace("dcterms", "ddm")
+    case _ => relation.qualifier.toString
   })
 
   private def details(author: Author, lang: String) = {
