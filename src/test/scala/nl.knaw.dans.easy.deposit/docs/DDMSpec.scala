@@ -323,7 +323,7 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
   "RichElem.withLabel" should "report an error" in {
     import DDM.RichElem
     Try {
-      <key>Lorum Ipsum</key>.withLabel("a:b:c")
+      <key>Lorum Ipsum</key>.withTag("a:b:c")
     } should matchPattern {
       case Failure(InvalidDocumentException(_, e)) if e.getMessage ==
         "expecting (label) or (prefix:label); got [a:b:c] to adjust the <key> of <key>Lorum Ipsum</key>" =>
@@ -332,22 +332,19 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
 
   "apply" should "report a missing title" in {
     DDM(minimal.copy(titles = None)) should matchPattern {
-      case Failure(InvalidDocumentException(_, e)) if e.getMessage ==
-        "Please set a title" =>
+      case Failure(InvalidDocumentException(_, e)) if e.getMessage.contains("""One of '{"http://purl.org/dc/elements/1.1/":title}' is expected.""") =>
     }
   }
 
   it should "report an empty list of titles" in {
     DDM(minimal.copy(titles = Some(Seq.empty))) should matchPattern {
-      case Failure(InvalidDocumentException(_, e)) if e.getMessage ==
-        "Please set a title" =>
+      case Failure(InvalidDocumentException(_, e)) if e.getMessage.contains("""One of '{"http://purl.org/dc/elements/1.1/":title}' is expected.""") =>
     }
   }
 
   it should "report an empty string as title" in {
     DDM(minimal.copy(titles = Some(Seq("   \t")))) should matchPattern {
-      case Failure(InvalidDocumentException(_, e)) if e.getMessage ==
-        "Please set a title" =>
+      case Failure(InvalidDocumentException(_, e)) if e.getMessage.contains("""One of '{"http://purl.org/dc/elements/1.1/":title}' is expected.""") =>
     }
   }
 

@@ -59,7 +59,7 @@ class Submitter(stagingBaseDir: File,
       msg = datasetMetadata.messageForDataManager.getOrElse("")
       filesXml <- FilesXml(draftBag.data)
       _ <- sameFiles(draftBag.payloadManifests, draftBag.baseDir / "data")
-      // TODO this is the last moment to report an invalid DDM as user error, subsequent errors are internal server errors
+      // from now on no more user errors but internal errors
       // EASY-1464 3.3.8.a create empty staged bag to take a copy of the deposit
       stageDir = (stagingBaseDir / depositDir.id.toString).createDirectories()
       stageBag <- DansV0Bag.empty(stageDir / "bag").map(_.withEasyUserAccount(depositDir.user))

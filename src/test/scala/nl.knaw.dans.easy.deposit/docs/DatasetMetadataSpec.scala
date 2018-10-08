@@ -114,6 +114,18 @@ class DatasetMetadataSpec extends TestSupportFixture {
     }
   }
 
+  it should "reject multiple dates created" in {
+    val s: JsonInput =
+      """{ "dates": [
+        |   { "value": "2018", "qualifier": "dcterms:created" },
+        |   { "value": "2017", "qualifier": "dcterms:created" },
+        | ]
+        |}""".stripMargin
+    DatasetMetadata(s) should matchPattern {
+      case Failure(e) if e.getMessage == "invalid DatasetMetadata: requirement failed: At most one dcterms:created allowed" =>
+    }
+  }
+
   "DatasetMetadata.relations" should "accept complete relations" in {
     val s: JsonInput =
       """{

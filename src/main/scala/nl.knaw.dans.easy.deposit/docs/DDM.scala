@@ -25,7 +25,6 @@ import javax.xml.transform.stream.StreamSource
 import javax.xml.validation.{ Schema, SchemaFactory }
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata._
 import nl.knaw.dans.easy.deposit.docs.JsonUtil.InvalidDocumentException
-import nl.knaw.dans.easy.deposit.docs.dm.DateQualifier.DateQualifier
 import nl.knaw.dans.easy.deposit.docs.dm._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.xml.sax.SAXParseException
@@ -39,11 +38,9 @@ object DDM extends DebugEnhancedLogging {
   val schemaLocation: String = "https://easy.dans.knaw.nl/schemas/md/2017/09/ddm.xsd"
 
   def apply(dm: DatasetMetadata): Try[Elem] = Try {
-    val lang: String = dm.languageOfDescription.map(_.key).orNull
-
-    // validation like mustBeNonEmpty and mustHaveOne
     dm.doi.getOrElse(throwInvalidDocumentException(s"Please first GET a DOI for this deposit"))
 
+    val lang: String = dm.languageOfDescription.map(_.key).orNull
     <ddm:DDM
       xmlns:dc="http://purl.org/dc/elements/1.1/"
       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
@@ -56,13 +53,13 @@ object DDM extends DebugEnhancedLogging {
       xsi:schemaLocation={s"$schemaNameSpace $schemaLocation"}
     >
       <ddm:profile>
-        { dm.titles.getNonEmpty.map(src => <dc:title xml:lang={ lang }>{ src }</dc:title>).mustBeNonEmpty("a title") }
-        { dm.descriptions.getNonEmpty.map(src => <dcterms:description xml:lang={ lang }>{ src }</dcterms:description>).mustBeNonEmpty("a description") }
-        { dm.creatorsWithoutRights.map(author => <dcx-dai:creatorDetails>{ details(author, lang) }</dcx-dai:creatorDetails>).mustBeNonEmpty("a creator") }
-        { dm.datesCreated.map(src => <ddm:created>{ src.value }</ddm:created>).mustHaveOne(DateQualifier.dateSubmitted) }
-        { dm.datesAvailable.map(src => <ddm:available>{ src.value }</ddm:available>).mustHaveOne(DateQualifier.available) }
-        { dm.audiences.getNonEmpty.map(src => <ddm:audience>{ src.key }</ddm:audience>).mustBeNonEmpty("an audience") }
-        { dm.accessRights.map(src => <ddm:accessRights>{ src.category.toString }</ddm:accessRights>).toSeq.mustBeNonEmpty("the accessRights") }
+        { dm.titles.getNonEmpty.map(src => <dc:title xml:lang={ lang }>{ src }</dc:title>) }
+        { dm.descriptions.getNonEmpty.map(src => <dcterms:description xml:lang={ lang }>{ src }</dcterms:description>) }
+        { dm.creatorsWithoutRights.map(author => <dcx-dai:creatorDetails>{ details(author, lang) }</dcx-dai:creatorDetails>) }
+        { dm.datesCreated.map(src => <ddm:created>{ src.value }</ddm:created>) }
+        { dm.datesAvailable.map(src => <ddm:available>{ src.value }</ddm:available>) }
+        { dm.audiences.getNonEmpty.map(src => <ddm:audience>{ src.key }</ddm:audience>) }
+        { dm.accessRights.toSeq.map(src => <ddm:accessRights>{ src.category.toString }</ddm:accessRights>) }
       </ddm:profile>
       <ddm:dcmiMetadata>
         { dm.allIdentifiers.map(id => <dcterms:identifier xsi:type={ id.scheme }>{ id.value }</dcterms:identifier>) }
@@ -74,7 +71,7 @@ object DDM extends DebugEnhancedLogging {
         { dm.sources.getNonEmpty.map(str => <dc:source xml:lang={ lang }>{ str }</dc:source>) }
         { dm.allTypes.map(src => <dcterms:type xsi:type={ src.schemeAsString }>{ src.value }</dcterms:type>) }
         { dm.formats.getNonEmpty.map(src => <dcterms:format xsi:type={ src.schemeAsString }>{ src.value }</dcterms:format>) }
-        { dm.otherDates.map(date => <x xsi:type={ date.schemeAsString }>{ date.value }</x>.withLabel(date.qualifier.toString)) }
+        { dm.otherDates.map(date => <tag xsi:type={ date.schemeAsString }>{ date.value }</tag>.withTag(date.qualifier.toString)) }
         { dm.spatialPoints.getNonEmpty.map(point => <dcx-gml:spatial srsName={ point.srsName }>{ details(point) }</dcx-gml:spatial>) }
         { dm.spatialBoxes.getNonEmpty.map(point => <dcx-gml:spatial>{ details(point) }</dcx-gml:spatial>) }
         { dm.license.getNonEmpty.map(str => <dcterms:license>{ str }</dcterms:license>) /* xsi:type="dcterms:URI" not supported by json */ }
@@ -99,13 +96,13 @@ object DDM extends DebugEnhancedLogging {
 
   private def details(relation: RelationType, lang: String) = {
     relation match {
-      case Relation(_, Some(url: String), Some(title: String)) => <x xml:lang={ lang } href={ url }>{ title }</x>
-      case Relation(_, Some(url: String), None) => <x href={ url }>{ url }</x>
-      case Relation(_, None, Some(title: String)) => <x xml:lang={ lang }>{ title }</x>
-      case relatedID: RelatedIdentifier => <x  xsi:type={ relatedID.schemeAsString }>{ relatedID.value }</x>
+      case Relation(_, Some(url: String), Some(title: String)) => <tag xml:lang={ lang } href={ url }>{ title }</tag>
+      case Relation(_, Some(url: String), None) => <tag href={ url }>{ url }</tag>
+      case Relation(_, None, Some(title: String)) => <tag xml:lang={ lang }>{ title }</tag>
+      case relatedID: RelatedIdentifier => <tag  xsi:type={ relatedID.schemeAsString }>{ relatedID.value }</tag>
     }
-  }.withLabel(relation match {
-    case Relation(qualifier, Some(_),_) => qualifier.toString.replace("dcterms", "ddm")
+  }.withTag(relation match {
+    case Relation(qualifier, Some(_), _) => qualifier.toString.replace("dcterms", "ddm")
     case _ => relation.qualifier.toString
   })
 
@@ -134,7 +131,7 @@ object DDM extends DebugEnhancedLogging {
 
     /** @param str the desired tag (namespace:label) or (label) */
     @throws[InvalidDocumentException]("when str is not a valid XML label (has more than one ':')")
-    def withLabel(str: String): Elem = {
+    def withTag(str: String): Elem = {
       str.split(":") match {
         case Array(label) => elem.copy(label = label)
         case Array(prefix, label) => elem.copy(prefix = prefix, label = label)
@@ -150,17 +147,6 @@ object DDM extends DebugEnhancedLogging {
   /** @param elems the sequence of XML elements to adjust */
   private implicit class RichElems(val elems: Seq[Elem]) extends AnyVal {
     def withLabel(str: String): Seq[Elem] = elems.map(_.copy(label = str))
-
-    def mustBeNonEmpty(str: String): Seq[Elem] = {
-      if (elems.isEmpty) throw missingValue(str)
-      else elems
-    }
-
-    def mustHaveOne(dateQualifier: DateQualifier): Seq[Elem] = elems match {
-      case Seq() => throw missingValue(dateQualifier.toString)
-      case Seq(_) => elems
-      case _ => throwInvalidDocumentException(s"Just one $dateQualifier allowed")
-    }
   }
 
   private implicit class OptionSeq[T](val sources: Option[Seq[T]]) extends AnyVal {

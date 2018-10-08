@@ -18,6 +18,7 @@ package nl.knaw.dans.easy.deposit.docs
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata._
 import nl.knaw.dans.easy.deposit.docs.JsonUtil.{ InvalidDocumentException, RichJsonInput }
 import nl.knaw.dans.easy.deposit.docs.dm.Date.dateSubmitted
+import nl.knaw.dans.easy.deposit.docs.dm.DateQualifier.DateQualifier
 import nl.knaw.dans.easy.deposit.docs.dm.PrivacySensitiveDataPresent.PrivacySensitiveDataPresent
 import nl.knaw.dans.easy.deposit.docs.dm._
 import org.json4s.JsonInput
@@ -68,7 +69,17 @@ case class DatasetMetadata(identifiers: Option[Seq[SchemedValue]] = None,
 
   private val specialDateQualifiers = Seq(DateQualifier.created, DateQualifier.available)
   private val flattenedDates: Seq[Date] = dates.toSeq.flatten
-  require(!flattenedDates.exists(_.qualifier == DateQualifier.dateSubmitted), s"No ${ DateQualifier.dateSubmitted } allowed")
+  atMostNone(DateQualifier.dateSubmitted)
+  atMostOne(DateQualifier.created)
+  atMostOne(DateQualifier.available)
+
+  private def atMostOne(qualifier: DateQualifier): Unit = {
+    require(flattenedDates.count(_.qualifier == qualifier) <= 1, s"At most one $qualifier allowed")
+  }
+
+  private def atMostNone(qualifier: DateQualifier): Unit = {
+    require(flattenedDates.count(_.qualifier == qualifier) < 1, s"No $qualifier allowed")
+  }
 
   lazy val datesCreated: Seq[Date] = flattenedDates.filter(_.qualifier == DateQualifier.created)
   lazy val datesAvailable: Seq[Date] = flattenedDates.filter(_.qualifier == DateQualifier.available)
