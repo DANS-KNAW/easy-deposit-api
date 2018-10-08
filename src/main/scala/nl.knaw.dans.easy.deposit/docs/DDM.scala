@@ -39,7 +39,7 @@ object DDM extends DebugEnhancedLogging {
   val schemaLocation: String = "https://easy.dans.knaw.nl/schemas/md/2017/09/ddm.xsd"
 
   def apply(dm: DatasetMetadata): Try[Elem] = Try {
-    implicit val lang: Option[Attribute] = dm.languageOfDescription.map(l => new PrefixedAttribute("xml", "lang", l.key, Null))
+    val lang: String = dm.languageOfDescription.map(_.key).orNull
 
     // validation like mustBeNonEmpty and mustHaveOne
     dm.doi.getOrElse(throwInvalidDocumentException(s"Please first GET a DOI for this deposit"))
@@ -56,9 +56,9 @@ object DDM extends DebugEnhancedLogging {
       xsi:schemaLocation={s"$schemaNameSpace $schemaLocation"}
     >
       <ddm:profile>
-        { dm.titles.getNonEmpty.map(src => <dc:title>{ src }</dc:title>).addAttr(lang).mustBeNonEmpty("a title") }
-        { dm.descriptions.getNonEmpty.map(src => <dcterms:description>{ src }</dcterms:description>).addAttr(lang).mustBeNonEmpty("a description") }
-        { dm.creatorsWithoutRights.map(author => <dcx-dai:creatorDetails>{ details(author) }</dcx-dai:creatorDetails>).mustBeNonEmpty("a creator") }
+        { dm.titles.getNonEmpty.map(src => <dc:title xml:lang={ lang }>{ src }</dc:title>).mustBeNonEmpty("a title") }
+        { dm.descriptions.getNonEmpty.map(src => <dcterms:description xml:lang={ lang }>{ src }</dcterms:description>).mustBeNonEmpty("a description") }
+        { dm.creatorsWithoutRights.map(author => <dcx-dai:creatorDetails>{ details(author, lang) }</dcx-dai:creatorDetails>).mustBeNonEmpty("a creator") }
         { dm.datesCreated.map(src => <ddm:created>{ src.value }</ddm:created>).mustHaveOne(DateQualifier.dateSubmitted) }
         { dm.datesAvailable.map(src => <ddm:available>{ src.value }</ddm:available>).mustHaveOne(DateQualifier.available) }
         { dm.audiences.getNonEmpty.map(src => <ddm:audience>{ src.key }</ddm:audience>).mustBeNonEmpty("an audience") }
@@ -66,12 +66,12 @@ object DDM extends DebugEnhancedLogging {
       </ddm:profile>
       <ddm:dcmiMetadata>
         { dm.allIdentifiers.map(id => <dcterms:identifier xsi:type={ id.scheme }>{ id.value }</dcterms:identifier>) }
-        { dm.alternativeTitles.getNonEmpty.map(str => <dcterms:alternative>{ str }</dcterms:alternative>).addAttr(lang) }
-        { dm.relations.getNonEmpty.map(src => details(src.withCleanOptions)) }
-        { dm.contributorsWithoutRights.map(author => <dcx-dai:contributorDetails>{ details(author) }</dcx-dai:contributorDetails>) }
+        { dm.alternativeTitles.getNonEmpty.map(str => <dcterms:alternative xml:lang={ lang }>{ str }</dcterms:alternative>) }
+        { dm.relations.getNonEmpty.map(src => details(src.withCleanOptions, lang)) }
+        { dm.contributorsWithoutRights.map(author => <dcx-dai:contributorDetails>{ details(author, lang) }</dcx-dai:contributorDetails>) }
         { dm.rightsHolders.map(author => <dcterms:rightsHolder>{ author.toString }</dcterms:rightsHolder>) }
-        { dm.publishers.getNonEmpty.map(str => <dcterms:publisher>{ str }</dcterms:publisher>).addAttr(lang) }
-        { dm.sources.getNonEmpty.map(str => <dc:source>{ str }</dc:source>).addAttr(lang) }
+        { dm.publishers.getNonEmpty.map(str => <dcterms:publisher xml:lang={ lang }>{ str }</dcterms:publisher>) }
+        { dm.sources.getNonEmpty.map(str => <dc:source xml:lang={ lang }>{ str }</dc:source>) }
         { dm.allTypes.map(src => <dcterms:type xsi:type={ src.schemeAsString }>{ src.value }</dcterms:type>) }
         { dm.formats.getNonEmpty.map(src => <dcterms:format xsi:type={ src.schemeAsString }>{ src.value }</dcterms:format>) }
         { dm.otherDates.map(date => <x xsi:type={ date.schemeAsString }>{ date.value }</x>.withLabel(date.qualifier.toString)) }
@@ -97,12 +97,11 @@ object DDM extends DebugEnhancedLogging {
     </boundedBy>
   }
 
-  private def details(relation: RelationType)
-                     (implicit lang: Option[Attribute]) = {
+  private def details(relation: RelationType, lang: String) = {
     relation match {
-      case Relation(_, Some(url: String), Some(title: String)) => <x href={ url }>{ title }</x>.addAttr(lang)
+      case Relation(_, Some(url: String), Some(title: String)) => <x xml:lang={ lang } href={ url }>{ title }</x>
       case Relation(_, Some(url: String), None) => <x href={ url }>{ url }</x>
-      case Relation(_, None, Some(title: String)) => <x>{ title }</x>.addAttr(lang)
+      case Relation(_, None, Some(title: String)) => <x xml:lang={ lang }>{ title }</x>
       case relatedID: RelatedIdentifier => <x  xsi:type={ relatedID.schemeAsString }>{ relatedID.value }</x>
     }
   }.withLabel(relation match {
@@ -111,27 +110,24 @@ object DDM extends DebugEnhancedLogging {
     case Relation(qualifier, Some(_),_) => qualifier.toString.replace("dcterms", "ddm")
   })
 
-  private def details(author: Author)
-                     (implicit lang: Option[Attribute]) = {
+  private def details(author: Author, lang: String) = {
     if (author.surname.isEmpty)
-      author.organization.toSeq.map(orgDetails(author.role))
+      author.organization.toSeq.map(orgDetails(_, lang, author.role))
     else // TODO ids
       <dcx-dai:author>
-        { author.titles.getNonEmpty.map(str => <dcx-dai:titles>{ str }</dcx-dai:titles>).addAttr(lang) }
+        { author.titles.getNonEmpty.map(str => <dcx-dai:titles xml:lang={ lang }>{ str }</dcx-dai:titles>) }
         { author.initials.getNonEmpty.map(str => <dcx-dai:initials>{ str }</dcx-dai:initials>) }
         { author.insertions.getNonEmpty.map(str => <dcx-dai:insertions>{ str }</dcx-dai:insertions>) }
         { author.surname.getNonEmpty.map(str => <dcx-dai:surname>{ str }</dcx-dai:surname>) }
         { author.role.toSeq.map(role => <dcx-dai:role>{ role.key }</dcx-dai:role>) }
-        { author.organization.getNonEmpty.map(orgDetails()) }
+        { author.organization.getNonEmpty.map(orgDetails(_, lang)) }
       </dcx-dai:author>
   }
 
-  private def orgDetails(role: Option[SchemedKeyValue] = None)
-                        (organization: String)
-                        (implicit lang: Option[Attribute]) =
+  private def orgDetails(organization: String, lang: String, role: Option[SchemedKeyValue] = None) =
       <dcx-dai:organization>
         { role.toSeq.map(role => <dcx-dai:role>{ role.key }</dcx-dai:role>) }
-        { <dcx-dai:name>{ organization }</dcx-dai:name>.addAttr(lang) }
+        { <dcx-dai:name xml:lang={ lang }>{ organization }</dcx-dai:name> }
       </dcx-dai:organization>
 
   /** @param elem XML element to be adjusted */
@@ -154,8 +150,6 @@ object DDM extends DebugEnhancedLogging {
 
   /** @param elems the sequence of XML elements to adjust */
   private implicit class RichElems(val elems: Seq[Elem]) extends AnyVal {
-    def addAttr(lang: Option[Attribute]): Seq[Elem] = elems.map(_.addAttr(lang))
-
     def withLabel(str: String): Seq[Elem] = elems.map(_.copy(label = str))
 
     def mustBeNonEmpty(str: String): Seq[Elem] = {
