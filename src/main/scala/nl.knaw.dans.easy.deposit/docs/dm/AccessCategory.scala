@@ -28,5 +28,5 @@ object AccessCategory extends Enumeration {
 }
 
 case class AccessRights(category: AccessCategory,
-                        group: Option[String],
+                        group: Option[String], // TODO fix unit tests to drop this too
                        )

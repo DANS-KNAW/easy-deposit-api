@@ -24,7 +24,7 @@ object AgreementsXml {
   def apply(userId: String, dateSubmitted: DateTime, dm: DatasetMetadata): Try[Elem] = {
     for {
       _ <- dm.licenceAccepted
-      privacy <- dm.hasPrivacyData
+      privacy <- dm.hasPrivacySensitiveData
     } yield
       <agr:agreements
           xmlns:agr="http://easy.dans.knaw.nl/schemas/bag/metadata/agreements/"

@@ -57,7 +57,7 @@ case class DatasetMetadata(identifiers: Option[Seq[SchemedValue]] = None,
                            privacySensitiveDataPresent: PrivacySensitiveDataPresent = PrivacySensitiveDataPresent.unspecified,
                            acceptLicenseAgreement: Boolean = false,
                           ) {
-  lazy val hasPrivacyData: Try[Boolean] = privacySensitiveDataPresent match {
+  lazy val hasPrivacySensitiveData: Try[Boolean] = privacySensitiveDataPresent match {
     case PrivacySensitiveDataPresent.yes => Success(true)
     case PrivacySensitiveDataPresent.no => Success(false)
     case PrivacySensitiveDataPresent.unspecified => Failure(missingValue("PrivacySensitiveDataPresent"))
