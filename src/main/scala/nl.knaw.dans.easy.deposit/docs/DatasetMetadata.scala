@@ -67,35 +67,42 @@ case class DatasetMetadata(identifiers: Option[Seq[SchemedValue]] = None,
   lazy val licenceAccepted: Try[Unit] = if (acceptLicenseAgreement) Success(())
                                         else Failure(missingValue("AcceptLicenseAgreement"))
 
+  // dates
+  private def atMostOne(qualifier: DateQualifier)(dates: Seq[Date]): Option[Date] = {
+    dates.filter(_.qualifier == qualifier) match {
+      case Seq() => None
+      case Seq(date) => Some(date)
+      case xs => throw new IllegalArgumentException(s"At most one $qualifier allowed; got $xs")
+    }
+  }
+
+  private def notAllowed(qualifier: DateQualifier)(dates: Seq[Date]): Unit = {
+    if (dates.count(_.qualifier == qualifier) < 1)
+      throw new IllegalArgumentException(s"No $qualifier allowed")
+  }
+
   private val specialDateQualifiers = Seq(DateQualifier.created, DateQualifier.available)
   private val flattenedDates: Seq[Date] = dates.toSeq.flatten
-  atMostNone(DateQualifier.dateSubmitted)
-  atMostOne(DateQualifier.created)
-  atMostOne(DateQualifier.available)
 
-  private def atMostOne(qualifier: DateQualifier): Unit = {
-    require(flattenedDates.count(_.qualifier == qualifier) <= 1, s"At most one $qualifier allowed")
-  }
-
-  private def atMostNone(qualifier: DateQualifier): Unit = {
-    require(flattenedDates.count(_.qualifier == qualifier) < 1, s"No $qualifier allowed")
-  }
-
-  lazy val datesCreated: Seq[Date] = flattenedDates.filter(_.qualifier == DateQualifier.created)
-  lazy val datesAvailable: Seq[Date] = flattenedDates.filter(_.qualifier == DateQualifier.available)
+  notAllowed(DateQualifier.dateSubmitted)(flattenedDates)
+  lazy val datesCreated: Option[Date] = atMostOne(DateQualifier.created)(flattenedDates)
+  lazy val datesAvailable: Option[Date] = atMostOne(DateQualifier.available)(flattenedDates)
   lazy val otherDates: Seq[Date] = flattenedDates.filterNot(date =>
     specialDateQualifiers.contains(date.qualifier)
   ) :+ dateSubmitted()
 
+  // rights holders
   lazy val (rightsHoldingCreators, creatorsWithoutRights) = creators.getOrElse(Seq.empty).partition(_.isRightsHolder)
   lazy val (rightsHoldingContributors, contributorsWithoutRights) = contributors.getOrElse(Seq.empty).partition(_.isRightsHolder)
   lazy val rightsHolders: Seq[Author] = rightsHoldingContributors ++ rightsHoldingCreators
 
+  // identifiers
   lazy val allIdentifiers: Seq[SchemedValue] = identifiers.getOrElse(Seq()) ++ alternativeIdentifiers.getOrElse(Seq())
   lazy val allTypes: Seq[PossiblySchemedValue] = types.getOrElse(Seq()) ++ typesDcmi.getOrElse(Seq()).map(
     PossiblySchemedValue(Some("dcterms:DCMIType"), _)
   )
 
+  // doi
   lazy val doi: Option[String] = identifiers.flatMap(_.collectFirst {
     case SchemedValue(`doiScheme`, value) => value
   })

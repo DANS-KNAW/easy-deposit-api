@@ -35,12 +35,12 @@ import scala.xml._
 
 object DDM extends DebugEnhancedLogging {
   val schemaNameSpace: String = "http://easy.dans.knaw.nl/schemas/md/ddm/"
-  val schemaLocation: String = "https://easy.dans.knaw.nl/schemas/md/2017/09/ddm.xsd"
+  val schemaLocation: String = "https://easy.dans.knaw.nl/schemas/md/2017/09/ddm.xsd" // TODO property?
 
   def apply(dm: DatasetMetadata): Try[Elem] = Try {
-    dm.doi.getOrElse(throwInvalidDocumentException(s"Please first GET a DOI for this deposit"))
+    dm.doi.getOrElse(throw InvalidDocumentException(s"Please first GET a DOI for this deposit"))
 
-    val lang: String = dm.languageOfDescription.map(_.key).orNull
+    val lang: String = dm.languageOfDescription.map(_.key).orNull // null omits attribute rendering
     <ddm:DDM
       xmlns:dc="http://purl.org/dc/elements/1.1/"
       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
@@ -48,7 +48,7 @@ object DDM extends DebugEnhancedLogging {
       xmlns:dcx-dai="http://easy.dans.knaw.nl/schemas/dcx/dai/"
       xmlns:dcx-gml="http://easy.dans.knaw.nl/schemas/dcx/gml/"
       xmlns:gml="http://www.opengis.net/gml"
-      xmlns:ddm="http://easy.dans.knaw.nl/schemas/md/ddm/"
+      xmlns:ddm={schemaNameSpace}
       xmlns:id-type="http://easy.dans.knaw.nl/schemas/vocab/identifier-type/"
       xsi:schemaLocation={s"$schemaNameSpace $schemaLocation"}
     >
@@ -56,8 +56,8 @@ object DDM extends DebugEnhancedLogging {
         { dm.titles.getNonEmpty.map(src => <dc:title xml:lang={ lang }>{ src }</dc:title>) }
         { dm.descriptions.getNonEmpty.map(src => <dcterms:description xml:lang={ lang }>{ src }</dcterms:description>) }
         { dm.creatorsWithoutRights.map(author => <dcx-dai:creatorDetails>{ details(author, lang) }</dcx-dai:creatorDetails>) }
-        { dm.datesCreated.map(src => <ddm:created>{ src.value }</ddm:created>) }
-        { dm.datesAvailable.map(src => <ddm:available>{ src.value }</ddm:available>) }
+        { dm.datesCreated.toSeq.map(src => <ddm:created>{ src.value }</ddm:created>) }
+        { dm.datesAvailable.toSeq.map(src => <ddm:available>{ src.value }</ddm:available>) }
         { dm.audiences.getNonEmpty.map(src => <ddm:audience>{ src.key }</ddm:audience>) }
         { dm.accessRights.toSeq.map(src => <ddm:accessRights>{ src.category.toString }</ddm:accessRights>) }
       </ddm:profile>
@@ -94,19 +94,19 @@ object DDM extends DebugEnhancedLogging {
     </boundedBy>
   }
 
-  private def details(relation: RelationType, lang: String) = {
+  private def details(relation: RelationType, lang: String): Elem = {
     relation match {
       case Relation(_, Some(url: String), Some(title: String)) => <tag xml:lang={ lang } href={ url }>{ title }</tag>
       case Relation(_, Some(url: String), None) => <tag href={ url }>{ url }</tag>
       case Relation(_, None, Some(title: String)) => <tag xml:lang={ lang }>{ title }</tag>
       case relatedID: RelatedIdentifier => <tag  xsi:type={ relatedID.schemeAsString }>{ relatedID.value }</tag>
     }
-  }.withTag(relation match {
+  }.withTag(relation match { // replace the name space in case of an URL attribute
     case Relation(qualifier, Some(_), _) => qualifier.toString.replace("dcterms", "ddm")
     case _ => relation.qualifier.toString
   })
 
-  private def details(author: Author, lang: String) = {
+  private def details(author: Author, lang: String): Seq[Node] = {
     if (author.surname.isEmpty)
       author.organization.toSeq.map(orgDetails(_, lang, author.role))
     else // TODO ids
@@ -116,11 +116,11 @@ object DDM extends DebugEnhancedLogging {
         { author.insertions.getNonEmpty.map(str => <dcx-dai:insertions>{ str }</dcx-dai:insertions>) }
         { author.surname.getNonEmpty.map(str => <dcx-dai:surname>{ str }</dcx-dai:surname>) }
         { author.role.toSeq.map(role => <dcx-dai:role>{ role.key }</dcx-dai:role>) }
-        { author.organization.getNonEmpty.map(orgDetails(_, lang)) }
+        { author.organization.getNonEmpty.map(orgDetails(_, lang, role = None)) }
       </dcx-dai:author>
   }
 
-  private def orgDetails(organization: String, lang: String, role: Option[SchemedKeyValue] = None) =
+  private def orgDetails(organization: String, lang: String, role: Option[SchemedKeyValue]): Elem =
       <dcx-dai:organization>
         { role.toSeq.map(role => <dcx-dai:role>{ role.key }</dcx-dai:role>) }
         { <dcx-dai:name xml:lang={ lang }>{ organization }</dcx-dai:name> }
@@ -128,6 +128,7 @@ object DDM extends DebugEnhancedLogging {
 
   /** @param elem XML element to be adjusted */
   implicit class RichElem(val elem: Elem) extends AnyVal {
+    // not private for testing purposes
 
     /** @param str the desired tag (namespace:label) or (label) */
     @throws[InvalidDocumentException]("when str is not a valid XML label (has more than one ':')")
@@ -135,18 +136,11 @@ object DDM extends DebugEnhancedLogging {
       str.split(":") match {
         case Array(label) => elem.copy(label = label)
         case Array(prefix, label) => elem.copy(prefix = prefix, label = label)
-        case a => throwInvalidDocumentException(
+        case a => throw InvalidDocumentException(
           s"expecting (label) or (prefix:label); got [${ a.mkString(":") }] to adjust the <key> of ${ Utility.trim(elem) }"
         )
       }
     }
-
-    def addAttr(lang: Option[Attribute]): Elem = lang.map(elem % _).getOrElse(elem)
-  }
-
-  /** @param elems the sequence of XML elements to adjust */
-  private implicit class RichElems(val elems: Seq[Elem]) extends AnyVal {
-    def withLabel(str: String): Seq[Elem] = elems.map(_.copy(label = str))
   }
 
   private implicit class OptionSeq[T](val sources: Option[Seq[T]]) extends AnyVal {
@@ -187,7 +181,6 @@ object DDM extends DebugEnhancedLogging {
         logger.error(e.getMessage, e)
         Failure(SchemaNotAvailableException(e))
       case e: SAXParseException => Failure(invalidDatasetMetadataException(e))
-      case e => Failure(e)
     }
 
   private def managedInputStream(ddm: Elem): ManagedResource[BufferedInputStream] = {
@@ -199,14 +192,10 @@ object DDM extends DebugEnhancedLogging {
       ))
   }
 
-  private def throwInvalidDocumentException(msg: String) = {
-    throw invalidDatasetMetadataException(new Exception(msg))
-  }
-
   private def invalidDatasetMetadataException(exception: Exception) = {
     InvalidDocumentException("DatasetMetadata", exception)
   }
 
-  case class SchemaNotAvailableException(t: Throwable = null)
+  case class SchemaNotAvailableException(t: Throwable)
     extends Exception(s"Schema's for validation not available, please try again later.", t)
 }

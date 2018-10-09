@@ -37,7 +37,6 @@ case class Author(titles: Option[String] = None,
 
   def isRightsHolder: Boolean = role.exists(_.key == "RightsHolder")
 
-
   override def toString: String = { // TODO ID's for rightsHolders
     val name = Seq(titles, initials, insertions, surname)
       .filter(_.isProvided)
