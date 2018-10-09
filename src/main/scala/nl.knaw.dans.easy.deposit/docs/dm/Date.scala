@@ -53,4 +53,12 @@ object Date {
     DateTime.now().toString(ISODateTimeFormat.date()),
     DateQualifier.dateSubmitted
   )
+
+  def atMostOne(dates: Seq[Date]): Unit = {
+    require(dates.size <= 1, s"At most one allowed; got $dates")
+  }
+
+  def notAllowed(qualifier: DateQualifier, dates: Seq[Date]): Unit = {
+    require(!dates.exists(_.qualifier == qualifier), s"No $qualifier allowed; got $dates")
+  }
 }

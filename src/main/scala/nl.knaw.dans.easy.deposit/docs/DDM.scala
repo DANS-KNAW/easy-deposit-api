@@ -35,10 +35,10 @@ import scala.xml._
 
 object DDM extends DebugEnhancedLogging {
   val schemaNameSpace: String = "http://easy.dans.knaw.nl/schemas/md/ddm/"
-  val schemaLocation: String = "https://easy.dans.knaw.nl/schemas/md/2017/09/ddm.xsd" // TODO property?
+  val schemaLocation: String = "https://easy.dans.knaw.nl/schemas/md/2018/05/ddm.xsd" // TODO property?
 
   def apply(dm: DatasetMetadata): Try[Elem] = Try {
-    dm.doi.getOrElse(throw InvalidDocumentException(s"Please first GET a DOI for this deposit"))
+    dm.doi.getOrElse(throw invalidDatasetMetadataException(new Exception(s"Please first GET a DOI for this deposit")))
 
     val lang: String = dm.languageOfDescription.map(_.key).orNull // null omits attribute rendering
     <ddm:DDM
@@ -56,8 +56,8 @@ object DDM extends DebugEnhancedLogging {
         { dm.titles.getNonEmpty.map(src => <dc:title xml:lang={ lang }>{ src }</dc:title>) }
         { dm.descriptions.getNonEmpty.map(src => <dcterms:description xml:lang={ lang }>{ src }</dcterms:description>) }
         { dm.creatorsWithoutRights.map(author => <dcx-dai:creatorDetails>{ details(author, lang) }</dcx-dai:creatorDetails>) }
-        { dm.datesCreated.toSeq.map(src => <ddm:created>{ src.value }</ddm:created>) }
-        { dm.datesAvailable.toSeq.map(src => <ddm:available>{ src.value }</ddm:available>) }
+        { dm.datesCreated.map(src => <ddm:created>{ src.value }</ddm:created>) }
+        { dm.datesAvailable.map(src => <ddm:available>{ src.value }</ddm:available>) }
         { dm.audiences.getNonEmpty.map(src => <ddm:audience>{ src.key }</ddm:audience>) }
         { dm.accessRights.toSeq.map(src => <ddm:accessRights>{ src.category.toString }</ddm:accessRights>) }
       </ddm:profile>
@@ -136,9 +136,9 @@ object DDM extends DebugEnhancedLogging {
       str.split(":") match {
         case Array(label) => elem.copy(label = label)
         case Array(prefix, label) => elem.copy(prefix = prefix, label = label)
-        case a => throw InvalidDocumentException(
+        case a => throw invalidDatasetMetadataException(new Exception(
           s"expecting (label) or (prefix:label); got [${ a.mkString(":") }] to adjust the <key> of ${ Utility.trim(elem) }"
-        )
+        ))
       }
     }
   }

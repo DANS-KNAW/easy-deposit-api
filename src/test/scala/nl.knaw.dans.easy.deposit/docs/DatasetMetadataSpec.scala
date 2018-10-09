@@ -122,7 +122,7 @@ class DatasetMetadataSpec extends TestSupportFixture {
         | ]
         |}""".stripMargin
     DatasetMetadata(s) should matchPattern {
-      case Failure(e) if e.getMessage == "invalid DatasetMetadata: requirement failed: At most one dcterms:created allowed" =>
+      case Failure(e) if e.getMessage == "invalid DatasetMetadata: requirement failed: At most one allowed; got List(Date(None,2018,dcterms:created), Date(None,2017,dcterms:created))" =>
     }
   }
 
@@ -219,7 +219,7 @@ class DatasetMetadataSpec extends TestSupportFixture {
         |}
         |""".stripMargin
 
-    shouldReturnCustomMessage(s, """requirement failed: No dcterms:dateSubmitted allowed""")
+    shouldReturnCustomMessage(s, """requirement failed: No dcterms:dateSubmitted allowed; got List(Date(Some(dcterms:W3CDTF),2018-12,dcterms:dateSubmitted))""")
   }
 
   /** Performs a test that (among others) might break after an upgrade of the json4s library

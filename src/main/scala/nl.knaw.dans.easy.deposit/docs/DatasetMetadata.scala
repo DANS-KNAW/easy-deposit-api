@@ -17,8 +17,7 @@ package nl.knaw.dans.easy.deposit.docs
 
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata._
 import nl.knaw.dans.easy.deposit.docs.JsonUtil.{ InvalidDocumentException, RichJsonInput }
-import nl.knaw.dans.easy.deposit.docs.dm.Date.dateSubmitted
-import nl.knaw.dans.easy.deposit.docs.dm.DateQualifier.DateQualifier
+import nl.knaw.dans.easy.deposit.docs.dm.Date.{ atMostOne, dateSubmitted, notAllowed }
 import nl.knaw.dans.easy.deposit.docs.dm.PrivacySensitiveDataPresent.PrivacySensitiveDataPresent
 import nl.knaw.dans.easy.deposit.docs.dm._
 import org.json4s.JsonInput
@@ -26,36 +25,36 @@ import org.json4s.JsonInput
 import scala.util.{ Failure, Success, Try }
 
 /**
- * Params are (de)serialized by [[JsonUtil]].
- * Lazy public values remix the params for XML serialization with [[DDM]].
+ * All params are (de)serialized by [[JsonUtil]].
+ * Private params are remixed or converted for XML serialization with [[DDM]].
  */
-case class DatasetMetadata(identifiers: Option[Seq[SchemedValue]] = None,
+case class DatasetMetadata(private val identifiers: Option[Seq[SchemedValue]] = None,
                            languageOfDescription: Option[SchemedKeyValue] = None,
                            titles: Option[Seq[String]] = None,
                            alternativeTitles: Option[Seq[String]] = None,
                            descriptions: Option[Seq[String]] = None,
-                           creators: Option[Seq[Author]] = None,
-                           contributors: Option[Seq[Author]] = None,
+                           private val creators: Option[Seq[Author]] = None,
+                           private val contributors: Option[Seq[Author]] = None,
                            audiences: Option[Seq[SchemedKeyValue]] = None,
                            subjects: Option[Seq[PossiblySchemedKeyValue]] = None, //TODO xml
-                           alternativeIdentifiers: Option[Seq[SchemedValue]] = None,
+                           private val alternativeIdentifiers: Option[Seq[SchemedValue]] = None,
                            relations: Option[Seq[RelationType]] = None,
                            languagesOfFiles: Option[Seq[PossiblySchemedKeyValue]] = None,
-                           dates: Option[Seq[Date]] = None,
+                           private val dates: Option[Seq[Date]] = None,
                            sources: Option[Seq[String]] = None,
                            instructionsForReuse: Option[Seq[String]] = None,
                            publishers: Option[Seq[String]] = None,
                            accessRights: Option[AccessRights] = None,
                            license: Option[String] = None,
-                           typesDcmi: Option[Seq[String]] = None,
-                           types: Option[Seq[PossiblySchemedValue]] = None,
+                           private val typesDcmi: Option[Seq[String]] = None,
+                           private val types: Option[Seq[PossiblySchemedValue]] = None,
                            formats: Option[Seq[PossiblySchemedValue]] = None,
                            temporalCoverages: Option[Seq[PossiblySchemedKeyValue]] = None, //TODO xml
                            spatialPoints: Option[Seq[SpatialPoint]] = None,
                            spatialBoxes: Option[Seq[SpatialBox]] = None,
                            spatialCoverages: Option[Seq[PossiblySchemedKeyValue]] = None, //TODO xml
                            messageForDataManager: Option[String] = None,
-                           privacySensitiveDataPresent: PrivacySensitiveDataPresent = PrivacySensitiveDataPresent.unspecified,
+                           private val privacySensitiveDataPresent: PrivacySensitiveDataPresent = PrivacySensitiveDataPresent.unspecified,
                            acceptLicenseAgreement: Boolean = false,
                           ) {
   lazy val hasPrivacySensitiveData: Try[Boolean] = privacySensitiveDataPresent match {
@@ -67,42 +66,30 @@ case class DatasetMetadata(identifiers: Option[Seq[SchemedValue]] = None,
   lazy val licenceAccepted: Try[Unit] = if (acceptLicenseAgreement) Success(())
                                         else Failure(missingValue("AcceptLicenseAgreement"))
 
-  // dates
-  private def atMostOne(qualifier: DateQualifier)(dates: Seq[Date]): Option[Date] = {
-    dates.filter(_.qualifier == qualifier) match {
-      case Seq() => None
-      case Seq(date) => Some(date)
-      case xs => throw new IllegalArgumentException(s"At most one $qualifier allowed; got $xs")
-    }
-  }
-
-  private def notAllowed(qualifier: DateQualifier)(dates: Seq[Date]): Unit = {
-    if (dates.count(_.qualifier == qualifier) < 1)
-      throw new IllegalArgumentException(s"No $qualifier allowed")
-  }
-
+  //// dates
   private val specialDateQualifiers = Seq(DateQualifier.created, DateQualifier.available)
-  private val flattenedDates: Seq[Date] = dates.toSeq.flatten
+  private val (specialDates, plainDates) = dates.toSeq.flatten
+    .partition(date => specialDateQualifiers.contains(date.qualifier))
+  val (datesCreated, datesAvailable) = specialDates
+    .partition(_.qualifier == DateQualifier.created)
+  val otherDates: Seq[Date] = plainDates :+ dateSubmitted()
+  // N.B: with lazy values JsonUtil.deserialize would not throw exceptions
+  notAllowed(DateQualifier.dateSubmitted, plainDates)
+  atMostOne(datesCreated)
+  atMostOne(datesAvailable)
 
-  notAllowed(DateQualifier.dateSubmitted)(flattenedDates)
-  lazy val datesCreated: Option[Date] = atMostOne(DateQualifier.created)(flattenedDates)
-  lazy val datesAvailable: Option[Date] = atMostOne(DateQualifier.available)(flattenedDates)
-  lazy val otherDates: Seq[Date] = flattenedDates.filterNot(date =>
-    specialDateQualifiers.contains(date.qualifier)
-  ) :+ dateSubmitted()
-
-  // rights holders
+  //// authors
   lazy val (rightsHoldingCreators, creatorsWithoutRights) = creators.getOrElse(Seq.empty).partition(_.isRightsHolder)
   lazy val (rightsHoldingContributors, contributorsWithoutRights) = contributors.getOrElse(Seq.empty).partition(_.isRightsHolder)
   lazy val rightsHolders: Seq[Author] = rightsHoldingContributors ++ rightsHoldingCreators
 
-  // identifiers
   lazy val allIdentifiers: Seq[SchemedValue] = identifiers.getOrElse(Seq()) ++ alternativeIdentifiers.getOrElse(Seq())
+
   lazy val allTypes: Seq[PossiblySchemedValue] = types.getOrElse(Seq()) ++ typesDcmi.getOrElse(Seq()).map(
     PossiblySchemedValue(Some("dcterms:DCMIType"), _)
   )
 
-  // doi
+  //// doi
   lazy val doi: Option[String] = identifiers.flatMap(_.collectFirst {
     case SchemedValue(`doiScheme`, value) => value
   })

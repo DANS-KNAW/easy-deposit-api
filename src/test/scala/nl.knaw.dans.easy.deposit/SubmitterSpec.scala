@@ -32,8 +32,8 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
   private val customMessage = "Lorum ipsum"
   private val datasetMetadata = DatasetMetadata(getManualTestResource("datasetmetadata-from-ui-all.json"))
     .getOrRecover(e => fail("could not get test input", e))
-  private val doi = Try { datasetMetadata.identifiers.get.headOption.get.value }
-    .getOrRecover(e => fail("could not get DOI from test input", e))
+  private val doi = datasetMetadata.doi
+    .getOrElse(fail("could not get DOI from test input"))
 
   "submit" should "write all files" in {
 

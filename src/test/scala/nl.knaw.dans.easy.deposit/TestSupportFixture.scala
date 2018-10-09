@@ -40,21 +40,6 @@ trait TestSupportFixture extends FlatSpec with Matchers with Inside with BeforeA
   lazy val testDir: File = currentWorkingDirectory / "target" / "test" / getClass.getSimpleName
   lazy val uuid: UUID = UUID.randomUUID()
 
-
-  val minimalJsonString: String =
-    """{
-      |  "identifiers": [{"scheme":"id-type:DOI", "value":"mocked-DOI"}],
-      |  "titles": ["Lorum ipsum"],
-      |  "descriptions": ["dolor"],
-      |  "dates": [
-      |    { "scheme": "dcterms:W3CDTF", "value": "2018", "qualifier": "dcterms:created" },
-      |    { "scheme": "dcterms:W3CDTF", "value": "2018", "qualifier": "dcterms:available" },
-      |  ],
-      |  "creators": [ { "initials": "B.A.R.", "surname": "Foo" } ],
-      |  "accessRights": { "category": "OPEN_ACCESS" },
-      |  "audiences": [ { "scheme": "blabla", "key": "D35200", "value": "some audience"} ]
-      |}""".stripMargin
-
   def testResource(file: String): File = File(getClass.getResource(file))
 
   def getManualTestResource(file: String): String = {

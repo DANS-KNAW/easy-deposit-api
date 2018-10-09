@@ -31,16 +31,13 @@ import scala.xml._
 
 class DDMSpec extends TestSupportFixture with DdmBehavior {
 
-  private val minimal = DatasetMetadata(minimalJsonString)
-    .getOrRecover(fail(_))
-
   /** provides the verbose namespaces for inline DDM */
-  lazy override val emptyDDM: Elem = DDM(minimal)
+  lazy override val emptyDDM: Elem = DDM(new MinimalDatasetMetadata)
     .getOrRecover(fail(_))
     .copy(child = Seq())
 
   "minimal" should behave like validDatasetMetadata(
-    input = Success(minimal),
+    input = Try(new MinimalDatasetMetadata),
     expectedDdmContent =
       <ddm:profile>
         <dc:title>Lorum ipsum</dc:title>
@@ -63,7 +60,7 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
   )
 
   "minimal with multiple titles" should behave like validDatasetMetadata(
-    input = Success(minimal.copy(titles = Some(Seq("Lorum", "ipsum")))),
+    input = Try(new MinimalDatasetMetadata(titles = Some(Seq("Lorum", "ipsum")))),
     subset = actualDDM => profileElements(actualDDM, "title"),
     expectedDdmContent =
       <ddm:profile>
@@ -73,7 +70,7 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
   )
 
   "minimal with multiple descriptions" should behave like validDatasetMetadata(
-    input = Success(minimal.copy(descriptions = Some(Seq("Lorum", "ipsum")))),
+    input = Try(new MinimalDatasetMetadata(descriptions = Some(Seq("Lorum", "ipsum")))),
     subset = actualDDM => profileElements(actualDDM, "description"),
     expectedDdmContent =
       <ddm:profile>
@@ -83,7 +80,7 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
   )
 
   "minimal with multiple audiences" should behave like validDatasetMetadata(
-    input = Success(minimal.copy(audiences = Some(Seq(
+    input = Try(new MinimalDatasetMetadata().copy(audiences = Some(Seq(
       SchemedKeyValue("blabla", "D11200", "Lorum"),
       SchemedKeyValue("blabla", "D32400", "ipsum")
     )))),
@@ -96,7 +93,7 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
   )
 
   "minimal with multiple alternativeTitles" should behave like validDatasetMetadata(
-    input = Success(minimal.copy(alternativeTitles = Some(Seq("Lorum", "ipsum")))),
+    input = Try(new MinimalDatasetMetadata(alternativeTitles = Some(Seq("Lorum", "ipsum")))),
     subset = actualDDM => dcmiMetadata(actualDDM),
     expectedDdmContent =
       <ddm:dcmiMetadata>
@@ -127,7 +124,7 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
       )
     ))
     validDatasetMetadata(
-      input = Success(minimal.copy(creators = someCreators, contributors = someContributors)),
+      input = Try(new MinimalDatasetMetadata(creators = someCreators, contributors = someContributors)),
       subset = actualDDM => dcmiMetadata(actualDDM),
       expectedDdmContent =
         //N.B: creators in ddm:profile unless they are rightsHolders
@@ -146,7 +143,7 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
       .withFilter(_ != DateQualifier.dateSubmitted)
       .map { qualifier => Date(Some(W3CDTF.toString), date, qualifier) }
     validDatasetMetadata(
-      input = Success(minimal.copy(dates = Some(dates))),
+      input = Try(new MinimalDatasetMetadata(dates = Some(dates))),
       subset = actualDDM => dcmiMetadata(actualDDM),
       expectedDdmContent =
         // the dateSubmitted specified above is replaced by "now" as set by the fixture
@@ -166,22 +163,19 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
 
   "minimal with various types of dates" should behave like {
     // with and without qualifier, varying precision
-    val json =
-      """{  "dates": [
-        |    { "value": "2018", "qualifier": "dcterms:created" },
-        |    { "value": "2018", "qualifier": "dcterms:available" },
-        |    { "value": "Groundhog day", "qualifier": "dcterms:dateAccepted" }
-        |    { "value": "Groundhog day", "qualifier": "dcterms:dateCopyrighted" }
-        |    { "value": "Groundhog day", "qualifier": "dcterms:issued" }
-        |    { "value": "Groundhog day", "qualifier": "dcterms:modified" }
-        |    { "qualifier": "dcterms:valid", "value": "Groundhog day" }
-        |    { "qualifier": "dcterms:valid", "value": "2018"   , "scheme": "dcterms:W3CDTF" }
-        |    { "qualifier": "dcterms:valid", "value": "2018-12", "scheme": "dcterms:W3CDTF" }
-        |  ]
-        |}
-        |""".stripMargin
+    val dates = Some(Seq(
+      Date(scheme = None, value = "2018", DateQualifier.created),
+      Date(scheme = None, value = "2018", DateQualifier.available),
+      Date(scheme = None, value = "Groundhog day", DateQualifier.dateAccepted),
+      Date(scheme = None, value = "Groundhog day", DateQualifier.dateCopyrighted),
+      Date(scheme = None, value = "Groundhog day", DateQualifier.issued),
+      Date(scheme = None, value = "Groundhog day", DateQualifier.modified),
+      Date(scheme = None, value = "Groundhog day", DateQualifier.valid),
+      Date(scheme = Some(W3CDTF.toString), value = "2018", DateQualifier.valid),
+      Date(scheme = Some(W3CDTF.toString), value = "2018-12", DateQualifier.valid),
+    ))
     validDatasetMetadata(
-      input = DatasetMetadata(json).map(dm => minimal.copy(dates = dm.dates)),
+      input = Try(new MinimalDatasetMetadata(dates = dates)),
       subset = actualDDM => dcmiMetadata(actualDDM),
       expectedDdmContent =
         <ddm:dcmiMetadata>
@@ -199,8 +193,8 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
   }
 
   "minimal with points and boxes of issue 1538" should behave like {
-    val json =
-      """  "spatialPoints": [
+    val input =
+      """{  "spatialPoints": [
         |    { "scheme": "RD", "x": 79500, "y": 446750 },
         |    { "scheme": "degrees", "x": 52.0811, "y": 4.34521 }
         |  ],
@@ -211,9 +205,12 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
         |    "south": 436172.5,
         |    "west": 91232.016
         |  }],
-        |""".stripMargin
+        |}""".stripMargin
     validDatasetMetadata(
-      input = minimalWith(json),
+      input = DatasetMetadata(input).map(input => new MinimalDatasetMetadata(
+        spatialPoints = input.spatialPoints,
+        spatialBoxes = input.spatialBoxes,
+      )),
       subset = actualDDM => dcmiMetadata(actualDDM),
       expectedDdmContent =
         <ddm:dcmiMetadata>
@@ -241,19 +238,15 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
     )
   }
 
-  private def minimalWith(json: String) = {
-    DatasetMetadata(minimalJsonString.replaceAll("^\\{", s"{$json"))
-  }
-
   "minimal with points from split-multi-deposit" should behave like {
-    val json =
-      """  "spatialPoints":[
+    val input =
+      """{  "spatialPoints":[
         |  { "x": 1, "y": 2, "scheme":"RD" },
         |  { "x": 3, "y": 4, "scheme":"http://some.example.com" },
         |  { "x": 5, "y": 6, "scheme":"degrees" },
-        |]""".stripMargin
+        |]}""".stripMargin
     validDatasetMetadata(
-      input = minimalWith(json),
+      input = DatasetMetadata(input).map(input => new MinimalDatasetMetadata(spatialPoints = input.spatialPoints)),
       subset = actualDDM => dcmiMetadata(actualDDM),
       expectedDdmContent =
         <ddm:dcmiMetadata>
@@ -279,14 +272,14 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
   }
 
   "minimal with boxes from split-multi-deposit" should behave like {
-    val json =
-      """  "spatialBoxes":[
+    val input =
+      """{  "spatialBoxes":[
         |  {"north": 1, "south": 2,  "east": 3,  "west": 4, "scheme":"RD"},
         |  {"north": 5, "south": 6,  "east": 7,  "west": 8, "scheme":"xyz"},
         |  {"north": 9, "south": 10, "east": 11, "west": 12, "scheme":"degrees"}
-        |]""".stripMargin
+        |]}""".stripMargin
     validDatasetMetadata(
-      input = minimalWith(json),
+      input = DatasetMetadata(input).map(input => new MinimalDatasetMetadata(spatialBoxes = input.spatialBoxes)),
       subset = actualDDM => dcmiMetadata(actualDDM),
       expectedDdmContent =
         <ddm:dcmiMetadata>
@@ -331,19 +324,19 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
   }
 
   "apply" should "report a missing title" in {
-    DDM(minimal.copy(titles = None)) should matchPattern {
+    DDM(new MinimalDatasetMetadata(titles = None)) should matchPattern {
       case Failure(InvalidDocumentException(_, e)) if e.getMessage.contains("""One of '{"http://purl.org/dc/elements/1.1/":title}' is expected.""") =>
     }
   }
 
   it should "report an empty list of titles" in {
-    DDM(minimal.copy(titles = Some(Seq.empty))) should matchPattern {
+    DDM(new MinimalDatasetMetadata(titles = Some(Seq.empty))) should matchPattern {
       case Failure(InvalidDocumentException(_, e)) if e.getMessage.contains("""One of '{"http://purl.org/dc/elements/1.1/":title}' is expected.""") =>
     }
   }
 
   it should "report an empty string as title" in {
-    DDM(minimal.copy(titles = Some(Seq("   \t")))) should matchPattern {
+    DDM(new MinimalDatasetMetadata(titles = Some(Seq("   \t")))) should matchPattern {
       case Failure(InvalidDocumentException(_, e)) if e.getMessage.contains("""One of '{"http://purl.org/dc/elements/1.1/":title}' is expected.""") =>
     }
   }
