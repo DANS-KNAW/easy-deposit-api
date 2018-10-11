@@ -20,11 +20,13 @@ import javax.xml.transform.Source
 import javax.xml.transform.stream.StreamSource
 import javax.xml.validation.{ Schema, SchemaFactory }
 import nl.knaw.dans.easy.deposit.TestSupportFixture
+import nl.knaw.dans.easy.deposit.docs.DDM.RichElem
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.{ SchemedKeyValue, SchemedValue }
 import nl.knaw.dans.easy.deposit.docs.JsonUtil.InvalidDocumentException
 import nl.knaw.dans.easy.deposit.docs.dm.DateScheme.W3CDTF
 import nl.knaw.dans.easy.deposit.docs.dm._
 import nl.knaw.dans.lib.error._
+import org.scalatest.Assertion
 
 import scala.util.{ Failure, Success, Try }
 import scala.xml._
@@ -314,7 +316,7 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
   }
 
   "RichElem.withLabel" should "report an error" in {
-    import DDM.RichElem
+    assumeSchemaAvailable
     Try {
       <key>Lorum Ipsum</key>.withTag("a:b:c")
     } should matchPattern {
@@ -323,22 +325,32 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
     }
   }
 
-  "apply" should "report a missing title" in {
-    DDM(new MinimalDatasetMetadata(titles = None)) should matchPattern {
-      case Failure(InvalidDocumentException(_, e)) if e.getMessage.contains("""One of '{"http://purl.org/dc/elements/1.1/":title}' is expected.""") =>
+  implicit class RichDatasetMetadata(input: MinimalDatasetMetadata) {
+    def causesInvalidDocumentException(expectedMessage: String): Assertion = {
+      assumeSchemaAvailable
+      DDM(input) should matchPattern {
+        case Failure(InvalidDocumentException("DatasetMetadata", t)) if t.getMessage == expectedMessage =>
+      }
     }
+
+  }
+
+  val missingTitle = """cvc-complex-type.2.4.a: Invalid content was found starting with element 'dcterms:description'. One of '{"http://purl.org/dc/elements/1.1/":title}' is expected."""
+
+  "apply" should "report a missing title" in {
+    new MinimalDatasetMetadata(titles = None).causesInvalidDocumentException(missingTitle)
   }
 
   it should "report an empty list of titles" in {
-    DDM(new MinimalDatasetMetadata(titles = Some(Seq.empty))) should matchPattern {
-      case Failure(InvalidDocumentException(_, e)) if e.getMessage.contains("""One of '{"http://purl.org/dc/elements/1.1/":title}' is expected.""") =>
-    }
+    new MinimalDatasetMetadata(titles = Some(Seq.empty)).causesInvalidDocumentException(missingTitle)
   }
 
   it should "report an empty string as title" in {
-    DDM(new MinimalDatasetMetadata(titles = Some(Seq("   \t")))) should matchPattern {
-      case Failure(InvalidDocumentException(_, e)) if e.getMessage.contains("""One of '{"http://purl.org/dc/elements/1.1/":title}' is expected.""") =>
-    }
+    new MinimalDatasetMetadata(titles = Some(Seq("   \t"))).causesInvalidDocumentException(missingTitle)
+  }
+
+  it should "report a missing DOI" in {
+    new MinimalDatasetMetadata(identifiers = None).causesInvalidDocumentException("Please first GET a DOI for this deposit")
   }
 
   "issue-1538.json" should behave like validDatasetMetadata(

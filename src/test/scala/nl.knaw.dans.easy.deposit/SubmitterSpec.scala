@@ -15,13 +15,12 @@
  */
 package nl.knaw.dans.easy.deposit
 
-import nl.knaw.dans.easy.deposit.docs.JsonUtil.InvalidDocumentException
 import nl.knaw.dans.easy.deposit.docs.StateInfo.State
 import nl.knaw.dans.easy.deposit.docs.{ DatasetMetadata, StateInfo }
 import nl.knaw.dans.lib.error._
 import org.scalamock.scalatest.MockFactory
 
-import scala.util.{ Failure, Success, Try }
+import scala.util.{ Failure, Success }
 
 class SubmitterSpec extends TestSupportFixture with MockFactory {
   override def beforeEach(): Unit = {
@@ -125,12 +124,13 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
     assumeSchemaAvailable
     new Submitter(testDir / "staged", testDir / "submitted").submit(depositDir) should matchPattern {
       case Failure(e)
-        if e.getMessage == s"staged and draft bag [${ bag.baseDir.parent }] have different payload manifest elements: (Set((data/file.txt,$checksum)),Set((data/file.txt,${checksum}xxx)))" =>
+        if e.getMessage == s"staged and draft bag [${ bag.baseDir.parent }] have different payload manifest elements: (Set((data/file.txt,$checksum)),Set((data/file.txt,${ checksum }xxx)))" =>
     }
   }
 
   it should "reject an inconsistent DOI" in {
-    // invalid state transition is tested with IntegrationSpec
+    // an invalid state transition and an InvalidDocumentException are tested with IntegrationSpec
+    // other InvalidDocumentException errors are tested with DDMSpec and DepositDirSpec
 
     val depositDir = createDeposit(datasetMetadata)
     (testDir / "submitted").createDirectories()
@@ -139,28 +139,8 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
     assumeSchemaAvailable
     new Submitter(testDir / "staged", testDir / "submitted").submit(depositDir) should matchPattern {
       case Failure(e: CorruptDepositException) if e.getMessage.endsWith(
-        s"DOI in datasetmetadata.json [${datasetMetadata.doi}] does not equal DOI in deposit.properties [None]"
+        s"DOI in datasetmetadata.json [${ datasetMetadata.doi }] does not equal DOI in deposit.properties [None]"
       ) =>
-    }
-  }
-
-  it should "reject a missing DOI" in {
-    val depositDir = createDeposit(datasetMetadata.copy(identifiers = None))
-
-    new Submitter(testDir / "staged", testDir / "submitted").submit(depositDir) should matchPattern {
-      case Failure(e: InvalidDocumentException) if e.document == "DatasetMetadata" &&
-        e.getMessage.endsWith( "Please first GET a DOI for this deposit") =>
-    }
-  }
-
-  it should "reject an incomplete json" in {
-    // other validation errors are tested with DatasetXmlSpec and DepositDirSpec
-
-    val depositDir = createDeposit(DatasetMetadata())
-
-    new Submitter(testDir / "staged", testDir / "submitted").submit(depositDir) should matchPattern {
-      case Failure(e: InvalidDocumentException) if e.document == "DatasetMetadata" &&
-        e.getMessage.contains("Please set AcceptLicenseAgreement") =>
     }
   }
 

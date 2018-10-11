@@ -21,10 +21,20 @@ import nl.knaw.dans.lib.error._
 import org.json4s.JsonAST._
 import org.json4s.native.JsonMethods
 import org.json4s.{ Diff, JsonInput }
+import org.scalatest.Assertion
 
 import scala.util.{ Failure, Success }
 
 class DatasetMetadataSpec extends TestSupportFixture {
+
+  implicit class RichString(str: String) {
+    def causesInvalidDocumentException(expectedMessage: String): Assertion = {
+      DatasetMetadata(str) should matchPattern {
+        case Failure(InvalidDocumentException("DatasetMetadata", t))
+          if t.getMessage == expectedMessage =>
+      }
+    }
+  }
 
   "deserialization/serialisation" should "produce the same json object structure" in {
     roundTripTest("datasetmetadata.json")
@@ -70,12 +80,7 @@ class DatasetMetadataSpec extends TestSupportFixture {
   }
 
   "deserialization" should "report additional json info" in {
-    val example ="""{"titles":["foo bar"],"x":[1]}""".stripMargin
-    inside(DatasetMetadata(example)) {
-      case Failure(InvalidDocumentException(docName, t)) =>
-        docName shouldBe "DatasetMetadata"
-        t.getMessage shouldBe """don't recognize {"x":[1]}"""
-    }
+    """{"titles":["foo bar"],"x":[1]}""".stripMargin.causesInvalidDocumentException( """don't recognize {"x":[1]}""")
   }
 
   it should "extract just the last object" in {
@@ -96,34 +101,28 @@ class DatasetMetadataSpec extends TestSupportFixture {
   }
 
   it should "be happy with empty objects" in {
-    // this is not desired behaviour but is documenting what actually happens
+    // this is not desired behaviour but documents what actually happens
     DatasetMetadata("""{}{}""") shouldBe a[Success[_]]
   }
 
   it should "fail on an empty array" in {
-    inside(DatasetMetadata("""[]""")) { case Failure(InvalidDocumentException(_, t)) =>
-      t.getMessage shouldBe "expected an object, got a class org.json4s.JsonAST$JArray"
-    }
+    "[]".causesInvalidDocumentException("expected an object, got a class org.json4s.JsonAST$JArray")
   }
 
   it should "not accept a literal number" in {
-    inside(DatasetMetadata("""123""")) { case Failure(InvalidDocumentException(_, t)) =>
-      t.getMessage shouldBe
-        """expected field or array
-          |Near: 12""".stripMargin
-    }
+    "123".causesInvalidDocumentException(
+      """expected field or array
+        |Near: 12""".stripMargin
+    )
   }
 
   it should "reject multiple dates created" in {
-    val s: JsonInput =
       """{ "dates": [
         |   { "value": "2018", "qualifier": "dcterms:created" },
         |   { "value": "2017", "qualifier": "dcterms:created" },
         | ]
         |}""".stripMargin
-    DatasetMetadata(s) should matchPattern {
-      case Failure(e) if e.getMessage == "invalid DatasetMetadata: requirement failed: At most one allowed; got List(Date(None,2018,dcterms:created), Date(None,2017,dcterms:created))" =>
-    }
+    .causesInvalidDocumentException("requirement failed: At most one allowed; got List(Date(None,2018,dcterms:created), Date(None,2017,dcterms:created))")
   }
 
   "DatasetMetadata.relations" should "accept complete relations" in {
@@ -160,79 +159,52 @@ class DatasetMetadataSpec extends TestSupportFixture {
   }
 
   it should "accept a RelatedIdentifier without scheme" in {
-    val s: JsonInput = """{ "relations": [ { "value": "string", "qualifier": "dcterms:hasFormat" } ] }"""
-    DatasetMetadata(s) shouldBe a[Success[_]]
+    DatasetMetadata("""{ "relations": [ { "value": "string", "qualifier": "dcterms:hasFormat" } ] }""") shouldBe a[Success[_]]
   }
 
   it should "accept a Relation without title" in {
-    val s: JsonInput = """{ "relations": [ { "qualifier": "dcterms:hasFormat", "url": "string" } ] }"""
-    DatasetMetadata(s) shouldBe a[Success[_]]
+    DatasetMetadata("""{ "relations": [ { "qualifier": "dcterms:hasFormat", "url": "string" } ] }""") shouldBe a[Success[_]]
   }
 
   it should "accept a Relation without url" in {
-    val s: JsonInput = """{ "relations": [ { "qualifier": "dcterms:hasFormat", "title": "string" } ] }"""
-    DatasetMetadata(s) shouldBe a[Success[_]]
+    DatasetMetadata("""{ "relations": [ { "qualifier": "dcterms:hasFormat", "title": "string" } ] }""") shouldBe a[Success[_]]
   }
 
   it should "reject a relation with just a qualifier" in {
-    val s: JsonInput = """{ "relations": [ { "qualifier": "dcterms:hasFormat" } ] }"""
-    shouldReturnCustomMessage(s, """expected one of (Relation | RelatedIdentifier) got: {"qualifier":"dcterms:hasFormat"}""")
+    """{ "relations": [ { "qualifier": "dcterms:hasFormat" } ] }"""
+      .causesInvalidDocumentException( """expected one of (Relation | RelatedIdentifier) got: {"qualifier":"dcterms:hasFormat"}""")
   }
 
   "DatasetMetadata.Author" should "accept an author with initials and surname" in {
-    val s: JsonInput = """{ "creators": [ { "initials": "A", "surname": "Einstein" } ] }"""
-    DatasetMetadata(s) shouldBe a[Success[_]]
+    DatasetMetadata("""{ "creators": [ { "initials": "A", "surname": "Einstein" } ] }""") shouldBe a[Success[_]]
   }
 
   it should "accept an organisation as author" in {
-    val s: JsonInput = """{ "contributors": [ { "organization": "University of Zurich" } ] }"""
-    DatasetMetadata(s) shouldBe a[Success[_]]
+    DatasetMetadata("""{ "contributors": [ { "organization": "University of Zurich" } ] }""") shouldBe a[Success[_]]
   }
 
   it should "reject an author without initials" in {
-    val s: JsonInput = """{ "contributors": [ { "surname": "Einstein" } ] }"""
-    shouldReturnCustomMessage(s, """requirement failed: Author needs one of (organisation | surname and initials); got: {"surname":"Einstein"}""")
+    """{ "contributors": [ { "surname": "Einstein" } ] }"""
+      .causesInvalidDocumentException("""requirement failed: Author needs one of (organisation | surname and initials); got: {"surname":"Einstein"}""")
   }
 
   it should "reject an author without surname" in {
-    val s: JsonInput = """{ "contributors": [ { "initials": "A" } ] }"""
-    shouldReturnCustomMessage(s, """requirement failed: Author needs one of (organisation | surname and initials); got: {"initials":"A"}""")
+    """{ "contributors": [ { "initials": "A" } ] }"""
+      .causesInvalidDocumentException("""requirement failed: Author needs one of (organisation | surname and initials); got: {"initials":"A"}""")
   }
 
   it should "reject an organisation with titles" in {
-    val s: JsonInput = """{ "contributors": [ { "titles": "A", "organization": "University of Zurich" } ] }"""
-    shouldReturnCustomMessage(s, """requirement failed: Author without surname should have neither titles nor insertions; got: {"titles":"A","organization":"University of Zurich"}""")
+    """{ "contributors": [ { "titles": "A", "organization": "University of Zurich" } ] }"""
+      .causesInvalidDocumentException( """requirement failed: Author without surname should have neither titles nor insertions; got: {"titles":"A","organization":"University of Zurich"}""")
   }
 
   it should "reject an organisation with insertions" in {
-    val s: JsonInput = """{ "contributors": [ { "insertions": "van der", "organization": "University of Zurich" } ] }"""
-    shouldReturnCustomMessage(s, """requirement failed: Author without surname should have neither titles nor insertions; got: {"insertions":"van der","organization":"University of Zurich"}""")
+    """{ "contributors": [ { "insertions": "van der", "organization": "University of Zurich" } ] }"""
+      .causesInvalidDocumentException("""requirement failed: Author without surname should have neither titles nor insertions; got: {"insertions":"van der","organization":"University of Zurich"}""")
   }
 
   it should "reject date submitted" in {
-    val s: JsonInput =
-      """{  "dates": [
-        |    { "value": "2018", "qualifier": "dcterms:created" },
-        |    { "value": "2018", "qualifier": "dcterms:available" },
-        |    { "qualifier": "dcterms:dateSubmitted", "value": "2018-12", "scheme": "dcterms:W3CDTF" }
-        |  ]
-        |}
-        |""".stripMargin
-
-    shouldReturnCustomMessage(s, """requirement failed: No dcterms:dateSubmitted allowed; got List(Date(Some(dcterms:W3CDTF),2018-12,dcterms:dateSubmitted))""")
-  }
-
-  /** Performs a test that (among others) might break after an upgrade of the json4s library
-   *
-   * @param s               json string to be deserialized
-   * @param expectedMessage messages of exceptions thrown by a require clause of a de-serialized component
-   *                        or by custom serializers in JsonUtil
-   * @return assertion whether [[JsonUtil.RichJsonInput()]].deserialize.recoverWith
-   *         properly un-wrapped the expected custom exception
-   */
-  private def shouldReturnCustomMessage(s: JsonInput, expectedMessage: String) = {
-    inside(DatasetMetadata(s)) { case Failure(InvalidDocumentException(_, t)) =>
-      t.getMessage shouldBe expectedMessage
-    }
+    """{"dates": [{ "qualifier": "dcterms:dateSubmitted", "value": "2018-12", "scheme": "dcterms:W3CDTF" }]}"""
+      .causesInvalidDocumentException("""requirement failed: No dcterms:dateSubmitted allowed; got List(Date(Some(dcterms:W3CDTF),2018-12,dcterms:dateSubmitted))""")
   }
 }
