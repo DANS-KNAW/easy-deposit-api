@@ -15,10 +15,6 @@
  */
 package nl.knaw.dans.easy.deposit.docs.dm
 
-import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.Requirements
-
-import scala.util.Try
-
 object Spatial {
   /** coordinate order y, x = latitude (DCX_SPATIAL_Y), longitude (DCX_SPATIAL_X) */
   val DEGREES_SRS_NAME = "http://www.opengis.net/def/crs/EPSG/0/4326"
@@ -60,7 +56,7 @@ case class SpatialBox(override val scheme: String,
                       east: String,
                       south: String,
                       west: String,
-                     ) extends Requirements  with SchemedSpatial {
+                     ) extends Requirements with SchemedSpatial {
   requireDouble(north)
   requireDouble(east)
   requireDouble(south)
@@ -87,7 +83,7 @@ case class SpatialBox(override val scheme: String,
    */
   private lazy val xy = (s"$west $south", s"$east $north")
   private lazy val yx = (s"$south $west", s"$north $east")
-  lazy val (lower:String, upper: String) = srsName match {
+  lazy val (lower: String, upper: String) = srsName match {
     case Spatial.RD_SRS_NAME => xy
     case Spatial.DEGREES_SRS_NAME => yx
     case _ => yx

@@ -15,8 +15,7 @@
  */
 package nl.knaw.dans.easy.deposit.docs.dm
 
-import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.{ Requirements, _ }
-import nl.knaw.dans.easy.deposit.docs.JsonUtil.toJson
+import nl.knaw.dans.easy.deposit.docs.DatasetMetadata._
 import nl.knaw.dans.easy.deposit.docs.dm.RelationQualifier.RelationQualifier
 
 object RelationQualifier extends Enumeration {
