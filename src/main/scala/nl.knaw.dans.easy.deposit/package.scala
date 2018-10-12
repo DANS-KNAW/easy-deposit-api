@@ -71,6 +71,7 @@ package object deposit {
   }
 
   implicit class StringExtensions(val s: String) extends AnyVal {
+    // TODO not needed once we install better-files v3.6 https://github.com/DANS-KNAW/easy-deposit-api/pull/69#pullrequestreview-164194094
     def asInputStream: InputStream = {
       new ByteArrayInputStream(s.getBytes(StandardCharsets.UTF_8))
     }
