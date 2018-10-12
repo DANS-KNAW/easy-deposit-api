@@ -255,4 +255,10 @@ class DatasetMetadataSpec extends TestSupportFixture {
     """{"spatialBoxes": [ { "scheme": "RD", "north": "486890,5", "east": 121811.88, "south": 436172.5,  "west": 91232.016 }]}""".stripMargin
       .causesInvalidDocumentException("""requirement failed: Invalid number [486890,5]; got {"scheme":"RD","north":"486890,5","east":"121811.88","south":"436172.5","west":"91232.016"} SpatialBox""")
   }
+
+  "DatasetMetadata.spatialBoxes" should "accept both quoted and non quoted numbers" in {
+    // the server will return all numbers quoted
+    val s = """{"spatialBoxes": [ { "scheme": "RD", "north": "486890.5", "east": 121811.88, "south": 436172.5,  "west": 91232.016 }]}""".stripMargin
+    DatasetMetadata(s) shouldBe a[Success[_]]
+  }
 }
