@@ -16,7 +16,7 @@
 package nl.knaw.dans.easy.deposit.docs
 
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata._
-import nl.knaw.dans.easy.deposit.docs.JsonUtil.{ InvalidDocumentException, RichJsonInput }
+import nl.knaw.dans.easy.deposit.docs.JsonUtil.{ InvalidDocumentException, RichJsonInput, toJson }
 import nl.knaw.dans.easy.deposit.docs.dm.Date.{ atMostOne, dateSubmitted, notAllowed }
 import nl.knaw.dans.easy.deposit.docs.dm.PrivacySensitiveDataPresent.PrivacySensitiveDataPresent
 import nl.knaw.dans.easy.deposit.docs.dm._
@@ -116,14 +116,21 @@ object DatasetMetadata {
     }
   }
 
-  trait RequiresNonEmpty {
-    def requireNonEmptyString[T](value: T, tag: String): Unit = {
+  trait Requirements {
+    def requireNonEmptyString[T](value: T): Unit = {
       value match {
         case str: String =>
-          require(str.trim.nonEmpty, s"empty $tag provided for ${ this.getClass.getSimpleName } $this")
+          require(str.trim.nonEmpty, buildMsg("Empty string for a mandatory field"))
         case _ =>
       }
     }
+
+    // using doubles as arguments could change precision in the XML output by adding ".0"
+    protected def requireDouble(value: String): Unit = {
+      require(Try(value.toDouble).isSuccess, buildMsg(s"Invalid number [$value]"))
+    }
+
+    protected def buildMsg (msg: String) = s"$msg; got ${ toJson(this) } ${this.getClass.getSimpleName}"
   }
 
   trait PossiblySchemed {
@@ -137,31 +144,31 @@ object DatasetMetadata {
 
   case class SchemedValue(scheme: String,
                           value: String,
-                         ) extends RequiresNonEmpty {
-    requireNonEmptyString(scheme, "scheme")
-    requireNonEmptyString(value, "value")
+                         ) extends Requirements {
+    requireNonEmptyString(scheme)
+    requireNonEmptyString(value)
   }
 
   case class PossiblySchemedValue(override val scheme: Option[String],
                                   value: String,
-                                 ) extends PossiblySchemed with RequiresNonEmpty {
-    requireNonEmptyString(value, "value")
+                                 ) extends PossiblySchemed with Requirements {
+    requireNonEmptyString(value)
   }
 
   case class SchemedKeyValue(scheme: String,
                              key: String,
                              value: String,
-                            ) extends RequiresNonEmpty {
-    requireNonEmptyString(scheme, "scheme")
-    requireNonEmptyString(value, "value")
-    requireNonEmptyString(key, "key")
+                            ) extends Requirements {
+    requireNonEmptyString(scheme)
+    requireNonEmptyString(value)
+    requireNonEmptyString(key)
   }
 
   case class PossiblySchemedKeyValue(override val scheme: Option[String],
                                      key: Option[String],
                                      value: String,
-                                    ) extends PossiblySchemed with RequiresNonEmpty {
-    requireNonEmptyString(value, "value")
+                                    ) extends PossiblySchemed with Requirements {
+    requireNonEmptyString(value)
   }
 }
 

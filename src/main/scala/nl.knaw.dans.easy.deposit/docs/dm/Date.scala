@@ -15,7 +15,8 @@
  */
 package nl.knaw.dans.easy.deposit.docs.dm
 
-import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.{ PossiblySchemed, RequiresNonEmpty }
+import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.{ PossiblySchemed, Requirements }
+import nl.knaw.dans.easy.deposit.docs.JsonUtil.toJson
 import nl.knaw.dans.easy.deposit.docs.dm.DateQualifier.DateQualifier
 import org.joda.time.DateTime
 import org.joda.time.format.ISODateTimeFormat
@@ -42,9 +43,9 @@ case class Date(
                  override val scheme: Option[String],
                  value: String,
                  qualifier: DateQualifier,
-               ) extends PossiblySchemed with RequiresNonEmpty {
-  requireNonEmptyString(value, "value")
-  requireNonEmptyString(value, "qualifier")
+               ) extends PossiblySchemed with Requirements {
+  requireNonEmptyString(value)
+  requireNonEmptyString(value)
 }
 
 object Date {
@@ -55,10 +56,10 @@ object Date {
   )
 
   def atMostOne(dates: Seq[Date]): Unit = {
-    require(dates.size <= 1, s"At most one allowed; got $dates")
+    require(dates.size <= 1, s"At most one allowed; got ${ toJson(dates) }")
   }
 
   def notAllowed(qualifier: DateQualifier, dates: Seq[Date]): Unit = {
-    require(!dates.exists(_.qualifier == qualifier), s"No $qualifier allowed; got $dates")
+    require(!dates.exists(_.qualifier == qualifier), s"No $qualifier allowed; got ${ toJson(dates) }")
   }
 }

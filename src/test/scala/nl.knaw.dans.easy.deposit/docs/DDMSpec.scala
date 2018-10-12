@@ -335,6 +335,7 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
 
   }
 
+  // the vital clue is obscured by the rest of the message: "title}' is expected"
   val missingTitle = """cvc-complex-type.2.4.a: Invalid content was found starting with element 'dcterms:description'. One of '{"http://purl.org/dc/elements/1.1/":title}' is expected."""
 
   "apply" should "report a missing title" in {

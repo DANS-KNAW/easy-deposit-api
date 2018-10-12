@@ -103,7 +103,7 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
       metadataURI, headers = Seq(basicAuthentication),
       body = """{"spatialPoints": [{ "scheme": "RD", "x": "795,00", "y": "446750Z" }]}"""
     ) {
-      body shouldBe "Bad Request. invalid DatasetMetadata: requirement failed: x is not a number in {scheme:RD, x:795,00, y:446750Z}"
+      body shouldBe """Bad Request. invalid DatasetMetadata: requirement failed: Invalid number [795,00]; got {"scheme":"RD","x":"795,00","y":"446750Z"} SpatialPoint"""
       status shouldBe BAD_REQUEST_400
     }
   }

@@ -122,7 +122,7 @@ class DatasetMetadataSpec extends TestSupportFixture {
         |   { "value": "2017", "qualifier": "dcterms:created" },
         | ]
         |}""".stripMargin
-    .causesInvalidDocumentException("requirement failed: At most one allowed; got List(Date(None,2018,dcterms:created), Date(None,2017,dcterms:created))")
+    .causesInvalidDocumentException("""requirement failed: At most one allowed; got [{"value":"2018","qualifier":"dcterms:created"},{"value":"2017","qualifier":"dcterms:created"}]""")
   }
 
   "DatasetMetadata.relations" should "accept complete relations" in {
@@ -148,7 +148,7 @@ class DatasetMetadataSpec extends TestSupportFixture {
   }
 
   it should "accept incomplete relations in a different order" in {
-    val s: JsonInput =
+    val s =
       """{
         |  "relations": [
         |    { "value": "string", "qualifier": "dcterms:hasFormat" },
@@ -175,7 +175,21 @@ class DatasetMetadataSpec extends TestSupportFixture {
       .causesInvalidDocumentException( """expected one of (Relation | RelatedIdentifier) got: {"qualifier":"dcterms:hasFormat"}""")
   }
 
-  "DatasetMetadata.Author" should "accept an author with initials and surname" in {
+  it should "reject a relation with an empty url and empty title" in {
+    """{ "relations": [ { "qualifier": "dcterms:hasFormat", "title": "", "url": "" } ] }"""
+      .causesInvalidDocumentException( """expected one of (Relation | RelatedIdentifier) got: {"qualifier":"dcterms:hasFormat","title":"","url":""}""")
+  }
+
+  it should "reject a RelatedIdentifier with an empty value" in {
+    """{ "relations": [ { "scheme": "xyz", "value": "", "qualifier": "dcterms:hasFormat" } ] }"""
+      .causesInvalidDocumentException( """expected one of (Relation | RelatedIdentifier) got: {"scheme":"xyz","value":"","qualifier":"dcterms:hasFormat"}""")
+  }
+
+  it should "reject a RelatedIdentifier with an empty scheme" in {
+    val s = """{ "relations": [ { "scheme": "", "value": "abc", "qualifier": "dcterms:hasFormat" } ] }"""
+    DatasetMetadata(s) shouldBe a[Success[_]]  }
+
+  "DatasetMetadata.author" should "accept an author with initials and surname" in {
     DatasetMetadata("""{ "creators": [ { "initials": "A", "surname": "Einstein" } ] }""") shouldBe a[Success[_]]
   }
 
@@ -185,26 +199,60 @@ class DatasetMetadataSpec extends TestSupportFixture {
 
   it should "reject an author without initials" in {
     """{ "contributors": [ { "surname": "Einstein" } ] }"""
-      .causesInvalidDocumentException("""requirement failed: Author needs one of (organisation | surname and initials); got: {"surname":"Einstein"}""")
+      .causesInvalidDocumentException("""requirement failed: Author needs one of (organisation | surname and initials); got {"surname":"Einstein"} Author""")
   }
 
   it should "reject an author without surname" in {
     """{ "contributors": [ { "initials": "A" } ] }"""
-      .causesInvalidDocumentException("""requirement failed: Author needs one of (organisation | surname and initials); got: {"initials":"A"}""")
+      .causesInvalidDocumentException("""requirement failed: Author needs one of (organisation | surname and initials); got {"initials":"A"} Author""")
   }
 
   it should "reject an organisation with titles" in {
     """{ "contributors": [ { "titles": "A", "organization": "University of Zurich" } ] }"""
-      .causesInvalidDocumentException( """requirement failed: Author without surname should have neither titles nor insertions; got: {"titles":"A","organization":"University of Zurich"}""")
+      .causesInvalidDocumentException( """requirement failed: Author has no surname so neither titles nor insertions; got {"titles":"A","organization":"University of Zurich"} Author""")
   }
 
   it should "reject an organisation with insertions" in {
     """{ "contributors": [ { "insertions": "van der", "organization": "University of Zurich" } ] }"""
-      .causesInvalidDocumentException("""requirement failed: Author without surname should have neither titles nor insertions; got: {"insertions":"van der","organization":"University of Zurich"}""")
+      .causesInvalidDocumentException("""requirement failed: Author has no surname so neither titles nor insertions; got {"insertions":"van der","organization":"University of Zurich"} Author""")
   }
 
-  it should "reject date submitted" in {
+  "DatasetMetadata.dates" should "reject dcterms:dateSubmitted" in {
     """{"dates": [{ "qualifier": "dcterms:dateSubmitted", "value": "2018-12", "scheme": "dcterms:W3CDTF" }]}"""
-      .causesInvalidDocumentException("""requirement failed: No dcterms:dateSubmitted allowed; got List(Date(Some(dcterms:W3CDTF),2018-12,dcterms:dateSubmitted))""")
+      .causesInvalidDocumentException("""requirement failed: No dcterms:dateSubmitted allowed; got [{"scheme":"dcterms:W3CDTF","value":"2018-12","qualifier":"dcterms:dateSubmitted"}]""")
+  }
+
+  it should "reject multiple dcterms:available" in {
+    """{"dates": [
+      |  { "qualifier": "dcterms:available", "value": "2018", "scheme": "dcterms:W3CDTF" },
+      |  { "qualifier": "dcterms:available", "value": "2018-12", "scheme": "dcterms:W3CDTF" },
+      |  { "qualifier": "dcterms:created", "value": "2018-12", "scheme": "dcterms:W3CDTF" },
+      |]}""".stripMargin
+      .causesInvalidDocumentException("""requirement failed: At most one allowed; got [{"scheme":"dcterms:W3CDTF","value":"2018","qualifier":"dcterms:available"},{"scheme":"dcterms:W3CDTF","value":"2018-12","qualifier":"dcterms:available"}]""")
+  }
+
+  "DatasetMetadata.audience" should "reject an audience without a scheme" in {
+    """{"audiences": [{ "key": "yyy", "value": "" }]}"""
+      .causesInvalidDocumentException("""don't recognize {"audiences":[{"key":"yyy","value":""}]}""")
+  }
+
+  it should "reject an audience with an empty string for a schema" in {
+    """{"audiences": [{ "scheme": "", "key": "xxx", "value": "yyy" }]}"""
+      .causesInvalidDocumentException("""requirement failed: Empty string for a mandatory field; got {"scheme":"","key":"xxx","value":"yyy"} SchemedKeyValue""")
+  }
+
+  it should "reject an audience with an empty string for a key" in {
+    """{"audiences": [{ "scheme": "xxx", "key": "", "value": "yyy" }]}"""
+      .causesInvalidDocumentException("""requirement failed: Empty string for a mandatory field; got {"scheme":"xxx","key":"","value":"yyy"} SchemedKeyValue""")
+  }
+
+  it should "reject an audience with an empty string for a value" in {
+    """{"audiences": [{ "scheme": "xxx", "key": "yyy", "value": "" }]}"""
+      .causesInvalidDocumentException("""requirement failed: Empty string for a mandatory field; got {"scheme":"xxx","key":"yyy","value":""} SchemedKeyValue""")
+  }
+
+  "DatasetMetadata.spatialBoxes" should "reject a non-numeric value" in {
+    """{"spatialBoxes": [ { "scheme": "RD", "north": "486890,5", "east": 121811.88, "south": 436172.5,  "west": 91232.016 }]}""".stripMargin
+      .causesInvalidDocumentException("""requirement failed: Invalid number [486890,5]; got {"scheme":"RD","north":"486890,5","east":"121811.88","south":"436172.5","west":"91232.016"} SpatialBox""")
   }
 }

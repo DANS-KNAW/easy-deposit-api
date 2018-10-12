@@ -15,7 +15,7 @@
  */
 package nl.knaw.dans.easy.deposit.docs.dm
 
-import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.{ RequiresNonEmpty, _ }
+import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.{ Requirements, _ }
 import nl.knaw.dans.easy.deposit.docs.JsonUtil.toJson
 import nl.knaw.dans.easy.deposit.docs.dm.RelationQualifier.RelationQualifier
 
@@ -38,6 +38,7 @@ object RelationQualifier extends Enumeration {
 }
 
 trait RelationType {
+  /** At different positions in subclasses to provide different signatures for the json (de)serializer. */
   val qualifier: RelationQualifier
 
   /** @return this with Some-s of empty strings as None-s */
@@ -47,9 +48,10 @@ trait RelationType {
 case class Relation(override val qualifier: RelationQualifier,
                     url: Option[String],
                     title: Option[String],
-                   ) extends RelationType with RequiresNonEmpty {
-  require(title.isProvided || url.isProvided, s"Relation needs at least one of (title | url) got: ${ toJson(this) }")
-  requireNonEmptyString(qualifier, "qualifier")
+                   ) extends RelationType with Requirements {
+  // RelationTypeSerializer overrides the message as it tries one after another
+  // and doesn't figure out which one applies
+  require(title.isProvided || url.isProvided, buildMsg(s"Need at least one of (title | url)"))
 
   override def withCleanOptions: RelationType = this.copy(
     url = url.find(_.trim.nonEmpty),
@@ -60,9 +62,8 @@ case class Relation(override val qualifier: RelationQualifier,
 case class RelatedIdentifier(override val scheme: Option[String],
                              value: String,
                              override val qualifier: RelationQualifier
-                            ) extends RelationType with PossiblySchemed with RequiresNonEmpty {
-  requireNonEmptyString(value, "value")
-  requireNonEmptyString(qualifier, "qualifier")
+                            ) extends RelationType with PossiblySchemed with Requirements {
+  requireNonEmptyString(value)
 
   override def withCleanOptions: RelationType = this
 }

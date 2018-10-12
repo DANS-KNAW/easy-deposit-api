@@ -15,7 +15,7 @@
  */
 package nl.knaw.dans.easy.deposit.docs.dm
 
-import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.RequiresNonEmpty
+import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.Requirements
 
 import scala.util.Try
 
@@ -27,9 +27,9 @@ object Spatial {
   val RD_SRS_NAME = "http://www.opengis.net/def/crs/EPSG/0/28992"
 }
 
-trait SchemedSpatial extends RequiresNonEmpty {
+trait SchemedSpatial extends Requirements {
   val scheme: String
-  requireNonEmptyString(scheme, "scheme")
+  requireNonEmptyString(scheme)
 
   lazy val srsName: String = {
     scheme match {
@@ -44,11 +44,9 @@ trait SchemedSpatial extends RequiresNonEmpty {
 case class SpatialPoint(override val scheme: String,
                         x: String,
                         y: String,
-                       ) extends RequiresNonEmpty with SchemedSpatial {
-  // using doubles as arguments could change precision in the XML output by adding ".0"
-  require(Try(x.toDouble).isSuccess, msg("x"))
-  require(Try(y.toDouble).isSuccess, msg("y"))
-  def msg(s: String) = s"$s is not a number in {scheme:$scheme, x:$x, y:$y}"
+                       ) extends Requirements with SchemedSpatial {
+  requireDouble(x)
+  requireDouble(y)
 
   lazy val pos: String = srsName match {
     case Spatial.RD_SRS_NAME => s"$x $y"
@@ -62,13 +60,11 @@ case class SpatialBox(override val scheme: String,
                       east: String,
                       south: String,
                       west: String,
-                     ) extends RequiresNonEmpty  with SchemedSpatial {
-  // using doubles as arguments could change precision in the XML output by adding ".0"
-  require(Try(north.toDouble).isSuccess, msg("north"))
-  require(Try(east.toDouble).isSuccess, msg("east"))
-  require(Try(south.toDouble).isSuccess, msg("south"))
-  require(Try(west.toDouble).isSuccess, msg("west"))
-  def msg(s: String) = s"$s is not a number in {scheme:$scheme, north:$north, east:$east, south:$south, wets:$west}"
+                     ) extends Requirements  with SchemedSpatial {
+  requireDouble(north)
+  requireDouble(east)
+  requireDouble(south)
+  requireDouble(west)
 
   /*
    * Note that Y is along North - South and X is along East - West

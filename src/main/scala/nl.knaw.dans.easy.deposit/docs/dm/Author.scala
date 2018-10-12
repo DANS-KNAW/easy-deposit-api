@@ -25,15 +25,13 @@ case class Author(titles: Option[String] = None,
                   role: Option[SchemedKeyValue] = None,
                   ids: Option[Seq[SchemedValue]] = None,// TODO xml
                   organization: Option[String] = None,
-                 ) {
+                 ) extends Requirements {
   private val hasMandatory: Boolean = organization.isProvided || (surname.isProvided && initials.isProvided)
   private val hasRedundant: Boolean = surname.isEmpty && (titles.isProvided || insertions.isProvided)
-  private val incompleteMsg = "needs one of (organisation | surname and initials)"
-  private val redundantMsg = "without surname should have neither titles nor insertions"
+  private val incompleteMsg = "Author needs one of (organisation | surname and initials)"
+  private val redundantMsg = "Author has no surname so neither titles nor insertions"
   require(hasMandatory, buildMsg(incompleteMsg))
   require(!hasRedundant, buildMsg(redundantMsg))
-
-  private def buildMsg(s: String) = s"Author $s; got: ${ toJson(this) }"
 
   def isRightsHolder: Boolean = role.exists(_.key == "RightsHolder")
 
@@ -46,7 +44,8 @@ case class Author(titles: Option[String] = None,
       case (true, true) => s"$name; ${ organization.getOrElse("") }"
       case (false, true) => organization.getOrElse("")
       case (true, false) => name
-      case (false, false) => throw new Exception(buildMsg(incompleteMsg)) // only with wrong requires
+      // only when requires is implemented incorrect:
+      case (false, false) => throw new Exception(buildMsg(incompleteMsg))
     }
   }
 }
