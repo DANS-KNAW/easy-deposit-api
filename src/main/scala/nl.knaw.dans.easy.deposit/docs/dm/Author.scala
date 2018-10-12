@@ -16,18 +16,17 @@
 package nl.knaw.dans.easy.deposit.docs.dm
 
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.{ SchemedKeyValue, SchemedValue, _ }
-import nl.knaw.dans.easy.deposit.docs.JsonUtil.toJson
 
 case class Author(titles: Option[String] = None,
-                  initials: Option[String] = None,
+                  initials: Option[String] = None,// TODO add dots in toString if none provided?
                   insertions: Option[String] = None,
                   surname: Option[String] = None,
                   role: Option[SchemedKeyValue] = None,
-                  ids: Option[Seq[SchemedValue]] = None,// TODO xml
+                  ids: Option[Seq[SchemedValue]] = None, // TODO xml
                   organization: Option[String] = None,
                  ) extends Requirements {
   private val hasMandatory: Boolean = organization.isProvided || (surname.isProvided && initials.isProvided)
-  private val hasRedundant: Boolean = surname.isEmpty && (titles.isProvided || insertions.isProvided)
+  private val hasRedundant: Boolean = !surname.isProvided && (titles.isProvided || insertions.isProvided)
   private val incompleteMsg = "Author needs one of (organisation | surname and initials)"
   private val redundantMsg = "Author has no surname so neither titles nor insertions"
   require(hasMandatory, buildMsg(incompleteMsg))
@@ -36,16 +35,16 @@ case class Author(titles: Option[String] = None,
   def isRightsHolder: Boolean = role.exists(_.key == "RightsHolder")
 
   override def toString: String = { // TODO ID's for rightsHolders
-    val name = Seq(titles, initials, insertions, surname)
-      .filter(_.isProvided)
-      .map(_.getOrElse(""))
+    def name = Seq(titles, initials, insertions, surname)
+      .collect{case Some(s) if s.trim.nonEmpty => s}
       .mkString(" ")
-    (surname.isProvided, organization.isProvided) match {
-      case (true, true) => s"$name; ${ organization.getOrElse("") }"
-      case (false, true) => organization.getOrElse("")
-      case (true, false) => name
+
+    (surname.find(_.trim.nonEmpty), organization.find(_.trim.nonEmpty)) match {
+      case (Some(_), Some(org)) => s"$name; $org"
+      case (None, Some(org)) => org
+      case (Some(_), None) => name
       // only when requires is implemented incorrect:
-      case (false, false) => throw new Exception(buildMsg(incompleteMsg))
+      case (None, None) => throw new IllegalArgumentException(buildMsg(incompleteMsg))
     }
   }
 }

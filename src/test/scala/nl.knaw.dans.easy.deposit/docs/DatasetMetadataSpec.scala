@@ -190,7 +190,17 @@ class DatasetMetadataSpec extends TestSupportFixture {
     DatasetMetadata(s) shouldBe a[Success[_]]  }
 
   "DatasetMetadata.author" should "accept an author with initials and surname" in {
-    DatasetMetadata("""{ "creators": [ { "initials": "A", "surname": "Einstein" } ] }""") shouldBe a[Success[_]]
+    DatasetMetadata(
+      """{ "creators": [ {
+        | "initials": "A",
+        |  "surname": "Einstein",
+        |  "role": {
+        |        "scheme": "datacite:contributorType",
+        |        "key": "RightsHolder",
+        |        "value": "rightsholder"
+        |      }
+        |} ] }""".stripMargin)
+      .map(_.rightsHolders.map(_.toString).mkString(";")) shouldBe Success("A Einstein")
   }
 
   it should "accept an organisation as author" in {
@@ -208,8 +218,8 @@ class DatasetMetadataSpec extends TestSupportFixture {
   }
 
   it should "reject an organisation with titles" in {
-    """{ "contributors": [ { "titles": "A", "organization": "University of Zurich" } ] }"""
-      .causesInvalidDocumentException( """requirement failed: Author has no surname so neither titles nor insertions; got {"titles":"A","organization":"University of Zurich"} Author""")
+    """{ "contributors": [ { "surname": "", "titles": "A", "organization": "University of Zurich" } ] }"""
+      .causesInvalidDocumentException( """requirement failed: Author has no surname so neither titles nor insertions; got {"titles":"A","surname":"","organization":"University of Zurich"} Author""")
   }
 
   it should "reject an organisation with insertions" in {
@@ -256,7 +266,7 @@ class DatasetMetadataSpec extends TestSupportFixture {
       .causesInvalidDocumentException("""requirement failed: Invalid number [486890,5]; got {"scheme":"RD","north":"486890,5","east":"121811.88","south":"436172.5","west":"91232.016"} SpatialBox""")
   }
 
-  "DatasetMetadata.spatialBoxes" should "accept both quoted and non quoted numbers" in {
+  it should "accept both quoted and non quoted numbers" in {
     // the server will return all numbers quoted
     val s = """{"spatialBoxes": [ { "scheme": "RD", "north": "486890.5", "east": 121811.88, "south": 436172.5,  "west": 91232.016 }]}""".stripMargin
     DatasetMetadata(s) shouldBe a[Success[_]]
