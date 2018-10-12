@@ -64,7 +64,7 @@ object DDM extends DebugEnhancedLogging {
       <ddm:dcmiMetadata>
         { dm.allIdentifiers.map(id => <dcterms:identifier xsi:type={ id.scheme }>{ id.value }</dcterms:identifier>) }
         { dm.alternativeTitles.getNonEmpty.map(str => <dcterms:alternative xml:lang={ lang }>{ str }</dcterms:alternative>) }
-        { dm.relations.getNonEmpty.map(src => details(src.withCleanOptions, lang)) }
+        { dm.relations.getNonEmpty.map(src => details(src, lang)) }
         { dm.contributorsWithoutRights.map(author => <dcx-dai:contributorDetails>{ details(author, lang) }</dcx-dai:contributorDetails>) }
         { dm.rightsHolders.map(author => <dcterms:rightsHolder>{ author.toString }</dcterms:rightsHolder>) }
         { dm.publishers.getNonEmpty.map(str => <dcterms:publisher xml:lang={ lang }>{ str }</dcterms:publisher>) }
@@ -95,7 +95,7 @@ object DDM extends DebugEnhancedLogging {
   }
 
   private def details(relation: RelationType, lang: String): Elem = {
-    relation match {
+    relation.withCleanOptions match {
       case Relation(_, Some(url: String), Some(title: String)) => <tag xml:lang={ lang } href={ url }>{ title }</tag>
       case Relation(_, Some(url: String), None) => <tag href={ url }>{ url }</tag>
       case Relation(_, None, Some(title: String)) => <tag xml:lang={ lang }>{ title }</tag>
