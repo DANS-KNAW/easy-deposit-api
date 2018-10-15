@@ -379,6 +379,8 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
             <dcx-dai:titles xml:lang="nld">Drs.</dcx-dai:titles>
             <dcx-dai:initials>D.A.</dcx-dai:initials>
             <dcx-dai:surname>NS</dcx-dai:surname>
+            <dcx-dai:DAI>93313935x</dcx-dai:DAI>
+            <dcx-dai:ORCID>0000-0002-9079-593X</dcx-dai:ORCID>
             <dcx-dai:role>ContactPerson</dcx-dai:role>
             <dcx-dai:organization>
               <dcx-dai:name xml:lang="nld">KNAW</dcx-dai:name>

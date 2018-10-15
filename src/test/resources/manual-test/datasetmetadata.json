@@ -27,12 +27,12 @@
       "surname": "Einstein",
       "ids": [
         {
-          "scheme": "DOI",
-          "value": "1234/5678"
+          "scheme": "DAI",
+          "value": "93313935x"
         },
         {
           "scheme": "ISNI",
-          "value": "ISNI|000000012281955X"
+          "value": "ISNI:000000012281955X"
         }
       ],
       "organization": "University of Zurich"
@@ -45,12 +45,12 @@
       "surname": "Einstein",
       "ids": [
         {
-          "scheme": "DOI",
-          "value": "1234/5678"
+          "scheme": "DAI",
+          "value": "93313935x"
         },
         {
           "scheme": "ISNI",
-          "value": "ISNI|000000012281955X"
+          "value": "000000012281955X"
         }
       ],
       "organization": "University of Zurich"

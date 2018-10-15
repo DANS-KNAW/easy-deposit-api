@@ -78,7 +78,7 @@ case class DatasetMetadata(private val identifiers: Option[Seq[SchemedValue]] = 
   atMostOne(datesCreated)
   atMostOne(datesAvailable)
 
-  //// authors
+  //// authors TODO leave rights holders between creators and contributors, duplicates without IDs for dcterms
   lazy val (rightsHoldingCreators, creatorsWithoutRights) = creators.getOrElse(Seq.empty).partition(_.isRightsHolder)
   lazy val (rightsHoldingContributors, contributorsWithoutRights) = contributors.getOrElse(Seq.empty).partition(_.isRightsHolder)
   lazy val rightsHolders: Seq[Author] = rightsHoldingContributors ++ rightsHoldingCreators

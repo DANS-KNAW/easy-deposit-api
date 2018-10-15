@@ -111,12 +111,13 @@ object DDM extends DebugEnhancedLogging {
   private def details(author: Author, lang: String): Seq[Node] = {
     if (author.surname.forall(_.isBlank))
       author.organization.toSeq.map(orgDetails(_, lang, author.role))
-    else // TODO ids
+    else
       <dcx-dai:author>
         { author.titles.getNonEmpty.map(str => <dcx-dai:titles xml:lang={ lang }>{ str }</dcx-dai:titles>) }
         { author.initials.getNonEmpty.map(str => <dcx-dai:initials>{ str }</dcx-dai:initials>) }
         { author.insertions.getNonEmpty.map(str => <dcx-dai:insertions>{ str }</dcx-dai:insertions>) }
         { author.surname.getNonEmpty.map(str => <dcx-dai:surname>{ str }</dcx-dai:surname>) }
+        { author.ids.getNonEmpty.map(src => <tag>{ src.value}</tag>.withTag(s"dcx-dai:${src.scheme.replace("id-type:", "")}")) }
         { author.role.toSeq.map(role => <dcx-dai:role>{ role.key }</dcx-dai:role>) }
         { author.organization.getNonEmpty.map(orgDetails(_, lang, role = None)) }
       </dcx-dai:author>

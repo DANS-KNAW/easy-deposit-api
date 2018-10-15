@@ -20,11 +20,11 @@ import nl.knaw.dans.easy.deposit.docs.StringUtils._
 import nl.knaw.dans.lib.string._
 
 case class Author(titles: Option[String] = None,
-                  initials: Option[String] = None, // TODO add dots in toString if none provided?
+                  initials: Option[String] = None,
                   insertions: Option[String] = None,
                   surname: Option[String] = None,
                   role: Option[SchemedKeyValue] = None,
-                  ids: Option[Seq[SchemedValue]] = None, // TODO xml
+                  ids: Option[Seq[SchemedValue]] = None,
                   organization: Option[String] = None,
                  ) extends Requirements {
   private val hasMandatory: Boolean = organization.isProvided || (surname.isProvided && initials.isProvided)
@@ -36,13 +36,13 @@ case class Author(titles: Option[String] = None,
 
   def isRightsHolder: Boolean = role.exists(_.key == "RightsHolder")
 
-  override def toString: String = { // TODO ID's for rightsHolders
+  override def toString: String = {
     def name = Seq(titles, initials, insertions, surname)
       .collect { case Some(s) if !s.isBlank => s }
       .mkString(" ")
 
     (surname.flatMap(_.toOption), organization.flatMap(_.toOption)) match {
-      case (Some(_), Some(org)) => s"$name; $org"
+      case (Some(_), Some(org)) => s"$name ($org)"
       case (None, Some(org)) => org
       case (Some(_), None) => name
       // only when requires is implemented incorrect:
