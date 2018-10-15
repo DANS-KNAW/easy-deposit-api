@@ -33,8 +33,8 @@ case class DatasetMetadata(private val identifiers: Option[Seq[SchemedValue]] = 
                            titles: Option[Seq[String]] = None,
                            alternativeTitles: Option[Seq[String]] = None,
                            descriptions: Option[Seq[String]] = None,
-                           private val creators: Option[Seq[Author]] = None,
-                           private val contributors: Option[Seq[Author]] = None,
+                           creators: Option[Seq[Author]] = None,
+                           contributors: Option[Seq[Author]] = None,
                            audiences: Option[Seq[SchemedKeyValue]] = None,
                            subjects: Option[Seq[PossiblySchemedKeyValue]] = None, //TODO xml
                            private val alternativeIdentifiers: Option[Seq[SchemedValue]] = None,
@@ -78,10 +78,10 @@ case class DatasetMetadata(private val identifiers: Option[Seq[SchemedValue]] = 
   atMostOne(datesCreated)
   atMostOne(datesAvailable)
 
-  //// authors TODO leave rights holders between creators and contributors, duplicates without IDs for dcterms
-  lazy val (rightsHoldingCreators, creatorsWithoutRights) = creators.getOrElse(Seq.empty).partition(_.isRightsHolder)
-  lazy val (rightsHoldingContributors, contributorsWithoutRights) = contributors.getOrElse(Seq.empty).partition(_.isRightsHolder)
-  lazy val rightsHolders: Seq[Author] = rightsHoldingContributors ++ rightsHoldingCreators
+  //// authors
+  lazy val rightsHolders: Seq[Author] =
+    contributors.getOrElse(Seq.empty).filter(_.isRightsHolder) ++
+      creators.getOrElse(Seq.empty).filter(_.isRightsHolder)
 
   lazy val allIdentifiers: Seq[SchemedValue] = identifiers.getOrElse(Seq()) ++ alternativeIdentifiers.getOrElse(Seq())
 

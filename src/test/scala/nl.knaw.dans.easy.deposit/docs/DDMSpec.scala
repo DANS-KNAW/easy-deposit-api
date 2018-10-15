@@ -132,6 +132,13 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
         //N.B: creators in ddm:profile unless they are rightsHolders
         <ddm:dcmiMetadata>
           <dcterms:identifier xsi:type="id-type:DOI">mocked-DOI</dcterms:identifier>
+          <dcx-dai:contributorDetails>
+            <dcx-dai:author>
+              <dcx-dai:initials>A.S.</dcx-dai:initials>
+              <dcx-dai:surname>Terix</dcx-dai:surname>
+              <dcx-dai:role>RightsHolder</dcx-dai:role>
+            </dcx-dai:author>
+          </dcx-dai:contributorDetails>
           <dcterms:rightsHolder>A.S. Terix</dcterms:rightsHolder>
           <dcterms:rightsHolder>O. Belix</dcterms:rightsHolder>
           <dcterms:dateSubmitted xsi:type="dcterms:W3CDTF">2018-03-22</dcterms:dateSubmitted>
@@ -426,6 +433,21 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
           <dcx-dai:organization>
             <dcx-dai:name xml:lang="nld">my organization</dcx-dai:name>
           </dcx-dai:organization>
+        </dcx-dai:contributorDetails>
+        <dcx-dai:contributorDetails>
+          <dcx-dai:organization>
+            <dcx-dai:role>RightsHolder</dcx-dai:role>
+            <dcx-dai:name xml:lang="nld">rightsHolder1</dcx-dai:name>
+          </dcx-dai:organization>
+        </dcx-dai:contributorDetails>
+        <dcx-dai:contributorDetails>
+          <dcx-dai:author>
+            <dcx-dai:titles xml:lang="nld">Dr.</dcx-dai:titles>
+            <dcx-dai:initials>A.S.</dcx-dai:initials>
+            <dcx-dai:insertions>van</dcx-dai:insertions>
+            <dcx-dai:surname>Terix</dcx-dai:surname>
+            <dcx-dai:role>RightsHolder</dcx-dai:role>
+          </dcx-dai:author>
         </dcx-dai:contributorDetails>
         <dcterms:rightsHolder>rightsHolder1</dcterms:rightsHolder>
         <dcterms:rightsHolder>Dr. A.S. van Terix</dcterms:rightsHolder>

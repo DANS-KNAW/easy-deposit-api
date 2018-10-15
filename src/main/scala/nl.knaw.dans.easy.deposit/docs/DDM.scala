@@ -57,7 +57,7 @@ object DDM extends DebugEnhancedLogging {
       <ddm:profile>
         { dm.titles.getNonEmpty.map(src => <dc:title xml:lang={ lang }>{ src }</dc:title>) }
         { dm.descriptions.getNonEmpty.map(src => <dcterms:description xml:lang={ lang }>{ src }</dcterms:description>) }
-        { dm.creatorsWithoutRights.map(author => <dcx-dai:creatorDetails>{ details(author, lang) }</dcx-dai:creatorDetails>) }
+        { dm.creators.getNonEmpty.map(author => <dcx-dai:creatorDetails>{ details(author, lang) }</dcx-dai:creatorDetails>) }
         { dm.datesCreated.map(src => <ddm:created>{ src.value }</ddm:created>) }
         { dm.datesAvailable.map(src => <ddm:available>{ src.value }</ddm:available>) }
         { dm.audiences.getNonEmpty.map(src => <ddm:audience>{ src.key }</ddm:audience>) }
@@ -67,7 +67,7 @@ object DDM extends DebugEnhancedLogging {
         { dm.allIdentifiers.map(id => <dcterms:identifier xsi:type={ id.scheme }>{ id.value }</dcterms:identifier>) }
         { dm.alternativeTitles.getNonEmpty.map(str => <dcterms:alternative xml:lang={ lang }>{ str }</dcterms:alternative>) }
         { dm.relations.getNonEmpty.map(src => details(src, lang)) }
-        { dm.contributorsWithoutRights.map(author => <dcx-dai:contributorDetails>{ details(author, lang) }</dcx-dai:contributorDetails>) }
+        { dm.contributors.getNonEmpty.map(author => <dcx-dai:contributorDetails>{ details(author, lang) }</dcx-dai:contributorDetails>) }
         { dm.rightsHolders.map(author => <dcterms:rightsHolder>{ author.toString }</dcterms:rightsHolder>) }
         { dm.publishers.getNonEmpty.map(str => <dcterms:publisher xml:lang={ lang }>{ str }</dcterms:publisher>) }
         { dm.sources.getNonEmpty.map(str => <dc:source xml:lang={ lang }>{ str }</dc:source>) }
