@@ -20,7 +20,6 @@ import nl.knaw.dans.easy.deposit.docs.JsonUtil.{ InvalidDocumentException, RichJ
 import nl.knaw.dans.easy.deposit.docs.dm.Date.{ atMostOne, dateSubmitted, notAllowed }
 import nl.knaw.dans.easy.deposit.docs.dm.PrivacySensitiveDataPresent.PrivacySensitiveDataPresent
 import nl.knaw.dans.easy.deposit.docs.dm._
-import nl.knaw.dans.lib.string._
 import org.json4s.JsonInput
 
 import scala.util.{ Failure, Success, Try }
@@ -108,13 +107,6 @@ object DatasetMetadata {
 
   def missingValue(label: String): InvalidDocumentException = {
     InvalidDocumentException("DatasetMetadata", new Exception(s"Please set $label"))
-  }
-
-  implicit class OptionalString[T](val value: Option[T]) extends AnyVal {
-    def isProvided: Boolean = value match {
-      case Some(str: String) => str.toOption.isDefined
-      case _ => value.isDefined
-    }
   }
 
   trait PossiblySchemed {

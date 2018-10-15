@@ -25,11 +25,12 @@ import javax.xml.transform.stream.StreamSource
 import javax.xml.validation.{ Schema, SchemaFactory }
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata._
 import nl.knaw.dans.easy.deposit.docs.JsonUtil.InvalidDocumentException
+import nl.knaw.dans.easy.deposit.docs.StringUtils._
 import nl.knaw.dans.easy.deposit.docs.dm._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
+import nl.knaw.dans.lib.string._
 import org.xml.sax.SAXParseException
 import resource.{ ManagedResource, Using }
-import nl.knaw.dans.lib.string._
 
 import scala.util.{ Failure, Try }
 import scala.xml._
@@ -108,7 +109,7 @@ object DDM extends DebugEnhancedLogging {
   })
 
   private def details(author: Author, lang: String): Seq[Node] = {
-    if (author.surname.isEmpty)
+    if (author.surname.forall(_.isBlank))
       author.organization.toSeq.map(orgDetails(_, lang, author.role))
     else // TODO ids
       <dcx-dai:author>
@@ -141,20 +142,6 @@ object DDM extends DebugEnhancedLogging {
           s"expecting (label) or (prefix:label); got [${ a.mkString(":") }] to adjust the <key> of ${ Utility.trim(elem) }"
         ))
       }
-    }
-  }
-
-  private implicit class OptionSeq[T](val sources: Option[Seq[T]]) extends AnyVal {
-    def getNonEmpty: Seq[T] = sources.map(_.filterNot {
-      case source: String => source.toOption.isEmpty
-      case _ => false
-    }).getOrElse(Seq.empty)
-  }
-
-  private implicit class RichOption[T](val sources: Option[T]) extends AnyVal {
-    def getNonEmpty: Seq[T] = sources.toSeq.filterNot {
-      case source: String => source.toOption.isEmpty
-      case _ => false
     }
   }
 

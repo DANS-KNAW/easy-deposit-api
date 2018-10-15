@@ -15,11 +15,12 @@
  */
 package nl.knaw.dans.easy.deposit.docs.dm
 
-import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.{ SchemedKeyValue, SchemedValue, _ }
+import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.{ SchemedKeyValue, SchemedValue }
+import nl.knaw.dans.easy.deposit.docs.StringUtils._
 import nl.knaw.dans.lib.string._
 
 case class Author(titles: Option[String] = None,
-                  initials: Option[String] = None,// TODO add dots in toString if none provided?
+                  initials: Option[String] = None, // TODO add dots in toString if none provided?
                   insertions: Option[String] = None,
                   surname: Option[String] = None,
                   role: Option[SchemedKeyValue] = None,
@@ -37,7 +38,7 @@ case class Author(titles: Option[String] = None,
 
   override def toString: String = { // TODO ID's for rightsHolders
     def name = Seq(titles, initials, insertions, surname)
-      .collect{case Some(s) if s.trim.nonEmpty => s}
+      .collect { case Some(s) if !s.isBlank => s }
       .mkString(" ")
 
     (surname.flatMap(_.toOption), organization.flatMap(_.toOption)) match {

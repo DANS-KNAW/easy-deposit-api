@@ -18,6 +18,7 @@ package nl.knaw.dans.easy.deposit.docs.dm
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata._
 import nl.knaw.dans.easy.deposit.docs.dm.RelationQualifier.RelationQualifier
 import nl.knaw.dans.lib.string._
+import nl.knaw.dans.easy.deposit.docs.StringUtils._
 
 object RelationQualifier extends Enumeration {
   type RelationQualifier = Value
