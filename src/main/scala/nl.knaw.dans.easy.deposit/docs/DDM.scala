@@ -29,6 +29,7 @@ import nl.knaw.dans.easy.deposit.docs.dm._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.xml.sax.SAXParseException
 import resource.{ ManagedResource, Using }
+import nl.knaw.dans.lib.string._
 
 import scala.util.{ Failure, Try }
 import scala.xml._
@@ -145,14 +146,14 @@ object DDM extends DebugEnhancedLogging {
 
   private implicit class OptionSeq[T](val sources: Option[Seq[T]]) extends AnyVal {
     def getNonEmpty: Seq[T] = sources.map(_.filterNot {
-      case source: String => source.trim.isEmpty
+      case source: String => source.toOption.isEmpty
       case _ => false
     }).getOrElse(Seq.empty)
   }
 
   private implicit class RichOption[T](val sources: Option[T]) extends AnyVal {
     def getNonEmpty: Seq[T] = sources.toSeq.filterNot {
-      case source: String => source.trim.isEmpty
+      case source: String => source.toOption.isEmpty
       case _ => false
     }
   }

@@ -17,6 +17,7 @@ package nl.knaw.dans.easy.deposit.docs.dm
 
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata._
 import nl.knaw.dans.easy.deposit.docs.dm.RelationQualifier.RelationQualifier
+import nl.knaw.dans.lib.string._
 
 object RelationQualifier extends Enumeration {
   type RelationQualifier = Value
@@ -53,8 +54,8 @@ case class Relation(override val qualifier: RelationQualifier,
   require(title.isProvided || url.isProvided, buildMsg(s"Need at least one of (title | url)"))
 
   override def withCleanOptions: RelationType = this.copy(
-    url = url.find(_.trim.nonEmpty),
-    title = title.find(_.trim.nonEmpty),
+    url = url.flatMap(_.toOption),
+    title = title.flatMap(_.toOption),
   )
 }
 

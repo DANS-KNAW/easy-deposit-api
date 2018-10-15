@@ -16,10 +16,11 @@
 package nl.knaw.dans.easy.deposit.docs
 
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata._
-import nl.knaw.dans.easy.deposit.docs.JsonUtil.{ InvalidDocumentException, RichJsonInput, toJson }
+import nl.knaw.dans.easy.deposit.docs.JsonUtil.{ InvalidDocumentException, RichJsonInput }
 import nl.knaw.dans.easy.deposit.docs.dm.Date.{ atMostOne, dateSubmitted, notAllowed }
 import nl.knaw.dans.easy.deposit.docs.dm.PrivacySensitiveDataPresent.PrivacySensitiveDataPresent
 import nl.knaw.dans.easy.deposit.docs.dm._
+import nl.knaw.dans.lib.string._
 import org.json4s.JsonInput
 
 import scala.util.{ Failure, Success, Try }
@@ -111,7 +112,7 @@ object DatasetMetadata {
 
   implicit class OptionalString[T](val value: Option[T]) extends AnyVal {
     def isProvided: Boolean = value match {
-      case Some(str: String) => str.trim.nonEmpty
+      case Some(str: String) => str.toOption.isDefined
       case _ => value.isDefined
     }
   }

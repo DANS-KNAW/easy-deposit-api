@@ -16,6 +16,7 @@
 package nl.knaw.dans.easy.deposit.docs.dm
 
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.{ SchemedKeyValue, SchemedValue, _ }
+import nl.knaw.dans.lib.string._
 
 case class Author(titles: Option[String] = None,
                   initials: Option[String] = None,// TODO add dots in toString if none provided?
@@ -39,7 +40,7 @@ case class Author(titles: Option[String] = None,
       .collect{case Some(s) if s.trim.nonEmpty => s}
       .mkString(" ")
 
-    (surname.find(_.trim.nonEmpty), organization.find(_.trim.nonEmpty)) match {
+    (surname.flatMap(_.toOption), organization.flatMap(_.toOption)) match {
       case (Some(_), Some(org)) => s"$name; $org"
       case (None, Some(org)) => org
       case (Some(_), None) => name
