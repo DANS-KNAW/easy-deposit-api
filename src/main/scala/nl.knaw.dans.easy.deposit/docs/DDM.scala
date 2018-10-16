@@ -51,6 +51,7 @@ object DDM extends DebugEnhancedLogging {
       xmlns:dcx-dai="http://easy.dans.knaw.nl/schemas/dcx/dai/"
       xmlns:dcx-gml="http://easy.dans.knaw.nl/schemas/dcx/gml/"
       xmlns:gml="http://www.opengis.net/gml"
+      xmlns:abr="http://www.den.nl/standaard/166/Archeologisch-Basisregister/"
       xmlns:ddm={schemaNameSpace}
       xmlns:id-type="http://easy.dans.knaw.nl/schemas/vocab/identifier-type/"
       xsi:schemaLocation={s"$schemaNameSpace $schemaLocation"}
@@ -74,6 +75,9 @@ object DDM extends DebugEnhancedLogging {
         { dm.sources.getNonEmpty.map(str => <dc:source xml:lang={ lang }>{ str }</dc:source>) }
         { dm.allTypes.map(src => <dcterms:type xsi:type={ src.schemeAsString }>{ src.value }</dcterms:type>) }
         { dm.formats.getNonEmpty.map(src => <dcterms:format xsi:type={ src.schemeAsString }>{ src.value }</dcterms:format>) }
+        { dm.subjects.getNonEmpty.map(details(_, "subject", lang)) }
+        { dm.temporalCoverages.getNonEmpty.map(details(_, "temporal", lang)) }
+        { dm.spatialCoverages.getNonEmpty.map(details(_, "spatial", lang)) }
         { dm.otherDates.map(date => <tag xsi:type={ date.schemeAsString }>{ date.value }</tag>.withTag(date.qualifier.toString)) }
         { dm.spatialPoints.getNonEmpty.map(point => <dcx-gml:spatial srsName={ point.srsName }>{ details(point) }</dcx-gml:spatial>) }
         { dm.spatialBoxes.getNonEmpty.map(point => <dcx-gml:spatial>{ details(point) }</dcx-gml:spatial>) }
@@ -108,6 +112,24 @@ object DDM extends DebugEnhancedLogging {
     case Relation(qualifier, Some(_), _) => qualifier.toString.replace("dcterms", "ddm")
     case _ => relation.qualifier.toString
   })
+
+  private def details(source: PossiblySchemedKeyValue, label: String, lang: String): Elem = {
+    val typeSchemes = Seq("abr:ABRcomplex", "abr:ABRperiode", "dcterms:ISO3166")
+    (label, source) match {
+      case ("subject", PossiblySchemedKeyValue(None, None, value)) =>
+        <tag xml:lang={ lang }>{ value }</tag>
+          .withTag(s"dc:$label")
+      case (_, PossiblySchemedKeyValue(None, None, value)) =>
+        <tag xml:lang={ lang }>{ value }</tag>
+          .withTag(s"dcterms:$label")
+      case (_, PossiblySchemedKeyValue(Some(scheme), Some(key), _)) if typeSchemes.contains(scheme) =>
+        <tag xsi:type={ scheme }>{ key }</tag>
+          .withTag(s"dcterms:$label")
+      case (_, PossiblySchemedKeyValue(_, _, value)) =>
+        <tag xml:lang={ lang } schemeURI={ source.schemeAsString } valueURI={ source.keyAsString }>{ value }</tag>
+          .withTag(s"ddm:$label")
+    }
+  }
 
   private def details(author: Author, lang: String): Seq[Node] = {
     if (author.surname.forall(_.isBlank))

@@ -118,6 +118,15 @@ object DatasetMetadata {
     }
   }
 
+  trait PossiblyKeyed {
+    val key: Option[String]
+
+    def keyAsString: String = key match {
+      case Some(s: String) if s.trim.nonEmpty => s.trim
+      case _ => null
+    }
+  }
+
   case class SchemedValue(scheme: String,
                           value: String,
                          ) extends Requirements {
@@ -141,9 +150,9 @@ object DatasetMetadata {
   }
 
   case class PossiblySchemedKeyValue(override val scheme: Option[String],
-                                     key: Option[String],
+                                     override val key: Option[String],
                                      value: String,
-                                    ) extends PossiblySchemed with Requirements {
+                                    ) extends PossiblySchemed with PossiblyKeyed with Requirements {
     requireNonEmptyString(value)
   }
 }

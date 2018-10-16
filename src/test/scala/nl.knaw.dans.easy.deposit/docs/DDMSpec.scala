@@ -20,7 +20,6 @@ import javax.xml.transform.Source
 import javax.xml.transform.stream.StreamSource
 import javax.xml.validation.{ Schema, SchemaFactory }
 import nl.knaw.dans.easy.deposit.TestSupportFixture
-import nl.knaw.dans.easy.deposit.docs.DDM.RichElem
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.{ SchemedKeyValue, SchemedValue }
 import nl.knaw.dans.easy.deposit.docs.JsonUtil.InvalidDocumentException
 import nl.knaw.dans.easy.deposit.docs.dm.DateScheme.W3CDTF
@@ -504,6 +503,17 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
         <dcterms:format>paperback</dcterms:format>
         <dcterms:format>audiobook</dcterms:format>
         <dcterms:format xsi:type="dcterms:IMT">application/x-cmdi+xml</dcterms:format>
+        <dc:subject xml:lang="nld">subject1</dc:subject>
+        <dc:subject xml:lang="nld">subject2</dc:subject>
+        <dcterms:subject xsi:type="abr:ABRcomplex">RKER</dcterms:subject>
+        <dcterms:subject xsi:type="abr:ABRcomplex">VK</dcterms:subject>
+        <dcterms:temporal xsi:type="abr:ABRperiode">ROMLA</dcterms:temporal>
+        <dcterms:temporal xsi:type="abr:ABRperiode">ROMLB</dcterms:temporal>
+        <dcterms:temporal xml:lang="nld">temp1</dcterms:temporal>
+        <dcterms:temporal xml:lang="nld">temp2</dcterms:temporal>
+        <dcterms:spatial xsi:type="dcterms:ISO3166">NLD</dcterms:spatial>
+        <dcterms:spatial xml:lang="nld">Haringvliet</dcterms:spatial>
+        <dcterms:spatial xml:lang="nld">Grevelingenmeer</dcterms:spatial>
         <dcterms:dateCopyrighted xsi:type="dcterms:W3CDTF">2018-03-18</dcterms:dateCopyrighted>
         <dcterms:valid xsi:type="dcterms:W3CDTF">2018-03-17</dcterms:valid>
         <dcterms:modified>2018-02-02</dcterms:modified>
