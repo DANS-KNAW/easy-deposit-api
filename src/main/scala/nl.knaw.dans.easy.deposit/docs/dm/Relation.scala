@@ -53,8 +53,7 @@ case class Relation(override val qualifier: RelationQualifier,
                     url: Option[String],
                     title: Option[String],
                    ) extends RelationType with Requirements {
-  // RelationTypeSerializer overrides the message as it tries one after another
-  // and doesn't figure out which one applies
+  // RelationTypeSerializer overrides the message when the parsed json object neither has a value
   require(title.isProvided || url.isProvided, buildMsg(s"Need at least one of (title | url)"))
 
   // might throw MalformedURLException, RelationTypeSerializer should properly re-wrap it
