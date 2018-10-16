@@ -79,7 +79,7 @@
   "relations": [
     {
       "qualifier": "dcterms:hasFormat",
-      "url": "string",
+      "url": "http://some.host",
       "title": "string"
     },
     {

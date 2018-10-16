@@ -91,12 +91,12 @@
     },
     {
       "qualifier": "dcterms:relation",
-      "url": "http://example.com",
+      "url": "http://does.not.exist.dans.knaw.nl",
       "title": ""
     },
     {
       "qualifier": "dcterms:relation",
-      "url": "",
+      "url": "http://does.not.exist.dans.knaw.nl",
       "title": "some text to show a relation"
     }
   ],

@@ -129,7 +129,7 @@ class DatasetMetadataSpec extends TestSupportFixture {
     val s: JsonInput =
       """{
         |  "relations": [
-        |    { "qualifier": "dcterms:hasFormat", "url": "string", "title": "string" },
+        |    { "qualifier": "dcterms:hasFormat", "url": "http://host", "title": "string" },
         |    { "scheme": "id-type:URN", "value": "string", "qualifier": "dcterms:hasFormat" }
         |  ]
         |}""".stripMargin
@@ -140,7 +140,7 @@ class DatasetMetadataSpec extends TestSupportFixture {
     val s: JsonInput =
       """{
         |  "relations": [
-        |    { "qualifier": "dcterms:hasFormat", "url": "string" },
+        |    { "qualifier": "dcterms:hasFormat", "url": "http://host" },
         |    { "value": "string", "qualifier": "dcterms:hasFormat" }
         |  ]
         |}""".stripMargin
@@ -152,7 +152,7 @@ class DatasetMetadataSpec extends TestSupportFixture {
       """{
         |  "relations": [
         |    { "value": "string", "qualifier": "dcterms:hasFormat" },
-        |    { "qualifier": "dcterms:hasFormat", "url": "string" }
+        |    { "qualifier": "dcterms:hasFormat", "url": "http://host" }
         |  ]
         |}""".stripMargin
     DatasetMetadata(s) shouldBe a[Success[_]]
@@ -163,7 +163,7 @@ class DatasetMetadataSpec extends TestSupportFixture {
   }
 
   it should "accept a Relation without title" in {
-    DatasetMetadata("""{ "relations": [ { "qualifier": "dcterms:hasFormat", "url": "string" } ] }""") shouldBe a[Success[_]]
+    DatasetMetadata("""{ "relations": [ { "qualifier": "dcterms:hasFormat", "url": "http://host" } ] }""") shouldBe a[Success[_]]
   }
 
   it should "accept a Relation without url" in {
@@ -178,6 +178,11 @@ class DatasetMetadataSpec extends TestSupportFixture {
   it should "reject a relation with an empty url and empty title" in {
     """{ "relations": [ { "qualifier": "dcterms:hasFormat", "title": "", "url": "" } ] }"""
       .causesInvalidDocumentException( """expected one of (Relation | RelatedIdentifier) got: {"qualifier":"dcterms:hasFormat","title":"","url":""}""")
+  }
+
+  it should "reject a relation with an invalid url" in {
+    """{ "relations": [ { "qualifier": "dcterms:hasFormat", "title": "abc", "url": "string" } ] }"""
+      .causesInvalidDocumentException( """invalid URL [no protocol: string] got: {"qualifier":"dcterms:hasFormat","title":"abc","url":"string"}""")
   }
 
   it should "reject a RelatedIdentifier with an empty value" in {

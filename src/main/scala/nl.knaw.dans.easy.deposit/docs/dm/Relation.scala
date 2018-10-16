@@ -15,10 +15,13 @@
  */
 package nl.knaw.dans.easy.deposit.docs.dm
 
+import java.net.URL
+
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata._
+import nl.knaw.dans.easy.deposit.docs.JsonUtil
+import nl.knaw.dans.easy.deposit.docs.StringUtils._
 import nl.knaw.dans.easy.deposit.docs.dm.RelationQualifier.RelationQualifier
 import nl.knaw.dans.lib.string._
-import nl.knaw.dans.easy.deposit.docs.StringUtils._
 
 object RelationQualifier extends Enumeration {
   type RelationQualifier = Value
@@ -39,7 +42,7 @@ object RelationQualifier extends Enumeration {
 }
 
 trait RelationType {
-  /** At different positions in subclasses to provide different signatures for the json (de)serializer. */
+  /** At different positions in subclasses to provide different signatures for the json de-serializer. */
   val qualifier: RelationQualifier
 
   /** @return this with Some-s of empty strings as None-s */
@@ -53,6 +56,9 @@ case class Relation(override val qualifier: RelationQualifier,
   // RelationTypeSerializer overrides the message as it tries one after another
   // and doesn't figure out which one applies
   require(title.isProvided || url.isProvided, buildMsg(s"Need at least one of (title | url)"))
+
+  // might throw MalformedURLException, RelationTypeSerializer should properly re-wrap it
+  url.map(new URL(_))
 
   override def withCleanOptions: RelationType = this.copy(
     url = url.flatMap(_.toOption),
