@@ -106,6 +106,65 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
       </ddm:dcmiMetadata>
   )
 
+  "minimal with various author IDs" should behave like {
+    val authors = Seq(
+      Author(
+        initials = Some("H."),
+        surname = Some("Oefnix"),
+        ids = Some(Seq(
+          SchemedValue("DAI", "012345678x"),
+          SchemedValue("id-type:ISNI", "000000012281955X"),
+          SchemedValue("ORCID", "0000-0002-9079-593X"),
+        ))
+      ),
+      Author(
+        initials = Some("K.O."),
+        surname = Some("Stunrix"),
+        ids = Some(Seq(
+          SchemedValue("id-type:DAI", "123456789x"),
+          SchemedValue("id-type:ISNI", "ISNI:000000012281955X"),
+        ))
+      ),
+    )
+    validDatasetMetadata(
+      input = Try(new MinimalDatasetMetadata(contributors = Some(authors))),
+      subset = actualDDM => dcmiMetadata(actualDDM),
+      expectedDdmContent =
+      <ddm:dcmiMetadata>
+        <dcterms:identifier xsi:type="id-type:DOI">mocked-DOI</dcterms:identifier>
+        <dcx-dai:contributorDetails>
+          <dcx-dai:author>
+            <dcx-dai:initials>H.</dcx-dai:initials>
+            <dcx-dai:surname>Oefnix</dcx-dai:surname>
+            <dcx-dai:DAI>012345678x</dcx-dai:DAI>
+            <dcx-dai:ISNI>000000012281955X</dcx-dai:ISNI>
+            <dcx-dai:ORCID>0000-0002-9079-593X</dcx-dai:ORCID>
+          </dcx-dai:author>
+        </dcx-dai:contributorDetails>
+        <dcx-dai:contributorDetails>
+          <dcx-dai:author>
+            <dcx-dai:initials>K.O.</dcx-dai:initials>
+            <dcx-dai:surname>Stunrix</dcx-dai:surname>
+            <dcx-dai:DAI>123456789x</dcx-dai:DAI>
+            <dcx-dai:ISNI>ISNI:000000012281955X</dcx-dai:ISNI>
+          </dcx-dai:author>
+        </dcx-dai:contributorDetails>
+        <dcterms:dateSubmitted xsi:type="dcterms:W3CDTF">2018-03-22</dcterms:dateSubmitted>
+      </ddm:dcmiMetadata>
+    )
+  }
+
+  "minimal with invalid name space for author ID" should "fail" in {
+    val author = Author(
+      initials = Some("F.O.O."),
+      surname = Some("Bar"),
+      ids = Some(Seq(SchemedValue("dcx-dai:ISNI", "ISNI:000000012281955X")))
+    )
+    new MinimalDatasetMetadata(contributors = Some(Seq(author))).causesInvalidDocumentException(
+      "expecting (label) or (prefix:label); got [dcx-dai:dcx-dai:ISNI] to adjust the <tag> of <tag>ISNI:000000012281955X</tag>"
+    )
+  }
+
   "minimal with rightsHolders" should behave like {
     val someCreators = Some(Seq(
       Author(
@@ -130,6 +189,7 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
       subset = actualDDM => dcmiMetadata(actualDDM),
       expectedDdmContent =
         //N.B: creators in ddm:profile unless they are rightsHolders
+        // To preserve ID's a copy of the rights holders appears under creators and/or contributors
         <ddm:dcmiMetadata>
           <dcterms:identifier xsi:type="id-type:DOI">mocked-DOI</dcterms:identifier>
           <dcx-dai:contributorDetails>
@@ -321,29 +381,9 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
         </ddm:dcmiMetadata>
     )
   }
-
-  "RichElem.withLabel" should "report an error" in {
-    assumeSchemaAvailable
-    Try {
-      <key>Lorum Ipsum</key>.withTag("a:b:c")
-    } should matchPattern {
-      case Failure(InvalidDocumentException(_, e)) if e.getMessage ==
-        "expecting (label) or (prefix:label); got [a:b:c] to adjust the <key> of <key>Lorum Ipsum</key>" =>
-    }
-  }
-
-  implicit class RichDatasetMetadata(input: MinimalDatasetMetadata) {
-    def causesInvalidDocumentException(expectedMessage: String): Assertion = {
-      assumeSchemaAvailable
-      DDM(input) should matchPattern {
-        case Failure(InvalidDocumentException("DatasetMetadata", t)) if t.getMessage == expectedMessage =>
-      }
-    }
-
-  }
-
   // the vital clue is obscured by the rest of the message: "title}' is expected"
-  val missingTitle = """cvc-complex-type.2.4.a: Invalid content was found starting with element 'dcterms:description'. One of '{"http://purl.org/dc/elements/1.1/":title}' is expected."""
+  val missingTitle =
+    """cvc-complex-type.2.4.a: Invalid content was found starting with element 'dcterms:description'. One of '{"http://purl.org/dc/elements/1.1/":title}' is expected."""
 
   "apply" should "report a missing title" in {
     new MinimalDatasetMetadata(titles = None).causesInvalidDocumentException(missingTitle)
@@ -512,6 +552,15 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
     getManualTestResource(file)
   }.flatMap(DatasetMetadata(_))
 
+  private implicit class RichDatasetMetadata(input: MinimalDatasetMetadata) {
+    def causesInvalidDocumentException(expectedMessage: String): Assertion = {
+      assumeSchemaAvailable
+      DDM(input) should matchPattern {
+        case Failure(InvalidDocumentException("DatasetMetadata", t)) if t.getMessage == expectedMessage =>
+      }
+    }
+
+  }
 }
 
 trait DdmBehavior {

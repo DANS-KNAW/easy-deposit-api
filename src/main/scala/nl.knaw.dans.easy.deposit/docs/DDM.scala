@@ -33,6 +33,7 @@ import org.xml.sax.SAXParseException
 import resource.{ ManagedResource, Using }
 
 import scala.util.{ Failure, Try }
+import scala.xml.Utility.trim
 import scala.xml._
 
 object DDM extends DebugEnhancedLogging {
@@ -68,7 +69,7 @@ object DDM extends DebugEnhancedLogging {
         { dm.alternativeTitles.getNonEmpty.map(str => <dcterms:alternative xml:lang={ lang }>{ str }</dcterms:alternative>) }
         { dm.relations.getNonEmpty.map(src => details(src, lang)) }
         { dm.contributors.getNonEmpty.map(author => <dcx-dai:contributorDetails>{ details(author, lang) }</dcx-dai:contributorDetails>) }
-        { dm.rightsHolders.map(author => <dcterms:rightsHolder>{ author.toString }</dcterms:rightsHolder>) }
+        { dm.rightsHolders.map(str => <dcterms:rightsHolder>{ str }</dcterms:rightsHolder>) }
         { dm.publishers.getNonEmpty.map(str => <dcterms:publisher xml:lang={ lang }>{ str }</dcterms:publisher>) }
         { dm.sources.getNonEmpty.map(str => <dc:source xml:lang={ lang }>{ str }</dc:source>) }
         { dm.allTypes.map(src => <dcterms:type xsi:type={ src.schemeAsString }>{ src.value }</dcterms:type>) }
@@ -103,7 +104,7 @@ object DDM extends DebugEnhancedLogging {
       case Relation(_, None, Some(title: String)) => <tag xml:lang={ lang }>{ title }</tag>
       case relatedID: RelatedIdentifier => <tag  xsi:type={ relatedID.schemeAsString }>{ relatedID.value }</tag>
     }
-  }.withTag(relation match { // replace the name space in case of an URL attribute
+  }.withTag(relation match { // replace the name space in case of an href=URL attribute
     case Relation(qualifier, Some(_), _) => qualifier.toString.replace("dcterms", "ddm")
     case _ => relation.qualifier.toString
   })
@@ -117,7 +118,7 @@ object DDM extends DebugEnhancedLogging {
         { author.initials.getNonEmpty.map(str => <dcx-dai:initials>{ str }</dcx-dai:initials>) }
         { author.insertions.getNonEmpty.map(str => <dcx-dai:insertions>{ str }</dcx-dai:insertions>) }
         { author.surname.getNonEmpty.map(str => <dcx-dai:surname>{ str }</dcx-dai:surname>) }
-        { author.ids.getNonEmpty.map(src => <tag>{ src.value}</tag>.withTag(s"dcx-dai:${src.scheme.replace("id-type:", "")}")) }
+        { author.ids.getNonEmpty.map(src => <tag>{ src.value}</tag>.withTag(s"dcx-dai:${ src.scheme.replace("id-type:", "") }")) }
         { author.role.toSeq.map(role => <dcx-dai:role>{ role.key }</dcx-dai:role>) }
         { author.organization.getNonEmpty.map(orgDetails(_, lang, role = None)) }
       </dcx-dai:author>
@@ -130,9 +131,7 @@ object DDM extends DebugEnhancedLogging {
       </dcx-dai:organization>
 
   /** @param elem XML element to be adjusted */
-  implicit class RichElem(val elem: Elem) extends AnyVal {
-    // not private for testing purposes
-
+  private implicit class RichElem(val elem: Elem) extends AnyVal {
     /** @param str the desired tag (namespace:label) or (label) */
     @throws[InvalidDocumentException]("when str is not a valid XML label (has more than one ':')")
     def withTag(str: String): Elem = {
@@ -140,7 +139,7 @@ object DDM extends DebugEnhancedLogging {
         case Array(label) => elem.copy(label = label)
         case Array(prefix, label) => elem.copy(prefix = prefix, label = label)
         case a => throw invalidDatasetMetadataException(new Exception(
-          s"expecting (label) or (prefix:label); got [${ a.mkString(":") }] to adjust the <key> of ${ Utility.trim(elem) }"
+          s"expecting (label) or (prefix:label); got [${ a.mkString(":") }] to adjust the <${ elem.label }> of ${ trim(elem) }"
         ))
       }
     }

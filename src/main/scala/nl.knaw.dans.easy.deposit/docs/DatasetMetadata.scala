@@ -78,10 +78,10 @@ case class DatasetMetadata(private val identifiers: Option[Seq[SchemedValue]] = 
   atMostOne(datesCreated)
   atMostOne(datesAvailable)
 
-  //// authors
-  lazy val rightsHolders: Seq[Author] =
-    contributors.getOrElse(Seq.empty).filter(_.isRightsHolder) ++
-      creators.getOrElse(Seq.empty).filter(_.isRightsHolder)
+  // duplicates for plain strings in dcterms (which has no place for IDs as contributors/creators do)
+  lazy val rightsHolders: Seq[String] = (contributors.toSeq ++ creators.toSeq).flatten
+    .withFilter(_.isRightsHolder)
+    .map(_.toString)
 
   lazy val allIdentifiers: Seq[SchemedValue] = identifiers.getOrElse(Seq()) ++ alternativeIdentifiers.getOrElse(Seq())
 
