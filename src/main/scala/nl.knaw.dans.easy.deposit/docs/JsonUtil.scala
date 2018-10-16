@@ -136,3 +136,7 @@ object JsonUtil {
     write(a)
   }
 }
+
+object CausedBy {
+  def unapply(e: Throwable): Option[Throwable] = Option(e.getCause)
+}
