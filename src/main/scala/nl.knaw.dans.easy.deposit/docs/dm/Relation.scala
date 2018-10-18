@@ -18,7 +18,6 @@ package nl.knaw.dans.easy.deposit.docs.dm
 import java.net.URL
 
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata._
-import nl.knaw.dans.easy.deposit.docs.JsonUtil
 import nl.knaw.dans.easy.deposit.docs.StringUtils._
 import nl.knaw.dans.easy.deposit.docs.dm.RelationQualifier.RelationQualifier
 import nl.knaw.dans.lib.string._

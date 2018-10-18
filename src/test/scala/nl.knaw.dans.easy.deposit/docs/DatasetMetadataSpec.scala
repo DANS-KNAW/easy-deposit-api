@@ -117,12 +117,12 @@ class DatasetMetadataSpec extends TestSupportFixture {
   }
 
   it should "reject multiple dates created" in {
-      """{ "dates": [
-        |   { "value": "2018", "qualifier": "dcterms:created" },
-        |   { "value": "2017", "qualifier": "dcterms:created" },
-        | ]
-        |}""".stripMargin
-    .causesInvalidDocumentException("""requirement failed: At most one allowed; got [{"value":"2018","qualifier":"dcterms:created"},{"value":"2017","qualifier":"dcterms:created"}]""")
+    """{ "dates": [
+      |   { "value": "2018", "qualifier": "dcterms:created" },
+      |   { "value": "2017", "qualifier": "dcterms:created" },
+      | ]
+      |}""".stripMargin
+      .causesInvalidDocumentException("""requirement failed: At most one allowed; got [{"value":"2018","qualifier":"dcterms:created"},{"value":"2017","qualifier":"dcterms:created"}]""")
   }
 
   "DatasetMetadata.relations" should "accept complete relations" in {
@@ -192,7 +192,8 @@ class DatasetMetadataSpec extends TestSupportFixture {
 
   it should "reject a RelatedIdentifier with an empty scheme" in {
     val s = """{ "relations": [ { "scheme": "", "value": "abc", "qualifier": "dcterms:hasFormat" } ] }"""
-    DatasetMetadata(s) shouldBe a[Success[_]]  }
+    DatasetMetadata(s) shouldBe a[Success[_]]
+  }
 
   "DatasetMetadata.author" should "accept an author with initials and surname" in {
     DatasetMetadata(
@@ -273,7 +274,8 @@ class DatasetMetadataSpec extends TestSupportFixture {
 
   it should "accept both quoted and non quoted numbers" in {
     // the server will return all numbers quoted
-    val s = """{"spatialBoxes": [ { "scheme": "RD", "north": "486890.5", "east": 121811.88, "south": 436172.5,  "west": 91232.016 }]}""".stripMargin
+    val s =
+      """{"spatialBoxes": [ { "scheme": "RD", "north": "486890.5", "east": 121811.88, "south": 436172.5,  "west": 91232.016 }]}""".stripMargin
     DatasetMetadata(s) shouldBe a[Success[_]]
   }
 }
