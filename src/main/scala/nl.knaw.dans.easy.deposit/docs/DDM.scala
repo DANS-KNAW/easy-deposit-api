@@ -78,7 +78,7 @@ object DDM extends DebugEnhancedLogging {
         { dm.subjects.getNonEmpty.map(details(_, "subject", lang)) }
         { dm.temporalCoverages.getNonEmpty.map(details(_, "temporal", lang)) }
         { dm.spatialCoverages.getNonEmpty.map(details(_, "spatial", lang)) }
-        { dm.otherDates.map(date => <tag xsi:type={ date.schemeAsString }>{ date.value }</tag>.withTag(date.qualifier.toString)) }
+        { dm.otherDates.map(date => <label xsi:type={ date.schemeAsString }>{ date.value }</label>.withLabel(date.qualifier.toString)) }
         { dm.spatialPoints.getNonEmpty.map(point => <dcx-gml:spatial srsName={ point.srsName }>{ details(point) }</dcx-gml:spatial>) }
         { dm.spatialBoxes.getNonEmpty.map(point => <dcx-gml:spatial>{ details(point) }</dcx-gml:spatial>) }
         { dm.license.getNonEmpty.map(str => <dcterms:license>{ str }</dcterms:license>) /* xsi:type="dcterms:URI" not supported by json */ }
@@ -103,12 +103,12 @@ object DDM extends DebugEnhancedLogging {
 
   private def details(relation: RelationType, lang: String): Elem = {
     relation.withCleanOptions match {
-      case Relation(_, Some(url: String), Some(title: String)) => <tag xml:lang={ lang } href={ url }>{ title }</tag>
-      case Relation(_, Some(url: String), None) => <tag href={ url }>{ url }</tag>
-      case Relation(_, None, Some(title: String)) => <tag xml:lang={ lang }>{ title }</tag>
-      case relatedID: RelatedIdentifier => <tag  xsi:type={ relatedID.schemeAsString }>{ relatedID.value }</tag>
+      case Relation(_, Some(url: String), Some(title: String)) => <label xml:lang={ lang } href={ url }>{ title }</label>
+      case Relation(_, Some(url: String), None) => <label href={ url }>{ url }</label>
+      case Relation(_, None, Some(title: String)) => <label xml:lang={ lang }>{ title }</label>
+      case relatedID: RelatedIdentifier => <label  xsi:type={ relatedID.schemeAsString }>{ relatedID.value }</label>
     }
-  }.withTag(relation match { // replace the name space in case of an href=URL attribute
+  }.withLabel(relation match { // replace the name space in case of an href=URL attribute
     case Relation(qualifier, Some(_), _) => qualifier.toString.replace("dcterms", "ddm")
     case _ => relation.qualifier.toString
   })
@@ -117,17 +117,17 @@ object DDM extends DebugEnhancedLogging {
     val typeSchemes = Seq("abr:ABRcomplex", "abr:ABRperiode", "dcterms:ISO3166")
     (label, source) match {
       case ("subject", PossiblySchemedKeyValue(None, None, value)) =>
-        <tag xml:lang={ lang }>{ value }</tag>
-          .withTag(s"dc:$label")
+        <label xml:lang={ lang }>{ value }</label>
+          .withLabel(s"dc:$label")
       case (_, PossiblySchemedKeyValue(None, None, value)) =>
-        <tag xml:lang={ lang }>{ value }</tag>
-          .withTag(s"dcterms:$label")
+        <label xml:lang={ lang }>{ value }</label>
+          .withLabel(s"dcterms:$label")
       case (_, PossiblySchemedKeyValue(Some(scheme), Some(key), _)) if typeSchemes.contains(scheme) =>
-        <tag xsi:type={ scheme }>{ key }</tag>
-          .withTag(s"dcterms:$label")
+        <label xsi:type={ scheme }>{ key }</label>
+          .withLabel(s"dcterms:$label")
       case (_, PossiblySchemedKeyValue(_, _, value)) =>
-        <tag xml:lang={ lang } schemeURI={ source.schemeAsString } valueURI={ source.keyAsString }>{ value }</tag>
-          .withTag(s"ddm:$label")
+        <label xml:lang={ lang } schemeURI={ source.schemeAsString } valueURI={ source.keyAsString }>{ value }</label>
+          .withLabel(s"ddm:$label")
     }
   }
 
@@ -140,7 +140,7 @@ object DDM extends DebugEnhancedLogging {
         { author.initials.getNonEmpty.map(str => <dcx-dai:initials>{ str }</dcx-dai:initials>) }
         { author.insertions.getNonEmpty.map(str => <dcx-dai:insertions>{ str }</dcx-dai:insertions>) }
         { author.surname.getNonEmpty.map(str => <dcx-dai:surname>{ str }</dcx-dai:surname>) }
-        { author.ids.getNonEmpty.map(src => <tag>{ src.value}</tag>.withTag(s"dcx-dai:${ src.scheme.replace("id-type:", "") }")) }
+        { author.ids.getNonEmpty.map(src => <label>{ src.value}</label>.withLabel(s"dcx-dai:${ src.scheme.replace("id-type:", "") }")) }
         { author.role.toSeq.map(role => <dcx-dai:role>{ role.key }</dcx-dai:role>) }
         { author.organization.getNonEmpty.map(orgDetails(_, lang, role = None)) }
       </dcx-dai:author>
@@ -154,9 +154,9 @@ object DDM extends DebugEnhancedLogging {
 
   /** @param elem XML element to be adjusted */
   private implicit class RichElem(val elem: Elem) extends AnyVal {
-    /** @param str the desired tag (namespace:label) or (label) */
+    /** @param str the desired label, optionally with name space prefix */
     @throws[InvalidDocumentException]("when str is not a valid XML label (has more than one ':')")
-    def withTag(str: String): Elem = {
+    def withLabel(str: String): Elem = {
       str.split(":") match {
         case Array(label) => elem.copy(label = label)
         case Array(prefix, label) => elem.copy(prefix = prefix, label = label)
