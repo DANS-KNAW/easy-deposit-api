@@ -396,26 +396,28 @@ paths:
         [multipart media type](https://tools.ietf.org/html/rfc2046.html#section-5.1); each part contains one file.
         The header area of each part specifies the file name using a `Content-Disposition` header.
 
-        If the body contains only one part and that part has `Content-Type: application/zip`, then the body
+        If the body contains **only one part** and that part has `Content-Type: application/zip`, then the body
         is a file in ZIP format. This ZIP file can contain a directory hierarchy. The ZIP file will be
         unzipped in `dir_path`. For each file in the ZIP file, the path in the deposit will be `dir_path`/`path_in_zip`.
 
-        In all other cases the files are all stored in the directory pointed to by `dir_path` and it is not
-        allowed to include any files with `Content-Type: application/zip`. Note, that this means that only a flat
+        In all other cases the files are all stored in the directory pointed to by `dir_path` and **it is not
+        allowed** to include any files with `Content-Type: application/zip`. Note, that this means that only a flat
         list of files can be sent this way, i.e. not including any directory hierarchy.
       parameters:
       - $ref: "#/components/parameters/DepositId"
       - $ref: "#/components/parameters/DirPath"
-      - $ref: "#/components/parameters/ContentDisposition"
       requestBody:
         required: true
         content:
           multipart/form-data:
             schema:
-              type: array
-              items:
-                type: string
-                format: binary
+              type: object
+              properties:
+                filename:
+                  type: array
+                  items:
+                    type: string
+                    format: binary
       responses:
         201:
           description: file or subdirectory added
