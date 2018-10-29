@@ -28,7 +28,7 @@ class JsonUtilSpec extends TestSupportFixture {
     values shouldBe values.distinct
   }
 
-  "JsonUtil.enumerations" should "should have all enums defined in jspn objects" in {
+  "JsonUtil.enumerations" should "should have all enums defined in json objects" in {
     val types = Seq(
       typeOf[DatasetMetadata],
       typeOf[DepositInfo],

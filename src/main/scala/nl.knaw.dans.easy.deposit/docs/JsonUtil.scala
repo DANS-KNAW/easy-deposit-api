@@ -16,10 +16,12 @@
 package nl.knaw.dans.easy.deposit.docs
 
 import java.lang.reflect.InvocationTargetException
+import java.net.MalformedURLException
 import java.nio.file.{ Path, Paths }
 
-import nl.knaw.dans.easy.deposit.docs.DatasetMetadata._
 import nl.knaw.dans.easy.deposit.docs.StateInfo.State
+import nl.knaw.dans.easy.deposit.docs.dm._
+import org.json4s
 import org.json4s.Extraction.decompose
 import org.json4s.JsonAST.{ JValue, _ }
 import org.json4s.JsonDSL._
@@ -50,11 +52,9 @@ object JsonUtil {
   class RelationTypeSerializer extends CustomSerializer[RelationType](_ =>
     ( {
       case JNull => null
-      case s: JValue =>
-        // the first class should have a mandatory field that distinguishes it from the rest
+      case s: JValue => // the first class has a unique mandatory field, if that fails try the other
         Try { Extraction.extract[RelatedIdentifier](s) }
-          .orElse(Try { Extraction.extract[Relation](s) })
-          .getOrElse(throw new IllegalArgumentException(s"expected one of (Relation | RelatedIdentifier) got: ${ toJson(s) }"))
+          .getOrElse(tryRelation(s))
     }, {
       // case x: RelationType => JString(x.toString) // would break rejectNotExpectedContent
       case Relation(qualifier, url, title) =>
@@ -68,6 +68,17 @@ object JsonUtil {
     }
     )
   )
+
+  private def tryRelation(s: json4s.JValue): Relation = {
+    Try { Extraction.extract[Relation](s) } match {
+      case Failure(CausedBy(CausedBy(e: MalformedURLException))) =>
+        throw new IllegalArgumentException(s"invalid URL [${ e.getMessage }] got: ${ toJson(s) }")
+      case Failure(e) =>
+        // the last one in a chain of attempts
+        throw new IllegalArgumentException(s"expected one of (Relation | RelatedIdentifier) got: ${ toJson(s) }")
+      case Success(r) => r
+    }
+  }
 
   val enumerations = List(
     RelationQualifier,
@@ -124,4 +135,8 @@ object JsonUtil {
     // seems not to need a try: while the date formatter wasn't in place it produced empty strings
     write(a)
   }
+}
+
+object CausedBy {
+  def unapply(e: Throwable): Option[Throwable] = Option(e.getCause)
 }

@@ -60,7 +60,7 @@ package object deposit {
       prologue + "\n" + printer.format(trimmed)
     }
   }
-  implicit class BagExtensions(val bag: DansV0Bag) {
+  implicit class BagExtensions(val bag: DansV0Bag) extends AnyVal {
     def addMetadataFile(content: Elem, target: String): Try[Any] = {
       bag.addTagFile(content.serialize.asInputStream, Paths.get(s"metadata/$target"))
     }
@@ -70,7 +70,8 @@ package object deposit {
     }
   }
 
-  implicit class StringExtensions(val s: String) {
+  implicit class StringExtensions(val s: String) extends AnyVal {
+    // TODO not needed once we install better-files v3.6 https://github.com/DANS-KNAW/easy-deposit-api/pull/69#pullrequestreview-164194094
     def asInputStream: InputStream = {
       new ByteArrayInputStream(s.getBytes(StandardCharsets.UTF_8))
     }

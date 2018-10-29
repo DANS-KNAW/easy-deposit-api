@@ -27,7 +27,7 @@ import org.eclipse.jetty.http.HttpStatus._
 import org.scalamock.scalatest.MockFactory
 import org.scalatra.test.scalatest.ScalatraSuite
 
-import scala.util.{ Success, Try }
+import scala.util.Success
 
 class IntegrationSpec extends TestSupportFixture with ServletFixture with ScalatraSuite with MockFactory {
 
@@ -52,8 +52,10 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
     val metadataURI = s"/deposit/$uuid/metadata"
 
     // create dataset metadata
+    assumeSchemaAvailable
     expectsUserFooBar
-    put(metadataURI, headers = Seq(basicAuthentication),
+    put(
+      metadataURI, headers = Seq(basicAuthentication),
       body = """{"titles":["blabla"]}""" // more variations in DepositDirSpec
     ) {
       status shouldBe NO_CONTENT_204
@@ -85,15 +87,36 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
     }
   }
 
+  s"POST /deposit/:uuid/metadata" should "return a user friendly message" in {
+    // more variants in DDMSpec and DatasetMetadataSpec, here we test the full chain of error handling
+
+    // create dataset
+    expectsUserFooBar
+    val responseBody = post(uri = s"/deposit", headers = Seq(basicAuthentication)) { body }
+    val uuid = DepositInfo(responseBody).map(_.id.toString).getOrRecover(e => fail(e.toString, e))
+    val metadataURI = s"/deposit/$uuid/metadata"
+
+    // create dataset metadata
+    assumeSchemaAvailable
+    expectsUserFooBar
+    put(
+      metadataURI, headers = Seq(basicAuthentication),
+      body = """{"spatialPoints": [{ "scheme": "RD", "x": "795,00", "y": "446750Z" }]}"""
+    ) {
+      body shouldBe """Bad Request. invalid DatasetMetadata: requirement failed: Invalid number [795,00]; got {"scheme":"RD","x":"795,00","y":"446750Z"} SpatialPoint"""
+      status shouldBe BAD_REQUEST_400
+    }
+  }
 
   s"scenario: POST /deposit twice; GET /deposit" should "return a list of datasets" in {
 
     // create two deposits
     val responseBodies: Seq[String] = (0 until 2).map { _ =>
       expectsUserFooBar
-      post(uri = s"/deposit", headers = Seq(basicAuthentication)) {
-        new String(bodyBytes)
-      }
+      post(
+        uri = s"/deposit",
+        headers = Seq(basicAuthentication)
+      ) { new String(bodyBytes) }
     }
     responseBodies.foreach(_ should endWith("""Z"}"""))
 
@@ -120,7 +143,11 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
 
     // upload a file in a folder
     expectsUserFooBar
-    put(uri = s"/deposit/$uuid/file/path/to/text.txt", headers = Seq(basicAuthentication), body = "Lorum ipsum") {
+    put(
+      uri = s"/deposit/$uuid/file/path/to/text.txt",
+      headers = Seq(basicAuthentication),
+      body = "Lorum ipsum"
+    ) {
       status shouldBe CREATED_201
       (dataFilesBase / "path" / "to" / "text.txt").contentAsString shouldBe "Lorum ipsum"
     }
@@ -157,7 +184,10 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
 
     // get the doi twice
     expectsUserFooBar
-    get(uri = s"/deposit/$uuid/doi", headers = Seq(basicAuthentication)) {
+    get(
+      uri = s"/deposit/$uuid/doi",
+      headers = Seq(basicAuthentication)
+    ) {
       status shouldBe OK_200
       body shouldBe expectedDoiRecord
     }
@@ -171,8 +201,11 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
   s"scenario: create - ... - sumbit" should "create submitted dataset copied from a draft" in {
 
     val datasetMetadata = getManualTestResource("datasetmetadata-from-ui-all.json")
-    val doi = Try { DatasetMetadata(datasetMetadata).get.identifiers.get.headOption.get.value }
-      .getOrRecover(e => fail("could not get DOI from test input", e))
+    val doi = DatasetMetadata(datasetMetadata)
+      .getOrRecover(fail(_))
+      .doi
+      .getOrElse(fail("could not get DOI from test input"))
+
     (testDir / "easy-ingest-flow-inbox").createDirectories()
     (testDir / "stage").createDirectories()
 
@@ -183,8 +216,11 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
     val depositDir = testDir / "drafts" / "foo" / uuid.toString
 
     // upload dataset metadata
+    assumeSchemaAvailable
     expectsUserFooBar
-    put(s"/deposit/$uuid/metadata", headers = Seq(basicAuthentication),
+    put(
+      uri = s"/deposit/$uuid/metadata",
+      headers = Seq(basicAuthentication),
       body = datasetMetadata
     ) {
       body shouldBe ""
@@ -196,7 +232,8 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
 
     // submit
     expectsUserFooBar
-    put(s"/deposit/$uuid/state", headers = Seq(basicAuthentication),
+    put(
+      uri = s"/deposit/$uuid/state", headers = Seq(basicAuthentication),
       body = """{"state":"SUBMITTED","stateDescription":"blabla"}"""
     ) {
       body shouldBe ""
@@ -222,8 +259,11 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
 
     val uuid = DepositInfo(responseBody).map(_.id.toString).getOrRecover(e => fail(e.toString, e))
     // upload dataset metadata
+    assumeSchemaAvailable
     expectsUserFooBar
-    put(s"/deposit/$uuid/metadata", headers = Seq(basicAuthentication),
+    put(
+      uri = s"/deposit/$uuid/metadata",
+      headers = Seq(basicAuthentication),
       body = metadataWithoutDOI
     ) {
       body shouldBe ""
@@ -232,7 +272,9 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
 
     // submit
     expectsUserFooBar
-    put(s"/deposit/$uuid/state", headers = Seq(basicAuthentication),
+    put(
+      uri = s"/deposit/$uuid/state",
+      headers = Seq(basicAuthentication),
       body = """{"state":"SUBMITTED","stateDescription":"blabla"}"""
     ) {
       body shouldBe "Bad Request. invalid DatasetMetadata: Please first GET a DOI for this deposit"
@@ -253,7 +295,9 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
 
     // submit
     expectsUserFooBar
-    put(s"/deposit/$uuid/state", headers = Seq(basicAuthentication),
+    put(
+      uri = s"/deposit/$uuid/state",
+      headers = Seq(basicAuthentication),
       body = """{"state":"SUBMITTED","stateDescription":"blabla"}"""
     ) {
       status shouldBe FORBIDDEN_403

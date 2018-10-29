@@ -20,6 +20,7 @@ import java.nio.file.{ NoSuchFileException, Path, Paths }
 import java.util.UUID
 
 import nl.knaw.dans.easy.deposit.authentication.ServletEnhancedLogging._
+import nl.knaw.dans.easy.deposit.docs.DDM.SchemaNotAvailableException
 import nl.knaw.dans.easy.deposit.docs.JsonUtil.{ InvalidDocumentException, toJson }
 import nl.knaw.dans.easy.deposit.docs.{ DatasetMetadata, DepositInfo, StateInfo }
 import nl.knaw.dans.easy.deposit.servlets.DepositServlet.{ BadRequestException, InvalidResourceException, ZipMustBeOnlyFileException }
@@ -171,7 +172,8 @@ class DepositServlet(app: EasyDepositApiApp)
     case e: BadRequestException => BadRequest(e.getMessage)
     case e: ZipMustBeOnlyFileException => Conflict(e.getMessage)
     case e: NotImplementedException => NotImplemented(e.getMessage)
-    case _ => internalErrorResponse(t)
+    case e: SchemaNotAvailableException => InternalServerError(e.getMessage)
+    case _ => notExpectedExceptionResponse(t)
   }
 
   private def noSuchDepositResponse(e: NoSuchDepositException): ActionResult = {

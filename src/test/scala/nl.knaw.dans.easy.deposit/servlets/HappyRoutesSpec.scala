@@ -146,7 +146,7 @@ class HappyRoutesSpec extends TestSupportFixture with ServletFixture with Scalat
     }
   }
 
-  s"get /deposit/:uuid/file/path/to/directory" should "return FileInfo" in {
+  s"get /deposit/:uuid/file/path/to/directory" should "return a list with one FileInfo object in json format" in {
     expectsUserFooBar
     (mockedApp.getFileInfo(_: String, _: UUID, _: Path)) expects("foo", uuid, *) returning
       Success(Seq(FileInfo("a.txt", Paths.get("files/a.txt"), "x")))
@@ -160,7 +160,7 @@ class HappyRoutesSpec extends TestSupportFixture with ServletFixture with Scalat
     }
   }
 
-  s"get /deposit/:uuid/file/a.txt" should "return the contents of the file" in {
+  s"get /deposit/:uuid/file/a.txt" should "return a FileInfo object in json format" in {
     expectsUserFooBar
     (mockedApp.getFileInfo(_: String, _: UUID, _: Path)) expects("foo", uuid, *) returning
       Success(FileInfo("a.txt", Paths.get("files/a.txt"), "x"))
@@ -175,6 +175,7 @@ class HappyRoutesSpec extends TestSupportFixture with ServletFixture with Scalat
   }
 
   "put /deposit/:uuid/metadata" should "reject invalid datasetmetadata.json" in {
+    assumeSchemaAvailable
     expectsUserFooBar
 
     put(

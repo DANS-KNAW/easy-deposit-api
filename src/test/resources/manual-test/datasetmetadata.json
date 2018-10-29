@@ -27,12 +27,12 @@
       "surname": "Einstein",
       "ids": [
         {
-          "scheme": "DOI",
-          "value": "1234/5678"
+          "scheme": "DAI",
+          "value": "93313935x"
         },
         {
           "scheme": "ISNI",
-          "value": "ISNI|000000012281955X"
+          "value": "ISNI:000000012281955X"
         }
       ],
       "organization": "University of Zurich"
@@ -45,12 +45,12 @@
       "surname": "Einstein",
       "ids": [
         {
-          "scheme": "DOI",
-          "value": "1234/5678"
+          "scheme": "DAI",
+          "value": "93313935x"
         },
         {
           "scheme": "ISNI",
-          "value": "ISNI|000000012281955X"
+          "value": "000000012281955X"
         }
       ],
       "organization": "University of Zurich"
@@ -79,7 +79,7 @@
   "relations": [
     {
       "qualifier": "dcterms:hasFormat",
-      "url": "string",
+      "url": "http://some.host",
       "title": "string"
     },
     {
@@ -123,14 +123,14 @@
   "license": "string",
   "types": [
     {
-      "scheme": "string",
-      "value": "string"
+      "scheme": "dcterms:DCMIType",
+      "value": "Software"
     }
   ],
   "formats": [
     {
-      "scheme": "string",
-      "value": "string"
+      "scheme": "dcterms:IMT",
+      "value": "image/jpg"
     }
   ],
   "temporalCoverages": [
@@ -143,17 +143,17 @@
   "spatialPoints": [
     {
       "scheme": "http://www.opengis.net/def/crs/EPSG/0/28992",
-      "x": 0,
-      "y": 0
+      "x": "0",
+      "y": "0"
     }
   ],
   "spatialBoxes": [
     {
       "scheme": "http://www.opengis.net/def/crs/EPSG/0/4326",
-      "north": 0,
-      "east": 0,
-      "south": 0,
-      "west": 0
+      "north": "0",
+      "east": "0",
+      "south": "0",
+      "west": "0"
     }
   ],
   "spatialCoverages": [

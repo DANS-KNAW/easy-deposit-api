@@ -31,11 +31,11 @@
       "ids": [
         {
           "scheme": "id-type:DAI",
-          "value": "123456"
+          "value": "93313935x"
         },
         {
           "scheme": "id-type:ORCID",
-          "value": "abcdef"
+          "value": "0000-0002-9079-593X"
         }
       ],
       "role": {
@@ -278,29 +278,29 @@
   "spatialPoints": [
     {
       "scheme": "http://www.opengis.net/def/crs/EPSG/0/28992",
-      "x": 12,
-      "y": 34
+      "x": "12",
+      "y": "34"
     },
     {
       "scheme": "http://www.opengis.net/def/crs/EPSG/0/4326",
-      "x": 56,
-      "y": 78
+      "x": "56",
+      "y": "78"
     }
   ],
   "spatialBoxes": [
     {
       "scheme": "http://www.opengis.net/def/crs/EPSG/0/28992",
-      "north": 1,
-      "east": 2,
-      "south": 3,
-      "west": 4
+      "north": "1",
+      "east": "2",
+      "south": "3",
+      "west": "4"
     },
     {
       "scheme": "http://www.opengis.net/def/crs/EPSG/0/4326",
-      "north": 5,
-      "east": 6,
-      "south": 7,
-      "west": 8
+      "north": "5",
+      "east": "6",
+      "south": "7",
+      "west": "8"
     }
   ],
   "spatialCoverages": [

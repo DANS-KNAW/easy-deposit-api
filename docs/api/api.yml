@@ -1046,13 +1046,17 @@ components:
         scheme:
           type: string
         north:
-          type: number
+          type: string
+          format: "number"
         east:
-          type: number
+          type: string
+          format: "number"
         south:
-          type: number
+          type: string
+          format: "number"
         west:
-          type: number
+          type: string
+          format: "number"
 
     SpatialPoint:
       type: object
@@ -1064,9 +1068,11 @@ components:
         scheme:
           type: string
         x:
-          type: number
+          type: string
+          format: "number"
         y:
-          type: number
+          type: string
+          format: "number"
 
     # Note: it is not possible to provide examples in combination with a reference to this
     # schema. If you need examples, you'll have to spell out the complete type.

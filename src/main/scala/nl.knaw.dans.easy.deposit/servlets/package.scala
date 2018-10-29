@@ -37,7 +37,7 @@ package object servlets extends DebugEnhancedLogging {
   private val post = "-compress(ed)?"
   private val contentTypeZipPattern = s"application/(($pre($post)?)|(x$post))"
 
-  def internalErrorResponse(t: Throwable): ActionResult = {
+  def notExpectedExceptionResponse(t: Throwable): ActionResult = {
     logger.error(s"Not expected exception: ${ t.getMessage }", t)
     InternalServerError("Internal Server Error")
   }

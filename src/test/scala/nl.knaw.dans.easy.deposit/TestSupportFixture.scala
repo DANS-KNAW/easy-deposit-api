@@ -15,6 +15,7 @@
  */
 package nl.knaw.dans.easy.deposit
 
+import java.net.UnknownHostException
 import java.util.{ Base64, TimeZone, UUID }
 
 import better.files.File
@@ -24,11 +25,14 @@ import nl.knaw.dans.bag.v0.DansV0Bag
 import nl.knaw.dans.easy.deposit.authentication.AuthenticationMocker.mockedAuthenticationProvider
 import nl.knaw.dans.easy.deposit.authentication.TokenSupport.TokenConfig
 import nl.knaw.dans.easy.deposit.authentication.{ AuthConfig, AuthUser, AuthenticationProvider, TokenSupport }
-import nl.knaw.dans.easy.deposit.docs.DepositInfo
+import nl.knaw.dans.easy.deposit.docs.{ DDM, DepositInfo }
 import org.apache.commons.configuration.PropertiesConfiguration
 import org.joda.time.{ DateTime, DateTimeUtils, DateTimeZone }
 import org.scalatest._
 import org.scalatest.enablers.Existence
+
+import scala.util.Failure
+import scala.xml.SAXParseException
 
 trait TestSupportFixture extends FlatSpec with Matchers with Inside with BeforeAndAfterEach {
   implicit def existenceOfFile[FILE <: better.files.File]: Existence[FILE] = _.exists
@@ -48,8 +52,8 @@ trait TestSupportFixture extends FlatSpec with Matchers with Inside with BeforeA
   }
 
   val nowYMD = "2018-03-22"
-  val now = s"${nowYMD}T21:43:01.576"
-  val nowUTC = s"${nowYMD}T20:43:01Z"
+  val now = s"${ nowYMD }T21:43:01.576"
+  val nowUTC = s"${ nowYMD }T20:43:01Z"
   /** Causes DateTime.now() to return a predefined value. */
   DateTimeUtils.setCurrentMillisFixed(new DateTime(nowUTC).getMillis)
   DateTimeZone.setDefault(DateTimeZone.forTimeZone(TimeZone.getTimeZone("Europe/Amsterdam")))
@@ -67,8 +71,8 @@ trait TestSupportFixture extends FlatSpec with Matchers with Inside with BeforeA
       addProperty("deposits.stage", testSubDir("stage").toString())
       addProperty("deposits.drafts", testSubDir("drafts").toString())
       addProperty("deposits.submit-to", testSubDir("easy-ingest-flow-inbox").toString())
-      addProperty("pids.generator-service", "http://piHostDoesNotExist")
-      addProperty("users.ldap-url", "http://ldapHostDoesNotExist")
+      addProperty("pids.generator-service", "http://pidHostDoesNotExist.dans.knaw.nl")
+      addProperty("users.ldap-url", "http://ldapHostDoesNotExist.dans.knaw.nl")
       addProperty("users.ldap-parent-entry", "-")
       addProperty("users.ldap-admin-principal", "-")
       addProperty("users.ldap-admin-password", "-")
@@ -101,5 +105,12 @@ trait TestSupportFixture extends FlatSpec with Matchers with Inside with BeforeA
 
   def createJWT(user: AuthUser): String = {
     tokenSupport.encodeJWT(user)
+  }
+
+  def assumeSchemaAvailable: Assertion = {
+    assume(DDM.triedSchema match {
+      case Failure(e: SAXParseException) if e.getCause.isInstanceOf[UnknownHostException] => false
+      case _ => true
+    })
   }
 }
