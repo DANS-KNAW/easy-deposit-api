@@ -15,6 +15,8 @@
  */
 package nl.knaw.dans.easy.deposit
 
+import java.nio.file.Paths
+
 import nl.knaw.dans.easy.deposit.docs.StateInfo.State
 import nl.knaw.dans.easy.deposit.docs.{ DatasetMetadata, StateInfo }
 import nl.knaw.dans.lib.error._
@@ -41,8 +43,8 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
     val bag = getBag(depositDir)
     val bagDir = bag.baseDir
     (bagDir.parent / "deposit.properties").append(s"identifier.doi=$doi")
-    bag.addPayloadFile("".asInputStream)(_ / "text.txt")
-    bag.addPayloadFile("Lorum ipsum".asInputStream)(_ / "folder/text.txt")
+    bag.addPayloadFile("".asInputStream, Paths.get("text.txt"))
+    bag.addPayloadFile("Lorum ipsum".asInputStream, Paths.get("folder/text.txt"))
     bag.save()
     (testDir / "submitted").createDirectories()
 
@@ -95,7 +97,7 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
     val depositDir = createDeposit(datasetMetadata)
     val bag = getBag(depositDir)
     (bag.baseDir.parent / "deposit.properties").append(s"identifier.doi=$doi")
-    bag.addPayloadFile("lorum ipsum".asInputStream)(_ / "file.txt")
+    bag.addPayloadFile("lorum ipsum".asInputStream, Paths.get("file.txt"))
     bag.save()
     (testDir / "submitted").createDirectories()
 
@@ -112,7 +114,7 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
     val depositDir = createDeposit(datasetMetadata)
     val bag = getBag(depositDir)
     (bag.baseDir.parent / "deposit.properties").append(s"identifier.doi=$doi")
-    bag.addPayloadFile("lorum ipsum".asInputStream)(_ / "file.txt")
+    bag.addPayloadFile("lorum ipsum".asInputStream, Paths.get("file.txt"))
     bag.save()
     (testDir / "submitted").createDirectories()
 
