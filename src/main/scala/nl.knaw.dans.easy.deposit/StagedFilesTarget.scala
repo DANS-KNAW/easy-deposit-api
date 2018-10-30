@@ -22,6 +22,7 @@ import nl.knaw.dans.bag.DansBag
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 
 import scala.util.{ Success, Try }
+import nl.knaw.dans.bag.ImportOption.{ ATOMIC_MOVE, COPY, ImportOption, MOVE }
 
 /**
  * @param draftBag    the bag that receives the staged files as payload
@@ -46,13 +47,12 @@ case class StagedFilesTarget(draftBag: DansBag, destination: Path) extends Debug
         _ <- if (isPayload) draftBag.removePayloadFile(bagRelativePath)
              else if (isFetchItem) draftBag.removeFetchItem(bagRelativePath)
              else Success(draftBag.save())
-        _ <- draftBag.addPayloadFile(file, bagRelativePath)
+        _ <- draftBag.addPayloadFile(file, bagRelativePath)(ATOMIC_MOVE)
       } yield ()
     }
 
     stagingDir
-      .walk()
-      .filter(!_.isDirectory)
+      .list
       .map(moveToDraft)
       .find(_.isFailure)
       .getOrElse(draftBag.save)

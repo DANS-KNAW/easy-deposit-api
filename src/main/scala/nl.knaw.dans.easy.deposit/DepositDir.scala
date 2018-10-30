@@ -16,7 +16,7 @@
 package nl.knaw.dans.easy.deposit
 
 import java.io.FileNotFoundException
-import java.nio.file.NoSuchFileException
+import java.nio.file.{ NoSuchFileException, Paths }
 import java.util.UUID
 
 import better.files._
@@ -261,7 +261,7 @@ object DepositDir {
       _ <- Try { depositDir.createDirectories }
       bag <- DansV0Bag.empty(depositDir / "bag")
       _ = bag.withEasyUserAccount(deposit.user)
-      _ <- bag.addTagFile("{}".asInputStream)(_ / "metadata" / "dataset.json")
+      _ <- bag.addTagFile("{}".asInputStream, Paths.get("metadata/dataset.json"))
       _ <- bag.save()
       _ <- createDepositProperties(user, depositInfo, deposit)
     } yield deposit

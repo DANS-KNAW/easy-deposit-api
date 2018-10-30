@@ -100,10 +100,10 @@ class DataFilesSpec extends TestSupportFixture {
   "fileInfoSeq" should "return the proper number of files" in {
     val bag = DansV0Bag
       .empty(testDir / "testBag").getOrRecover(fail("could not create test bag", _))
-      .addPayloadFile(randomContent)(_ / "1.txt").getOrRecover(payloadFailure)
-      .addPayloadFile(randomContent)(_ / "folder1/2.txt").getOrRecover(payloadFailure)
-      .addPayloadFile(randomContent)(_ / "folder1/3.txt").getOrRecover(payloadFailure)
-      .addPayloadFile(randomContent)(_ / "folder2/4.txt").getOrRecover(payloadFailure)
+      .addPayloadFile(randomContent, Paths.get("1.txt")).getOrRecover(payloadFailure)
+      .addPayloadFile(randomContent, Paths.get("folder1/2.txt")).getOrRecover(payloadFailure)
+      .addPayloadFile(randomContent, Paths.get("folder1/3.txt")).getOrRecover(payloadFailure)
+      .addPayloadFile(randomContent, Paths.get("folder2/4.txt")).getOrRecover(payloadFailure)
     bag.save()
     val dataFiles = DataFiles(bag)
     val path2 = Paths.get("folder2")
@@ -122,14 +122,14 @@ class DataFilesSpec extends TestSupportFixture {
   "fileInfo" should "return proper information about the file" in {
     val bag = DansV0Bag
       .empty(testDir / "testBag").getOrRecover(fail("could not create test bag", _))
-      .addPayloadFile(randomContent)(_ / "1.txt").getOrRecover(payloadFailure)
-      .addPayloadFile(randomContent)(_ / "folder1/2.txt").getOrRecover(payloadFailure)
+      .addPayloadFile(randomContent, Paths.get("1.txt")).getOrRecover(payloadFailure)
+      .addPayloadFile(randomContent, Paths.get("folder1/2.txt")).getOrRecover(payloadFailure)
     bag.save()
     val dataFiles = DataFiles(bag)
     val path = Paths.get("folder1/2.txt")
 
     dataFiles.get(path) should matchPattern {
-      case Success(FileInfo("2.txt", path, _)) =>
+      case Success(FileInfo("2.txt", `path`, _)) =>
     }
   }
 
