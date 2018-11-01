@@ -43,7 +43,7 @@ trait ServletEnhancedLogging extends DebugEnhancedLogging {
       case kv => kv
     }
     // https://www.bluecatnetworks.com/blog/ip-addresses-considered-personally-identifiable-information/
-    // saved at https://web.archive.org/web/20181030102418/
+    // in case of link rot paste the url at the tail of https://web.archive.org/web/20181030102418/
     val maskedRemoteAddr = request.getRemoteAddr.replaceAll("[0-9]+[.][0-9]+$","**.**")
     logger.info(s"${ request.getMethod } ${ request.getRequestURL } remote=$maskedRemoteAddr; params=$maskedParams; headers=$headers")
   }
