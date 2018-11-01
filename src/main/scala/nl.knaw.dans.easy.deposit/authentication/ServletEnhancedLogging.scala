@@ -17,6 +17,7 @@ package nl.knaw.dans.easy.deposit.authentication
 
 import javax.servlet.http.{ HttpServletRequest, HttpServletResponse }
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
+import nl.knaw.dans.lib.error._
 import org.scalatra.{ ActionResult, ScalatraBase }
 
 import scala.util.{ Failure, Success, Try }
@@ -82,10 +83,7 @@ object ServletEnhancedLogging extends DebugEnhancedLogging {
                             ): ActionResult = {
       // the signature is more specific than for nl.knaw.dans.lib.error.TryExtensions.getOrRecover
       // it comes with the trait, not with just an import
-      (tried match {
-        case Success(actionResult) => actionResult
-        case Failure(throwable) => recover(throwable)
-      }).logResponse
+      tried.getOrRecover(recover).logResponse
     }
   }
 }
