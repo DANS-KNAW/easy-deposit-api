@@ -16,7 +16,7 @@
 package nl.knaw.dans.easy.deposit.servlets
 
 import nl.knaw.dans.easy.deposit.EasyDepositApiApp
-import nl.knaw.dans.easy.deposit.authentication.ServletEnhancedLogging._
+import nl.knaw.dans.easy.deposit.logging.ServletEnhancedLogging._
 import nl.knaw.dans.easy.deposit.docs.JsonUtil._
 import nl.knaw.dans.easy.deposit.docs.UserInfo
 import nl.knaw.dans.lib.error._

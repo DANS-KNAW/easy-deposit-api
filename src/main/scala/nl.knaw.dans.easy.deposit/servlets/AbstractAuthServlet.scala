@@ -17,6 +17,7 @@ package nl.knaw.dans.easy.deposit.servlets
 
 import nl.knaw.dans.easy.deposit.EasyDepositApiApp
 import nl.knaw.dans.easy.deposit.authentication._
+import nl.knaw.dans.easy.deposit.logging.ServletEnhancedLogging
 import org.apache.commons.configuration.PropertiesConfiguration
 import org.scalatra.ScalatraServlet
 

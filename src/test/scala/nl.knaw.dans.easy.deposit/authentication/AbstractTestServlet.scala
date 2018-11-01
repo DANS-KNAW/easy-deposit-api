@@ -15,6 +15,7 @@
  */
 package nl.knaw.dans.easy.deposit.authentication
 
+import nl.knaw.dans.easy.deposit.logging.ServletEnhancedLogging
 import org.apache.commons.configuration.PropertiesConfiguration
 import org.scalatra.ScalatraServlet
 

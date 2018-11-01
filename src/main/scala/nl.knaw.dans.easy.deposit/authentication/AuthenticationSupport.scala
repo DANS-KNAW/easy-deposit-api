@@ -19,7 +19,7 @@ import java.net.URL
 
 import nl.knaw.dans.easy.deposit.authentication.AuthUser.UserState
 import nl.knaw.dans.easy.deposit.authentication.AuthenticationSupport._
-import nl.knaw.dans.easy.deposit.authentication.ServletEnhancedLogging._
+import nl.knaw.dans.easy.deposit.logging.ServletEnhancedLogging._
 import nl.knaw.dans.lib.error._
 import org.scalatra._
 import org.scalatra.auth.ScentryAuthStore.CookieAuthStore

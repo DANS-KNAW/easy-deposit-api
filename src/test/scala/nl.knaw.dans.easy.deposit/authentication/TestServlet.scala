@@ -15,7 +15,7 @@
  */
 package nl.knaw.dans.easy.deposit.authentication
 
-import nl.knaw.dans.easy.deposit.authentication.ServletEnhancedLogging._
+import nl.knaw.dans.easy.deposit.logging.ServletEnhancedLogging._
 import org.joda.time.DateTime
 import org.scalatra.{ Forbidden, Ok, Unauthorized }
 
