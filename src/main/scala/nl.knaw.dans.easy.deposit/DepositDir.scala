@@ -203,8 +203,7 @@ case class DepositDir private(baseDir: File, user: String, id: UUID) extends Deb
   private def doisMatch(dm: DatasetMetadata, doi: Option[String]) = {
     if (doi == dm.doi) Success(())
     else {
-      val e = new Exception(s"DOI in datasetmetadata.json [${ dm.doi }] does not equal DOI in deposit.properties [$doi]")
-      Failure(CorruptDepositException(user, id.toString, e))
+      Failure(BadDoiException(dm, doi))
     }
   }
 }

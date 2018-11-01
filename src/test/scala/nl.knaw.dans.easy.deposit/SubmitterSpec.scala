@@ -140,7 +140,7 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
 
     assumeSchemaAvailable
     new Submitter(testDir / "staged", testDir / "submitted").submit(depositDir) should matchPattern {
-      case Failure(e: CorruptDepositException) if e.getMessage.endsWith(
+      case Failure(e: BadDoiException) if e.getMessage.endsWith(
         s"DOI in datasetmetadata.json [${ datasetMetadata.doi }] does not equal DOI in deposit.properties [None]"
       ) =>
     }

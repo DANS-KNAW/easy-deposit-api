@@ -21,6 +21,8 @@ import java.nio.file.{ Path, Paths }
 import java.util.UUID
 
 import nl.knaw.dans.bag.v0.DansV0Bag
+import nl.knaw.dans.easy.deposit.docs.DatasetMetadata
+import nl.knaw.dans.easy.deposit.docs.JsonUtil.InvalidDocumentException
 import nl.knaw.dans.easy.deposit.docs.StateInfo.State.State
 
 import scala.util.Try
@@ -35,6 +37,9 @@ package object deposit {
 
   case class CorruptDepositException(user: String, id: String, cause: Throwable)
     extends DepositException(s"Invalid deposit uuid $id for user $user: ${ cause.getMessage }", cause)
+
+  case class BadDoiException(md: DatasetMetadata, propsDOI: Option[String])
+    extends InvalidDocumentException(s"DOI in datasetmetadata.json [${ md.doi }] does not equal DOI in deposit.properties [$propsDOI]")
 
   case class IllegalStateTransitionException(user: String, id: UUID, oldState: State, newState: State)
     extends DepositException(s"Cannot transition from $oldState to $newState (deposit id: $id, user: $user)", null)

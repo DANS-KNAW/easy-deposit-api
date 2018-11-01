@@ -90,6 +90,7 @@ class DepositServlet(app: EasyDepositApiApp)
       uuid <- getUUID
       managedIS <- getRequestBodyAsManagedInputStream
       datasetMetadata <- managedIS.apply(is => DatasetMetadata(is))
+      _ <- app.checkDoi(user.id, uuid, datasetMetadata)
       _ <- app.writeDataMetadataToDeposit(datasetMetadata, user.id, uuid)
     } yield NoContent()
       ).getOrRecoverResponse(respond)
