@@ -19,6 +19,7 @@ import nl.knaw.dans.easy.deposit.EasyDepositApiApp
 import nl.knaw.dans.easy.deposit.authentication.ServletEnhancedLogging._
 import nl.knaw.dans.easy.deposit.docs.JsonUtil._
 import nl.knaw.dans.easy.deposit.docs.UserInfo
+import nl.knaw.dans.lib.error._
 import org.scalatra._
 
 import scala.util.Try
@@ -28,14 +29,14 @@ class UserServlet(app: EasyDepositApiApp) extends ProtectedServlet(app) {
   get("/") {
     Try(app.getUser(user.id)).flatten // no throw should slip through
       .map(properties => Ok(toJson(UserInfo(properties))))
-      .getOrRecoverResponse(respond)
+      .getOrRecover(respond).logResponse
   }
   put("/") {
     Try(for {
       user <- UserInfo(request.body)
       _ <- Try(???)
     } yield Ok(???)).flatten
-      .getOrRecoverResponse(respond)
+      .getOrRecover(respond).logResponse
   }
 
   private def respond(t: Throwable): ActionResult = t match {

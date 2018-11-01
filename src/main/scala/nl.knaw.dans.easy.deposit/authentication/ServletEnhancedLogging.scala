@@ -16,11 +16,8 @@
 package nl.knaw.dans.easy.deposit.authentication
 
 import javax.servlet.http.{ HttpServletRequest, HttpServletResponse }
-import nl.knaw.dans.lib.error._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.scalatra.{ ActionResult, ScalatraBase }
-
-import scala.util.Try
 
 // TODO candidate for dans-scala-lib / another package than authentication?
 trait ServletEnhancedLogging extends DebugEnhancedLogging {
@@ -72,18 +69,6 @@ object ServletEnhancedLogging extends DebugEnhancedLogging {
       }
       logger.info(s"${ request.getMethod } returned status=${ actionResult.status }; authHeaders=$authHeaders; actionHeaders=${ actionResult.headers }")
       actionResult
-    }
-  }
-
-  implicit class RichTriedActionResult(val tried: Try[ActionResult]) extends AnyVal {
-    // convenience replacing: .getOrRecover(???).logResponse
-    // what happened to be the standard pattern within this project
-    def getOrRecoverResponse(recover: Throwable => ActionResult)
-                            (implicit request: HttpServletRequest, response: HttpServletResponse
-                            ): ActionResult = {
-      // the signature is more specific than for nl.knaw.dans.lib.error.TryExtensions.getOrRecover
-      // it comes with the trait, not with just an import
-      tried.getOrRecover(recover).logResponse
     }
   }
 }
