@@ -16,11 +16,11 @@
 package nl.knaw.dans.easy.deposit.authentication
 
 import javax.servlet.http.{ HttpServletRequest, HttpServletResponse }
-import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import nl.knaw.dans.lib.error._
+import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.scalatra.{ ActionResult, ScalatraBase }
 
-import scala.util.{ Failure, Success, Try }
+import scala.util.Try
 
 // TODO candidate for dans-scala-lib / another package than authentication?
 trait ServletEnhancedLogging extends DebugEnhancedLogging {
@@ -29,7 +29,7 @@ trait ServletEnhancedLogging extends DebugEnhancedLogging {
   before() {
     // TODO a library version should filter any authentication any client might invent and probably provide hooks for more filters
     val headers = request.headers.map {
-      case (key, value) if key.toLowerCase=="cookie" =>
+      case (key, value) if key.toLowerCase == "cookie" =>
         val cookieName = value.replaceAll("=.*", "")
         val cookieValue = value.replaceAll(".*=", "")
         val maskedCookieValue = cookieValue.replaceAll("[^.]", "*")
@@ -45,7 +45,7 @@ trait ServletEnhancedLogging extends DebugEnhancedLogging {
     }
     // https://www.bluecatnetworks.com/blog/ip-addresses-considered-personally-identifiable-information/
     // in case of link rot paste the url at the tail of https://web.archive.org/web/20181030102418/
-    val maskedRemoteAddr = request.getRemoteAddr.replaceAll("[0-9]+[.][0-9]+$","**.**")
+    val maskedRemoteAddr = request.getRemoteAddr.replaceAll("[0-9]+[.][0-9]+$", "**.**")
     logger.info(s"${ request.getMethod } ${ request.getRequestURL } remote=$maskedRemoteAddr; params=$maskedParams; headers=$headers")
   }
 }
@@ -66,7 +66,7 @@ object ServletEnhancedLogging extends DebugEnhancedLogging {
       // See the last extensive readme version (documentation moved into an incomplete book and guides)
       // https://github.com/scalatra/scalatra/blob/6a614d17c38d19826467adcabf1dc746e3192dfc/README.markdown
       // sections #filters #action
-      val authHeaders = response.getHeaderNames.toArray().map{
+      val authHeaders = response.getHeaderNames.toArray().map {
         case "Expires" => "Expires " + response.getHeader("Expires")
         case headerName => headerName
       }
