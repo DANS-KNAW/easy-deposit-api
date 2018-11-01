@@ -50,13 +50,13 @@ trait ServletEnhancedLogging extends DebugEnhancedLogging {
 }
 object ServletEnhancedLogging extends DebugEnhancedLogging {
 
-  implicit class RichActionResult(actionResult: ActionResult)(implicit request: HttpServletRequest, response: HttpServletResponse) {
+  implicit class RichActionResult(val actionResult: ActionResult) extends AnyVal {
     /**
      * @example halt(BadRequest().logResponse)
      * @example Ok().logResponse
      * @return this
      */
-    def logResponse: ActionResult = {
+    def logResponse(implicit request: HttpServletRequest, response: HttpServletResponse): ActionResult = {
       // Disadvantage of this method: developers might forget to call,
       // but an after method of the trait is not executed after a halt anyway.
       // Halt is typically used during authentication.
@@ -74,10 +74,12 @@ object ServletEnhancedLogging extends DebugEnhancedLogging {
     }
   }
 
-  implicit class RichTriedActionResult(tried: Try[ActionResult])(implicit request: HttpServletRequest, response: HttpServletResponse) {
+  implicit class RichTriedActionResult(val tried: Try[ActionResult]) extends AnyVal {
     // convenience replacing: .getOrRecover(???).logResponse
     // what happened to be the standard pattern within this project
-    def getOrRecoverResponse(recover: Throwable => ActionResult): ActionResult = {
+    def getOrRecoverResponse(recover: Throwable => ActionResult)
+                            (implicit request: HttpServletRequest, response: HttpServletResponse
+                            ): ActionResult = {
       // the signature is more specific than for nl.knaw.dans.lib.error.TryExtensions.getOrRecover
       // it comes with the trait, not with just an import
       (tried match {
