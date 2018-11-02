@@ -17,13 +17,10 @@ package nl.knaw.dans.easy.deposit.logging
 
 import javax.servlet.http.{ HttpServletRequest, HttpServletResponse }
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
-import org.scalatra.{ ActionResult, ScalatraBase }
+import org.scalatra.ActionResult
 
-// TODO candidate for dans-scala-lib / another package than authentication?
-trait ServletEnhancedLogging extends RequestEnhancedLogging {
-  this: ScalatraBase =>
-}
-object ServletEnhancedLogging extends DebugEnhancedLogging {
+// TODO candidate for dans-scala-lib
+object ResponseEnhancedLogging extends DebugEnhancedLogging {
 
   implicit class RichActionResult(val actionResult: ActionResult) extends AnyVal {
     /**
