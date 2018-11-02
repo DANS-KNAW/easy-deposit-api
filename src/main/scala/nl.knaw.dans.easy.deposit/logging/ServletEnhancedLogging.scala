@@ -20,31 +20,8 @@ import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.scalatra.{ ActionResult, ScalatraBase }
 
 // TODO candidate for dans-scala-lib / another package than authentication?
-trait ServletEnhancedLogging extends DebugEnhancedLogging {
+trait ServletEnhancedLogging extends RequestEnhancedLogging {
   this: ScalatraBase =>
-
-  before() {
-    // TODO a library version should filter any authentication any client might invent and probably provide hooks for more filters
-    val headers = request.headers.map {
-      case (key, value) if key.toLowerCase == "cookie" =>
-        val cookieName = value.replaceAll("=.*", "")
-        val cookieValue = value.replaceAll(".*=", "")
-        val maskedCookieValue = cookieValue.replaceAll("[^.]", "*")
-        (key, s"$cookieName=$maskedCookieValue")
-      case (key, value) if key.toLowerCase.endsWith("authorization") =>
-        // keep keys like "basic" and "digest" but mask the credentials
-        (key, value.replaceAll(" .+", " *****"))
-      case kv => kv
-    }
-    val maskedParams = params.map {
-      case (key, _) if Seq("login", "password").contains(key.toLowerCase) => (key, "*****")
-      case kv => kv
-    }
-    // https://www.bluecatnetworks.com/blog/ip-addresses-considered-personally-identifiable-information/
-    // in case of link rot paste the url at the tail of https://web.archive.org/web/20181030102418/
-    val maskedRemoteAddr = request.getRemoteAddr.replaceAll("[0-9]+[.][0-9]+$", "**.**")
-    logger.info(s"${ request.getMethod } ${ request.getRequestURL } remote=$maskedRemoteAddr; params=$maskedParams; headers=$headers")
-  }
 }
 object ServletEnhancedLogging extends DebugEnhancedLogging {
 
