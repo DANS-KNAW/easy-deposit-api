@@ -17,7 +17,7 @@ package nl.knaw.dans.easy.deposit.logging
 
 import org.scalatra.ScalatraBase
 
-trait PlainHeaders extends RequestEnhancedLogging {
+trait PlainHeaders extends RequestLogger {
   this: ScalatraBase =>
 
   override protected def maskHeaders(headers: Map[String, String]): String = headers.mkString("[", ", ", "]")

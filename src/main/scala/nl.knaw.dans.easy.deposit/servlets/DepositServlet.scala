@@ -22,7 +22,6 @@ import java.util.UUID
 import nl.knaw.dans.easy.deposit.docs.DDM.SchemaNotAvailableException
 import nl.knaw.dans.easy.deposit.docs.JsonUtil.{ InvalidDocumentException, toJson }
 import nl.knaw.dans.easy.deposit.docs.{ DatasetMetadata, DepositInfo, StateInfo }
-import nl.knaw.dans.easy.deposit.logging.ResponseEnhancedLogging._
 import nl.knaw.dans.easy.deposit.servlets.DepositServlet.{ BadRequestException, InvalidResourceException, ZipMustBeOnlyFileException }
 import nl.knaw.dans.easy.deposit.{ EasyDepositApiApp, _ }
 import nl.knaw.dans.lib.error._

@@ -17,7 +17,7 @@ package nl.knaw.dans.easy.deposit.logging
 
 import org.scalatra.ScalatraBase
 
-trait PlainAuthorizationHeader extends RequestEnhancedLogging {
+trait PlainAuthorizationHeader extends RequestLogger {
   this: ScalatraBase =>
 
   override protected def maskAuthorizationHeader(value: String): String = value

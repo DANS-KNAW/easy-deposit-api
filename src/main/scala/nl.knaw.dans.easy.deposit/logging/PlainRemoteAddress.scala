@@ -17,7 +17,7 @@ package nl.knaw.dans.easy.deposit.logging
 
 import org.scalatra.ScalatraBase
 
-trait PlainRemoteAddress extends RequestEnhancedLogging {
+trait PlainRemoteAddress extends RequestLogger {
   this: ScalatraBase =>
 
   override protected def maskRemoteAddress(remoteAddress: String): String = remoteAddress

@@ -16,11 +16,10 @@
 package nl.knaw.dans.easy.deposit.servlets
 
 import nl.knaw.dans.easy.deposit.EasyDepositApiApp
-import nl.knaw.dans.easy.deposit.logging.RequestEnhancedLogging
-import nl.knaw.dans.easy.deposit.logging.ResponseEnhancedLogging._
+import nl.knaw.dans.easy.deposit.logging.RequestLogger
 import org.scalatra._
 
-class EasyDepositApiServlet(app: EasyDepositApiApp) extends ScalatraServlet with RequestEnhancedLogging {
+class EasyDepositApiServlet(app: EasyDepositApiApp) extends ScalatraServlet with RequestLogger {
 
   get("/") {
     contentType = "text/plain"

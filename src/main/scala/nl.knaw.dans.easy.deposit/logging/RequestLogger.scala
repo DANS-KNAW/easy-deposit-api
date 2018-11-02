@@ -21,18 +21,36 @@ import org.scalatra.{ Params, ScalatraBase }
 
 // TODO candidate for dans-scala-lib
 
-/** The default is a safe mode in the sense of not leaking any possibly sensitive data into the logs. */
-trait RequestEnhancedLogging extends DebugEnhancedLogging {
+/**
+ * Logs all received requests of a servlet.
+ *
+ * @example
+ * {{{
+ *     // The default is a safe mode in the sense of not leaking any possibly sensitive data into the logs.
+ *     extends ScalatraServlet with RequestLogger
+ * }}}
+ * @example
+ * {{{
+ *     // override behaviour with additional traits and/or custom methods
+ *     extends ScalatraServlet with RequestLogger with PlainRemoteAddress {
+ *       override protected def formatRequestLog(implicit request: HttpServletRequest): String = {
+ *         super.formatRequestLog(request) + " custom message"
+ *       }
+ *     }
+ * }}}
+ */
+trait RequestLogger extends DebugEnhancedLogging {
   this: ScalatraBase =>
 
+  /** Masks values of headers with a (case insensitive) name equal to "cookie" or ending with "authorization" */
   protected def maskHeaders(headers: Map[String, String]): String = headers.map {
     case (key, value) if key.toLowerCase == "cookie" => (key, maskCookieHeader(value))
     case (key, value) if key.toLowerCase.endsWith("authorization") => (key, maskAuthorizationHeader(value))
     case kv => kv
   }.mkString("[", ", ", "]")
 
+  /** Keeps the key like "basic" and "digest" but masks the credentials. */
   protected def maskAuthorizationHeader(value: String): String = {
-    // keep keys like "basic" and "digest" but mask the credentials
     value.replaceAll(" .+", " *****")
   }
 
@@ -44,6 +62,7 @@ trait RequestEnhancedLogging extends DebugEnhancedLogging {
     s"$cookieName=$maskedCookieValue"
   }
 
+  /** Masks the values of the parameters with the name "login" and "password". */
   protected def maskLoginParameters(params: Params): String = params.map {
     case (key, _) if Seq("login", "password").contains(key.toLowerCase) => (key, "*****")
     case kv => kv
