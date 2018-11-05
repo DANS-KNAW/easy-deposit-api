@@ -20,5 +20,5 @@ import org.scalatra.{ Params, ScalatraBase }
 trait PlainParameters extends RequestLogger {
   this: ScalatraBase =>
 
-  override protected def maskLoginParameters(params: Params): Params = params
+  override protected def maskLoginParameters(params: Params): String = params.mkString("[", ", ", "]")
 }
