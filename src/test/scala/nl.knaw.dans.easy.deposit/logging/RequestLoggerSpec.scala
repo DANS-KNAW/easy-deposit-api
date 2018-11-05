@@ -81,16 +81,17 @@ class RequestLoggerSpec extends TestSupportFixture with MockFactory {
     request.getRemoteAddr _ expects() returning
       "12.34.56.78" anyNumberOfTimes()
 
-    val cookieHeaderName = "cookie"
-    val authorizationHeaderName = "HTTP_AUTHORIZATION"
-    request.getHeaderNames _ expects() returning new util.Vector[String]() {
-      add(cookieHeaderName)
-      add(authorizationHeaderName)
-    }.elements() anyNumberOfTimes()
-    request.getHeader _ expects cookieHeaderName returning
-      "scentry.auth.default.user=abc456.pq.xy" anyNumberOfTimes()
-    request.getHeader _ expects authorizationHeaderName returning
-      "basic 123x_" anyNumberOfTimes()
+    val headerMap = Map(
+      "cookie" -> "scentry.auth.default.user=abc456.pq.xy",
+      "HTTP_AUTHORIZATION" -> "basic 123x_",
+      //"foo" -> "bar"
+    )
+    val headerNames = new util.Vector[String]()
+    headerMap.foreach { case (key: String, value: String) =>
+      headerNames.add(key)
+      request.getHeader _ expects key returning value anyNumberOfTimes()
+    }
+    request.getHeaderNames _ expects() returning headerNames.elements() anyNumberOfTimes()
     request
   }
 }
