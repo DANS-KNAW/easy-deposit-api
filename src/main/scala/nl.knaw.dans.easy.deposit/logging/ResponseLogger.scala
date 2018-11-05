@@ -24,6 +24,8 @@ import org.scalatra.ActionResult
  *
  * @example
  * {{{
+ *   // enable the log method, any customazation goes here
+ *
  *   package object servlets extends ResponseLogger {
  *     implicit class RichActionResult(val actionResult: ActionResult) extends AnyVal {
  *
@@ -32,25 +34,37 @@ import org.scalatra.ActionResult
  *       }
  *     }
  *   }
+ * }}}
+ *
+ * @example
+ * {{{
+ *   // usage in normal servlets
  *
  *   ... extends ScalatraServlet {
- *     get("/") {
+ *     get(???) {
+ *       ???
  *       Ok(body = "hello world").logResponse
  *     }
  *   }
  * }}}
+ *
+ * @example
+ * {{{
+ *   // usage in authentication servlets
+ *
+ *   halt(Unauthorized(???).logResponse)
+ * }}}
  */
 trait ResponseLogger extends DebugEnhancedLogging {
+  // When using after methods for logging, the action result of the second example above is lost,
+  // its values are not saved in the implicit response as for authentication servlets built with AuthenticationSupport
+  // See the last extensive readme version (documentation moved into an incomplete book and guides)
+  // https://github.com/scalatra/scalatra/blob/6a614d17c38d19826467adcabf1dc746e3192dfc/README.markdown
+  // sections #filters #action
 
   def logActionResult(actionResult: ActionResult)(implicit request: HttpServletRequest, response: HttpServletResponse): ActionResult = {
     // Disadvantage of this method: developers might forget to call,
     // but an after method of the trait is not executed after a halt anyway.
-    // Halt is typically used during authentication.
-    // Another disadvantage of an after method: it might not have the response to log,
-    // which should have been copied into "implicit response: HttpServletResponse".
-    // See the last extensive readme version (documentation moved into an incomplete book and guides)
-    // https://github.com/scalatra/scalatra/blob/6a614d17c38d19826467adcabf1dc746e3192dfc/README.markdown
-    // sections #filters #action
     val authHeaders = response.getHeaderNames.toArray().map {
       case "Expires" => "Expires " + response.getHeader("Expires")
       case headerName => headerName
