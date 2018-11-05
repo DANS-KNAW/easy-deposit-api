@@ -33,7 +33,7 @@ class RequestLoggerSpec extends TestSupportFixture with MockFactory {
 
   "formatRequestLog" should "mask everything" in {
     new DefaultTestServlet(mockParams).log(mockRequest) shouldBe
-      "GET http://does.not.exist.dans.knaw.nl remote=12.34.**.**; params=[password -> *****, login -> *****]; headers=[cookie -> scentry.auth.default.user=******.**.**, HTTP_AUTHORIZATION -> basic *****]"
+      "GET http://does.not.exist.dans.knaw.nl remote=12.34.**.**; params=[password -> *****, login -> *****]; headers=[cookie -> scentry.auth.default.user=******.**.**, HTTP_AUTHORIZATION -> basic *****, foo -> bar]"
   }
 
   it should "mask nothing" in {
@@ -41,7 +41,7 @@ class RequestLoggerSpec extends TestSupportFixture with MockFactory {
     case class TestServlet() extends
       DefaultTestServlet(mockParams) with PlainRemoteAddress with PlainParameters with PlainHeaders
     TestServlet().log(mockRequest) shouldBe
-      "GET http://does.not.exist.dans.knaw.nl remote=12.34.56.78; params=[password -> secret, login -> mystery]; headers=[cookie -> scentry.auth.default.user=abc456.pq.xy, HTTP_AUTHORIZATION -> basic 123x_]"
+      "GET http://does.not.exist.dans.knaw.nl remote=12.34.56.78; params=[password -> secret, login -> mystery]; headers=[cookie -> scentry.auth.default.user=abc456.pq.xy, HTTP_AUTHORIZATION -> basic 123x_, foo -> bar]"
   }
 
   it should "mask nothing but cookie headers" in {
@@ -49,7 +49,7 @@ class RequestLoggerSpec extends TestSupportFixture with MockFactory {
     case class TestServlet() extends
       DefaultTestServlet(mockParams) with PlainRemoteAddress with PlainParameters with PlainAuthorizationHeader
     TestServlet().log(mockRequest) shouldBe
-      "GET http://does.not.exist.dans.knaw.nl remote=12.34.56.78; params=[password -> secret, login -> mystery]; headers=[cookie -> scentry.auth.default.user=******.**.**, HTTP_AUTHORIZATION -> basic 123x_]"
+      "GET http://does.not.exist.dans.knaw.nl remote=12.34.56.78; params=[password -> secret, login -> mystery]; headers=[cookie -> scentry.auth.default.user=******.**.**, HTTP_AUTHORIZATION -> basic 123x_, foo -> bar]"
   }
 
   it should "add a custom message to the log line" in {
@@ -60,10 +60,21 @@ class RequestLoggerSpec extends TestSupportFixture with MockFactory {
       }
     }
     TestServlet().log(mockRequest) shouldBe
-      "GET http://does.not.exist.dans.knaw.nl remote=12.34.**.**; params=[password -> *****, login -> *****]; headers=[cookie -> scentry.auth.default.user=******.**.**, HTTP_AUTHORIZATION -> basic *****] custom message"
+      "GET http://does.not.exist.dans.knaw.nl remote=12.34.**.**; params=[password -> *****, login -> *****]; headers=[cookie -> scentry.auth.default.user=******.**.**, HTTP_AUTHORIZATION -> basic *****, foo -> bar] custom message"
   }
 
-  it should "mask all headers" in {
+  it should "mask all headers in the same way" in {
+
+    case class TestServlet() extends DefaultTestServlet(mockParams) {
+      override protected def maskHeaders(headers: Map[String, String]): Map[String, String] = {
+        headers.map { case (key: String, _: String) => (key, "*") }
+      }
+    }
+    TestServlet().log(mockRequest) shouldBe
+      "GET http://does.not.exist.dans.knaw.nl remote=12.34.**.**; params=[password -> *****, login -> *****]; headers=[cookie -> *, HTTP_AUTHORIZATION -> *, foo -> *]"
+  }
+
+  it should "mask all headers, even their names" in {
 
     case class TestServlet() extends DefaultTestServlet(mockParams) {
       override protected def maskedHeadersToString(headers: Map[String, String]): String = "*****"
@@ -72,13 +83,27 @@ class RequestLoggerSpec extends TestSupportFixture with MockFactory {
       "GET http://does.not.exist.dans.knaw.nl remote=12.34.**.**; params=[password -> *****, login -> *****]; headers=*****"
   }
 
-  it should "mask all parameters" in {
+  it should "mask also a (case sensitive) custom header" in {
 
     case class TestServlet() extends DefaultTestServlet(mockParams) {
-      override protected def maskedParametersToString(headers: Map[String, String]): String = "*****"
+      override protected def maskHeaders(headers: Map[String, String]): Map[String, String] = {
+        super.maskHeaders(headers).map {
+          case ("foo", _: String) => ("foo", "***")
+          case kv => kv
+        }
+      }
     }
     TestServlet().log(mockRequest) shouldBe
-      "GET http://does.not.exist.dans.knaw.nl remote=12.34.**.**; params=*****; headers=[cookie -> scentry.auth.default.user=******.**.**, HTTP_AUTHORIZATION -> basic *****]"
+      "GET http://does.not.exist.dans.knaw.nl remote=12.34.**.**; params=[password -> *****, login -> *****]; headers=[cookie -> scentry.auth.default.user=******.**.**, HTTP_AUTHORIZATION -> basic *****, foo -> ***]"
+  }
+
+  it should "log the number of parameters (alias named fields in web forms), not their names/values" in {
+
+    case class TestServlet() extends DefaultTestServlet(mockParams) {
+      override protected def maskedParametersToString(params: Map[String, String]): String = params.size.toString
+    }
+    TestServlet().log(mockRequest) shouldBe
+      "GET http://does.not.exist.dans.knaw.nl remote=12.34.**.**; params=2; headers=[cookie -> scentry.auth.default.user=******.**.**, HTTP_AUTHORIZATION -> basic *****, foo -> bar]"
   }
 
   private def mockParams: MultiParams = {
@@ -100,7 +125,7 @@ class RequestLoggerSpec extends TestSupportFixture with MockFactory {
     val headerMap = Map(
       "cookie" -> "scentry.auth.default.user=abc456.pq.xy",
       "HTTP_AUTHORIZATION" -> "basic 123x_",
-      //"foo" -> "bar"
+      "foo" -> "bar"
     )
     val headerNames = new util.Vector[String]()
     headerMap.foreach { case (key: String, value: String) =>

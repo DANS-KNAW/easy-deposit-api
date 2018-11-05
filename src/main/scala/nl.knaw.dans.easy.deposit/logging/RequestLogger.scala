@@ -27,17 +27,20 @@ import org.scalatra.ScalatraBase
  * @example
  * {{{
  *     // The default is a safe mode in the sense of not leaking any possibly sensitive data into the logs.
+ *
  *     extends ScalatraServlet with RequestLogger
  * }}}
  * @example
  * {{{
  *     // override behaviour with additional traits and/or custom methods
+ *
  *     extends ScalatraServlet with RequestLogger with PlainRemoteAddress {
  *       override protected def formatRequestLog(implicit request: HttpServletRequest): String = {
  *         super.formatRequestLog(request) + " custom message"
  *       }
  *     }
  * }}}
+ * More examples in unit tests.
  */
 trait RequestLogger extends DebugEnhancedLogging {
   this: ScalatraBase =>
