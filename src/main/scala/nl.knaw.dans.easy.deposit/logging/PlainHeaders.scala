@@ -20,5 +20,5 @@ import org.scalatra.ScalatraBase
 trait PlainHeaders extends RequestLogger {
   this: ScalatraBase =>
 
-  override protected def maskHeaders(headers: Map[String, String]): String = headers.mkString("[", ", ", "]")
+  override protected def maskHeaders(headers: Map[String, String]): Map[String, String] = headers
 }

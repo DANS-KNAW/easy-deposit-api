@@ -52,17 +52,33 @@ class RequestLoggerSpec extends TestSupportFixture with MockFactory {
       "GET http://does.not.exist.dans.knaw.nl remote=12.34.56.78; params=[password -> secret, login -> mystery]; headers=[cookie -> scentry.auth.default.user=******.**.**, HTTP_AUTHORIZATION -> basic 123x_]"
   }
 
-  it should "add a custom message to the log line and mask all headers" in {
+  it should "add a custom message to the log line" in {
 
     case class TestServlet() extends DefaultTestServlet(mockParams) {
-      override protected def maskHeaders(headers: Map[String, String]): String = "*****"
-
       override protected def formatRequestLog(implicit request: HttpServletRequest): String = {
         super.formatRequestLog(request) + " custom message"
       }
     }
     TestServlet().log(mockRequest) shouldBe
-      "GET http://does.not.exist.dans.knaw.nl remote=12.34.**.**; params=[password -> *****, login -> *****]; headers=***** custom message"
+      "GET http://does.not.exist.dans.knaw.nl remote=12.34.**.**; params=[password -> *****, login -> *****]; headers=[cookie -> scentry.auth.default.user=******.**.**, HTTP_AUTHORIZATION -> basic *****] custom message"
+  }
+
+  it should "mask all headers" in {
+
+    case class TestServlet() extends DefaultTestServlet(mockParams) {
+      override protected def maskedHeadersToString(headers: Map[String, String]): String = "*****"
+    }
+    TestServlet().log(mockRequest) shouldBe
+      "GET http://does.not.exist.dans.knaw.nl remote=12.34.**.**; params=[password -> *****, login -> *****]; headers=*****"
+  }
+
+  it should "mask all parameters" in {
+
+    case class TestServlet() extends DefaultTestServlet(mockParams) {
+      override protected def maskedParametersToString(headers: Map[String, String]): String = "*****"
+    }
+    TestServlet().log(mockRequest) shouldBe
+      "GET http://does.not.exist.dans.knaw.nl remote=12.34.**.**; params=*****; headers=[cookie -> scentry.auth.default.user=******.**.**, HTTP_AUTHORIZATION -> basic *****]"
   }
 
   private def mockParams: MultiParams = {

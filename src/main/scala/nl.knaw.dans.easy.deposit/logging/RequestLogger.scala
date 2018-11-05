@@ -17,7 +17,7 @@ package nl.knaw.dans.easy.deposit.logging
 
 import javax.servlet.http.HttpServletRequest
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
-import org.scalatra.{ Params, ScalatraBase }
+import org.scalatra.ScalatraBase
 
 // TODO candidate for dans-scala-lib
 
@@ -42,14 +42,20 @@ import org.scalatra.{ Params, ScalatraBase }
 trait RequestLogger extends DebugEnhancedLogging {
   this: ScalatraBase =>
 
-  /** Masks values of headers with a (case insensitive) name equal to "cookie" or ending with "authorization" */
-  protected def maskHeaders(headers: Map[String, String]): String = headers.map {
-    case (key, value) if key.toLowerCase == "cookie" => (key, maskCookieHeader(value))
-    case (key, value) if key.toLowerCase.endsWith("authorization") => (key, maskAuthorizationHeader(value))
-    case kv => kv
-  }.mkString("[", ", ", "]")
+  protected def maskedHeadersToString(headers: Map[String, String]): String = maskHeaders(headers).mkString("[", ", ", "]")
 
-  /** Keeps the key like "basic" and "digest" but masks the credentials. */
+  /** Masks values of headers with a (case insensitive) name equal to "cookie" or ending with "authorization" */
+  protected def maskHeaders(headers: Map[String, String]): Map[String, String] = {
+    headers.map {
+      case (key, value) if key.toLowerCase == "cookie" => (key, maskCookieHeader(value))
+      case (key, value) if key.toLowerCase.endsWith("authorization") => (key, maskAuthorizationHeader(value))
+      case kv => kv
+    }
+  }
+
+  /** Mask the value of headers with a case insensitive name ending with "authorization".
+   * Keeps the key like "basic", "digest" and "Bearer" but masks the actual credentials.
+   */
   protected def maskAuthorizationHeader(value: String): String = {
     value.replaceAll(" .+", " *****")
   }
@@ -62,11 +68,15 @@ trait RequestLogger extends DebugEnhancedLogging {
     s"$cookieName=$maskedCookieValue"
   }
 
+  protected def maskedParametersToString(params: Map[String, String]): String = maskParameters(params).mkString("[", ", ", "]")
+
   /** Masks the values of the parameters with the name "login" and "password". */
-  protected def maskLoginParameters(params: Params): String = params.map {
-    case (key, _) if Seq("login", "password").contains(key.toLowerCase) => (key, "*****")
-    case kv => kv
-  }.mkString("[", ", ", "]")
+  protected def maskParameters(params: Map[String, String]): Map[String, String] = {
+    params.map {
+      case (key, _) if Seq("login", "password").contains(key.toLowerCase) => (key, "*****")
+      case kv => kv
+    }
+  }
 
   /**
    * https://www.bluecatnetworks.com/blog/ip-addresses-considered-personally-identifiable-information/
@@ -80,9 +90,9 @@ trait RequestLogger extends DebugEnhancedLogging {
   protected def formatRequestLog(implicit request: HttpServletRequest): String = {
     val method = request.getMethod
     val requestURL = request.getRequestURL.toString
-    val headers = maskHeaders(request.headers)
+    val headers = maskedHeadersToString(maskHeaders(request.headers))
     val remoteAddr = maskRemoteAddress(request.getRemoteAddr)
-    val maskedParams = maskLoginParameters(params)
+    val maskedParams = maskedParametersToString(maskParameters(params))
     s"$method $requestURL remote=$remoteAddr; params=$maskedParams; headers=$headers"
   }
 
