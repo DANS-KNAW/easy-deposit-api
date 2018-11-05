@@ -22,9 +22,9 @@ import nl.knaw.dans.easy.deposit.TestSupportFixture
 import org.scalamock.scalatest.MockFactory
 import org.scalatra.{ MultiParams, ScalatraServlet }
 
-class RequestLoggerSpec extends TestSupportFixture with MockFactory {
+class RequestLogFormatterSpec extends TestSupportFixture with MockFactory {
 
-  class DefaultTestServlet(params: MultiParams) extends ScalatraServlet with RequestLogger {
+  class DefaultTestServlet(params: MultiParams) extends ScalatraServlet with RequestLogFormatter {
 
     override def multiParams(implicit request: HttpServletRequest): MultiParams = params
 
