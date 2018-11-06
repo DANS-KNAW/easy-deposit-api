@@ -20,14 +20,6 @@ import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.scalatra.ScalatraBase
 
 /**
- * Logs all received requests of a servlet.
- *
- * @example
- * {{{
- *     // The default is a safe mode in the sense of not leaking any possibly sensitive data into the logs.
- *
- *     extends ScalatraServlet with RequestLogger
- * }}}
  * @example
  * {{{
  *     // override behaviour with additional traits and/or custom methods
@@ -38,7 +30,6 @@ import org.scalatra.ScalatraBase
  *       }
  *     }
  * }}}
- * More examples in unit tests.
  */
 trait RequestLogFormatter extends DebugEnhancedLogging with CookieMasker {
   this: ScalatraBase =>

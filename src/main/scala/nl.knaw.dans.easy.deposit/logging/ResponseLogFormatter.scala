@@ -16,64 +16,33 @@
 package nl.knaw.dans.easy.deposit.logging
 
 import javax.servlet.http.{ HttpServletRequest, HttpServletResponse }
-import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.scalatra.ActionResult
 
-/**
- * The first example block enables the subsequent examples.
- *
- * Put the implicit val in a [[org.scalatra.ScalatraServlet]] and/or a in a trait with "self: [[org.scalatra.ScalatraBase]]"
- * such as a trait extending [[org.scalatra.auth.ScentrySupport]].
- * Customize the formatter instance by adding traits like PlainAuthHeaders or overriding methods.
- * Make the instance in a trait private if the actual servlets need an instance with other customization.
- *
- * @example
- * {{{
- *   implicit val responseLogFormatter: ResponseLogFormatter = new ResponseLogFormatter {}
- *
- *   package object servlets extends DebugEnhancedLogger {
- *     implicit class RichActionResult(val actionResult: ActionResult) extends AnyVal {
- *       def logResponse(implicit request: HttpServletRequest,
- *                       response: HttpServletResponse,
- *                       formatter: ResponseLogFormatter
- *                      ): ActionResult = {
- *         logger.info(responseLogFormatter.logActionResult(actionResult))
- *         actionResult
- *       }
- *     }
- *   }
- * }}}
- *
- * An after method would not see an [[ActionResult]].
- * Its values are not saved in the implicit response provided by [[org.scalatra.ScalatraBase]]
- * as done by a trait for a [[org.scalatra.ScalatraServlet]] that extends [[org.scalatra.auth.ScentrySupport]].
- * See the last extensive readme version (documentation moved into an incomplete book and guides)
- * https://github.com/scalatra/scalatra/blob/6a614d17c38d19826467adcabf1dc746e3192dfc/README.markdown
- * sections #filters #action
- * @example
- * {{{
- *   // usage in servlets
- *
- *   ... extends ScalatraServlet {
- *     get(???) {
- *       ???
- *       Ok(body = "hello world").logResponse
- *     }
- *   }
- * }}}
- *
- * An after method would not be executed at all after a halt.
- * @example
- * {{{
- *   // usage in a trait for servlets that extends ScentrySupport.
- *
- *   halt(Unauthorized(???).logResponse)
- * }}}
- */
 trait ResponseLogFormatter extends CookieMasker {
 
   /** Assembles the content for a log line.
    *
+   * Adding the logResponse method to [[ActionResult]] for the following examples is explained at package level.
+   *
+   * @example
+   * {{{
+   *   // usage in servlets
+   *
+   *   ... extends ScalatraServlet {
+   *     get(???) {
+   *       ???
+   *       Ok(body = "hello world").logResponse
+   *     }
+   *   }
+   * }}}
+   *
+   * An after method would not be executed at all after a halt.
+   * @example
+   * {{{
+   *   // usage in a trait for servlets that extends ScentrySupport.
+   *
+   *   halt(Unauthorized(???).logResponse)
+   * }}}
    * @param actionResult the response created by the servlet
    * @param request      some info is used as a kind of bracketing the response log line with the request log line
    * @param response     here we might find some info created by a [[org.scalatra.auth.ScentrySupport]] trait
