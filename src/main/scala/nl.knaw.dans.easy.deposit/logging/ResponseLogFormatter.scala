@@ -80,8 +80,8 @@ trait ResponseLogFormatter extends CookieMasker {
    *                     for a [[org.scalatra.ScalatraServlet]].
    * @return
    */
-  def formatLogLine(actionResult: ActionResult)
-                   (implicit request: HttpServletRequest, response: HttpServletResponse): String = {
+  def formatResponseLog(actionResult: ActionResult)
+                       (implicit request: HttpServletRequest, response: HttpServletResponse): String = {
     s"${ request.getMethod } returned status=${ actionResult.status }; authHeaders=${ authHeadersToString(response) }; actionHeaders=${ actionHeadersToString(actionResult) }"
   }
 

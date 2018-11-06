@@ -143,7 +143,7 @@ package object servlets extends DebugEnhancedLogging {
                     response: HttpServletResponse,
                     formatter: ResponseLogFormatter
                    ): ActionResult = {
-      logger.info(formatter.formatLogLine(actionResult))
+      logger.info(formatter.formatResponseLog(actionResult))
       actionResult
     }
   }
