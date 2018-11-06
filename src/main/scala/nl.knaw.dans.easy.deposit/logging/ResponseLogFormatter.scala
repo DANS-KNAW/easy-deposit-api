@@ -70,7 +70,7 @@ import org.scalatra.ActionResult
  *   halt(Unauthorized(???).logResponse)
  * }}}
  */
-trait ResponseLogFormatter extends DebugEnhancedLogging {
+trait ResponseLogFormatter extends CookieMasker {
 
   /** Assembles the content for a log line.
    *
@@ -82,17 +82,26 @@ trait ResponseLogFormatter extends DebugEnhancedLogging {
    */
   def formatLogLine(actionResult: ActionResult)
                    (implicit request: HttpServletRequest, response: HttpServletResponse): String = {
-    s"${ request.getMethod } returned status=${ actionResult.status }; authHeaders=${ maskAuthHeaders(response) }; actionHeaders=${ maskActionHeaders(actionResult) }"
+    s"${ request.getMethod } returned status=${ actionResult.status }; authHeaders=${ authHeadersToString(response) }; actionHeaders=${ actionHeadersToString(actionResult) }"
   }
 
-  private def maskActionHeaders(actionResult: ActionResult) = {
+  protected def actionHeadersToString(actionResult: ActionResult): String =
+    maskActionHeaders(actionResult).mkString("[", ",", "]")
+
+  protected def maskActionHeaders(actionResult: ActionResult): Map[String, String] =
     actionResult.headers
+
+  protected def authHeadersToString(response: HttpServletResponse): String =
+    maskAuthHeaders(response).mkString("[", ", ", "]")
+
+  /** masks the values for REMOTE_USER and Set-Cookie */
+  protected def maskAuthHeaders(response: HttpServletResponse): Map[String, String] = {
+    response.getHeaderNames.toArray().map {
+      case name: String if "set-cookie" == name.toLowerCase => (name, maskCookieHeader(response.getHeader(name)))
+      case name: String if "remote_user" == name.toLowerCase => (name, maskRemoteUserHeader(response.getHeader(name)))
+      case name: String => name -> response.getHeader(name)
+    }.toMap
   }
 
-  protected def maskAuthHeaders(response: HttpServletResponse): Array[String] = {
-    response.getHeaderNames.toArray().map {
-      case "Expires" => "Expires " + response.getHeader("Expires")
-      case headerName: String => headerName
-    }
-  }
+  protected def maskRemoteUserHeader(value: String): String = "*****"
 }

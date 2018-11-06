@@ -40,7 +40,7 @@ import org.scalatra.ScalatraBase
  * }}}
  * More examples in unit tests.
  */
-trait RequestLogFormatter extends DebugEnhancedLogging {
+trait RequestLogFormatter extends DebugEnhancedLogging with CookieMasker {
   this: ScalatraBase =>
 
   protected def maskedHeadersToString(headers: Map[String, String]): String = maskHeaders(headers).mkString("[", ", ", "]")
@@ -59,14 +59,6 @@ trait RequestLogFormatter extends DebugEnhancedLogging {
    */
   protected def maskAuthorizationHeader(value: String): String = {
     value.replaceAll(" .+", " *****")
-  }
-
-  /** Masks the content of a cookie but not its name. */
-  protected def maskCookieHeader(value: String): String = {
-    val cookieName = value.replaceAll("=.*", "")
-    val cookieValue = value.replaceAll(".*=", "")
-    val maskedCookieValue = cookieValue.replaceAll("[^.]", "*") // replace everything but dots
-    s"$cookieName=$maskedCookieValue"
   }
 
   protected def maskedParametersToString(params: Map[String, String]): String = maskParameters(params).mkString("[", ", ", "]")
