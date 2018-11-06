@@ -22,8 +22,9 @@ import java.util.zip.{ ZipEntry, ZipException, ZipInputStream }
 import better.files.File
 import javax.servlet.http.{ HttpServletRequest, HttpServletResponse }
 import nl.knaw.dans.easy.deposit.docs.JsonUtil.InvalidDocumentException
-import nl.knaw.dans.easy.deposit.logging.ResponseLogger
+import nl.knaw.dans.easy.deposit.logging.ResponseLogFormatter
 import nl.knaw.dans.easy.deposit.servlets.DepositServlet.{ BadRequestException, ZipMustBeOnlyFileException }
+import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.scalatra.servlet.FileItem
 import org.scalatra.util.RicherString._
 import org.scalatra.{ ActionResult, BadRequest, InternalServerError }
@@ -31,7 +32,7 @@ import resource.{ ManagedResource, managed }
 
 import scala.util.{ Failure, Success, Try }
 
-package object servlets extends ResponseLogger {
+package object servlets extends DebugEnhancedLogging {
 
   private val extensionZipPattern = ".*.g?z(ip)?"
   private val pre = "(x-)?g?zip"
@@ -138,9 +139,12 @@ package object servlets extends ResponseLogger {
   }
 
   implicit class RichActionResult(val actionResult: ActionResult) extends AnyVal {
-
-    def logResponse(implicit request: HttpServletRequest, response: HttpServletResponse): ActionResult = {
-      logActionResult(actionResult)
+    def logResponse(implicit request: HttpServletRequest,
+                    response: HttpServletResponse,
+                    formatter: ResponseLogFormatter
+                   ): ActionResult = {
+      logger.info(formatter.formatLogLine(actionResult))
+      actionResult
     }
   }
 }
