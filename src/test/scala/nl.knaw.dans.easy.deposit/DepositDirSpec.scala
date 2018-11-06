@@ -140,7 +140,8 @@ class DepositDirSpec extends TestSupportFixture with MockFactory {
 
     // preconditions
     mdFile.contentAsString shouldBe "{}"
-    oldDepositProperties should not include "identifier.doi"
+    oldDepositProperties should include("identifier.doi.registered = no")
+    oldDepositProperties should not include "identifier.doi = "
     val pidMocker = mock[PidRequester]
     (pidMocker.requestPid(_: PidType)) expects * once() returning Success(doi)
 
