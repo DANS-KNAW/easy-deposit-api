@@ -276,6 +276,7 @@ object DepositDir {
       addProperty("curation.required", "yes")
       addProperty("curation.performed", "no")
       addProperty("bag-store.bag-id", depositInfo.id)
+      addProperty("identifier.doi.registered", "no")
     }.save(depositDir.depositPropertiesFile.toJava)
   }
 }
