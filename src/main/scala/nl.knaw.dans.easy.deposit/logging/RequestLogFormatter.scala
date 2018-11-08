@@ -31,7 +31,7 @@ import org.scalatra.ScalatraBase
  *     }
  * }}}
  */
-trait RequestLogFormatter extends DebugEnhancedLogging with CookieMasker {
+trait RequestLogFormatter extends DebugEnhancedLogging with CookieFormatter {
   this: ScalatraBase =>
 
   protected def maskedHeadersToString(headers: Map[String, String]): String = maskHeaders(headers).mkString("[", ", ", "]")
@@ -39,7 +39,7 @@ trait RequestLogFormatter extends DebugEnhancedLogging with CookieMasker {
   /** Masks values of headers with a (case insensitive) name equal to "cookie" or ending with "authorization" */
   protected def maskHeaders(headers: Map[String, String]): Map[String, String] = {
     headers.map {
-      case (key, value) if key.toLowerCase == "cookie" => (key, maskCookieHeader(value))
+      case (key, value) if key.toLowerCase == "cookie" => (key, formatCookieValue(value))
       case (key, value) if key.toLowerCase.endsWith("authorization") => (key, maskAuthorizationHeader(value))
       case kv => kv
     }

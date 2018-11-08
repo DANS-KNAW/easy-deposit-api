@@ -18,7 +18,7 @@ package nl.knaw.dans.easy.deposit.logging
 import javax.servlet.http.{ HttpServletRequest, HttpServletResponse }
 import org.scalatra.ActionResult
 
-trait ResponseLogFormatter extends CookieMasker {
+trait ResponseLogFormatter extends CookieFormatter {
 
   /** Assembles the content for a log line.
    *
@@ -55,22 +55,22 @@ trait ResponseLogFormatter extends CookieMasker {
   }
 
   protected def actionHeadersToString(actionResult: ActionResult): String =
-    maskActionHeaders(actionResult).mkString("[", ",", "]")
+    formatActionHeaders(actionResult).mkString("[", ",", "]")
 
-  protected def maskActionHeaders(actionResult: ActionResult): Map[String, String] =
+  protected def formatActionHeaders(actionResult: ActionResult): Map[String, String] =
     actionResult.headers
 
   protected def authHeadersToString(response: HttpServletResponse): String =
-    maskAuthHeaders(response).mkString("[", ", ", "]")
+    formatAuthHeaders(response).mkString("[", ", ", "]")
 
-  /** masks the values for REMOTE_USER and Set-Cookie */
-  protected def maskAuthHeaders(response: HttpServletResponse): Map[String, String] = {
+  /** Formats the values for the headers REMOTE_USER and Set-Cookie */
+  protected def formatAuthHeaders(response: HttpServletResponse): Map[String, String] = {
     response.getHeaderNames.toArray().map {
-      case name: String if "set-cookie" == name.toLowerCase => (name, maskCookieHeader(response.getHeader(name)))
-      case name: String if "remote_user" == name.toLowerCase => (name, maskRemoteUserHeader(response.getHeader(name)))
+      case name: String if "set-cookie" == name.toLowerCase => (name, formatCookieValue(response.getHeader(name)))
+      case name: String if "remote_user" == name.toLowerCase => (name, formatRemoteUserValue(response.getHeader(name)))
       case name: String => name -> response.getHeader(name)
     }.toMap
   }
 
-  protected def maskRemoteUserHeader(value: String): String = "*****"
+  protected def formatRemoteUserValue(value: String): String = "*****"
 }

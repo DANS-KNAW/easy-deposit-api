@@ -18,7 +18,7 @@ package nl.knaw.dans.easy.deposit.logging
 import javax.servlet.http.HttpServletResponse
 
 trait PlainAuthResponseHeaders extends ResponseLogFormatter {
-  override protected def maskAuthHeaders(response: HttpServletResponse): Map[String, String] = {
+  override protected def formatAuthHeaders(response: HttpServletResponse): Map[String, String] = {
     response.getHeaderNames.toArray().map {
       case name: String => name -> response.getHeader(name)
     }.toMap
