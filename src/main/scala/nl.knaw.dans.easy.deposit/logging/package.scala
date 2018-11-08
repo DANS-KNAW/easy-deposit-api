@@ -20,7 +20,7 @@ package nl.knaw.dans.easy.deposit
  *
  * ==Requests==
  *
- * All requests are logged at info level with:
+ * All requests are logged at info level by adding a trait to servlets:
  * {{{
  *   class MyServlet extends ScalatraServlet with RequestLogger {???}
  * }}}
@@ -39,7 +39,6 @@ package nl.knaw.dans.easy.deposit
  *
  * @example
  * {{{
- *
  *    package object servlets extends DebugEnhancedLogger {
  *      implicit val formatter: ResponseLogFormatter = new ResponseLogFormatter {}
  *      implicit class RichActionResult(val actionResult: ActionResult) extends AnyVal {
@@ -56,10 +55,10 @@ package nl.knaw.dans.easy.deposit
  *
  * For flexible use of the customization hooks move the implicit instance of the
  * [[nl.knaw.dans.easy.deposit.logging.ResponseLogFormatter]]
- * formatter to the servlets and/or traits with "self: [[org.scalatra.ScalatraBase]]".
+ * to the servlets and/or traits with "self: [[org.scalatra.ScalatraBase]]".
  * Making these instances private in traits allows the servlets to define their own formatting.
  *
- * ==Before and or after==
+ * ==Before and/or after==
  *
  * The request are logged with before filters. An after filter would not see an [[org.scalatra.ActionResult]].
  * Its values are not saved in the implicit response provided by [[org.scalatra.ScalatraBase]]

@@ -66,7 +66,7 @@ class RequestLogFormatterSpec extends TestSupportFixture with MockFactory {
   it should "mask all headers in the same way" in {
 
     case class TestServlet() extends DefaultTestServlet(mockParams) {
-      override protected def maskHeaders(headers: Map[String, String]): Map[String, String] = {
+      override protected def formatHeaders(headers: Map[String, String]): Map[String, String] = {
         headers.map { case (key: String, _: String) => (key, "*") }
       }
     }
@@ -77,7 +77,7 @@ class RequestLogFormatterSpec extends TestSupportFixture with MockFactory {
   it should "mask all headers, even their names" in {
 
     case class TestServlet() extends DefaultTestServlet(mockParams) {
-      override protected def maskedHeadersToString(headers: Map[String, String]): String = "*****"
+      override protected def headersToString(headers: Map[String, String]): String = "*****"
     }
     TestServlet().log(mockRequest) shouldBe
       "GET http://does.not.exist.dans.knaw.nl remote=12.34.**.**; params=[password -> *****, login -> *****]; headers=*****"
@@ -86,8 +86,8 @@ class RequestLogFormatterSpec extends TestSupportFixture with MockFactory {
   it should "mask also a (case sensitive) custom header" in {
 
     case class TestServlet() extends DefaultTestServlet(mockParams) {
-      override protected def maskHeaders(headers: Map[String, String]): Map[String, String] = {
-        super.maskHeaders(headers).map {
+      override protected def formatHeaders(headers: Map[String, String]): Map[String, String] = {
+        super.formatHeaders(headers).map {
           case ("foo", _: String) => ("foo", "***")
           case kv => kv
         }
@@ -100,7 +100,7 @@ class RequestLogFormatterSpec extends TestSupportFixture with MockFactory {
   it should "log the number of parameters (alias named fields in web forms), not their names/values" in {
 
     case class TestServlet() extends DefaultTestServlet(mockParams) {
-      override protected def maskedParametersToString(params: Map[String, String]): String = params.size.toString
+      override protected def parametersToString(params: Map[String, String]): String = params.size.toString
     }
     TestServlet().log(mockRequest) shouldBe
       "GET http://does.not.exist.dans.knaw.nl remote=12.34.**.**; params=2; headers=[cookie -> scentry.auth.default.user=******.**.**, HTTP_AUTHORIZATION -> basic *****, foo -> bar]"

@@ -65,6 +65,7 @@ trait ResponseLogFormatter extends CookieFormatter {
 
   /** Formats the values for the headers REMOTE_USER and Set-Cookie */
   protected def formatAuthHeaders(response: HttpServletResponse): Map[String, String] = {
+    // TODO fix potential null pointer exceptions: Option(response.getHeader(name)).map(formatXxx).getOrElse("")
     response.getHeaderNames.toArray().map {
       case name: String if "set-cookie" == name.toLowerCase => (name, formatCookieValue(response.getHeader(name)))
       case name: String if "remote_user" == name.toLowerCase => (name, formatRemoteUserValue(response.getHeader(name)))

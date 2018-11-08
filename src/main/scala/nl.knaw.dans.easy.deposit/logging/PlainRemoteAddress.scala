@@ -20,5 +20,5 @@ import org.scalatra.ScalatraBase
 trait PlainRemoteAddress extends RequestLogger {
   this: ScalatraBase =>
 
-  override protected def maskRemoteAddress(remoteAddress: String): String = remoteAddress
+  override protected def formatRemoteAddress(remoteAddress: String): String = remoteAddress
 }

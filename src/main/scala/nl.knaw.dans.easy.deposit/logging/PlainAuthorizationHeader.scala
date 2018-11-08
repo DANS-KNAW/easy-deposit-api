@@ -20,5 +20,5 @@ import org.scalatra.ScalatraBase
 trait PlainAuthorizationHeader extends RequestLogger {
   this: ScalatraBase =>
 
-  override protected def maskAuthorizationHeader(value: String): String = value
+  override protected def formatValueOfAuthorizationHeader(value: String): String = value
 }

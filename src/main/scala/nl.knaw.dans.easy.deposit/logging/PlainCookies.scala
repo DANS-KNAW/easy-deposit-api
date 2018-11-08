@@ -15,7 +15,7 @@
  */
 package nl.knaw.dans.easy.deposit.logging
 
-trait PlainCookieFormatter extends CookieFormatter {
+trait PlainCookies extends CookieFormatter {
 
   override protected def formatCookieValue(value: String): String = value
 }

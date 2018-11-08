@@ -37,7 +37,7 @@ class ResposeLogFormatterSpec extends TestSupportFixture with MockFactory {
   }
 
   it should "not mask cookies" in {
-    new ResponseLogFormatter() with PlainCookieFormatter {}
+    new ResponseLogFormatter() with PlainCookies {}
       .formatResponseLog(Ok(headers = Map("some" -> "header")))(mockRequest, mockResponse) shouldBe
       "GET returned status=200; authHeaders=[Set-Cookie -> scentry.auth.default.user=abc456.pq.xy, REMOTE_USER -> *****, Expires -> Thu, 01 Jan 1970 00:00:00 GMT]; actionHeaders=[some -> header]"
   }

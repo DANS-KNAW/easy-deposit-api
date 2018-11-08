@@ -34,28 +34,38 @@ import org.scalatra.ScalatraBase
 trait RequestLogFormatter extends DebugEnhancedLogging with CookieFormatter {
   this: ScalatraBase =>
 
-  protected def maskedHeadersToString(headers: Map[String, String]): String = maskHeaders(headers).mkString("[", ", ", "]")
+  protected def headersToString(headers: Map[String, String]): String = formatHeaders(headers).mkString("[", ", ", "]")
 
-  /** Masks values of headers with a (case insensitive) name equal to "cookie" or ending with "authorization" */
-  protected def maskHeaders(headers: Map[String, String]): Map[String, String] = {
+  /**
+   * Formats request headers.
+   * The default implementation has plain values for all headers
+   * except those with a (case insensitive) name equal to "cookie" or ending with "authorization".
+   */
+  protected def formatHeaders(headers: Map[String, String]): Map[String, String] = {
     headers.map {
-      case (key, value) if key.toLowerCase == "cookie" => (key, formatCookieValue(value))
-      case (key, value) if key.toLowerCase.endsWith("authorization") => (key, maskAuthorizationHeader(value))
+      // TODO use request.getCookies() instead?
+      case (key, values) if key.toLowerCase == "cookie" => (key, formatCookieValue(values))
+      case (key, values) if key.toLowerCase.endsWith("authorization") => (key, formatValueOfAuthorizationHeader(values))
       case kv => kv
     }
   }
 
-  /** Mask the value of headers with a case insensitive name ending with "authorization".
-   * Keeps the key like "basic", "digest" and "Bearer" but masks the actual credentials.
+  /**
+   * Formats the value of headers with a case insensitive name ending with "authorization".
+   * The default implementation keeps the key like "basic", "digest" and "bearer" but masks the actual credentials.
    */
-  protected def maskAuthorizationHeader(value: String): String = {
+  protected def formatValueOfAuthorizationHeader(value: String): String = {
     value.replaceAll(" .+", " *****")
   }
 
-  protected def maskedParametersToString(params: Map[String, String]): String = maskParameters(params).mkString("[", ", ", "]")
+  protected def parametersToString(params: Map[String, String]): String = formatParameters(params).mkString("[", ", ", "]")
 
-  /** Masks the values of the parameters with the name "login" and "password". */
-  protected def maskParameters(params: Map[String, String]): Map[String, String] = {
+  /**
+   * Formats request parameters.
+   * The default implementation has plain values for all parameters
+   * except those with a (case insensitive) name equal to "login" or "password".
+   */
+  protected def formatParameters(params: Map[String, String]): Map[String, String] = {
     params.map {
       case (key, _) if Seq("login", "password").contains(key.toLowerCase) => (key, "*****")
       case kv => kv
@@ -63,20 +73,26 @@ trait RequestLogFormatter extends DebugEnhancedLogging with CookieFormatter {
   }
 
   /**
+   * Formats the value of the request property RemoteAddr.
+   * The default implementation masks the last two components of the IP address.
+   *
    * https://www.bluecatnetworks.com/blog/ip-addresses-considered-personally-identifiable-information/
    * in case of link rot paste the url at the tail of https://web.archive.org/web/20181030102418/
    *
    * Services without public access might not need to mask.
    */
-  protected def maskRemoteAddress(remoteAddress: String): String = remoteAddress
+  protected def formatRemoteAddress(remoteAddress: String): String = remoteAddress
     .replaceAll("[0-9]+[.][0-9]+$", "**.**")
 
   protected def formatRequestLog(implicit request: HttpServletRequest): String = {
     val method = request.getMethod
     val requestURL = request.getRequestURL.toString
-    val headers = maskedHeadersToString(maskHeaders(request.headers))
-    val remoteAddr = maskRemoteAddress(request.getRemoteAddr)
-    val maskedParams = maskedParametersToString(maskParameters(params))
-    s"$method $requestURL remote=$remoteAddr; params=$maskedParams; headers=$headers"
+    val formattedHeaders = headersToString(formatHeaders(request.headers))
+    val formattedParams = parametersToString(formatParameters(params))
+
+    // TODO perhaps more of https://github.com/scalatra/scalatra/blob/2.7.x/core/src/main/scala/org/scalatra/util/RequestLogging.scala#L70-L85
+    val formattedRemoteAddress = formatRemoteAddress(request.getRemoteAddr)
+
+    s"$method $requestURL remote=$formattedRemoteAddress; params=$formattedParams; headers=$formattedHeaders"
   }
 }

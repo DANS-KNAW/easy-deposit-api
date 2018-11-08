@@ -17,11 +17,18 @@ package nl.knaw.dans.easy.deposit.logging
 
 trait CookieFormatter {
 
-  /** The default implementation keeps the name of the cookie, masks everything of the value but dots. */
-  protected def formatCookieValue(value: String): String = {
-    val cookieName = value.replaceAll("=.*", "")
-    val cookieValue = value.replaceAll(".*=", "")
-    val maskedCookieValue = cookieValue.replaceAll("[^.]", "*") // replace everything but dots
+  /**
+   * Formats the values of request headers with the (case insensitive) name "cookie"
+   * and response headers with the (case insensitive) name "set-cookie".
+   * The default implementation keeps the name of the first cookie, masks everything else
+   * but dots and equal signs. Multiple equal signs may indicate there were multiple cookies.
+   */
+  protected def formatCookieValue(values: String): String = {
+    // TODO support multiple cookie headers (plain cookies might have the separator (",") in quoted values. )
+    // https://github.com/scalatra/scalatra/blob/4d673d848d1540c96f8edb7bf481f14e4f271b1b/core/src/main/scala/org/scalatra/servlet/RichRequest.scala#L111-L115
+    val cookieName = values.replaceAll("=.*", "")
+    val cookieValue = values.replaceAll(".*=", "")
+    val maskedCookieValue = cookieValue.replaceAll("[^.=]", "*") // replace everything but dots
     s"$cookieName=$maskedCookieValue"
   }
 }
