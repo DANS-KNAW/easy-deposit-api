@@ -17,7 +17,7 @@ package nl.knaw.dans.easy.deposit.logging
 
 import org.scalatra.ScalatraBase
 
-trait PlainCookieHeader extends RequestLogger {
+trait PlainCookieHeader extends CookieMasker {
   this: ScalatraBase =>
 
   override protected def maskCookieHeader(value: String): String = value
