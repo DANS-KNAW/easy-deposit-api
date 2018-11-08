@@ -26,7 +26,7 @@ package nl.knaw.dans.easy.deposit
  * {{{
  *
  *    package object servlets extends DebugEnhancedLogger {
- *      private implicit val formatter: ResponseLogFormatter = new ResponseLogFormatter {}
+ *      implicit val formatter: ResponseLogFormatter = new ResponseLogFormatter {}
  *      implicit class RichActionResult(val actionResult: ActionResult) extends AnyVal {
  *        def logResponse(implicit request: HttpServletRequest,
  *                        response: HttpServletResponse,

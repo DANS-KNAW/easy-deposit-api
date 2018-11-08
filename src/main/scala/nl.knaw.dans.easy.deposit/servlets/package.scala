@@ -138,6 +138,7 @@ package object servlets extends DebugEnhancedLogging {
     }
   }
 
+  implicit val responseLogFormatter: ResponseLogFormatter = new ResponseLogFormatter {}
   implicit class RichActionResult(val actionResult: ActionResult) extends AnyVal {
     def logResponse(implicit request: HttpServletRequest,
                     response: HttpServletResponse,
