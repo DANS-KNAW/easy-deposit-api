@@ -17,6 +17,7 @@ package nl.knaw.dans.easy.deposit.logging
 
 import javax.servlet.http.{ HttpServletRequest, HttpServletResponse }
 import org.scalatra.ActionResult
+import scala.collection.JavaConverters._
 
 trait ResponseLogFormatter extends CookieFormatter {
 
@@ -51,26 +52,32 @@ trait ResponseLogFormatter extends CookieFormatter {
    */
   def formatResponseLog(actionResult: ActionResult)
                        (implicit request: HttpServletRequest, response: HttpServletResponse): String = {
-    s"${ request.getMethod } returned status=${ actionResult.status }; authHeaders=${ authHeadersToString(response) }; actionHeaders=${ actionHeadersToString(actionResult) }"
+    s"${ request.getMethod } returned status=${ actionResult.status }; authHeaders=${ authHeadersToString }; actionHeaders=${ actionHeadersToString(actionResult) }"
   }
 
   protected def actionHeadersToString(actionResult: ActionResult): String =
     formatActionHeaders(actionResult).mkString("[", ",", "]")
 
   protected def formatActionHeaders(actionResult: ActionResult): Map[String, String] =
-    actionResult.headers
+    actionResult.headers // TODO multiple values for one header
 
-  protected def authHeadersToString(response: HttpServletResponse): String =
-    formatAuthHeaders(response).mkString("[", ", ", "]")
+  protected def authHeadersToString(implicit response: HttpServletResponse): String =
+    formatAuthHeaders(response).map(kv => kv._1 -> kv._2.mkString("[", ", ", "]")).mkString("[", ", ", "]")
 
-  /** Formats the values for the headers REMOTE_USER and Set-Cookie */
-  protected def formatAuthHeaders(response: HttpServletResponse): Map[String, String] = {
-    // TODO fix potential null pointer exceptions: Option(response.getHeader(name)).map(formatXxx).getOrElse("")
+  /** Formats the values of headers with (case insensitive) name REMOTE_USER and Set-Cookie */
+  protected def formatAuthHeaders(implicit response: HttpServletResponse): Map[String, Iterable[String]] = {
     response.getHeaderNames.toArray().map {
-      case name: String if "set-cookie" == name.toLowerCase => (name, formatCookieValue(response.getHeader(name)))
-      case name: String if "remote_user" == name.toLowerCase => (name, formatRemoteUserValue(response.getHeader(name)))
-      case name: String => name -> response.getHeader(name)
+      case name: String if "set-cookie" == name.toLowerCase => formatHeaderValues(name, formatCookieValue)
+      case name: String if "remote_user" == name.toLowerCase => formatHeaderValues(name, formatRemoteUserValue)
+      case name: String => name -> response.getHeaders(name).asScala
     }.toMap
+  }
+
+  private def formatHeaderValues(name: String, formatter: String => String)(implicit response: HttpServletResponse) = {
+    val formattedValues = response.getHeaders(name)
+      .asScala
+      .map(formatter)
+    (name, formattedValues)
   }
 
   protected def formatRemoteUserValue(value: String): String = "*****"

@@ -27,19 +27,19 @@ class ResposeLogFormatterSpec extends TestSupportFixture with MockFactory {
   "ResponseLogFormatter" should "mask everything" in {
     new ResponseLogFormatter() {}
       .formatResponseLog(Ok())(mockRequest, mockResponse) shouldBe
-      "GET returned status=200; authHeaders=[Set-Cookie -> scentry.auth.default.user=******.**.**, REMOTE_USER -> *****, Expires -> Thu, 01 Jan 1970 00:00:00 GMT]; actionHeaders=[]"
+      "GET returned status=200; authHeaders=[Set-Cookie -> [scentry.auth.default.user=******.**.**], REMOTE_USER -> [*****], Expires -> [Thu, 01 Jan 1970 00:00:00 GMT]]; actionHeaders=[]"
   }
 
   it should "not mask anything" in {
     new ResponseLogFormatter() with PlainAuthResponseHeaders {}
       .formatResponseLog(Ok(headers = Map("some" -> "header")))(mockRequest, mockResponse) shouldBe
-      "GET returned status=200; authHeaders=[Set-Cookie -> scentry.auth.default.user=abc456.pq.xy, REMOTE_USER -> somebody, Expires -> Thu, 01 Jan 1970 00:00:00 GMT]; actionHeaders=[some -> header]"
+      "GET returned status=200; authHeaders=[Set-Cookie -> [scentry.auth.default.user=abc456.pq.xy], REMOTE_USER -> [somebody], Expires -> [Thu, 01 Jan 1970 00:00:00 GMT]]; actionHeaders=[some -> header]"
   }
 
   it should "not mask cookies" in {
     new ResponseLogFormatter() with PlainCookies {}
       .formatResponseLog(Ok(headers = Map("some" -> "header")))(mockRequest, mockResponse) shouldBe
-      "GET returned status=200; authHeaders=[Set-Cookie -> scentry.auth.default.user=abc456.pq.xy, REMOTE_USER -> *****, Expires -> Thu, 01 Jan 1970 00:00:00 GMT]; actionHeaders=[some -> header]"
+      "GET returned status=200; authHeaders=[Set-Cookie -> [scentry.auth.default.user=abc456.pq.xy], REMOTE_USER -> [*****], Expires -> [Thu, 01 Jan 1970 00:00:00 GMT]]; actionHeaders=[some -> header]"
   }
 
   private def mockResponse = {
@@ -53,7 +53,9 @@ class ResposeLogFormatterSpec extends TestSupportFixture with MockFactory {
     val headerNames = new util.Vector[String]()
     headerMap.foreach { case (key: String, value: String) =>
       headerNames.add(key)
-      response.getHeader _ expects key returning value anyNumberOfTimes()
+      val headerValues = new util.Vector[String]()
+      headerValues.add(value)
+      response.getHeaders _ expects key returning headerValues anyNumberOfTimes()
     }
     response.getHeaderNames _ expects() returning headerNames anyNumberOfTimes()
     response

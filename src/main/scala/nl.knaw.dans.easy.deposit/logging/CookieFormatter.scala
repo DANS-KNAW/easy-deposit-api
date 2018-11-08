@@ -24,8 +24,6 @@ trait CookieFormatter {
    * but dots and equal signs. Multiple equal signs may indicate there were multiple cookies.
    */
   protected def formatCookieValue(values: String): String = {
-    // TODO support multiple cookie headers (plain cookies might have the separator (",") in quoted values. )
-    // https://github.com/scalatra/scalatra/blob/4d673d848d1540c96f8edb7bf481f14e4f271b1b/core/src/main/scala/org/scalatra/servlet/RichRequest.scala#L111-L115
     val cookieName = values.replaceAll("=.*", "")
     val cookieValue = values.replaceAll(".*=", "")
     val maskedCookieValue = cookieValue.replaceAll("[^.=]", "*") // replace everything but dots

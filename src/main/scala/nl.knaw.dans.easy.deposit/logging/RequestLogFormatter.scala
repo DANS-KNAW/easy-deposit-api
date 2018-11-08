@@ -43,6 +43,7 @@ trait RequestLogFormatter extends DebugEnhancedLogging with CookieFormatter {
    */
   protected def formatHeaders(headers: Map[String, String]): Map[String, String] = {
     headers.map {
+      // TODO as ResponseLogFormatter.formatAuthHeaders
       // TODO use request.getCookies() instead?
       case (key, values) if key.toLowerCase == "cookie" => (key, formatCookieValue(values))
       case (key, values) if key.toLowerCase.endsWith("authorization") => (key, formatValueOfAuthorizationHeader(values))

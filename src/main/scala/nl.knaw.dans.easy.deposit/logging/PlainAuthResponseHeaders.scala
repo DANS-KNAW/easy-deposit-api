@@ -16,11 +16,12 @@
 package nl.knaw.dans.easy.deposit.logging
 
 import javax.servlet.http.HttpServletResponse
+import scala.collection.JavaConverters._
 
 trait PlainAuthResponseHeaders extends ResponseLogFormatter {
-  override protected def formatAuthHeaders(response: HttpServletResponse): Map[String, String] = {
+  override protected def formatAuthHeaders(implicit response: HttpServletResponse): Map[String, Iterable[String]] = {
     response.getHeaderNames.toArray().map {
-      case name: String => name -> response.getHeader(name)
+      case name: String => name -> response.getHeaders(name).asScala
     }.toMap
   }
 }
