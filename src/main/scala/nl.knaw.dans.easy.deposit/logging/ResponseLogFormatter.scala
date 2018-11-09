@@ -62,22 +62,19 @@ trait ResponseLogFormatter extends CookieFormatter {
     actionResult.headers // TODO multiple values for one header
 
   protected def authHeadersToString(implicit response: HttpServletResponse): String =
-    formatAuthHeaders(response).map(kv => kv._1 -> kv._2.mkString("[", ", ", "]")).mkString("[", ", ", "]")
+    formatAuthHeaders(response).makeString
 
   /** Formats the values of headers with (case insensitive) name REMOTE_USER and Set-Cookie */
-  protected def formatAuthHeaders(implicit response: HttpServletResponse): Map[String, Iterable[String]] = {
+  protected def formatAuthHeaders(implicit response: HttpServletResponse): HeaderMap = {
     response.getHeaderNames.toArray().map {
-      case name: String if "set-cookie" == name.toLowerCase => formatHeaderValues(name, formatCookieValue)
-      case name: String if "remote_user" == name.toLowerCase => formatHeaderValues(name, formatRemoteUserValue)
-      case name: String => name -> response.getHeaders(name).asScala
+      case name: String if "set-cookie" == name.toLowerCase => (name, getHeaderSeq(name).map(formatCookieValue))
+      case name: String if "remote_user" == name.toLowerCase => (name, getHeaderSeq(name).map(formatRemoteUserValue))
+      case name: String => name -> getHeaderSeq(name)
     }.toMap
   }
 
-  private def formatHeaderValues(name: String, formatter: String => String)(implicit response: HttpServletResponse) = {
-    val formattedValues = response.getHeaders(name)
-      .asScala
-      .map(formatter)
-    (name, formattedValues)
+  private def getHeaderSeq(name: String)(implicit response: HttpServletResponse) = {
+    response.getHeaders(name).asScala.toSeq
   }
 
   protected def formatRemoteUserValue(value: String): String = "*****"

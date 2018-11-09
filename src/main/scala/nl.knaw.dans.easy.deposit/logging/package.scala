@@ -15,6 +15,8 @@
  */
 package nl.knaw.dans.easy.deposit
 
+//TODO: candidate for dans-scala-lib
+
 /**
  * Provides standard logging for servlet requests and responses masking sensitive data.
  *
@@ -68,5 +70,11 @@ package nl.knaw.dans.easy.deposit
  * sections #filters #action
  */
 package object logging {
+
+  type HeaderMap = Map[String, Seq[String]]
+
+  implicit class HeaderMapExtensions(val headerMap: HeaderMap) extends AnyVal {
+    def makeString: String = headerMap.map(kv => kv._1 -> kv._2.mkString("[", ", ", "]")).mkString("[", ", ", "]")
+  }
 
 }

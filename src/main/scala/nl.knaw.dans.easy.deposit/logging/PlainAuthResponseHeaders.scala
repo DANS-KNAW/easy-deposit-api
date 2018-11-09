@@ -19,9 +19,9 @@ import javax.servlet.http.HttpServletResponse
 import scala.collection.JavaConverters._
 
 trait PlainAuthResponseHeaders extends ResponseLogFormatter {
-  override protected def formatAuthHeaders(implicit response: HttpServletResponse): Map[String, Iterable[String]] = {
+  override protected def formatAuthHeaders(implicit response: HttpServletResponse): HeaderMap = {
     response.getHeaderNames.toArray().map {
-      case name: String => name -> response.getHeaders(name).asScala
+      case name: String => name -> response.getHeaders(name).asScala.toSeq
     }.toMap
   }
 }
