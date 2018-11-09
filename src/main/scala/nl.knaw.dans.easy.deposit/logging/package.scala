@@ -15,8 +15,6 @@
  */
 package nl.knaw.dans.easy.deposit
 
-import org.scalatra.MultiParams
-
 //TODO: candidate for dans-scala-lib
 
 /**
@@ -55,7 +53,7 @@ import org.scalatra.MultiParams
  *        }
  *      }
  *    }
- *  }}}
+ * }}}
  *
  * For flexible use of the customization hooks move the implicit instance of the
  * [[nl.knaw.dans.easy.deposit.logging.ResponseLogFormatter]]
@@ -70,16 +68,19 @@ import org.scalatra.MultiParams
  * See the last extensive readme version (documentation moved into an incomplete book and guides)
  * https://github.com/scalatra/scalatra/blob/6a614d17c38d19826467adcabf1dc746e3192dfc/README.markdown
  * sections #filters #action
+ *
+ * Mixing in [[org.scalatra.util.RequestLogging]] broke unit test as it added a session header to some responses.
  */
 package object logging {
 
-  type HeaderMap = Map[String, Seq[String]] // same as ScalatraBase.MultiParams
+  type HeaderMap = Map[String, Seq[String]]
 
   implicit class StringMapExtensions(val stringMap: Map[String, String]) extends AnyVal {
     def makeString: String = stringMap.mkString("[", ", ", "]")
   }
 
-  implicit class HeaderMapExtensions(val headerMap: Map[String, Seq[String]]) extends AnyVal {
+  /** Extension for [[HeaderMap]] and [[org.scalatra.MultiParams]]. */
+  implicit class NestedStringMapExtensions(val headerMap: Map[String, Seq[String]]) extends AnyVal {
     def makeString: String = headerMap.map{case (k,v) => k -> v.mkString("[", ", ", "]")}.makeString
   }
 }

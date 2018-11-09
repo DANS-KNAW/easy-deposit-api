@@ -17,6 +17,8 @@ package nl.knaw.dans.easy.deposit.logging
 
 import javax.servlet.http.{ HttpServletRequest, HttpServletResponse }
 import org.scalatra.ActionResult
+import org.scalatra.util.RequestLogging
+
 import scala.collection.JavaConverters._
 
 trait ResponseLogFormatter extends CookieFormatter {
@@ -59,7 +61,7 @@ trait ResponseLogFormatter extends CookieFormatter {
     formatActionHeaders(actionResult).makeString
 
   protected def formatActionHeaders(actionResult: ActionResult): Map[String, String] =
-    actionResult.headers // TODO multiple values for one header
+    actionResult.headers
 
   protected def authHeadersToString(implicit response: HttpServletResponse): String =
     formatAuthHeaders(response).makeString
@@ -74,7 +76,7 @@ trait ResponseLogFormatter extends CookieFormatter {
   }
 
   private def getHeaderSeq(name: String)(implicit response: HttpServletResponse) = {
-    response.getHeaders(name).asScala.toSeq
+    Option(response.getHeaders(name)).map(_.asScala.toSeq).getOrElse(Seq.empty)
   }
 
   protected def formatRemoteUserValue(value: String): String = "*****"

@@ -44,8 +44,6 @@ trait RequestLogFormatter extends DebugEnhancedLogging with CookieFormatter {
    */
   protected def formatHeaders(headers: HeaderMap): HeaderMap = {
     headers.map {
-      // TODO use request.getCookies() instead?
-      // TODO as ResponseLogFormatter.formatAuthHeaders
       case (name, values) if name.toLowerCase == "cookie" => name -> values.map(formatCookieValue)
       case (name, values) if name.toLowerCase.endsWith("authorization") => name -> values.map(formatValueOfAuthorizationHeader)
       case kv => kv
@@ -88,7 +86,7 @@ trait RequestLogFormatter extends DebugEnhancedLogging with CookieFormatter {
 
   private def getHeaderMap: HeaderMap = {
     request.getHeaderNames.asScala.toSeq.map(
-      name => name -> request.getHeaders(name).asScala.toSeq
+      name => name -> Option(request.getHeaders(name)).map(_.asScala.toSeq).getOrElse(Seq.empty)
     )
   }.toMap
 
