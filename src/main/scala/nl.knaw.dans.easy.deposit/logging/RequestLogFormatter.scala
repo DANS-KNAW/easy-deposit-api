@@ -16,7 +16,7 @@
 package nl.knaw.dans.easy.deposit.logging
 
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
-import org.scalatra.ScalatraBase
+import org.scalatra.{ MultiParams, ScalatraBase }
 
 import scala.collection.JavaConverters._
 
@@ -60,16 +60,16 @@ trait RequestLogFormatter extends DebugEnhancedLogging with CookieFormatter {
     value.replaceAll(" .+", " *****")
   }
 
-  protected def parametersToString(params: Map[String, String]): String = formatParameters(params).makeString
+  protected def parametersToString(params: MultiParams): String = formatParameters(params).makeString
 
   /**
    * Formats request parameters.
    * The default implementation has plain values for all parameters
    * except those with a (case insensitive) name equal to "login" or "password".
    */
-  protected def formatParameters(params: Map[String, String]): Map[String, String] = {
+  protected def formatParameters(params: MultiParams): MultiParams = {
     params.map {
-      case (key, _) if Seq("login", "password").contains(key.toLowerCase) => (key, "*****")
+      case (name, values) if Seq("login", "password").contains(name.toLowerCase) => name -> values.map(_ => "*****")
       case kv => kv
     }
   }
@@ -96,7 +96,7 @@ trait RequestLogFormatter extends DebugEnhancedLogging with CookieFormatter {
     val method = request.getMethod
     val requestURL = request.getRequestURL.toString
     val formattedHeaders = headersToString(formatHeaders(getHeaderMap))
-    val formattedParams = parametersToString(formatParameters(params))
+    val formattedParams = parametersToString(formatParameters(multiParams))
 
     // TODO perhaps more of https://github.com/scalatra/scalatra/blob/2.7.x/core/src/main/scala/org/scalatra/util/RequestLogging.scala#L70-L85
     val formattedRemoteAddress = formatRemoteAddress(request.getRemoteAddr)

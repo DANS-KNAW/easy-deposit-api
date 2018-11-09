@@ -15,6 +15,8 @@
  */
 package nl.knaw.dans.easy.deposit
 
+import org.scalatra.MultiParams
+
 //TODO: candidate for dans-scala-lib
 
 /**
@@ -71,13 +73,13 @@ package nl.knaw.dans.easy.deposit
  */
 package object logging {
 
-  type HeaderMap = Map[String, Seq[String]]
+  type HeaderMap = Map[String, Seq[String]] // same as ScalatraBase.MultiParams
 
   implicit class StringMapExtensions(val stringMap: Map[String, String]) extends AnyVal {
     def makeString: String = stringMap.mkString("[", ", ", "]")
   }
 
-  implicit class HeaderMapExtensions(val headerMap: HeaderMap) extends AnyVal {
-    def makeString: String = headerMap.map(kv => kv._1 -> kv._2.mkString("[", ", ", "]")).makeString
+  implicit class HeaderMapExtensions(val headerMap: Map[String, Seq[String]]) extends AnyVal {
+    def makeString: String = headerMap.map{case (k,v) => k -> v.mkString("[", ", ", "]")}.makeString
   }
 }

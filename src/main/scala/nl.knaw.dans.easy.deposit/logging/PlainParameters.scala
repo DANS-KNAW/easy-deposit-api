@@ -15,10 +15,10 @@
  */
 package nl.knaw.dans.easy.deposit.logging
 
-import org.scalatra.ScalatraBase
+import org.scalatra.{ MultiParams, ScalatraBase }
 
 trait PlainParameters extends RequestLogger {
   this: ScalatraBase =>
 
-  override protected def formatParameters(params: Map[String, String]): Map[String, String] = params
+  override protected def formatParameters(params: MultiParams): MultiParams = params
 }

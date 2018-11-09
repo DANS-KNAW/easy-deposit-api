@@ -35,19 +35,19 @@ class RequestLogFormatterSpec extends TestSupportFixture with MockFactory {
 
   "formatRequestLog" should "mask everything" in {
     new DefaultTestServlet().log shouldBe
-      "GET http://does.not.exist.dans.knaw.nl remote=12.34.**.**; params=[password -> *****, login -> *****]; headers=[cookie -> [scentry.auth.default.user=******.**.**], HTTP_AUTHORIZATION -> [basic *****], foo -> [bar]]"
+      "GET http://does.not.exist.dans.knaw.nl remote=12.34.**.**; params=[password -> [*****], login -> [*****]]; headers=[cookie -> [scentry.auth.default.user=******.**.**], HTTP_AUTHORIZATION -> [basic *****], foo -> [bar]]"
   }
 
   it should "mask nothing" in {
 
     new DefaultTestServlet() with PlainRemoteAddress with PlainParameters with PlainHeaders {}.log shouldBe
-      "GET http://does.not.exist.dans.knaw.nl remote=12.34.56.78; params=[password -> secret, login -> mystery]; headers=[cookie -> [scentry.auth.default.user=abc456.pq.xy], HTTP_AUTHORIZATION -> [basic 123x_], foo -> [bar]]"
+      "GET http://does.not.exist.dans.knaw.nl remote=12.34.56.78; params=[password -> [secret], login -> [mystery]]; headers=[cookie -> [scentry.auth.default.user=abc456.pq.xy], HTTP_AUTHORIZATION -> [basic 123x_], foo -> [bar]]"
   }
 
   it should "mask nothing but cookie headers" in {
 
     new DefaultTestServlet() with PlainRemoteAddress with PlainParameters with PlainAuthorizationHeader {}.log shouldBe
-      "GET http://does.not.exist.dans.knaw.nl remote=12.34.56.78; params=[password -> secret, login -> mystery]; headers=[cookie -> [scentry.auth.default.user=******.**.**], HTTP_AUTHORIZATION -> [basic 123x_], foo -> [bar]]"
+      "GET http://does.not.exist.dans.knaw.nl remote=12.34.56.78; params=[password -> [secret], login -> [mystery]]; headers=[cookie -> [scentry.auth.default.user=******.**.**], HTTP_AUTHORIZATION -> [basic 123x_], foo -> [bar]]"
   }
 
   it should "add a custom message to the log line" in {
@@ -57,7 +57,7 @@ class RequestLogFormatterSpec extends TestSupportFixture with MockFactory {
         super.formatRequestLog + " custom message"
       }
     }.log shouldBe
-      "GET http://does.not.exist.dans.knaw.nl remote=12.34.**.**; params=[password -> *****, login -> *****]; headers=[cookie -> [scentry.auth.default.user=******.**.**], HTTP_AUTHORIZATION -> [basic *****], foo -> [bar]] custom message"
+      "GET http://does.not.exist.dans.knaw.nl remote=12.34.**.**; params=[password -> [*****], login -> [*****]]; headers=[cookie -> [scentry.auth.default.user=******.**.**], HTTP_AUTHORIZATION -> [basic *****], foo -> [bar]] custom message"
   }
 
   it should "mask all headers in the same way" in {
@@ -67,7 +67,7 @@ class RequestLogFormatterSpec extends TestSupportFixture with MockFactory {
         headers.map { case (key: String, _) => (key, Seq("*")) }
       }
     }.log shouldBe
-      "GET http://does.not.exist.dans.knaw.nl remote=12.34.**.**; params=[password -> *****, login -> *****]; headers=[cookie -> [*], HTTP_AUTHORIZATION -> [*], foo -> [*]]"
+      "GET http://does.not.exist.dans.knaw.nl remote=12.34.**.**; params=[password -> [*****], login -> [*****]]; headers=[cookie -> [*], HTTP_AUTHORIZATION -> [*], foo -> [*]]"
   }
 
   it should "mask all headers, even their names" in {
@@ -76,7 +76,7 @@ class RequestLogFormatterSpec extends TestSupportFixture with MockFactory {
       override protected def headersToString(headers: HeaderMap): String = "*****"
     }
       .log shouldBe
-      "GET http://does.not.exist.dans.knaw.nl remote=12.34.**.**; params=[password -> *****, login -> *****]; headers=*****"
+      "GET http://does.not.exist.dans.knaw.nl remote=12.34.**.**; params=[password -> [*****], login -> [*****]]; headers=*****"
   }
 
   it should "mask also a (case sensitive) custom header" in {
@@ -89,13 +89,13 @@ class RequestLogFormatterSpec extends TestSupportFixture with MockFactory {
         }
       }
     }.log shouldBe
-      "GET http://does.not.exist.dans.knaw.nl remote=12.34.**.**; params=[password -> *****, login -> *****]; headers=[cookie -> [scentry.auth.default.user=******.**.**], HTTP_AUTHORIZATION -> [basic *****], foo -> [***]]"
+      "GET http://does.not.exist.dans.knaw.nl remote=12.34.**.**; params=[password -> [*****], login -> [*****]]; headers=[cookie -> [scentry.auth.default.user=******.**.**], HTTP_AUTHORIZATION -> [basic *****], foo -> [***]]"
   }
 
   it should "log the number of parameters (alias named fields in web forms), not their names/values" in {
 
     new DefaultTestServlet {
-      override protected def parametersToString(params: Map[String, String]): String = params.size.toString
+      override protected def parametersToString(params: MultiParams): String = params.size.toString
     }.log shouldBe
       "GET http://does.not.exist.dans.knaw.nl remote=12.34.**.**; params=2; headers=[cookie -> [scentry.auth.default.user=******.**.**], HTTP_AUTHORIZATION -> [basic *****], foo -> [bar]]"
   }
