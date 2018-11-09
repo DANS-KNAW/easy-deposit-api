@@ -30,7 +30,7 @@ class RequestLogFormatterSpec extends TestSupportFixture with MockFactory {
 
     override def multiParams(implicit request: HttpServletRequest): MultiParams = params
 
-    def log: String = formatRequestLog(request)
+    def log: String = formatRequestLog
   }
 
   "formatRequestLog" should "mask everything" in {
@@ -53,8 +53,8 @@ class RequestLogFormatterSpec extends TestSupportFixture with MockFactory {
   it should "add a custom message to the log line" in {
 
     new DefaultTestServlet {
-      override protected def formatRequestLog(implicit request: HttpServletRequest): String = {
-        super.formatRequestLog(request) + " custom message"
+      override protected def formatRequestLog: String = {
+        super.formatRequestLog + " custom message"
       }
     }.log shouldBe
       "GET http://does.not.exist.dans.knaw.nl remote=12.34.**.**; params=[password -> *****, login -> *****]; headers=[cookie -> scentry.auth.default.user=******.**.**, HTTP_AUTHORIZATION -> basic *****, foo -> bar] custom message"

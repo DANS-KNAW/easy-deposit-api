@@ -25,7 +25,7 @@ import org.scalatra.ScalatraBase
  *     // override behaviour with additional traits and/or custom methods
  *
  *     extends ScalatraServlet with RequestLogger with PlainRemoteAddress {
- *       override protected def formatRequestLog(implicit request: HttpServletRequest): String = {
+ *       override protected def formatRequestLog: String = {
  *         super.formatRequestLog(request) + " custom message"
  *       }
  *     }
@@ -85,7 +85,7 @@ trait RequestLogFormatter extends DebugEnhancedLogging with CookieFormatter {
   protected def formatRemoteAddress(remoteAddress: String): String = remoteAddress
     .replaceAll("[0-9]+[.][0-9]+$", "**.**")
 
-  protected def formatRequestLog(implicit request: HttpServletRequest): String = {
+  protected def formatRequestLog: String = {
     val method = request.getMethod
     val requestURL = request.getRequestURL.toString
     val formattedHeaders = headersToString(formatHeaders(request.headers))
