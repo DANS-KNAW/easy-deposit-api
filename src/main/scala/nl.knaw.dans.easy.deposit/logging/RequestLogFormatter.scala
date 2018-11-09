@@ -50,6 +50,13 @@ trait RequestLogFormatter extends DebugEnhancedLogging with CookieFormatter {
     }
   }
 
+  private def getHeaderMap: HeaderMap = {
+    // looks the same method as for ResponseLogFormatter, but everywhere different classes
+    request.getHeaderNames.asScala.toSeq.map(
+      name => name -> Option(request.getHeaders(name)).map(_.asScala.toSeq).getOrElse(Seq.empty)
+    )
+  }.toMap
+
   /**
    * Formats the value of headers with a case insensitive name ending with "authorization".
    * The default implementation keeps the key like "basic", "digest" and "bearer" but masks the actual credentials.
@@ -84,12 +91,10 @@ trait RequestLogFormatter extends DebugEnhancedLogging with CookieFormatter {
   protected def formatRemoteAddress(remoteAddress: String): String = remoteAddress
     .replaceAll("[0-9]+[.][0-9]+$", "**.**")
 
-  private def getHeaderMap: HeaderMap = {
-    request.getHeaderNames.asScala.toSeq.map(
-      name => name -> Option(request.getHeaders(name)).map(_.asScala.toSeq).getOrElse(Seq.empty)
-    )
-  }.toMap
-
+  /**
+   * Assembles the content for a log line.
+   * Called by a before filter of servlets using this trait.
+   */
   protected def formatRequestLog: String = {
     val method = request.getMethod
     val requestURL = request.getRequestURL.toString

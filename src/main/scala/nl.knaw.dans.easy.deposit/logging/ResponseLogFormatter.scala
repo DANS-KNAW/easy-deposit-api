@@ -17,15 +17,49 @@ package nl.knaw.dans.easy.deposit.logging
 
 import javax.servlet.http.{ HttpServletRequest, HttpServletResponse }
 import org.scalatra.ActionResult
-import org.scalatra.util.RequestLogging
 
 import scala.collection.JavaConverters._
 
+/**
+ *
+ */
 trait ResponseLogFormatter extends CookieFormatter {
 
-  /** Assembles the content for a log line.
+  protected def authHeadersToString(headerMap: HeaderMap): String =
+    formatAuthHeaders(headerMap).makeString
+
+  /**
+   * Formats response headers as far as prepared by traits of the servlet.
+   * The default implementation has plain values for all headers
+   * except those with a (case insensitive) name equal to "REMOTE_USER" or "Set-Cookie" */
+  protected def formatAuthHeaders(headerMap: HeaderMap): HeaderMap = {
+    headerMap.map {
+      case (name, values) if "set-cookie" == name.toLowerCase => name -> values.map(formatCookieValue)
+      case (name, values) if "remote_user" == name.toLowerCase => name -> values.map(formatRemoteUserValue)
+      case nameValues => nameValues
+    }
+  }
+
+  private def getHeaderMap(implicit response: HttpServletResponse): HeaderMap = {
+    // looks the same method as for RequestLogFormatter, but everywhere different classes
+    response.getHeaderNames.asScala.toSeq.map(
+      name => name -> Option(response.getHeaders(name)).map(_.asScala.toSeq).getOrElse(Seq.empty)
+    )
+  }.toMap
+
+  protected def actionHeadersToString(actionResult: ActionResult): String =
+    formatActionHeaders(actionResult).makeString
+
+  protected def formatActionHeaders(actionResult: ActionResult): Map[String, String] =
+    actionResult.headers
+
+  protected def formatRemoteUserValue(value: String): String = "*****"
+
+  /**
+   * Assembles the content for a log line.
    *
-   * Adding the logResponse method to [[ActionResult]] for the following examples is explained at package level.
+   * Adding the logResponse method to [[ActionResult]] for the following examples
+   * is explained by [[nl.knaw.dans.easy.deposit.logging]].
    *
    * @example
    * {{{
@@ -50,34 +84,14 @@ trait ResponseLogFormatter extends CookieFormatter {
    * @param request      some info is used as a kind of bracketing the response log line with the request log line
    * @param response     here we might find some info created by a [[org.scalatra.auth.ScentrySupport]] trait
    *                     for a [[org.scalatra.ScalatraServlet]].
-   * @return
+   * @return a formatted log line
    */
   def formatResponseLog(actionResult: ActionResult)
                        (implicit request: HttpServletRequest, response: HttpServletResponse): String = {
-    s"${ request.getMethod } returned status=${ actionResult.status }; authHeaders=${ authHeadersToString }; actionHeaders=${ actionHeadersToString(actionResult) }"
+    val method = request.getMethod
+    val status = actionResult.status
+    val formattedAuthHeaders = authHeadersToString(getHeaderMap)
+    val formattedActionHeaders = actionHeadersToString(actionResult)
+    s"${ method } returned status=${ status }; authHeaders=$formattedAuthHeaders; actionHeaders=$formattedActionHeaders"
   }
-
-  protected def actionHeadersToString(actionResult: ActionResult): String =
-    formatActionHeaders(actionResult).makeString
-
-  protected def formatActionHeaders(actionResult: ActionResult): Map[String, String] =
-    actionResult.headers
-
-  protected def authHeadersToString(implicit response: HttpServletResponse): String =
-    formatAuthHeaders(response).makeString
-
-  /** Formats the values of headers with (case insensitive) name REMOTE_USER and Set-Cookie */
-  protected def formatAuthHeaders(implicit response: HttpServletResponse): HeaderMap = {
-    response.getHeaderNames.toArray().map {
-      case name: String if "set-cookie" == name.toLowerCase => (name, getHeaderSeq(name).map(formatCookieValue))
-      case name: String if "remote_user" == name.toLowerCase => (name, getHeaderSeq(name).map(formatRemoteUserValue))
-      case name: String => name -> getHeaderSeq(name)
-    }.toMap
-  }
-
-  private def getHeaderSeq(name: String)(implicit response: HttpServletResponse) = {
-    Option(response.getHeaders(name)).map(_.asScala.toSeq).getOrElse(Seq.empty)
-  }
-
-  protected def formatRemoteUserValue(value: String): String = "*****"
 }

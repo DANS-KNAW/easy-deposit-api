@@ -38,8 +38,10 @@ package nl.knaw.dans.easy.deposit
  * ==Responses==
  *
  * Each response must be logged explicitly by a method added to the class [[org.scalatra.ActionResult]].
- *
- * @example
+ * For flexible use of the customization hooks move the implicit instance of the
+ * [[nl.knaw.dans.easy.deposit.logging.ResponseLogFormatter]]
+ * to the servlets and/or traits with "self: [[org.scalatra.ScalatraBase]]".
+ * Making these instances private in traits allows the servlets to define their own formatting.
  * {{{
  *    package object servlets extends DebugEnhancedLogger {
  *      implicit val formatter: ResponseLogFormatter = new ResponseLogFormatter {}
@@ -54,11 +56,6 @@ package nl.knaw.dans.easy.deposit
  *      }
  *    }
  * }}}
- *
- * For flexible use of the customization hooks move the implicit instance of the
- * [[nl.knaw.dans.easy.deposit.logging.ResponseLogFormatter]]
- * to the servlets and/or traits with "self: [[org.scalatra.ScalatraBase]]".
- * Making these instances private in traits allows the servlets to define their own formatting.
  *
  * ==Before and/or after==
  *
