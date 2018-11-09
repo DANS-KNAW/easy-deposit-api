@@ -56,7 +56,7 @@ trait ResponseLogFormatter extends CookieFormatter {
   }
 
   protected def actionHeadersToString(actionResult: ActionResult): String =
-    formatActionHeaders(actionResult).mkString("[", ",", "]")
+    formatActionHeaders(actionResult).makeString
 
   protected def formatActionHeaders(actionResult: ActionResult): Map[String, String] =
     actionResult.headers // TODO multiple values for one header

@@ -34,7 +34,7 @@ import org.scalatra.ScalatraBase
 trait RequestLogFormatter extends DebugEnhancedLogging with CookieFormatter {
   this: ScalatraBase =>
 
-  protected def headersToString(headers: Map[String, String]): String = formatHeaders(headers).mkString("[", ", ", "]")
+  protected def headersToString(headers: Map[String, String]): String = formatHeaders(headers).makeString
 
   /**
    * Formats request headers.
@@ -43,8 +43,8 @@ trait RequestLogFormatter extends DebugEnhancedLogging with CookieFormatter {
    */
   protected def formatHeaders(headers: Map[String, String]): Map[String, String] = {
     headers.map {
-      // TODO as ResponseLogFormatter.formatAuthHeaders
       // TODO use request.getCookies() instead?
+      // TODO as ResponseLogFormatter.formatAuthHeaders
       case (key, values) if key.toLowerCase == "cookie" => (key, formatCookieValue(values))
       case (key, values) if key.toLowerCase.endsWith("authorization") => (key, formatValueOfAuthorizationHeader(values))
       case kv => kv
@@ -59,7 +59,7 @@ trait RequestLogFormatter extends DebugEnhancedLogging with CookieFormatter {
     value.replaceAll(" .+", " *****")
   }
 
-  protected def parametersToString(params: Map[String, String]): String = formatParameters(params).mkString("[", ", ", "]")
+  protected def parametersToString(params: Map[String, String]): String = formatParameters(params).makeString
 
   /**
    * Formats request parameters.
