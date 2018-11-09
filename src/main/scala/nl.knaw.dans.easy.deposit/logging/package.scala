@@ -78,6 +78,6 @@ package object logging {
 
   /** Extension for [[HeaderMap]] and [[org.scalatra.MultiParams]]. */
   implicit class NestedStringMapExtensions(val headerMap: Map[String, Seq[String]]) extends AnyVal {
-    def makeString: String = headerMap.map{case (k,v) => k -> v.mkString("[", ", ", "]")}.makeString
+    def makeString: String = headerMap.map { case (k, v) => k -> v.mkString("[", ", ", "]") }.makeString
   }
 }
