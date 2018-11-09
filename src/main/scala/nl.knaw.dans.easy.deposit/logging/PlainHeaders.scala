@@ -20,5 +20,5 @@ import org.scalatra.ScalatraBase
 trait PlainHeaders extends RequestLogger {
   this: ScalatraBase =>
 
-  override protected def formatHeaders(headers: Map[String, String]): Map[String, String] = headers
+  override protected def formatHeaders(headers: HeaderMap): HeaderMap = headers
 }

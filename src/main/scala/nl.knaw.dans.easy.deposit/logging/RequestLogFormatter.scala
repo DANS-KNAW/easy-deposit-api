@@ -15,9 +15,10 @@
  */
 package nl.knaw.dans.easy.deposit.logging
 
-import javax.servlet.http.HttpServletRequest
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.scalatra.ScalatraBase
+
+import scala.collection.JavaConverters._
 
 /**
  * @example
@@ -34,19 +35,19 @@ import org.scalatra.ScalatraBase
 trait RequestLogFormatter extends DebugEnhancedLogging with CookieFormatter {
   this: ScalatraBase =>
 
-  protected def headersToString(headers: Map[String, String]): String = formatHeaders(headers).makeString
+  protected def headersToString(headers: HeaderMap): String = formatHeaders(headers).makeString
 
   /**
    * Formats request headers.
    * The default implementation has plain values for all headers
    * except those with a (case insensitive) name equal to "cookie" or ending with "authorization".
    */
-  protected def formatHeaders(headers: Map[String, String]): Map[String, String] = {
+  protected def formatHeaders(headers: HeaderMap): HeaderMap = {
     headers.map {
       // TODO use request.getCookies() instead?
       // TODO as ResponseLogFormatter.formatAuthHeaders
-      case (key, values) if key.toLowerCase == "cookie" => (key, formatCookieValue(values))
-      case (key, values) if key.toLowerCase.endsWith("authorization") => (key, formatValueOfAuthorizationHeader(values))
+      case (name, values) if name.toLowerCase == "cookie" => name -> values.map(formatCookieValue)
+      case (name, values) if name.toLowerCase.endsWith("authorization") => name -> values.map(formatValueOfAuthorizationHeader)
       case kv => kv
     }
   }
@@ -85,10 +86,16 @@ trait RequestLogFormatter extends DebugEnhancedLogging with CookieFormatter {
   protected def formatRemoteAddress(remoteAddress: String): String = remoteAddress
     .replaceAll("[0-9]+[.][0-9]+$", "**.**")
 
+  private def getHeaderMap: HeaderMap = {
+    request.getHeaderNames.asScala.toSeq.map(
+      name => name -> request.getHeaders(name).asScala.toSeq
+    )
+  }.toMap
+
   protected def formatRequestLog: String = {
     val method = request.getMethod
     val requestURL = request.getRequestURL.toString
-    val formattedHeaders = headersToString(formatHeaders(request.headers))
+    val formattedHeaders = headersToString(formatHeaders(getHeaderMap))
     val formattedParams = parametersToString(formatParameters(params))
 
     // TODO perhaps more of https://github.com/scalatra/scalatra/blob/2.7.x/core/src/main/scala/org/scalatra/util/RequestLogging.scala#L70-L85
