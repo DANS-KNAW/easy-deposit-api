@@ -43,28 +43,35 @@ trait RequestLogFormatter extends CookieFormatter {
    */
   protected def formatHeaders(headers: HeaderMap): HeaderMap = {
     headers.map {
-      case (name, values) if name.toLowerCase == "cookie" => name -> values.map(formatCookieValue)
-      case (name, values) if name.toLowerCase.endsWith("authorization") => name -> values.map(formatValueOfAuthorizationHeader)
+      case (name, values) if name.toLowerCase == "cookie" =>
+        name -> values.map(formatCookieValue)
+      case (name, values) if name.toLowerCase.endsWith("authorization") =>
+        name -> values.map(formatValueOfAuthorizationHeader)
       case kv => kv
     }
   }
 
   private def getHeaderMap: HeaderMap = {
     // looks the same method as for ResponseLogFormatter, but everywhere different classes
-    request.getHeaderNames.asScala.toSeq.map(
-      name => name -> Option(request.getHeaders(name)).map(_.asScala.toSeq).getOrElse(Seq.empty)
-    )
+    request.getHeaderNames
+      .asScala.toSeq
+      .map(
+        name => name -> Option(request.getHeaders(name)).map(_.asScala.toSeq).getOrElse(Seq.empty)
+      )
   }.toMap
 
   /**
    * Formats the value of headers with a case insensitive name ending with "authorization".
-   * The default implementation keeps the key like "basic", "digest" and "bearer" but masks the actual credentials.
+   * The default implementation keeps the key like "basic", "digest" and "bearer"
+   * but masks the actual credentials.
    */
   protected def formatValueOfAuthorizationHeader(value: String): String = {
     value.replaceAll(" .+", " *****")
   }
 
-  protected def parametersToString(params: MultiParams): String = formatParameters(params).makeString
+  protected def parametersToString(params: MultiParams): String = {
+    formatParameters(params).makeString
+  }
 
   /**
    * Formats request parameters.
@@ -73,7 +80,8 @@ trait RequestLogFormatter extends CookieFormatter {
    */
   protected def formatParameters(params: MultiParams): MultiParams = {
     params.map {
-      case (name, values) if Seq("login", "password").contains(name.toLowerCase) => name -> values.map(_ => "*****")
+      case (name, values) if Seq("login", "password").contains(name.toLowerCase) =>
+        name -> values.map(_ => "*****")
       case kv => kv
     }
   }
