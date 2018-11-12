@@ -215,6 +215,9 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
     val uuid = DepositInfo(responseBody).map(_.id.toString).getOrRecover(e => fail(e.toString, e))
     val depositDir = testDir / "drafts" / "foo" / uuid.toString
 
+    // copy DOI from metadata into deposit.properties
+    (depositDir / "deposit.properties").append(s"identifier.doi=$doi")
+
     // upload dataset metadata
     assumeSchemaAvailable
     expectsUserFooBar
@@ -226,9 +229,6 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
       body shouldBe ""
       status shouldBe NO_CONTENT_204
     }
-
-    // copy DOI from metadata into deposit.properties
-    (depositDir / "deposit.properties").append(s"identifier.doi=$doi")
 
     // submit
     expectsUserFooBar

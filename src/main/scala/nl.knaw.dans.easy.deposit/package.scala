@@ -39,7 +39,7 @@ package object deposit {
     extends DepositException(s"Invalid deposit uuid $id for user $user: ${ cause.getMessage }", cause)
 
   case class BadDoiException(md: DatasetMetadata, propsDOI: Option[String])
-    extends InvalidDocumentException(s"DOI in datasetmetadata.json [${ md.doi }] does not equal DOI in deposit.properties [$propsDOI]")
+    extends DepositException(s"DOI in datasetmetadata.json [${ md.doi }] does not equal DOI in deposit.properties [$propsDOI]", null)
 
   case class IllegalStateTransitionException(user: String, id: UUID, oldState: State, newState: State)
     extends DepositException(s"Cannot transition from $oldState to $newState (deposit id: $id, user: $user)", null)
