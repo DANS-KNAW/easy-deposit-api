@@ -72,7 +72,7 @@ package object logging {
 
   type HeaderMap = Map[String, Seq[String]]
 
-  implicit class MapExtensions[K, V](val stringMap: Map[K, V]) extends AnyVal {
+  implicit private[logging] class MapExtensions[K, V](val stringMap: Map[K, V]) extends AnyVal {
 
     /** @return a toString like value with less class names */
     def makeString: String = {
