@@ -17,7 +17,7 @@ package nl.knaw.dans.easy.deposit.logging
 
 import org.scalatra.ScalatraBase
 
-trait PlainHeaders extends RequestLogger {
+trait PlainHeaders extends RequestLogFormatter {
   this: ScalatraBase =>
 
   override protected def formatHeaders(headers: HeaderMap): HeaderMap = headers

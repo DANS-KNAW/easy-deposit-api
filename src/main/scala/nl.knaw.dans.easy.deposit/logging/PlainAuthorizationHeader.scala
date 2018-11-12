@@ -17,7 +17,7 @@ package nl.knaw.dans.easy.deposit.logging
 
 import org.scalatra.ScalatraBase
 
-trait PlainAuthorizationHeader extends RequestLogger {
+trait PlainAuthorizationHeader extends RequestLogFormatter {
   this: ScalatraBase =>
 
   override protected def formatValueOfAuthorizationHeader(value: String): String = value
