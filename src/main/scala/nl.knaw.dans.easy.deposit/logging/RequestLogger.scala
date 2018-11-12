@@ -15,9 +15,10 @@
  */
 package nl.knaw.dans.easy.deposit.logging
 
+import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.scalatra.ScalatraBase
 
-trait RequestLogger extends RequestLogFormatter {
+trait RequestLogger extends DebugEnhancedLogging with RequestLogFormatter {
   this: ScalatraBase =>
 
   before() {

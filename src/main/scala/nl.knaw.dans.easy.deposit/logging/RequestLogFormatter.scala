@@ -32,7 +32,7 @@ import scala.collection.JavaConverters._
  *     }
  * }}}
  */
-trait RequestLogFormatter extends DebugEnhancedLogging with CookieFormatter {
+trait RequestLogFormatter extends CookieFormatter {
   this: ScalatraBase =>
 
   protected def headersToString(headers: HeaderMap): String = formatHeaders(headers).makeString
