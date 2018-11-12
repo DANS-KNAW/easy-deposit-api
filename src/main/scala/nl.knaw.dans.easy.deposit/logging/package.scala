@@ -72,12 +72,14 @@ package object logging {
 
   type HeaderMap = Map[String, Seq[String]]
 
-  implicit class StringMapExtensions(val stringMap: Map[String, String]) extends AnyVal {
-    def makeString: String = stringMap.mkString("[", ", ", "]")
-  }
+  implicit class MapExtensions[K, V](val stringMap: Map[K, V]) extends AnyVal {
 
-  /** Extension for [[HeaderMap]] and [[org.scalatra.MultiParams]]. */
-  implicit class NestedStringMapExtensions(val headerMap: Map[String, Seq[String]]) extends AnyVal {
-    def makeString: String = headerMap.map { case (k, v) => k -> v.mkString("[", ", ", "]") }.makeString
+    /** @return a toString like value with less class names */
+    def makeString: String = {
+      stringMap.map {
+        case (k, v: Seq[_]) => k -> v.mkString("[", ", ", "]")
+        case kv => kv
+      }.mkString("[", ", ", "]")
+    }
   }
 }
