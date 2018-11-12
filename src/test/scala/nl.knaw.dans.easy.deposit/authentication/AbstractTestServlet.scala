@@ -15,13 +15,14 @@
  */
 package nl.knaw.dans.easy.deposit.authentication
 
-import nl.knaw.dans.easy.deposit.logging.RequestLogger
+import nl.knaw.dans.easy.deposit.logging.{ RequestLogger, ResponseLogger }
 import org.apache.commons.configuration.PropertiesConfiguration
 import org.scalatra.ScalatraServlet
 
 class AbstractTestServlet(authProvider: AuthenticationProvider
                          ) extends ScalatraServlet
   with RequestLogger
+  with ResponseLogger
   with AuthenticationSupport
   with TokenSupport
   with AuthConfig {

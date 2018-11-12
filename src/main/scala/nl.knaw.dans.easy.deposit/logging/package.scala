@@ -15,6 +15,9 @@
  */
 package nl.knaw.dans.easy.deposit
 
+import javax.servlet.http.{ HttpServletRequest, HttpServletResponse }
+import org.scalatra.ActionResult
+
 //TODO: candidate for dans-scala-lib
 
 /**
@@ -80,6 +83,15 @@ package object logging {
         case (k, v: Seq[_]) => k -> v.mkString("[", ", ", "]")
         case kv => kv
       }.mkString("[", ", ", "]")
+    }
+  }
+
+  implicit class LogResponseSyntax(val actionResult: ActionResult) extends AnyVal {
+    def logResponse(implicit request: HttpServletRequest,
+                    response: HttpServletResponse,
+                    responseLogger: AbstractResponseLogger): ActionResult = {
+      responseLogger.logResponse(actionResult)
+      actionResult
     }
   }
 }

@@ -20,9 +20,7 @@ import java.nio.file.Files
 import java.util.zip.{ ZipEntry, ZipException, ZipInputStream }
 
 import better.files.File
-import javax.servlet.http.{ HttpServletRequest, HttpServletResponse }
 import nl.knaw.dans.easy.deposit.docs.JsonUtil.InvalidDocumentException
-import nl.knaw.dans.easy.deposit.logging.ResponseLogFormatter
 import nl.knaw.dans.easy.deposit.servlets.DepositServlet.{ BadRequestException, ZipMustBeOnlyFileException }
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.scalatra.servlet.FileItem
@@ -135,19 +133,6 @@ package object servlets extends DebugEnhancedLogging {
     private def skipLeadingEmptyFormFields(): Unit = {
       // forward pointer after check
       while (fileItems.headOption.exists(_.name.isBlank)) { fileItems.next() }
-    }
-  }
-
-  implicit val responseLogFormatter: ResponseLogFormatter = new ResponseLogFormatter {
-
-  }
-  implicit class RichActionResult(val actionResult: ActionResult) extends AnyVal {
-    def logResponse(implicit request: HttpServletRequest,
-                    response: HttpServletResponse,
-                    formatter: ResponseLogFormatter
-                   ): ActionResult = {
-      logger.info(formatter.formatResponseLog(actionResult))
-      actionResult
     }
   }
 }
