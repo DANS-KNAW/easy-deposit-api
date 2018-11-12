@@ -22,7 +22,7 @@ import nl.knaw.dans.easy.deposit.TestSupportFixture
 import org.scalamock.scalatest.MockFactory
 import org.scalatra.Ok
 
-class ResposeLogFormatterSpec extends TestSupportFixture with MockFactory {
+class ResponseLogFormatterSpec extends TestSupportFixture with MockFactory {
 
   "ResponseLogFormatter" should "mask everything" in {
     new ResponseLogFormatter() {}
