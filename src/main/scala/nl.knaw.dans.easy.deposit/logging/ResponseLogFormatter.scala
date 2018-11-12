@@ -20,9 +20,6 @@ import org.scalatra.ActionResult
 
 import scala.collection.JavaConverters._
 
-/**
- *
- */
 trait ResponseLogFormatter extends CookieFormatter {
 
   protected def authHeadersToString(headerMap: HeaderMap): String =

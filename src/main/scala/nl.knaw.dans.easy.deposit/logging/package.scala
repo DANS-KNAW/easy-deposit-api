@@ -35,29 +35,35 @@ import org.scalatra.ActionResult
  *     this: ScalatraBase =>before() { logger.debug(formatRequestLog) }
  *   }
  * }}}
- * The [[nl.knaw.dans.easy.deposit.logging.RequestLogFormatter]] and unit tests
- * documents hooks to customize the content of the logged message.
  *
  * ==Responses==
  *
- * Each response must be logged explicitly by a method added to the class [[org.scalatra.ActionResult]].
- * For flexible use of the customization hooks move the implicit instance of the
- * [[nl.knaw.dans.easy.deposit.logging.ResponseLogFormatter]]
- * to the servlets and/or traits with "self: [[org.scalatra.ScalatraBase]]".
- * Making these instances private in traits allows the servlets to define their own formatting.
+ * Each response must be logged explicitly by [[org.scalatra.ActionResult]].logResponse.
+ *
+ * The method logResponse comes available with
  * {{{
- *    package object servlets extends DebugEnhancedLogger {
- *      implicit val formatter: ResponseLogFormatter = new ResponseLogFormatter {}
- *      implicit class RichActionResult(val actionResult: ActionResult) extends AnyVal {
- *        def logResponse(implicit request: HttpServletRequest,
- *                        response: HttpServletResponse,
- *                        formatter: ResponseLogFormatter
- *                       ): ActionResult = {
- *          logger.info(formatter.logActionResult(actionResult))
- *          actionResult
- *        }
- *      }
- *    }
+ *   import nl.knaw.dans.easy.deposit.logging._
+ * }}}
+ * and one or both of
+ * {{{
+ *   class MyServlet extends ScalatraServlet with ResponseLogger {???}
+ *   trait MyTrait { self: ScalatraBase with AbstractResponseLogger =>
+ * }}}
+ * To change the log level (or use another logger) define your own ResponseLogger
+ * that extends AbstractResponseLogger.
+ *
+ * ==Formatters==
+ *
+ * The RequestLogger and ResponseLogger extend Formatters that assemble the content of the logged lines.
+ *
+ * Override the behaviour of these formatters with additional traits and/or custom methods.
+ * For example:
+ * {{{
+ *     extends ScalatraServlet with RequestLogger with PlainRemoteAddress {
+ *       override protected def formatRequestLog: String = {
+ *         super.formatRequestLog(request) + " custom message"
+ *       }
+ *     }
  * }}}
  *
  * ==Before and/or after==

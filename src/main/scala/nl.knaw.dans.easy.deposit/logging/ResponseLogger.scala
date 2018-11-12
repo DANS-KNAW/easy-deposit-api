@@ -4,7 +4,7 @@ import javax.servlet.http.{ HttpServletRequest, HttpServletResponse }
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.scalatra.ActionResult
 
-trait AbstractResponseLogger extends DebugEnhancedLogging with ResponseLogFormatter {
+trait AbstractResponseLogger extends ResponseLogFormatter {
   implicit val responseLogger: AbstractResponseLogger = this
 
   def logResponse(actionResult: ActionResult)
