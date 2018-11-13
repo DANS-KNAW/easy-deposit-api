@@ -15,10 +15,12 @@
  */
 package nl.knaw.dans.easy.deposit.logging
 
-import java.util
+import java.util.Collections.enumeration
 
 import javax.servlet.http.{ HttpServletRequest, HttpServletResponse }
 import org.scalamock.scalatest.MockFactory
+
+import scala.collection.JavaConverters._
 
 object Mocker extends MockFactory {
 
@@ -26,11 +28,9 @@ object Mocker extends MockFactory {
     val response = mock[HttpServletResponse]
 
     headers.foreach { case (key: String, values: Seq[String]) =>
-      response.getHeaders _ expects key anyNumberOfTimes() returning
-        toVector(values)
+      response.getHeaders _ expects key anyNumberOfTimes() returning values.asJava
     }
-    response.getHeaderNames _ expects() anyNumberOfTimes() returning
-      toVector(headers.keys.toSeq)
+    response.getHeaderNames _ expects() anyNumberOfTimes() returning headers.keys.toSeq.asJava
     response
   }
 
@@ -38,17 +38,9 @@ object Mocker extends MockFactory {
     val request = mock[HttpServletRequest]
 
     headers.foreach { case (key: String, values: Seq[String]) =>
-      request.getHeaders _ expects key anyNumberOfTimes() returning
-        util.Collections.enumeration[String](toVector(values))
+      request.getHeaders _ expects key anyNumberOfTimes() returning enumeration(values.asJava)
     }
-    request.getHeaderNames _ expects() anyNumberOfTimes() returning
-      toVector(headers.keys.toSeq).elements()
+    request.getHeaderNames _ expects() anyNumberOfTimes() returning enumeration(headers.keys.toSeq.asJava)
     request
-  }
-
-  private def toVector(seq: Seq[String]) = {
-    val vector = new util.Vector[String]()
-    seq.foreach(vector.add)
-    vector
   }
 }
