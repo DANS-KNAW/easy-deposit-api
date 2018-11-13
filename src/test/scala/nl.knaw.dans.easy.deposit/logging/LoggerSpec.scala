@@ -51,7 +51,7 @@ class LoggerSpec extends TestSupportFixture with ServletFixture with ScalatraSui
     }
     addServlet(new MyServlet(), "/*")
 
-    get(uri = "/", headers = Seq.empty) {
+    get(uri = "/") {
       body shouldBe "How do you do?"
       status shouldBe OK_200
       val port = localPort.getOrElse("None")
