@@ -20,25 +20,31 @@ import java.util
 import javax.servlet.http.{ HttpServletRequest, HttpServletResponse }
 import nl.knaw.dans.easy.deposit.TestSupportFixture
 import org.scalamock.scalatest.MockFactory
-import org.scalatra.Ok
+import org.scalatra.{ ActionResult, Ok, ScalatraServlet }
 
 class ResponseLogFormatterSpec extends TestSupportFixture with MockFactory {
+  class DefaultTestServlet(implicit override val request: HttpServletRequest = mockRequest,
+                           override val response: HttpServletResponse = mockResponse
+                          ) extends ScalatraServlet with ResponseLogFormatter {
+
+    def formatResponseLog(actionResult: ActionResult): String = super.formatResponseLog(actionResult)
+  }
 
   "ResponseLogFormatter" should "mask everything" in {
-    new ResponseLogFormatter() {}
-      .formatResponseLog(Ok())(mockRequest, mockResponse) shouldBe
+    val testServlet = new DefaultTestServlet()(mockRequest, mockResponse) {}
+    testServlet.formatResponseLog(Ok()) shouldBe
       "GET returned status=200; authHeaders=[Set-Cookie -> [scentry.auth.default.user=******.**.**], REMOTE_USER -> [*****], Expires -> [Thu, 01 Jan 1970 00:00:00 GMT]]; actionHeaders=[]"
   }
 
   it should "not mask anything" in {
-    new ResponseLogFormatter() with PlainAuthResponseHeaders {}
-      .formatResponseLog(Ok(headers = Map("some" -> "header")))(mockRequest, mockResponse) shouldBe
+    val testServlet = new DefaultTestServlet()(mockRequest, mockResponse) with PlainAuthResponseHeaders {}
+    testServlet.formatResponseLog(Ok(headers = Map("some" -> "header"))) shouldBe
       "GET returned status=200; authHeaders=[Set-Cookie -> [scentry.auth.default.user=abc456.pq.xy], REMOTE_USER -> [somebody], Expires -> [Thu, 01 Jan 1970 00:00:00 GMT]]; actionHeaders=[some -> header]"
   }
 
   it should "not mask cookies" in {
-    new ResponseLogFormatter() with PlainCookies {}
-      .formatResponseLog(Ok(headers = Map("some" -> "header")))(mockRequest, mockResponse) shouldBe
+    val testServlet = new DefaultTestServlet()(mockRequest, mockResponse) with PlainCookies {}
+    testServlet.formatResponseLog(Ok(headers = Map("some" -> "header"))) shouldBe
       "GET returned status=200; authHeaders=[Set-Cookie -> [scentry.auth.default.user=abc456.pq.xy], REMOTE_USER -> [*****], Expires -> [Thu, 01 Jan 1970 00:00:00 GMT]]; actionHeaders=[some -> header]"
   }
 
@@ -55,9 +61,9 @@ class ResponseLogFormatterSpec extends TestSupportFixture with MockFactory {
       headerNames.add(key)
       val headerValues = new util.Vector[String]()
       headerValues.add(value)
-      response.getHeaders _ expects key returning headerValues anyNumberOfTimes()
+      response.getHeaders _ expects key anyNumberOfTimes() returning headerValues
     }
-    response.getHeaderNames _ expects() returning headerNames anyNumberOfTimes()
+    response.getHeaderNames _ expects() anyNumberOfTimes() returning headerNames
     response
   }
 

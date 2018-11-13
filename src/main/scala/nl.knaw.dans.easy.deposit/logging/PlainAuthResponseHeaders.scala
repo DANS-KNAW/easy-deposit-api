@@ -15,6 +15,9 @@
  */
 package nl.knaw.dans.easy.deposit.logging
 
+import org.scalatra.ScalatraBase
+
 trait PlainAuthResponseHeaders extends ResponseLogFormatter {
+  this: ScalatraBase =>
   override protected def formatAuthHeaders(headerMap: HeaderMap): HeaderMap = headerMap
 }

@@ -57,8 +57,8 @@ trait RequestLogFormatter extends CookieFormatter {
       .asScala.toSeq
       .map(
         name => name -> Option(request.getHeaders(name)).map(_.asScala.toSeq).getOrElse(Seq.empty)
-      )
-  }.toMap
+      ).toMap
+  }
 
   /**
    * Formats the value of headers with a case insensitive name ending with "authorization".

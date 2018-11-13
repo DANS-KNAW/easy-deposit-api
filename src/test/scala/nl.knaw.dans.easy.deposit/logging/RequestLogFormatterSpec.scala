@@ -28,6 +28,7 @@ class RequestLogFormatterSpec extends TestSupportFixture with MockFactory {
                            override val request: HttpServletRequest = mockRequest
                           ) extends ScalatraServlet with RequestLogFormatter {
 
+    // too complex to provide these values with a mocked request
     override def multiParams(implicit request: HttpServletRequest): MultiParams = params
 
     def log: String = formatRequestLog
@@ -128,7 +129,7 @@ class RequestLogFormatterSpec extends TestSupportFixture with MockFactory {
       headerNames.add(key)
       val headerValues = new util.Vector[String]()
       headerValues.add(value)
-      request.getHeaders _ expects key  anyNumberOfTimes() returning
+      request.getHeaders _ expects key anyNumberOfTimes() returning
         util.Collections.enumeration[String](headerValues)
     }
     request.getHeaderNames _ expects() anyNumberOfTimes() returning

@@ -15,18 +15,18 @@
  */
 package nl.knaw.dans.easy.deposit.logging
 
-import nl.knaw.dans.lib.logging.DebugEnhancedLogging
-import org.scalatra.{ ActionResult, ScalatraBase }
+import nl.knaw.dans.easy.deposit.TestSupportFixture
+import org.scalatra.{ ActionResult, ScalatraServlet }
 
-trait AbstractResponseLogger extends ResponseLogFormatter {
-  this: ScalatraBase =>
-  implicit val responseLogger: AbstractResponseLogger = this
+class ResponseLoggerSpec extends TestSupportFixture {
 
-  def logResponse(actionResult: ActionResult): Unit
-}
-trait ResponseLogger extends DebugEnhancedLogging with AbstractResponseLogger {
-  this: ScalatraBase =>
-  override def logResponse(actionResult: ActionResult): Unit = {
-    logger.info(formatResponseLog(actionResult))
+  "" should "" in {
+    val stringBuffer = new StringBuilder
+    case class MyClass() extends ScalatraServlet with AbstractResponseLogger with PlainCookies {
+      override def logResponse(actionResult: ActionResult): Unit = {
+        stringBuffer.append(formatResponseLog(actionResult))
+      }
+    }
+    val servlet = MyClass
   }
 }

@@ -16,11 +16,12 @@
 package nl.knaw.dans.easy.deposit.logging
 
 import javax.servlet.http.{ HttpServletRequest, HttpServletResponse }
-import org.scalatra.ActionResult
+import org.scalatra.{ ActionResult, ScalatraBase }
 
 import scala.collection.JavaConverters._
 
 trait ResponseLogFormatter extends CookieFormatter {
+  this: ScalatraBase =>
 
   protected def authHeadersToString(headerMap: HeaderMap): String =
     formatAuthHeaders(headerMap).makeString
@@ -37,12 +38,12 @@ trait ResponseLogFormatter extends CookieFormatter {
     }
   }
 
-  private def getHeaderMap(implicit response: HttpServletResponse): HeaderMap = {
+  private def getHeaderMap: HeaderMap = {
     // looks the same method as for RequestLogFormatter, but everywhere different classes
     response.getHeaderNames.asScala.toSeq.map(
       name => name -> Option(response.getHeaders(name)).map(_.asScala.toSeq).getOrElse(Seq.empty)
-    )
-  }.toMap
+    ).toMap
+  }
 
   protected def actionHeadersToString(actionResult: ActionResult): String =
     formatActionHeaders(actionResult).makeString
