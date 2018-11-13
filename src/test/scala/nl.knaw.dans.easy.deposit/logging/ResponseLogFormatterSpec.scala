@@ -15,8 +15,6 @@
  */
 package nl.knaw.dans.easy.deposit.logging
 
-import java.util
-
 import javax.servlet.http.{ HttpServletRequest, HttpServletResponse }
 import nl.knaw.dans.easy.deposit.TestSupportFixture
 import org.scalamock.scalatest.MockFactory
@@ -49,22 +47,11 @@ class ResponseLogFormatterSpec extends TestSupportFixture with MockFactory {
   }
 
   private def mockResponse = {
-    val response = mock[HttpServletResponse]
-
-    val headerMap = Map(
-      "Set-Cookie" -> "scentry.auth.default.user=abc456.pq.xy",
-      "REMOTE_USER" -> "somebody",
-      "Expires" -> "Thu, 01 Jan 1970 00:00:00 GMT", // a date in the past means no cache for the returned content
-    )
-    val headerNames = new util.Vector[String]()
-    headerMap.foreach { case (key: String, value: String) =>
-      headerNames.add(key)
-      val headerValues = new util.Vector[String]()
-      headerValues.add(value)
-      response.getHeaders _ expects key anyNumberOfTimes() returning headerValues
-    }
-    response.getHeaderNames _ expects() anyNumberOfTimes() returning headerNames
-    response
+    Mocker.mockResponse(headers = Map(
+      "Set-Cookie" -> Seq("scentry.auth.default.user=abc456.pq.xy"),
+      "REMOTE_USER" -> Seq("somebody"),
+      "Expires" -> Seq("Thu, 01 Jan 1970 00:00:00 GMT"), // a date in the past means no cache for the returned content
+    ))
   }
 
   private def mockRequest = {

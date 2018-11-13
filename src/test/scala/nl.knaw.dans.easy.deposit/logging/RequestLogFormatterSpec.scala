@@ -15,8 +15,6 @@
  */
 package nl.knaw.dans.easy.deposit.logging
 
-import java.util
-
 import javax.servlet.http.HttpServletRequest
 import nl.knaw.dans.easy.deposit.TestSupportFixture
 import org.scalamock.scalatest.MockFactory
@@ -111,29 +109,17 @@ class RequestLogFormatterSpec extends TestSupportFixture with MockFactory {
   }
 
   private def mockRequest: HttpServletRequest = {
-    val request = mock[HttpServletRequest]
+    val request = Mocker.mockRequest(headers = Map(
+      "cookie" -> Seq("scentry.auth.default.user=abc456.pq.xy"),
+      "HTTP_AUTHORIZATION" -> Seq("basic 123x_"),
+      "foo" -> Seq("bar")
+    ))
     request.getMethod _ expects() anyNumberOfTimes() returning
       "GET"
     request.getRequestURL _ expects() anyNumberOfTimes() returning
       new StringBuffer("http://does.not.exist.dans.knaw.nl")
     request.getRemoteAddr _ expects() anyNumberOfTimes() returning
       "12.34.56.78"
-
-    val headerMap = Map(
-      "cookie" -> "scentry.auth.default.user=abc456.pq.xy",
-      "HTTP_AUTHORIZATION" -> "basic 123x_",
-      "foo" -> "bar"
-    )
-    val headerNames = new util.Vector[String]()
-    headerMap.foreach { case (key: String, value: String) =>
-      headerNames.add(key)
-      val headerValues = new util.Vector[String]()
-      headerValues.add(value)
-      request.getHeaders _ expects key anyNumberOfTimes() returning
-        util.Collections.enumeration[String](headerValues)
-    }
-    request.getHeaderNames _ expects() anyNumberOfTimes() returning
-      headerNames.elements()
     request
   }
 }
