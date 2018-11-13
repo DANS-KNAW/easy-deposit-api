@@ -15,18 +15,38 @@
  */
 package nl.knaw.dans.easy.deposit.logging
 
+import javax.servlet.http.{ HttpServletRequest, HttpServletResponse }
 import nl.knaw.dans.easy.deposit.TestSupportFixture
-import org.scalatra.{ ActionResult, ScalatraServlet }
+import org.scalamock.scalatest.MockFactory
+import org.scalatra.{ ActionResult, Ok, ScalatraBase, ScalatraServlet }
 
-class ResponseLoggerSpec extends TestSupportFixture {
+class ResponseLoggerSpec extends TestSupportFixture with MockFactory {
 
-  "" should "" in {
+  class DefaultServlet extends ScalatraServlet with ResponseLogger {
+    def test: ActionResult = Ok().logResponse
+  }
+
+  "custom response logger" should "override default logger" in {
     val stringBuffer = new StringBuilder
-    case class MyClass() extends ScalatraServlet with AbstractResponseLogger with PlainCookies {
+
+    trait MyLogger extends ResponseLogger {
+      this: ScalatraBase =>
+
       override def logResponse(actionResult: ActionResult): Unit = {
         stringBuffer.append(formatResponseLog(actionResult))
       }
     }
-    val servlet = MyClass
+    class MyServlet(implicit override val request: HttpServletRequest = mockRequest,
+                    implicit override val response: HttpServletResponse = Mocker.mockResponse(headers = Map.empty)
+                   ) extends DefaultServlet with MyLogger {}
+
+    new MyServlet().test
+    stringBuffer.toString() shouldBe "GET returned status=200; authHeaders=[]; actionHeaders=[]"
+  }
+
+  private def mockRequest: HttpServletRequest = {
+    val request = Mocker.mockRequest(headers = Map.empty)
+    request.getMethod _ expects() anyNumberOfTimes() returning "GET"
+    request
   }
 }
