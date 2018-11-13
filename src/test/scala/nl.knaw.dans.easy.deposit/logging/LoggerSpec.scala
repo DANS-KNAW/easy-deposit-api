@@ -51,12 +51,13 @@ class LoggerSpec extends TestSupportFixture with ServletFixture with ScalatraSui
     }
     addServlet(new MyServlet(), "/*")
 
-    get(uri = "/") {
+    get(uri = "/", headers = Seq.empty) {
       body shouldBe "How do you do?"
       status shouldBe OK_200
       val port = localPort.getOrElse("None")
+      val javaVersion = System.getProperty("java.version")
       stringBuffer.toString() shouldBe
-        s"""GET http://localhost:$port/ remote=**.**.**.1; params=[]; headers=[Connection -> [keep-alive], Accept-Encoding -> [gzip,deflate], User-Agent -> [Apache-HttpClient/4.5.3 (Java/1.8.0_45)], Host -> [localhost:$port]]
+        s"""GET http://localhost:$port/ remote=**.**.**.1; params=[]; headers=[Connection -> [keep-alive], Accept-Encoding -> [gzip,deflate], User-Agent -> [Apache-HttpClient/4.5.3 (Java/$javaVersion)], Host -> [localhost:$port]]
            |GET returned status=200; authHeaders=[Content-Type -> [text/plain;charset=UTF-8]]; actionHeaders=[]
            |""".stripMargin
     }
