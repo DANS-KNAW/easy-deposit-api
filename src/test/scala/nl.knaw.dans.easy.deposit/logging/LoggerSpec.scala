@@ -18,11 +18,10 @@ package nl.knaw.dans.easy.deposit.logging
 import nl.knaw.dans.easy.deposit.TestSupportFixture
 import nl.knaw.dans.easy.deposit.servlets.ServletFixture
 import org.eclipse.jetty.http.HttpStatus.OK_200
-import org.scalamock.scalatest.MockFactory
 import org.scalatra.test.scalatest.ScalatraSuite
 import org.scalatra.{ ActionResult, Ok, ScalatraBase, ScalatraServlet }
 
-class LoggerSpec extends TestSupportFixture with ServletFixture with ScalatraSuite with MockFactory {
+class LoggerSpec extends TestSupportFixture with ServletFixture with ScalatraSuite {
 
   "custom loggers" should "override default loggers" in {
     val stringBuffer = new StringBuilder
