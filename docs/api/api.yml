@@ -429,8 +429,10 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         404:
           $ref: "#/components/responses/NotFound"
-        409:
+        409.1:
           $ref: "#/components/responses/ConflictZipMustBeOnlyFile"
+        409.2:
+          $ref: "#/components/responses/ConflictZipOverwritesFilesOnServer"
         500:
           $ref: "#/components/responses/InternalServerError"
       security:
@@ -637,7 +639,10 @@ components:
         not exist, either.
 
     ConflictZipMustBeOnlyFile:
-      description: A multipart/form-data message contained a ZIP part but also other parts.
+      description: Conflict. A multipart/form-data message contained a ZIP part but also other parts.
+
+    ConflictZipOverwritesFilesOnServer:
+      description: Conflict. Unpacked ZIP file would overwrite existing files on the server.
 
     Gone:
       description: |
