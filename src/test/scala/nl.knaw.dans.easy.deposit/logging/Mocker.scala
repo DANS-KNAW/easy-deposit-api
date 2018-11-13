@@ -15,8 +15,6 @@
  */
 package nl.knaw.dans.easy.deposit.logging
 
-import java.util.Collections.enumeration
-
 import javax.servlet.http.{ HttpServletRequest, HttpServletResponse }
 import org.scalamock.scalatest.MockFactory
 
@@ -38,9 +36,9 @@ object Mocker extends MockFactory {
     val request = mock[HttpServletRequest]
 
     headers.foreach { case (key: String, values: Seq[String]) =>
-      request.getHeaders _ expects key anyNumberOfTimes() returning enumeration(values.asJava)
+      request.getHeaders _ expects key anyNumberOfTimes() returning values.iterator.asJavaEnumeration
     }
-    request.getHeaderNames _ expects() anyNumberOfTimes() returning enumeration(headers.keys.toSeq.asJava)
+    request.getHeaderNames _ expects() anyNumberOfTimes() returning headers.keys.iterator.asJavaEnumeration
     request
   }
 }
