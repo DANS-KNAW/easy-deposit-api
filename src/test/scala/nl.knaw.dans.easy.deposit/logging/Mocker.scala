@@ -10,30 +10,30 @@ object Mocker extends MockFactory {
   def mockResponse(headers: Map[String, Seq[String]]): HttpServletResponse = {
     val response = mock[HttpServletResponse]
 
-    val headerNames = new util.Vector[String]()
     headers.foreach { case (key: String, values: Seq[String]) =>
-      headerNames.add(key)
-      val headerValues = new util.Vector[String]()
-      values.foreach(headerValues.add)
-      response.getHeaders _ expects key anyNumberOfTimes() returning headerValues
+      response.getHeaders _ expects key anyNumberOfTimes() returning
+        toVector(values)
     }
-    response.getHeaderNames _ expects() anyNumberOfTimes() returning headerNames
+    response.getHeaderNames _ expects() anyNumberOfTimes() returning
+      toVector(headers.keys.toSeq)
     response
   }
 
   def mockRequest(headers: Map[String, Seq[String]]): HttpServletRequest = {
     val request = mock[HttpServletRequest]
 
-    val headerNames = new util.Vector[String]()
     headers.foreach { case (key: String, values: Seq[String]) =>
-      headerNames.add(key)
-      val headerValues = new util.Vector[String]()
-      values.foreach(headerValues.add)
       request.getHeaders _ expects key anyNumberOfTimes() returning
-        util.Collections.enumeration[String](headerValues)
+        util.Collections.enumeration[String](toVector(values))
     }
     request.getHeaderNames _ expects() anyNumberOfTimes() returning
-      headerNames.elements()
+      toVector(headers.keys.toSeq).elements()
     request
+  }
+
+  private def toVector(seq: Seq[String]) = {
+    val vector = new util.Vector[String]()
+    seq.foreach(vector.add)
+    vector
   }
 }
