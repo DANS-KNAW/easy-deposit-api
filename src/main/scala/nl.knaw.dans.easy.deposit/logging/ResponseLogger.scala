@@ -18,13 +18,13 @@ package nl.knaw.dans.easy.deposit.logging
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.scalatra.{ ActionResult, ScalatraBase }
 
-trait AbstractResponseLogger extends ResponseLogFormatter {
-  this: ScalatraBase =>
+trait AbstractResponseLogger {
+  this: ScalatraBase with ResponseLogFormatter =>
   implicit val responseLogger: AbstractResponseLogger = this
 
   def logResponse(actionResult: ActionResult): Unit
 }
-trait ResponseLogger extends DebugEnhancedLogging with AbstractResponseLogger {
+trait ResponseLogger extends AbstractResponseLogger with DebugEnhancedLogging with ResponseLogFormatter {
   this: ScalatraBase =>
   override def logResponse(actionResult: ActionResult): Unit = {
     logger.info(formatResponseLog(actionResult))
