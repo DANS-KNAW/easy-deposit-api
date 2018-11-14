@@ -40,9 +40,14 @@ class LoggerSpec extends TestSupportFixture with ServletFixture with ScalatraSui
       }
     }
 
-    trait MyRequestLogger extends RequestLogFormatter {
+    trait MyRequestLogFormatter extends RequestLogFormatter {
       this: ScalatraBase =>
-      before() {
+      // override formatRequestLog as you wish in here
+    }
+
+    trait MyRequestLogger extends AbstractRequestLogger with MyRequestLogFormatter {
+      this: ScalatraBase =>
+      override def logRequest(): Unit = {
         stringBuffer.append(formatRequestLog)
         stringBuffer.append("\n")
       }
