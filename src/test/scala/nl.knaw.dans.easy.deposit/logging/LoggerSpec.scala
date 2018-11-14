@@ -35,8 +35,7 @@ class LoggerSpec extends TestSupportFixture with ServletFixture with ScalatraSui
       this: ScalatraBase =>
 
       override def logResponse(actionResult: ActionResult): Unit = {
-        stringBuffer.append(formatResponseLog(actionResult))
-        stringBuffer.append("\n")
+        stringBuffer.append(formatResponseLog(actionResult)).append("\n")
       }
     }
 
@@ -48,8 +47,7 @@ class LoggerSpec extends TestSupportFixture with ServletFixture with ScalatraSui
     trait MyRequestLogger extends AbstractRequestLogger with MyRequestLogFormatter {
       this: ScalatraBase =>
       override def logRequest(): Unit = {
-        stringBuffer.append(formatRequestLog)
-        stringBuffer.append("\n")
+        stringBuffer.append(formatRequestLog).append("\n")
       }
     }
 
