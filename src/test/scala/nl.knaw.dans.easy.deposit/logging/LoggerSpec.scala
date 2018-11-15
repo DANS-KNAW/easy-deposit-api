@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2018 DANS - Data Archiving and Networked Services (info@dans.knaw.nl)
+ * value1 2018 DANS - Data Archiving and Networked Services (info@dans.knaw.nl)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,51 +23,87 @@ import org.scalatra.{ ActionResult, Ok, ScalatraBase, ScalatraServlet }
 
 class LoggerSpec extends TestSupportFixture with ServletFixture with ScalatraSuite {
 
-  "custom loggers" should "override default loggers" in {
-    val stringBuffer = new StringBuilder
+  class TestServlet() extends ScalatraServlet {
+    this: AbstractResponseLogger =>
 
-    trait MyResponseLogFormatter extends ResponseLogFormatter {
-      this: ScalatraBase =>
-      // override formatResponseLog as you wish in here
+    get("/") {
+      contentType = "text/plain"
+      Ok("How do you do?").logResponse
+    }
+  }
+  val stringBuffer = new StringBuilder
+
+  trait CustomResponseLogger extends AbstractResponseLogger {
+    this: ScalatraBase with ResponseLogFormatter =>
+
+    override def logResponse(actionResult: ActionResult): Unit = {
+      stringBuffer.append(formatResponseLog(actionResult)).append("\n")
+    }
+  }
+
+  trait CustomRequestLogger extends AbstractRequestLogger {
+    this: ScalatraBase with RequestLogFormatter =>
+    override def logRequest(): Unit = {
+      stringBuffer.append(formatRequestLog).append("\n")
+    }
+  }
+
+  trait CustomLogger extends AbstractResponseLogger with AbstractRequestLogger {
+    this: ScalatraBase with ResponseLogFormatter with RequestLogFormatter =>
+
+    override def logResponse(actionResult: ActionResult): Unit = {
+      stringBuffer.append(formatResponseLog(actionResult)).append("\n")
     }
 
-    trait MyResponseLogger extends AbstractResponseLogger with MyResponseLogFormatter {
-      this: ScalatraBase =>
-
-      override def logResponse(actionResult: ActionResult): Unit = {
-        stringBuffer.append(formatResponseLog(actionResult)).append("\n")
-      }
+    override def logRequest(): Unit = {
+      stringBuffer.append(formatRequestLog).append("\n")
     }
+  }
 
-    trait MyRequestLogFormatter extends RequestLogFormatter {
-      this: ScalatraBase =>
-      // override formatRequestLog as you wish in here
-    }
+  "separate custom loggers" should "override default loggers" in {
 
-    trait MyRequestLogger extends AbstractRequestLogger with MyRequestLogFormatter {
-      this: ScalatraBase =>
-      override def logRequest(): Unit = {
-        stringBuffer.append(formatRequestLog).append("\n")
-      }
-    }
-
-    class MyServlet() extends ScalatraServlet with MyResponseLogger with MyRequestLogger {
-      get("/") {
-        contentType = "text/plain"
-        Ok("How do you do?").logResponse
-      }
-    }
+    class MyServlet() extends TestServlet
+      with CustomResponseLogger with CustomRequestLogger
+      with ResponseLogFormatter with RequestLogFormatter {}
     addServlet(new MyServlet(), "/*")
 
+    shouldDivertLogging("**.**.**.1")
+  }
+
+  "combined custom loggers" should "override default loggers" in {
+
+    class MyServlet() extends TestServlet
+      with CustomLogger
+      with ResponseLogFormatter
+      with RequestLogFormatter {}
+    addServlet(new MyServlet(), "/*")
+
+    shouldDivertLogging("**.**.**.1")
+  }
+
+  "custom request formatter" should "alter logged content" in {
+
+    class MyServlet() extends TestServlet
+      with CustomLogger
+      with ResponseLogFormatter
+      with RequestLogFormatter with PlainRemoteAddress {}
+    addServlet(new MyServlet(), "/*")
+
+    shouldDivertLogging("127.0.0.1")
+  }
+
+  private def shouldDivertLogging(formattedRemote: String) = {
+    stringBuffer.clear()
     get(uri = "/") {
       body shouldBe "How do you do?"
       status shouldBe OK_200
       val port = localPort.getOrElse("None")
       val javaVersion = System.getProperty("java.version")
       val clientVersion = "4.5.3" // org.apache.httpcomponents dependency; may change when upgrading scalatra-scalatest
-      val defaultHeaders = s"""Connection -> [keep-alive], Accept-Encoding -> [gzip,deflate], User-Agent -> [Apache-HttpClient/$clientVersion (Java/$javaVersion)], Host -> [localhost:$port]"""
+      val defaultHeaders =
+        s"""Connection -> [keep-alive], Accept-Encoding -> [gzip,deflate], User-Agent -> [Apache-HttpClient/$clientVersion (Java/$javaVersion)], Host -> [localhost:$port]"""
       stringBuffer.toString() shouldBe
-        s"""GET http://localhost:$port/ remote=**.**.**.1; params=[]; headers=[$defaultHeaders]
+        s"""GET http://localhost:$port/ remote=$formattedRemote; params=[]; headers=[$defaultHeaders]
            |GET returned status=200; authHeaders=[Content-Type -> [text/plain;charset=UTF-8]]; actionHeaders=[]
            |""".stripMargin
     }
