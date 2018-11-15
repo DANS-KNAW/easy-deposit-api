@@ -26,20 +26,28 @@ class LoggerSpec extends TestSupportFixture with ServletFixture with ScalatraSui
   "custom loggers" should "override default loggers" in {
     val stringBuffer = new StringBuilder
 
-    trait MyResponseLogger extends AbstractResponseLogger {
+    trait MyResponseLogFormatter extends ResponseLogFormatter {
+      this: ScalatraBase =>
+      // override formatResponseLog as you wish in here
+    }
+
+    trait MyResponseLogger extends AbstractResponseLogger with MyResponseLogFormatter {
       this: ScalatraBase =>
 
       override def logResponse(actionResult: ActionResult): Unit = {
-        stringBuffer.append(formatResponseLog(actionResult))
-        stringBuffer.append("\n")
+        stringBuffer.append(formatResponseLog(actionResult)).append("\n")
       }
     }
 
-    trait MyRequestLogger extends RequestLogFormatter {
+    trait MyRequestLogFormatter extends RequestLogFormatter {
       this: ScalatraBase =>
-      before() {
-        stringBuffer.append(formatRequestLog)
-        stringBuffer.append("\n")
+      // override formatRequestLog as you wish in here
+    }
+
+    trait MyRequestLogger extends AbstractRequestLogger with MyRequestLogFormatter {
+      this: ScalatraBase =>
+      override def logRequest(): Unit = {
+        stringBuffer.append(formatRequestLog).append("\n")
       }
     }
 

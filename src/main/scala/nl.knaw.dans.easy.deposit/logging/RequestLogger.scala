@@ -18,10 +18,18 @@ package nl.knaw.dans.easy.deposit.logging
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.scalatra.ScalatraBase
 
-trait RequestLogger extends DebugEnhancedLogging with RequestLogFormatter {
-  this: ScalatraBase =>
+trait AbstractRequestLogger {
+  this: ScalatraBase with RequestLogFormatter =>
+
+  def logRequest(): Unit
 
   before() {
-    logger.info(formatRequestLog)
+    logRequest()
   }
+}
+
+trait RequestLogger extends AbstractRequestLogger with DebugEnhancedLogging with RequestLogFormatter {
+  this: ScalatraBase =>
+
+  override def logRequest(): Unit = logger.info(formatRequestLog)
 }
