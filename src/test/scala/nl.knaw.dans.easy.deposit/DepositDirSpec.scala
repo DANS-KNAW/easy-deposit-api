@@ -22,8 +22,10 @@ import nl.knaw.dans.easy.deposit.PidRequesterComponent.PidType.PidType
 import nl.knaw.dans.easy.deposit.docs.StateInfo
 import nl.knaw.dans.easy.deposit.docs.StateInfo.State
 import nl.knaw.dans.lib.error._
+import org.apache.commons.configuration.PropertiesConfiguration
 import org.scalamock.scalatest.MockFactory
 
+import scala.collection.JavaConverters._
 import scala.util.{ Failure, Success }
 
 class DepositDirSpec extends TestSupportFixture with MockFactory {
@@ -58,6 +60,21 @@ class DepositDirSpec extends TestSupportFixture with MockFactory {
         (dir / "bag/tagmanifest-sha1.txt") should exist
         (dir / "bag/data") should exist
         (dir / "bag/metadata") should exist
+
+        val props = new PropertiesConfiguration() {
+          load((dir / "deposit.properties").toJava)
+        }
+        props.getKeys.asScala.toSeq
+          .map(key => key -> props.getString(key)).toArray should contain theSameElementsAs Array(
+          "state.label" -> "DRAFT",
+          "depositor.userId" -> "user001",
+          "curation.performed" -> "no",
+          "curation.required" -> "yes",
+          "identifier.doi.registered" -> "no",
+          "creation.timestamp" -> "2018-03-22T20:43:01.000Z",
+          "bag-store.bag-id" -> d.id.toString,
+          "state.description" -> "Deposit is open for changes."
+        )
     }
   }
 
@@ -136,12 +153,10 @@ class DepositDirSpec extends TestSupportFixture with MockFactory {
     val deposit = createDepositAsPreparation(user)
     val mdFile = deposit.baseDir / user / deposit.id.toString / "bag" / "metadata" / "dataset.json"
     val depositPropertiesFile = deposit.baseDir / user / deposit.id.toString / "deposit.properties"
-    val oldDepositProperties = depositPropertiesFile.contentAsString
+    val oldDepositProperties = depositPropertiesFile.lines.toSeq
 
     // preconditions
     mdFile.contentAsString shouldBe "{}"
-    oldDepositProperties should include("identifier.doi.registered = no")
-    oldDepositProperties should not include "identifier.doi = "
     val pidMocker = mock[PidRequester]
     (pidMocker.requestPid(_: PidType)) expects * once() returning Success(doi)
 
@@ -150,9 +165,9 @@ class DepositDirSpec extends TestSupportFixture with MockFactory {
 
     // post conditions
     mdFile.contentAsString should startWith(s"""{"identifiers":[{"scheme":"id-type:DOI","value":"12345"}]""")
-    val newDepositProperties = depositPropertiesFile.contentAsString
-    newDepositProperties should include(oldDepositProperties)
-    newDepositProperties should include("identifier.doi")
+    depositPropertiesFile.lines.toSeq
+      .diff(oldDepositProperties).mkString("\n") shouldBe
+      s"""identifier.doi = $doi"""
   }
 
   it should """complain about an invalid dataset""" in {
