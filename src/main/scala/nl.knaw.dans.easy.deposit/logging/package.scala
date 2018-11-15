@@ -22,51 +22,9 @@ import org.scalatra.ActionResult
 
 /**
  * Provides standard logging for servlet requests and responses masking sensitive data.
+ * Usage is documented with unit tests in LoggerSpec.
  *
- * ==Requests==
- *
- * All requests are logged at info level by adding a trait to servlets:
- * {{{
- *   class MyServlet extends ScalatraServlet with RequestLogger {???}
- * }}}
- * To change the log level (or use another logger) define your own RequestLogger like:
- * {{{
- *   trait DebugRequestLogger extends RequestLogFormatter {
- *     this: ScalatraBase =>before() { logger.debug(formatRequestLog) }
- *   }
- * }}}
- *
- * ==Responses==
- *
- * Each response must be logged explicitly by [[org.scalatra.ActionResult]].logResponse.
- *
- * The method logResponse comes available with
- * {{{
- *   import nl.knaw.dans.easy.deposit.logging._
- * }}}
- * and one or both of
- * {{{
- *   class MyServlet extends ScalatraServlet with ResponseLogger {???}
- *   trait MyTrait { self: ScalatraBase with AbstractResponseLogger =>
- * }}}
- * To change the log level (or use another logger) define your own ResponseLogger
- * that extends AbstractResponseLogger.
- *
- * ==Formatters==
- *
- * The RequestLogger and ResponseLogger extend Formatters that assemble the content of the logged lines.
- *
- * Override the behaviour of these formatters with additional traits and/or custom methods.
- * For example:
- * {{{
- *     extends ScalatraServlet with RequestLogger with PlainRemoteAddress {
- *       override protected def formatRequestLog: String = {
- *         super.formatRequestLog(request) + " custom message"
- *       }
- *     }
- * }}}
- *
- * ==Before and/or after==
+ * ==Rationale==
  *
  * The request are logged with before filters. An after filter would not see an [[org.scalatra.ActionResult]].
  * Its values are not saved in the implicit response provided by [[org.scalatra.ScalatraBase]]
@@ -75,7 +33,7 @@ import org.scalatra.ActionResult
  * https://github.com/scalatra/scalatra/blob/6a614d17c38d19826467adcabf1dc746e3192dfc/README.markdown
  * sections #filters #action
  *
- * Mixing in [[org.scalatra.util.RequestLogging]] broke unit test as it added a session header to some responses.
+ * Mixing in [[org.scalatra.util.RequestLogging]] broke other unit test as it added a session header to some responses.
  */
 package object logging {
 
