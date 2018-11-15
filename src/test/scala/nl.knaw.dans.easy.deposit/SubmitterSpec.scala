@@ -19,6 +19,7 @@ import java.nio.file.Paths
 
 import nl.knaw.dans.easy.deposit.docs.StateInfo.State
 import nl.knaw.dans.easy.deposit.docs.{ DatasetMetadata, StateInfo }
+import nl.knaw.dans.easy.deposit.servlets.DepositServlet.BadRequestException
 import nl.knaw.dans.lib.error._
 import org.scalamock.scalatest.MockFactory
 
@@ -140,8 +141,8 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
 
     assumeSchemaAvailable
     new Submitter(testDir / "staged", testDir / "submitted").submit(depositDir) should matchPattern {
-      case Failure(e: BadDoiException) if e.getMessage.endsWith(
-        s"DOI in datasetmetadata.json [${ datasetMetadata.doi }] does not equal DOI in deposit.properties [None]"
+      case Failure(e: BadRequestException) if e.getMessage.contains(
+        s"InvalidDoi: DOI must be obtained by calling GET /deposit/${ depositDir.id }"
       ) =>
     }
   }
