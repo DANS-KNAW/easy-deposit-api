@@ -49,7 +49,7 @@ class LoggerSpec extends TestSupportFixture with ServletFixture with ScalatraSui
     }
   }
 
-  trait CustomLogger extends AbstractResponseLogger with AbstractRequestLogger {
+  trait CustomLoggers extends AbstractResponseLogger with AbstractRequestLogger {
     this: ScalatraBase with ResponseLogFormatter with RequestLogFormatter =>
 
     override def logResponse(actionResult: ActionResult): ActionResult = {
@@ -62,6 +62,11 @@ class LoggerSpec extends TestSupportFixture with ServletFixture with ScalatraSui
     }
   }
 
+  trait CustomRequestLogFormatter extends RequestLogFormatter with PlainRemoteAddress {
+    this: ScalatraBase =>
+    // or other overrides as documented in XxxLogFormatterSpec
+  }
+
   "separate custom loggers" should "override default loggers" in {
 
     class MyServlet() extends TestServlet
@@ -69,32 +74,32 @@ class LoggerSpec extends TestSupportFixture with ServletFixture with ScalatraSui
       with ResponseLogFormatter with RequestLogFormatter {}
     addServlet(new MyServlet(), "/*")
 
-    shouldDivertLogging("**.**.**.1")
+    shouldDivertLogging()
   }
 
   "combined custom loggers" should "override default loggers" in {
 
     class MyServlet() extends TestServlet
-      with CustomLogger
+      with CustomLoggers
       with ResponseLogFormatter
       with RequestLogFormatter {}
     addServlet(new MyServlet(), "/*")
 
-    shouldDivertLogging("**.**.**.1")
+    shouldDivertLogging()
   }
 
   "custom request formatter" should "alter logged content" in {
 
     class MyServlet() extends TestServlet
-      with CustomLogger
+      with CustomLoggers
       with ResponseLogFormatter
-      with RequestLogFormatter with PlainRemoteAddress {}
+      with CustomRequestLogFormatter {}
     addServlet(new MyServlet(), "/*")
 
-    shouldDivertLogging("127.0.0.1")
+    shouldDivertLogging(formattedRemote = "127.0.0.1")
   }
 
-  private def shouldDivertLogging(formattedRemote: String) = {
+  private def shouldDivertLogging(formattedRemote: String = "**.**.**.1") = {
     stringBuffer.clear()
     get(uri = "/") {
       body shouldBe "How do you do?"
