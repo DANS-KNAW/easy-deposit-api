@@ -23,14 +23,7 @@ import org.scalatra.{ ActionResult, Ok, ScalatraBase, ScalatraServlet }
 
 class LoggerSpec extends TestSupportFixture with ServletFixture with ScalatraSuite {
 
-  abstract class TestServlet() extends ScalatraServlet with AbstractResponseLogger {
-    get("/") {
-      contentType = "text/plain"
-      Ok("How do you do?").logResponse
-    }
-  }
-
-  "separate custom loggers" should "override default loggers" in {
+  "custom loggers" should "override default loggers" in {
     val stringBuffer = new StringBuilder
 
     trait MyResponseLogger extends AbstractResponseLogger {
@@ -50,44 +43,21 @@ class LoggerSpec extends TestSupportFixture with ServletFixture with ScalatraSui
       }
     }
 
-    class MyServlet() extends TestServlet with MyResponseLogger with MyRequestLogger {}
-    addServlet(new MyServlet (), "/*")
-
-    shouldDivertLogging(stringBuffer)
-  }
-
-  "combined custom logger" should "override default loggers" in {
-    val stringBuffer = new StringBuilder
-
-    trait MyServletLogger extends AbstractResponseLogger with RequestLogFormatter {
-      this: ScalatraBase =>
-
-      override def logResponse(actionResult: ActionResult): Unit = {
-        stringBuffer.append(formatResponseLog(actionResult))
-        stringBuffer.append("\n")
-      }
-
-      before() {
-        stringBuffer.append(formatRequestLog)
-        stringBuffer.append("\n")
+    class MyServlet() extends ScalatraServlet with MyResponseLogger with MyRequestLogger {
+      get("/") {
+        contentType = "text/plain"
+        Ok("How do you do?").logResponse
       }
     }
-
-    class MyServlet() extends TestServlet with MyServletLogger {}
     addServlet(new MyServlet(), "/*")
 
-    shouldDivertLogging(stringBuffer)
-  }
-
-  private def shouldDivertLogging(stringBuffer: StringBuilder) = {
     get(uri = "/") {
       body shouldBe "How do you do?"
       status shouldBe OK_200
       val port = localPort.getOrElse("None")
       val javaVersion = System.getProperty("java.version")
       val clientVersion = "4.5.3" // org.apache.httpcomponents dependency; may change when upgrading scalatra-scalatest
-      val defaultHeaders =
-        s"""Connection -> [keep-alive], Accept-Encoding -> [gzip,deflate], User-Agent -> [Apache-HttpClient/$clientVersion (Java/$javaVersion)], Host -> [localhost:$port]"""
+      val defaultHeaders = s"""Connection -> [keep-alive], Accept-Encoding -> [gzip,deflate], User-Agent -> [Apache-HttpClient/$clientVersion (Java/$javaVersion)], Host -> [localhost:$port]"""
       stringBuffer.toString() shouldBe
         s"""GET http://localhost:$port/ remote=**.**.**.1; params=[]; headers=[$defaultHeaders]
            |GET returned status=200; authHeaders=[Content-Type -> [text/plain;charset=UTF-8]]; actionHeaders=[]
