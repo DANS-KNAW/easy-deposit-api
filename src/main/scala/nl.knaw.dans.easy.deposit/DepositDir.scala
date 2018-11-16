@@ -44,7 +44,7 @@ import scala.util.{ Failure, Success, Try }
  * @param id      the ID of the deposit
  */
 case class DepositDir private(baseDir: File, user: String, id: UUID) extends DebugEnhancedLogging {
-  private val bagDir = baseDir / user / id.toString / "bag"
+  val bagDir = baseDir / user / id.toString / "bag"
   private val metadataDir = bagDir / "metadata"
   private val depositPropertiesFile = bagDir.parent / "deposit.properties"
   private val datasetMetadataJsonFile = metadataDir / "dataset.json"
@@ -243,8 +243,8 @@ object DepositDir {
    */
   def get(baseDir: File, user: String, id: UUID): Try[DepositDir] = {
     val depositDir = DepositDir(baseDir, user, id)
-    if (depositDir.baseDir.exists) Success(depositDir)
-    else Failure(NoSuchDepositException(user, id, null))
+    if (depositDir.bagDir.parent.exists) Success(depositDir)
+    else Failure(NoSuchDepositException(user, id, new FileNotFoundException()))
   }
 
   /**
