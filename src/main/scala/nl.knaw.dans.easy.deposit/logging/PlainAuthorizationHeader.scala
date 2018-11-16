@@ -13,23 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package nl.knaw.dans.easy.deposit.servlets
+package nl.knaw.dans.easy.deposit.logging
 
-import nl.knaw.dans.easy.deposit.EasyDepositApiApp
-import nl.knaw.dans.easy.deposit.logging._
-import org.scalatra.NoContent
+import org.scalatra.ScalatraBase
 
-class AuthServlet(app: EasyDepositApiApp) extends AbstractAuthServlet(app) {
+trait PlainAuthorizationHeader extends RequestLogFormatter {
+  this: ScalatraBase =>
 
-  post("/login") {
-    login()
-    NoContent()
-      .logResponse
-  }
-
-  post("/logout") {
-    logOut() // destroys the scentry cookie
-    NoContent()
-      .logResponse
-  }
+  override protected def formatValueOfAuthorizationHeader(value: String): String = value
 }

@@ -13,23 +13,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package nl.knaw.dans.easy.deposit.servlets
+package nl.knaw.dans.easy.deposit.logging
 
-import nl.knaw.dans.easy.deposit.EasyDepositApiApp
-import nl.knaw.dans.easy.deposit.logging._
-import org.scalatra.NoContent
+import nl.knaw.dans.lib.logging.DebugEnhancedLogging
+import org.scalatra.{ ActionResult, ScalatraBase }
 
-class AuthServlet(app: EasyDepositApiApp) extends AbstractAuthServlet(app) {
+trait AbstractResponseLogger {
+  this: ScalatraBase with ResponseLogFormatter =>
+  implicit val responseLogger: AbstractResponseLogger = this
 
-  post("/login") {
-    login()
-    NoContent()
-      .logResponse
-  }
-
-  post("/logout") {
-    logOut() // destroys the scentry cookie
-    NoContent()
-      .logResponse
+  def logResponse(actionResult: ActionResult): ActionResult
+}
+trait ResponseLogger extends AbstractResponseLogger with DebugEnhancedLogging with ResponseLogFormatter {
+  this: ScalatraBase =>
+  override def logResponse(actionResult: ActionResult): ActionResult = {
+    logger.info(formatResponseLog(actionResult))
+    actionResult
   }
 }

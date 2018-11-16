@@ -42,7 +42,7 @@ trait TokenSupport extends DebugEnhancedLogging {
     algorithm = toHmacAlgorithm(getProperties.getString("auth.jwt.hmac.algorithm", "HS256")),
     options = JwtOptions(leeway = 10) // JWT lives 10 seconds longer than cookie
   )
-  logger.info(s"tokenConfig: $tokenConfig")
+  logger.info(s"tokenConfig: ${ tokenConfig.copy(secretKey = "*****") }")
 
   def encodeJWT(user: AuthUser): String = {
     // TODO Add other user properties, audience=?=remote-ip?

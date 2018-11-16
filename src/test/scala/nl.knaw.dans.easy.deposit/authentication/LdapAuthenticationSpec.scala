@@ -66,6 +66,7 @@ class LdapAuthenticationSpec extends TestSupportFixture with MockFactory {
 
   it should "fail on other ldap problems" in {
     ldapMocker.expectLdapSearch throwing new Exception("whoops")
+    // TODO fix or explain, logs: Unexpected call: <mock-1> LdapContext.close()
 
     wiring.authentication.authenticate("someone", "somepassword") should matchPattern {
       case None => // different logging than with AuthenticationException
@@ -80,6 +81,7 @@ class LdapAuthenticationSpec extends TestSupportFixture with MockFactory {
 
   it should "not access ldap with a blank user" in {
 
+    // TODO fix or explain, logs: Unexpected call: <mock-1> LdapContext.search
     wiring.authentication.authenticate(" ", "somepassword") should matchPattern {
       case None =>
     }

@@ -19,12 +19,13 @@ import java.io.IOException
 import java.nio.file.{ NoSuchFileException, Path, Paths }
 import java.util.UUID
 
-import nl.knaw.dans.easy.deposit.authentication.ServletEnhancedLogging._
 import nl.knaw.dans.easy.deposit.docs.DDM.SchemaNotAvailableException
 import nl.knaw.dans.easy.deposit.docs.JsonUtil.{ InvalidDocumentException, toJson }
 import nl.knaw.dans.easy.deposit.docs.{ DatasetMetadata, DepositInfo, StateInfo }
+import nl.knaw.dans.easy.deposit.logging._
 import nl.knaw.dans.easy.deposit.servlets.DepositServlet.{ BadRequestException, InvalidResourceException, ZipMustBeOnlyFileException }
 import nl.knaw.dans.easy.deposit.{ EasyDepositApiApp, _ }
+import nl.knaw.dans.lib.error._
 import org.apache.commons.lang.NotImplementedException
 import org.scalatra._
 import org.scalatra.servlet.{ FileUploadSupport, MultipartConfig, SizeConstraintExceededException }
@@ -44,7 +45,7 @@ class DepositServlet(app: EasyDepositApiApp)
   /*
    * Defensive programming convention at this top level, everything in a for-comprehension:
    *
-   *    (for {...} yield ...).getOrRecoverResponse(respond)
+   *    (for {...} yield ...).getOrRecover(respond).logResponse
    *
    * Thus programming errors of the type that throws an exception despite returning a try
    * won't cause a stack trace.
@@ -62,28 +63,28 @@ class DepositServlet(app: EasyDepositApiApp)
       userId <- getUserId
       deposits <- app.getDeposits(userId)
     } yield Ok(body = toJson(deposits)))
-      .getOrRecoverResponse(respond)
+      .getOrRecover(respond).logResponse
   }
   post("/") {
     (for {
       userId <- getUserId
       depositInfo <- app.createDeposit(userId)
     } yield depositCreatedResponse(depositInfo))
-      .getOrRecoverResponse(respond)
+      .getOrRecover(respond).logResponse
   }
   get("/:uuid/metadata") {
     (for {
       uuid <- getUUID
       dmd <- app.getDatasetMetadataForDeposit(user.id, uuid)
     } yield Ok(body = toJson(dmd))
-      ).getOrRecoverResponse(respond)
+      ).getOrRecover(respond).logResponse
   }
   get("/:uuid/doi") {
     (for {
       uuid <- getUUID
       doi <- app.getDoi(user.id, uuid)
     } yield Ok(body = s"""{"doi":"$doi"}""")
-      ).getOrRecoverResponse(respond)
+      ).getOrRecover(respond).logResponse
   }
   put("/:uuid/metadata") {
     (for {
@@ -93,14 +94,14 @@ class DepositServlet(app: EasyDepositApiApp)
       _ <- app.checkDoi(user.id, uuid, datasetMetadata)
       _ <- app.writeDataMetadataToDeposit(datasetMetadata, user.id, uuid)
     } yield NoContent()
-      ).getOrRecoverResponse(respond)
+      ).getOrRecover(respond).logResponse
   }
   get("/:uuid/state") {
     (for {
       uuid <- getUUID
       depositState <- app.getDepositState(user.id, uuid)
     } yield Ok(body = toJson(depositState))
-      ).getOrRecoverResponse(respond)
+      ).getOrRecover(respond).logResponse
   }
   put("/:uuid/state") {
     (for {
@@ -109,14 +110,14 @@ class DepositServlet(app: EasyDepositApiApp)
       stateInfo <- managedIS.apply(is => StateInfo(is))
       _ <- app.setDepositState(stateInfo, user.id, uuid)
     } yield NoContent()
-      ).getOrRecoverResponse(respond)
+      ).getOrRecover(respond).logResponse
   }
   delete("/:uuid") {
     (for {
       uuid <- getUUID
       _ <- app.deleteDeposit(user.id, uuid)
     } yield NoContent()
-      ).getOrRecoverResponse(respond)
+      ).getOrRecover(respond).logResponse
   }
   get("/:uuid/file/*") { //dir and file
     (for {
@@ -124,7 +125,7 @@ class DepositServlet(app: EasyDepositApiApp)
       path <- getPath
       contents <- app.getFileInfo(user.id, uuid, path)
     } yield Ok(body = toJson(contents))
-      ).getOrRecoverResponse(respond)
+      ).getOrRecover(respond).logResponse
   }
   post("/:uuid/file/*") { //file(s)
     (for {
@@ -141,7 +142,7 @@ class DepositServlet(app: EasyDepositApiApp)
           .flatMap(_ => stagedFilesTarget.takeAllFrom(stagingDir))
       )
     } yield Ok()
-      ).getOrRecoverResponse(respond)
+      ).getOrRecover(respond).logResponse
   }
 
   put("/:uuid/file/*") { //file
@@ -153,7 +154,7 @@ class DepositServlet(app: EasyDepositApiApp)
     } yield if (newFileWasCreated)
               Created(headers = Map("Location" -> request.uri.toASCIIString))
             else Ok()
-      ).getOrRecoverResponse(respond)
+      ).getOrRecover(respond).logResponse
   }
   delete("/:uuid/file/*") { //dir and file
     (for {
@@ -161,7 +162,7 @@ class DepositServlet(app: EasyDepositApiApp)
       path <- getPath
       _ <- app.deleteDepositFile(user.id, uuid, path)
     } yield NoContent()
-      ).getOrRecoverResponse(respond)
+      ).getOrRecover(respond).logResponse
   }
 
   private def respond(t: Throwable): ActionResult = t match {
