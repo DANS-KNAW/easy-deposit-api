@@ -35,14 +35,14 @@ The steps of a deposit scenario can be tested manually with tools like `Postman`
 
 * Create a new deposit:
 
-      curl -i -u user001:user001 -X POST http://deasy:20190/deposit
+      curl -i -u user001:user001 -X POST http://deasy.dans.knaw.nl:20190/deposit
 
 * Use the returned UUID to replace <UUID> in the command below (that uploads dataset metadata),
   use the files in this directory for XXX
   and play with the content to check whether responses make sense for the UI and user of the UI.
 
 
-      curl -i  -H 'Content-Type: application/json' --data-binary "@XXX.json" -X PUT -u user001:user001 'http://deasy.dans.knaw.nl:20190/deposit/<UUID>/datasetmetadata'
+      curl -i  -H 'Content-Type: application/json' --data-binary "@XXX.json" -X PUT -u user001:user001 'http://deasy.dans.knaw.nl:20190/deposit/<UUID>/metadata'
 
 * For details of other commands see `docs/api.html`, with examples in the [xls of EASY-1644] and [easy-test-resources]
 

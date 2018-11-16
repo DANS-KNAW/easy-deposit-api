@@ -26,6 +26,7 @@ import nl.knaw.dans.easy.deposit.docs.JsonUtil.{ InvalidDocumentException, toJso
 import nl.knaw.dans.easy.deposit.docs.StateInfo.State
 import nl.knaw.dans.easy.deposit.docs.StateInfo.State.State
 import nl.knaw.dans.easy.deposit.docs.{ StateInfo, _ }
+import nl.knaw.dans.easy.deposit.servlets.DepositServlet.BadRequestException
 import nl.knaw.dans.lib.error._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.apache.commons.configuration.PropertiesConfiguration
@@ -203,8 +204,8 @@ case class DepositDir private(baseDir: File, user: String, id: UUID) extends Deb
   private def doisMatch(dm: DatasetMetadata, doi: Option[String]) = {
     if (doi == dm.doi) Success(())
     else {
-      val e = new Exception(s"DOI in datasetmetadata.json [${ dm.doi }] does not equal DOI in deposit.properties [$doi]")
-      Failure(CorruptDepositException(user, id.toString, e))
+      logger.error (s"DOI in datasetmetadata.json [${ dm.doi }] does not equal DOI in deposit.properties [$doi]")
+      Failure(BadRequestException(s"InvalidDoi: DOI must be obtained by calling GET /deposit/$id"))
     }
   }
 }

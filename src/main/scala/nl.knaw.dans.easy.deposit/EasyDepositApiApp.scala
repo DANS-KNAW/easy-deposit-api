@@ -174,6 +174,16 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
   } yield doi
 
   /**
+   * @param user the user ID
+   * @param id   the deposit ID
+   * @return Failure(BadDoiException) if the DOI in the DatasetMetadata does not equal the DOI in the dataset properties (both may be absent)
+   */
+  def checkDoi(user: String, id: UUID, dm: DatasetMetadata): Try[Unit] = for {
+    deposit <- getDeposit(user, id)
+    _ <- deposit.sameDOIs(dm)
+  } yield ()
+
+  /**
    * Returns the dataset metadata from `dataset.xml`.
    *
    * @param user the user ID

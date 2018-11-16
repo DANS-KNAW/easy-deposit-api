@@ -42,7 +42,7 @@ package object servlets extends DebugEnhancedLogging {
     InternalServerError("Internal Server Error")
   }
 
-  def badDocResponse(t: InvalidDocumentException): ActionResult = {
+  def badDocResponse(t: Throwable): ActionResult = {
     logger.error(t.getMessage)
     BadRequest(s"Bad Request. ${ t.getMessage }")
   }
