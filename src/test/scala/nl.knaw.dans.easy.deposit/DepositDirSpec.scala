@@ -166,8 +166,7 @@ class DepositDirSpec extends TestSupportFixture with MockFactory {
     // post conditions
     mdFile.contentAsString should startWith(s"""{"identifiers":[{"scheme":"id-type:DOI","value":"12345"}]""")
     depositPropertiesFile.lines.toSeq
-      .diff(oldDepositProperties).mkString("\n") shouldBe
-      s"""identifier.doi = $doi"""
+      .diff(oldDepositProperties) should contain only s"identifier.doi = $doi"
   }
 
   it should """complain about an invalid dataset""" in {
@@ -185,7 +184,7 @@ class DepositDirSpec extends TestSupportFixture with MockFactory {
     val deposit = createDepositAsPreparation(user)
     val dd = deposit.baseDir / user / deposit.id.toString
     (dd / "bag" / "metadata" / "dataset.json").writeText(s"""{"identifiers":[{"scheme":"id-type:DOI","value":"12345"}]}""")
-    (dd / "deposit.properties").writeText(s"""identifier.doi = $doi""")
+    (dd / "deposit.properties").writeText(s"identifier.doi = $doi")
 
     deposit.getDOI(null) shouldBe Success(doi)
   }
