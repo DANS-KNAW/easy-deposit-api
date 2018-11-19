@@ -16,36 +16,10 @@
 package nl.knaw.dans.easy.deposit.servlets
 
 import better.files.File
-import nl.knaw.dans.easy.deposit.PidRequesterComponent.PidRequester
-import nl.knaw.dans.easy.deposit.authentication.AuthenticationMocker._
-import nl.knaw.dans.easy.deposit.authentication.AuthenticationProvider
-import nl.knaw.dans.easy.deposit.docs.DepositInfo
-import nl.knaw.dans.easy.deposit.{ EasyDepositApiApp, TestSupportFixture }
-import nl.knaw.dans.lib.error._
 import org.eclipse.jetty.http.HttpStatus._
-import org.scalamock.scalatest.MockFactory
-import org.scalatra.test.scalatest.ScalatraSuite
 
-class NotFoundSpec extends TestSupportFixture with ServletFixture with ScalatraSuite with MockFactory {
+class NotFoundSpec extends DepositServletFixture {
 
-  private val depositServlet = {
-    val app: EasyDepositApiApp = new EasyDepositApiApp(minimalAppConfig) {
-      override val pidRequester: PidRequester = mock[PidRequester]
-    }
-    new DepositServlet(app) {
-      override def getAuthenticationProvider: AuthenticationProvider = {
-        mockedAuthenticationProvider
-      }
-    }
-  }
-  addServlet(depositServlet, "/deposit/*")
-
-  override def beforeEach(): Unit = {
-    super.beforeEach()
-    expectsUserFooBar
-  }
-
-  private val auth: (String, String) = ("Authorization", fooBarBasicAuthHeader)
   private val state =
     """{
       |  "state": "DRAFT",
@@ -71,12 +45,6 @@ class NotFoundSpec extends TestSupportFixture with ServletFixture with ScalatraS
   private def shouldBeInternalServerError = {
     status shouldBe INTERNAL_SERVER_ERROR_500
     body shouldBe "Internal Server Error"
-  }
-
-  private def createDeposit = {
-    val responseBody = post(s"/deposit/", headers = Seq(auth)) { body }
-    expectsUserFooBar // another time for the actual test
-    DepositInfo(responseBody).map(_.id.toString).getOrRecover(e => fail(e.toString, e))
   }
 
   "404 deposit not found" should "be returned by GET /deposit/{id}/metadata" in {
@@ -138,9 +106,6 @@ class NotFoundSpec extends TestSupportFixture with ServletFixture with ScalatraS
     get(s"/deposit/$uuid/metadata", headers = Seq(auth)) { status shouldBe GONE_410 }
   }
 
-  private val doi = "10.17632/DANS.6wg5xccnjd.1"
-  private val jsonWithDoi = """{"identifiers":[{"scheme":"id-type:DOI","value":"doi:""" + doi + """"}]}"""
-
   private def propsFile(uuid: String): File = testDir / "drafts/foo" / uuid / "deposit.properties"
 
   private def jsonFile(uuid: String): File = testDir / "drafts/foo" / uuid / "bag/metadata/dataset.json"
@@ -171,7 +136,7 @@ class NotFoundSpec extends TestSupportFixture with ServletFixture with ScalatraS
 
   it should "be returned by GET /deposit/{id}/doi (no properties)" in {
     val uuid = createDeposit
-    jsonFile(uuid).write(jsonWithDoi)
+    jsonFile(uuid).write("""{"identifiers":[{"scheme":"id-type:DOI","value":"doi:10.17632/DANS.6wg5xccnjd.1"}]}""")
     propsFile(uuid).delete()
     get(s"/deposit/$uuid/doi", headers = Seq(auth)) { shouldBeInternalServerError }
   }
