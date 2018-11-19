@@ -83,7 +83,7 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
     mdFile.delete() // TODO replace with "DELETE deposit/:uuid" when implemented
     expectsUserFooBar
     get(metadataURI, headers = Seq(basicAuthentication)) {
-      status shouldBe NOT_FOUND_404
+      status shouldBe INTERNAL_SERVER_ERROR_500
     }
   }
 
