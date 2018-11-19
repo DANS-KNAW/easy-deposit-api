@@ -130,9 +130,9 @@ case class DepositDir private(baseDir: File, user: String, id: UUID) extends Deb
 
   private def getDepositProps = Try {
     new PropertiesConfiguration(depositPropertiesFile.toJava)
-  }.map { props =>
-    if (props.getKeys.hasNext) props
-    else throw CorruptDepositException(user, id.toString, new Exception("deposit.properties not found or empty"))
+  }.flatMap {
+    case props if props.getKeys.hasNext => Success(props)
+    case _ => Failure( CorruptDepositException(user, id.toString, new Exception("deposit.properties not found or empty")))
   }
 
   /**
