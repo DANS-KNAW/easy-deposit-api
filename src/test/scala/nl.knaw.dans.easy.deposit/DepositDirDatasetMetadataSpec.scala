@@ -59,7 +59,7 @@ class DepositDirDatasetMetadataSpec extends TestSupportFixture {
 
   "get" should "complain about a not found file" in {
     dd.getDatasetMetadata should matchPattern {
-      case Failure(CorruptDepositException(_,_,_)) =>
+      case Failure(CorruptDepositException(_, _, _)) =>
     }
   }
   it should "get the content" in {
