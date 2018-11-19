@@ -51,15 +51,11 @@ class NotFoundSpec extends TestSupportFixture with ServletFixture with ScalatraS
       |  "state": "DRAFT",
       |  "stateDescription": "Deposit is open for modification."
       |}""".stripMargin
-  private val bodyParts = {
-    (testDir / "input").createDirectories()
-    Seq(//TODO move method from  UploadSpec to fixture (TestSupportFixture not related to servlets, ServletsFixture has no testDir)
+  private val fileBodyParts = {
+    bodyParts(testDir / "input", Seq(
       ("some", "1.txt", "Lorem ipsum dolor sit amet"),
       ("some", "2.txt", "consectetur adipiscing elit"),
-    ).map { case (formField, file, content) =>
-      (testDir / "input" / file).write(content)
-      (formField, (testDir / "input" / file).toJava)
-    }
+    ))
   }
 
   private def shouldBeNoSuchDeposit = {
@@ -105,7 +101,7 @@ class NotFoundSpec extends TestSupportFixture with ServletFixture with ScalatraS
     get(s"/deposit/$uuid/file/path/to/dir", headers = Seq(auth)) { shouldBeNoSuchDeposit }
   }
   it should "be returned by POST /deposit/{id}/file/{dir_path}" in {
-    post(s"/deposit/$uuid/file/path/to/dir", params = Iterable(), headers = Seq(auth), files = bodyParts) { shouldBeNoSuchDeposit }
+    post(s"/deposit/$uuid/file/path/to/dir", params = Iterable(), headers = Seq(auth), files = fileBodyParts) { shouldBeNoSuchDeposit }
   }
   it should "be returned by DELETE /deposit/{id}/file/{dir_path}" in {
     delete(s"/deposit/$uuid/file/path/to/dir", headers = Seq(auth)) { shouldBeNoSuchDeposit }
