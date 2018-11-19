@@ -21,7 +21,6 @@ import nl.knaw.dans.easy.deposit._
 import nl.knaw.dans.easy.deposit.authentication.AuthUser.UserState
 import nl.knaw.dans.easy.deposit.authentication.AuthenticationMocker._
 import nl.knaw.dans.easy.deposit.authentication.{ AuthUser, AuthenticationProvider }
-import nl.knaw.dans.easy.deposit.docs.DatasetMetadata
 import org.eclipse.jetty.http.HttpStatus._
 import org.scalamock.scalatest.MockFactory
 import org.scalatra.auth.Scentry
