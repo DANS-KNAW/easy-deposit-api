@@ -44,7 +44,7 @@ import scala.util.{ Failure, Success, Try }
  * @param id      the ID of the deposit
  */
 case class DepositDir private(baseDir: File, user: String, id: UUID) extends DebugEnhancedLogging {
-  val bagDir = baseDir / user / id.toString / "bag"
+  val bagDir: File = baseDir / user / id.toString / "bag"
   private val metadataDir = bagDir / "metadata"
   private val depositPropertiesFile = bagDir.parent / "deposit.properties"
   private val datasetMetadataJsonFile = metadataDir / "dataset.json"
@@ -120,22 +120,19 @@ case class DepositDir private(baseDir: File, user: String, id: UUID) extends Deb
     )
   }.recoverWith {
     case t: CorruptDepositException => Failure(t)
-    case _: FileNotFoundException => notFoundFailure()
-    case _: NoSuchFileException => notFoundFailure()
-    case t => Failure(CorruptDepositException(user, id.toString, t))
+    case t => corruptDepositFailure(t)
   }
 
   private def getDatasetTitle = {
     getDatasetMetadata
       .map(_.titles.flatMap(_.headOption).getOrElse(""))
-      .recoverWith {
-        case _: NoSuchDepositException => Success("")
-        case t => Failure(t)
-      }
   }
 
   private def getDepositProps = Try {
     new PropertiesConfiguration(depositPropertiesFile.toJava)
+  }.map { props =>
+    if (props.getKeys.hasNext) props
+    else throw CorruptDepositException(user, id.toString, new Exception("deposit.properties not found or empty"))
   }
 
   /**
@@ -145,15 +142,15 @@ case class DepositDir private(baseDir: File, user: String, id: UUID) extends Deb
     Try { datasetMetadataJsonFile.fileInputStream }
       .flatMap(_ (is => DatasetMetadata(is)))
       .recoverWith {
-        case t: InvalidDocumentException => Failure(CorruptDepositException(user, id.toString, t))
-        case _: FileNotFoundException => notFoundFailure()
-        case _: NoSuchFileException => notFoundFailure()
+        case t: InvalidDocumentException => corruptDepositFailure(t)
+        case t: FileNotFoundException => corruptDepositFailure(t)
+        case t: NoSuchFileException => corruptDepositFailure(t)
         case t => Failure(t)
       }
   }
 
-  private def notFoundFailure() = {
-    Failure(NoSuchDepositException(user, id, new Exception(s"File not found: $metadataDir/dataset.json")))
+  private def corruptDepositFailure(t: Throwable) = {
+    Failure(CorruptDepositException(user, id.toString, t))
   }
 
   /**
@@ -172,7 +169,7 @@ case class DepositDir private(baseDir: File, user: String, id: UUID) extends Deb
   def writeDatasetMetadataJson(md: DatasetMetadata): Try[Unit] = Try {
     datasetMetadataJsonFile.write(toJson(md))
     () // satisfy the compiler which doesn't want a File
-  }.recoverWith { case _: NoSuchFileException => notFoundFailure() }
+  }
 
   /**
    * @return object to access the data files of this deposit
@@ -204,7 +201,7 @@ case class DepositDir private(baseDir: File, user: String, id: UUID) extends Deb
   private def doisMatch(dm: DatasetMetadata, doi: Option[String]) = {
     if (doi == dm.doi) Success(())
     else {
-      logger.error (s"DOI in datasetmetadata.json [${ dm.doi }] does not equal DOI in deposit.properties [$doi]")
+      logger.error(s"DOI in datasetmetadata.json [${ dm.doi }] does not equal DOI in deposit.properties [$doi]")
       Failure(BadRequestException(s"InvalidDoi: DOI must be obtained by calling GET /deposit/$id"))
     }
   }

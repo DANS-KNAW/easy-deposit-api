@@ -72,6 +72,11 @@ class NotFoundSpec extends TestSupportFixture with ServletFixture with ScalatraS
     body shouldBe msg
   }
 
+  private def expectInternalServerError = {
+    status shouldBe INTERNAL_SERVER_ERROR_500
+    body shouldBe "Internal Server Error"
+  }
+
   private def createDeposit = {
     val responseBody = post(s"/deposit/", headers = Seq(auth)) { body }
     expectsUserFooBar // another time for the actual test
@@ -147,43 +152,31 @@ class NotFoundSpec extends TestSupportFixture with ServletFixture with ScalatraS
   "500 on missing metadata" should "be returned by GET /deposit/{id}/state (no file)" in {
     val uuid = createDeposit
     propsFile(uuid).delete()
-    get(s"/deposit/$uuid/state", headers = Seq(auth)) { status shouldBe INTERNAL_SERVER_ERROR_500 }
+    get(s"/deposit/$uuid/state", headers = Seq(auth)) { expectInternalServerError }
   }
 
   it should "be returned by GET /deposit/{id}/state (no property)" in {
     val uuid = createDeposit
-    propsFile(uuid).write("")
-    get(s"/deposit/$uuid/state", headers = Seq(auth)) { status shouldBe INTERNAL_SERVER_ERROR_500 }
+    propsFile(uuid).write("foo = bar")
+    get(s"/deposit/$uuid/state", headers = Seq(auth)) { expectInternalServerError }
   }
 
   it should "be returned by GET /deposit/{id}/metadata" in {
     val uuid = createDeposit
     jsonFile(uuid).delete()
-    get(s"/deposit/$uuid/metadata", headers = Seq(auth)) { status shouldBe INTERNAL_SERVER_ERROR_500 }
+    get(s"/deposit/$uuid/metadata", headers = Seq(auth)) { expectInternalServerError }
   }
 
   it should "be returned by GET /deposit/{id}/doi (no json)" in {
     val uuid = createDeposit
     jsonFile(uuid).delete()
-    get(s"/deposit/$uuid/doi", headers = Seq(auth)) { status shouldBe INTERNAL_SERVER_ERROR_500 }
+    get(s"/deposit/$uuid/doi", headers = Seq(auth)) { expectInternalServerError }
   }
 
   it should "be returned by GET /deposit/{id}/doi (no properties)" in {
     val uuid = createDeposit
     jsonFile(uuid).write(jsonWithDoi)
     propsFile(uuid).delete()
-    get(s"/deposit/$uuid/doi", headers = Seq(auth)) { status shouldBe INTERNAL_SERVER_ERROR_500 }
-  }
-
-  it should "be returned by GET /deposit/{id}/doi (not in json)" in {
-    val uuid = createDeposit
-    propsFile(uuid).append(s"identifier.doi = $doi")
-    get(s"/deposit/$uuid/doi", headers = Seq(auth)) { status shouldBe INTERNAL_SERVER_ERROR_500 }
-  }
-
-  it should "be returned by GET /deposit/{id}/doi (not in properties)" in {
-    val uuid = createDeposit
-    jsonFile(uuid).write(jsonWithDoi)
-    get(s"/deposit/$uuid/doi", headers = Seq(auth)) { status shouldBe INTERNAL_SERVER_ERROR_500 }
+    get(s"/deposit/$uuid/doi", headers = Seq(auth)) { expectInternalServerError }
   }
 }
