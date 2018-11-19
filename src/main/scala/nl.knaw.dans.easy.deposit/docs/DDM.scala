@@ -23,6 +23,7 @@ import javax.xml.XMLConstants
 import javax.xml.transform.Source
 import javax.xml.transform.stream.StreamSource
 import javax.xml.validation.{ Schema, SchemaFactory }
+import nl.knaw.dans.easy.deposit.InvalidDoiException
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata._
 import nl.knaw.dans.easy.deposit.docs.JsonUtil.InvalidDocumentException
 import nl.knaw.dans.easy.deposit.docs.StringUtils._
@@ -41,8 +42,6 @@ object DDM extends DebugEnhancedLogging {
   val schemaLocation: String = "https://easy.dans.knaw.nl/schemas/md/2018/05/ddm.xsd" // TODO property?
 
   def apply(dm: DatasetMetadata): Try[Elem] = Try {
-    dm.doi.getOrElse(throw invalidDatasetMetadataException(new Exception(s"Please first GET a DOI for this deposit")))
-
     val lang: String = dm.languageOfDescription.map(_.key).orNull // null omits attribute rendering
     <ddm:DDM
       xmlns:dc="http://purl.org/dc/elements/1.1/"

@@ -21,8 +21,6 @@ import java.nio.file.{ Path, Paths }
 import java.util.UUID
 
 import nl.knaw.dans.bag.v0.DansV0Bag
-import nl.knaw.dans.easy.deposit.docs.DatasetMetadata
-import nl.knaw.dans.easy.deposit.docs.JsonUtil.InvalidDocumentException
 import nl.knaw.dans.easy.deposit.docs.StateInfo.State.State
 
 import scala.util.Try
@@ -43,6 +41,7 @@ package object deposit {
 
   case class ConfigurationException(msg: String) extends IllegalArgumentException(s"Configuration error: $msg")
 
+  case class InvalidDoiException(uuid: UUID) extends Exception(s"InvalidDoi: DOI must be obtained by calling GET /deposit/$uuid")
   /**
    * Information about a file in the deposit
    *
