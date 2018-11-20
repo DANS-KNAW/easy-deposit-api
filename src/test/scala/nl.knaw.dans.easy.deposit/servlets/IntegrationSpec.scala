@@ -277,7 +277,7 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
       headers = Seq(basicAuthentication),
       body = """{"state":"SUBMITTED","stateDescription":"blabla"}"""
     ) {
-      body shouldBe "Bad Request. invalid DatasetMetadata: Please first GET a DOI for this deposit"
+      body shouldBe s"InvalidDoi: DOI must be obtained by calling GET /deposit/$uuid"
       status shouldBe BAD_REQUEST_400
     }
   }

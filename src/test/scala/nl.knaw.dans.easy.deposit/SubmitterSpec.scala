@@ -19,7 +19,6 @@ import java.nio.file.Paths
 
 import nl.knaw.dans.easy.deposit.docs.StateInfo.State
 import nl.knaw.dans.easy.deposit.docs.{ DatasetMetadata, StateInfo }
-import nl.knaw.dans.easy.deposit.servlets.DepositServlet.BadRequestException
 import nl.knaw.dans.lib.error._
 import org.scalamock.scalatest.MockFactory
 
@@ -128,22 +127,6 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
     new Submitter(testDir / "staged", testDir / "submitted").submit(depositDir) should matchPattern {
       case Failure(e)
         if e.getMessage == s"staged and draft bag [${ bag.baseDir.parent }] have different payload manifest elements: (Set((data/file.txt,$checksum)),Set((data/file.txt,${ checksum }xxx)))" =>
-    }
-  }
-
-  it should "reject an inconsistent DOI" in {
-    // an invalid state transition and an InvalidDocumentException are tested with IntegrationSpec
-    // other InvalidDocumentException errors are tested with DDMSpec and DepositDirSpec
-
-    val depositDir = createDeposit(datasetMetadata)
-    (testDir / "submitted").createDirectories()
-    //(depositDir.getDataFiles.getOrRecover(e => fail(e)).bag.parent / "deposit.properties").createFile()
-
-    assumeSchemaAvailable
-    new Submitter(testDir / "staged", testDir / "submitted").submit(depositDir) should matchPattern {
-      case Failure(e: BadRequestException) if e.getMessage.contains(
-        s"InvalidDoi: DOI must be obtained by calling GET /deposit/${ depositDir.id }"
-      ) =>
     }
   }
 

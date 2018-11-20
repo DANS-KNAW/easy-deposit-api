@@ -396,10 +396,6 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
     new MinimalDatasetMetadata(titles = Some(Seq("   \t"))).causesInvalidDocumentException(missingTitle)
   }
 
-  it should "report a missing DOI" in {
-    new MinimalDatasetMetadata(identifiers = None).causesInvalidDocumentException("Please first GET a DOI for this deposit")
-  }
-
   "issue-1538.json" should behave like validDatasetMetadata(
     input = parseTestResource("issue-1538.json").map(_.setDoi("mocked_DOI"))
   )

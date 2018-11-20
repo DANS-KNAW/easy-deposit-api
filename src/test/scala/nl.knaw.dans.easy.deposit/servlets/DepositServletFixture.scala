@@ -15,8 +15,8 @@
  */
 package nl.knaw.dans.easy.deposit.servlets
 
-import nl.knaw.dans.easy.deposit.PidRequesterComponent.{ PidRequester, PidType }
 import nl.knaw.dans.easy.deposit.PidRequesterComponent.PidType.PidType
+import nl.knaw.dans.easy.deposit.PidRequesterComponent.{ PidRequester, PidType }
 import nl.knaw.dans.easy.deposit.authentication.AuthenticationMocker.{ expectsUserFooBar, mockedAuthenticationProvider }
 import nl.knaw.dans.easy.deposit.authentication.AuthenticationProvider
 import nl.knaw.dans.easy.deposit.docs.DepositInfo

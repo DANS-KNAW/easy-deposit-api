@@ -136,7 +136,7 @@ class NotFoundSpec extends DepositServletFixture {
 
   it should "be returned by GET /deposit/{id}/doi (no properties)" in {
     val uuid = createDeposit
-    jsonFile(uuid).write("""{"identifiers":[{"scheme":"id-type:DOI","value":"doi:10.17632/DANS.6wg5xccnjd.1"}]}""")
+    jsonFile(uuid).write("""{"identifiers":[{"scheme":"id-type:DOI","value":"10.17632/DANS.6wg5xccnjd.1"}]}""")
     propsFile(uuid).delete()
     get(s"/deposit/$uuid/doi", headers = Seq(auth)) { shouldBeInternalServerError }
   }

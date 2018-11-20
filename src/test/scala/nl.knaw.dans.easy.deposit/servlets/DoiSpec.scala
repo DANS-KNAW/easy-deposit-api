@@ -25,8 +25,8 @@ class DoiSpec extends DepositServletFixture {
 
   private val submit = """{"state":"SUBMITTED","stateDescription":"blabla"}"""
   private val doi = "10.17632/DANS.6wg5xccnjd.1"
-  private val doiForJson =s"""  "identifiers":[{"scheme":"id-type:DOI","value":"doi:$doi"}]"""
-  private val doiProperty = s"identifier.doi = doi:$doi"
+  private val doiForJson =s"""  "identifiers":[{"scheme":"id-type:DOI","value":"$doi"}]"""
+  private val doiProperty = s"identifier.doi = $doi"
   private val mandatoryOnSubmit =
     """|  "titles": ["blabla"],
        |  "descriptions": ["rababera"],
@@ -70,9 +70,9 @@ class DoiSpec extends DepositServletFixture {
   }
 
   it should "return DOI when properties has a DOI but json not" in {
+    // this can happen when a client asks twice for a DOI without saving the metadata in between
     val uuid = createDeposit
     propsFile(uuid).append(doiProperty)
-    // TODO return DOI from properties
     get(s"/deposit/$uuid/doi", headers = Seq(auth)) { shouldReturnDOI }
   }
 

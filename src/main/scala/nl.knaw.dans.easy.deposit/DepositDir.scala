@@ -183,7 +183,7 @@ case class DepositDir private(baseDir: File, user: String, id: UUID) extends Deb
     dm <- getDatasetMetadata
     props <- getDepositProps
     maybeDOI = Option(props.getString("identifier.doi", null))
-    _ <- doisMatch(dm, maybeDOI)
+    _ <- dm.doi.map(_ => doisMatch(dm, maybeDOI)).getOrElse(Success(()))
     maybeTriedDOI = maybeDOI.map(Success(_))
     doi <- maybeTriedDOI.getOrElse(pidRequester.requestPid(PidType.doi))
     _ = props.addProperty("identifier.doi", doi)
