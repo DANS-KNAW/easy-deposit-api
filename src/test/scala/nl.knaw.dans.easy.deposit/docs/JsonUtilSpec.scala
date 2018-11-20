@@ -37,7 +37,7 @@ class JsonUtilSpec extends TestSupportFixture {
       typeOf[DepositInfo],
       typeOf[StateInfo],
       typeOf[UserInfo],
-      typeOf[FileInfo]
+      typeOf[FileInfo],
     )
     val definedEnumerations = types.flatMap(_.companion.decls
       .filter(_.typeSignature <:< typeOf[Enumeration])
