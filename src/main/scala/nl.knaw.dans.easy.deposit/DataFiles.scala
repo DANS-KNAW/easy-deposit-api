@@ -21,6 +21,7 @@ import java.nio.file.{ NoSuchFileException, Path, Paths }
 import better.files._
 import nl.knaw.dans.bag.ChecksumAlgorithm.SHA1
 import nl.knaw.dans.bag.DansBag
+import nl.knaw.dans.easy.deposit.docs.FileInfo
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 
 import scala.language.postfixOps

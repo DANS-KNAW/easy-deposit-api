@@ -70,17 +70,7 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
     }
 
     // invalidate the metadata and try again
-    val mdFile = {
-      val dd = DepositDir(testDir / "drafts", "foo", UUID.fromString(uuid))
-      (dd.baseDir / "foo" / uuid.toString / "bag" / "metadata" / "dataset.json").write("---")
-    }
-    expectsUserFooBar
-    get(metadataURI, headers = Seq(basicAuthentication)) {
-      status shouldBe INTERNAL_SERVER_ERROR_500
-    }
-
-    // remove the metadata and try another time
-    mdFile.delete() // TODO replace with "DELETE deposit/:uuid" when implemented
+    (testDir / "drafts" / "foo" / uuid / "bag" / "metadata" / "dataset.json").write("---")
     expectsUserFooBar
     get(metadataURI, headers = Seq(basicAuthentication)) {
       status shouldBe INTERNAL_SERVER_ERROR_500

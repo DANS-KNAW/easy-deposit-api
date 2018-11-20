@@ -21,13 +21,13 @@ import java.util.UUID
 import nl.knaw.dans.easy.deposit._
 import nl.knaw.dans.easy.deposit.authentication.AuthenticationMocker._
 import nl.knaw.dans.easy.deposit.docs.StateInfo.State._
-import nl.knaw.dans.easy.deposit.docs.{ DepositInfo, StateInfo }
+import nl.knaw.dans.easy.deposit.docs.{ DepositInfo, FileInfo, StateInfo }
 import org.eclipse.jetty.http.HttpStatus._
 import org.joda.time.DateTime
 import org.scalamock.scalatest.MockFactory
 import org.scalatra.test.scalatest.ScalatraSuite
 
-import scala.util.{ Success, Try }
+import scala.util.Success
 
 class HappyRoutesSpec extends TestSupportFixture with ServletFixture with ScalatraSuite with MockFactory {
 

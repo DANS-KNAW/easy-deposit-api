@@ -21,7 +21,9 @@ import java.nio.file.attribute.PosixFilePermission
 import java.nio.file.{ AccessDeniedException, NoSuchFileException, Paths }
 import java.util.UUID
 
+import better.files.StringOps
 import nl.knaw.dans.bag.v0.DansV0Bag
+import nl.knaw.dans.easy.deposit.docs.FileInfo
 import nl.knaw.dans.lib.error._
 
 import scala.util.{ Failure, Success }
@@ -61,7 +63,7 @@ class DataFilesSpec extends TestSupportFixture {
 
   "delete" should "delete a file" in {
     val bag = DansV0Bag.empty(testDir / "bag").getOrRecover(e => fail(s"could not create test bag $e"))
-    bag.addPayloadFile("Lorum ipsum est".asInputStream, Paths.get("file.txt"))
+    bag.addPayloadFile("Lorum ipsum est".inputStream, Paths.get("file.txt"))
     bag.save
     (bag.data / "file.txt") should exist
     (bag.data.parent / "manifest-sha1.txt").lines.size shouldBe 1
@@ -75,9 +77,9 @@ class DataFilesSpec extends TestSupportFixture {
 
   it should "recursively delete files" in {
     val bag = DansV0Bag.empty(testDir / "bag").getOrRecover(e => fail(s"could not create test bag $e"))
-    bag.addPayloadFile("Lorum ipsum est".asInputStream, Paths.get("file.txt"))
+    bag.addPayloadFile("Lorum ipsum est".inputStream, Paths.get("file.txt"))
     (0 until 5).foreach { n =>
-      bag.addPayloadFile(s"$n Lorum ipsum est".asInputStream, Paths.get(s"path/to/file$n.txt"))
+      bag.addPayloadFile(s"$n Lorum ipsum est".inputStream, Paths.get(s"path/to/file$n.txt"))
     }
     bag.save
     bag.data.children.size shouldBe 2 // one file one folder
@@ -143,5 +145,5 @@ class DataFilesSpec extends TestSupportFixture {
     fail("could not add payloadFile to test bag", value)
 
   private def randomContent =
-    UUID.randomUUID().toString.asInputStream
+    UUID.randomUUID().toString.inputStream
 }

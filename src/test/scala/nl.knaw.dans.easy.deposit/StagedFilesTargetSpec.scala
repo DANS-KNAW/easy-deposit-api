@@ -18,6 +18,7 @@ package nl.knaw.dans.easy.deposit
 import java.net.URL
 import java.nio.file.Paths
 
+import better.files.StringOps
 import nl.knaw.dans.bag.v0.DansV0Bag
 import nl.knaw.dans.lib.error._
 
@@ -84,7 +85,7 @@ class StagedFilesTargetSpec extends TestSupportFixture {
 
   it should "replace a payload file" in {
     (stagedDir / "some.thing").createFile().write("new content")
-    val bag = newEmptyBag.addPayloadFile("Lorum ipsum".asInputStream, Paths.get("path/to/some.thing")).getOrRecover(e => fail(e))
+    val bag = newEmptyBag.addPayloadFile("Lorum ipsum".inputStream, Paths.get("path/to/some.thing")).getOrRecover(e => fail(e))
     bag.save()
     (bag.data / "path/to/some.thing").contentAsString shouldBe "Lorum ipsum"
 
