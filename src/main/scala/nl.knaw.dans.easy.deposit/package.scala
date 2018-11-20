@@ -15,11 +15,10 @@
  */
 package nl.knaw.dans.easy
 
-import java.io.{ ByteArrayInputStream, InputStream }
-import java.nio.charset.StandardCharsets
 import java.nio.file.Paths
 import java.util.UUID
 
+import better.files.StringOps
 import nl.knaw.dans.bag.v0.DansV0Bag
 import nl.knaw.dans.easy.deposit.docs.StateInfo.State.State
 
@@ -54,18 +53,11 @@ package object deposit {
   }
   implicit class BagExtensions(val bag: DansV0Bag) extends AnyVal {
     def addMetadataFile(content: Elem, target: String): Try[Any] = {
-      bag.addTagFile(content.serialize.asInputStream, Paths.get(s"metadata/$target"))
+      bag.addTagFile(content.serialize.inputStream, Paths.get(s"metadata/$target"))
     }
 
     def addMetadataFile(content: String, target: String): Try[Any] = {
-      bag.addTagFile(content.asInputStream, Paths.get(s"metadata/$target"))
-    }
-  }
-
-  implicit class StringExtensions(val s: String) extends AnyVal {
-    // TODO not needed once we install better-files v3.6 https://github.com/DANS-KNAW/easy-deposit-api/pull/69#pullrequestreview-164194094
-    def asInputStream: InputStream = {
-      new ByteArrayInputStream(s.getBytes(StandardCharsets.UTF_8))
+      bag.addTagFile(content.inputStream, Paths.get(s"metadata/$target"))
     }
   }
 }
