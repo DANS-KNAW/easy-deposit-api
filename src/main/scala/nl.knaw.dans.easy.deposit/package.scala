@@ -17,7 +17,7 @@ package nl.knaw.dans.easy
 
 import java.io.{ ByteArrayInputStream, InputStream }
 import java.nio.charset.StandardCharsets
-import java.nio.file.{ Path, Paths }
+import java.nio.file.Paths
 import java.util.UUID
 
 import nl.knaw.dans.bag.v0.DansV0Bag
@@ -40,16 +40,7 @@ package object deposit {
     extends DepositException(s"Cannot transition from $oldState to $newState (deposit id: $id, user: $user)", null)
 
   case class ConfigurationException(msg: String) extends IllegalArgumentException(s"Configuration error: $msg")
-
   case class InvalidDoiException(uuid: UUID) extends Exception(s"InvalidDoi: DOI must be obtained by calling GET /deposit/$uuid")
-  /**
-   * Information about a file in the deposit
-   *
-   * @param filename the simple filename of the file
-   * @param dirpath  path of the containing directory, relative to the content base directory
-   * @param sha1sum  the SHA-1 checksum of the file data
-   */
-  case class FileInfo(filename: String, dirpath: Path, sha1sum: String)
 
   val prologue = """<?xml version='1.0' encoding='UTF-8'?>"""
 

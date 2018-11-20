@@ -17,8 +17,8 @@ package nl.knaw.dans.easy.deposit.docs
 
 import java.nio.file.Paths
 
+import nl.knaw.dans.easy.deposit.TestSupportFixture
 import nl.knaw.dans.easy.deposit.docs.JsonUtil._
-import nl.knaw.dans.easy.deposit.{ FileInfo, TestSupportFixture }
 
 import scala.reflect.runtime.universe.typeOf
 

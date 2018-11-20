@@ -22,6 +22,7 @@ import java.nio.file.{ AccessDeniedException, NoSuchFileException, Paths }
 import java.util.UUID
 
 import nl.knaw.dans.bag.v0.DansV0Bag
+import nl.knaw.dans.easy.deposit.docs.FileInfo
 import nl.knaw.dans.lib.error._
 
 import scala.util.{ Failure, Success }
