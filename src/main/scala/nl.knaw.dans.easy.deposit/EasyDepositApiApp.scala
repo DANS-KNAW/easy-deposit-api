@@ -210,7 +210,8 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
   } yield ()
 
   /**
-   * Returns a list of [[FileInfo]] objects if the path points to a directory, else a single [FileInfo] object
+   * Returns a list of [[nl.knaw.dans.easy.deposit.docs.FileInfo]] objects if the path points to a directory,
+   * else a single FileInfo object
    *
    * @param user the user ID
    * @param id   the deposit ID
