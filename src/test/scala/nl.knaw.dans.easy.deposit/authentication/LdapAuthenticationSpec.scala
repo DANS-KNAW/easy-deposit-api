@@ -28,9 +28,10 @@ import scala.util.Success
 
 class LdapAuthenticationSpec extends TestSupportFixture with MockFactory {
 
+  // TODO would separate instances per test fix dependencies between tests?
   val ldapMocker = LdapMocker()
 
-  private def wiring: LdapAuthentication = new LdapAuthentication {
+  private def wire = new LdapAuthentication {
     override val authentication: Authentication = new Authentication {
       override val ldapUserIdAttrName: String = ""
       override val ldapParentEntry: String = ""
@@ -39,10 +40,10 @@ class LdapAuthenticationSpec extends TestSupportFixture with MockFactory {
       override val ldapAdminPassword: String = "y"
 
       override def getContext(connectionProperties: util.Hashtable[String, String]): LdapContext = {
-        ldapMocker.mockedLdpContext
+        ldapMocker.mockedLdapContext
       }
     }
-  }
+  }.authentication
 
   "getUser(user,password)" should "return an active user" in {
     ldapMocker.expectLdapAttributes(new BasicAttributes() {
@@ -51,7 +52,7 @@ class LdapAuthenticationSpec extends TestSupportFixture with MockFactory {
       put("easyGroups", "abc")
     })
 
-    wiring.authentication.authenticate("someone", "somepassword") should matchPattern {
+    wire.authenticate("someone", "somepassword") should matchPattern {
       case Some(AuthUser("someone", Seq("abc"), UserState.active)) =>
     }
   }
@@ -61,14 +62,14 @@ class LdapAuthenticationSpec extends TestSupportFixture with MockFactory {
       put("dansState", "BLOCKED")
     })
 
-    wiring.authentication.authenticate("someone", "somepassword") shouldBe None
+    wire.authenticate("someone", "somepassword") shouldBe None
   }
 
   it should "fail on other ldap problems" in {
     ldapMocker.expectLdapSearch throwing new Exception("whoops")
-    // TODO fix or explain, logs: Unexpected call: <mock-1> LdapContext.close()
+    ldapMocker.expectLdapClose
 
-    wiring.authentication.authenticate("someone", "somepassword") should matchPattern {
+    wire.authenticate("someone", "somepassword") should matchPattern {
       case None => // different logging than with AuthenticationException
     }
   }
@@ -76,20 +77,19 @@ class LdapAuthenticationSpec extends TestSupportFixture with MockFactory {
   it should "return none for an invalid username or password" in {
     ldapMocker.expectLdapSearch throwing new AuthenticationException()
 
-    wiring.authentication.authenticate("someone", "somepassword") shouldBe None
+    wire.authenticate("someone", "somepassword") shouldBe None
   }
 
   it should "not access ldap with a blank user" in {
 
-    // TODO fix or explain, logs: Unexpected call: <mock-1> LdapContext.search
-    wiring.authentication.authenticate(" ", "somepassword") should matchPattern {
+    wire.authenticate(" ", "somepassword") should matchPattern {
       case None =>
     }
   }
 
   it should "not access ldap with a blank password" in {
 
-    wiring.authentication.authenticate("someone", " ") should matchPattern {
+    wire.authenticate("someone", " ") should matchPattern {
       case None =>
     }
   }
@@ -104,7 +104,7 @@ class LdapAuthenticationSpec extends TestSupportFixture with MockFactory {
       get("easyGroups").add("History")
     })
 
-    inside(wiring.authentication.getUser("someone")) {
+    inside(wire.getUser("someone")) {
       case Success(user) => // just sampling the result
         user("dansPrefixes").toArray shouldBe Array("van", "den")
         user("easyGroups").toArray shouldBe Array("Archeology", "History")
