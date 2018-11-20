@@ -26,7 +26,6 @@ import nl.knaw.dans.easy.deposit.docs.JsonUtil.{ InvalidDocumentException, toJso
 import nl.knaw.dans.easy.deposit.docs.StateInfo.State
 import nl.knaw.dans.easy.deposit.docs.StateInfo.State.State
 import nl.knaw.dans.easy.deposit.docs.{ StateInfo, _ }
-import nl.knaw.dans.easy.deposit.servlets.DepositServlet.BadRequestException
 import nl.knaw.dans.lib.error._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.apache.commons.configuration.PropertiesConfiguration
@@ -44,7 +43,7 @@ import scala.util.{ Failure, Success, Try }
  * @param id      the ID of the deposit
  */
 case class DepositDir private(baseDir: File, user: String, id: UUID) extends DebugEnhancedLogging {
-  private val bagDir = baseDir / user / id.toString / "bag"
+  val bagDir: File = baseDir / user / id.toString / "bag"
   private val metadataDir = bagDir / "metadata"
   private val depositPropertiesFile = bagDir.parent / "deposit.properties"
   private val datasetMetadataJsonFile = metadataDir / "dataset.json"
@@ -120,22 +119,19 @@ case class DepositDir private(baseDir: File, user: String, id: UUID) extends Deb
     )
   }.recoverWith {
     case t: CorruptDepositException => Failure(t)
-    case _: FileNotFoundException => notFoundFailure()
-    case _: NoSuchFileException => notFoundFailure()
-    case t => Failure(CorruptDepositException(user, id.toString, t))
+    case t => corruptDepositFailure(t)
   }
 
   private def getDatasetTitle = {
     getDatasetMetadata
       .map(_.titles.flatMap(_.headOption).getOrElse(""))
-      .recoverWith {
-        case _: NoSuchDepositException => Success("")
-        case t => Failure(t)
-      }
   }
 
   private def getDepositProps = Try {
     new PropertiesConfiguration(depositPropertiesFile.toJava)
+  }.flatMap {
+    case props if props.getKeys.hasNext => Success(props)
+    case _ => Failure(CorruptDepositException(user, id.toString, new Exception("deposit.properties not found or empty")))
   }
 
   /**
@@ -145,15 +141,15 @@ case class DepositDir private(baseDir: File, user: String, id: UUID) extends Deb
     Try { datasetMetadataJsonFile.fileInputStream }
       .flatMap(_ (is => DatasetMetadata(is)))
       .recoverWith {
-        case t: InvalidDocumentException => Failure(CorruptDepositException(user, id.toString, t))
-        case _: FileNotFoundException => notFoundFailure()
-        case _: NoSuchFileException => notFoundFailure()
+        case t: InvalidDocumentException => corruptDepositFailure(t)
+        case t: FileNotFoundException => corruptDepositFailure(t)
+        case t: NoSuchFileException => corruptDepositFailure(t)
         case t => Failure(t)
       }
   }
 
-  private def notFoundFailure() = {
-    Failure(NoSuchDepositException(user, id, new Exception(s"File not found: $metadataDir/dataset.json")))
+  private def corruptDepositFailure(t: Throwable) = {
+    Failure(CorruptDepositException(user, id.toString, t))
   }
 
   /**
@@ -172,7 +168,7 @@ case class DepositDir private(baseDir: File, user: String, id: UUID) extends Deb
   def writeDatasetMetadataJson(md: DatasetMetadata): Try[Unit] = Try {
     datasetMetadataJsonFile.write(toJson(md))
     () // satisfy the compiler which doesn't want a File
-  }.recoverWith { case _: NoSuchFileException => notFoundFailure() }
+  }
 
   /**
    * @return object to access the data files of this deposit
@@ -187,7 +183,7 @@ case class DepositDir private(baseDir: File, user: String, id: UUID) extends Deb
     dm <- getDatasetMetadata
     props <- getDepositProps
     maybeDOI = Option(props.getString("identifier.doi", null))
-    _ <- doisMatch(dm, maybeDOI)
+    _ <- dm.doi.map(_ => doisMatch(dm, maybeDOI)).getOrElse(Success(()))
     maybeTriedDOI = maybeDOI.map(Success(_))
     doi <- maybeTriedDOI.getOrElse(pidRequester.requestPid(PidType.doi))
     _ = props.addProperty("identifier.doi", doi)
@@ -204,8 +200,8 @@ case class DepositDir private(baseDir: File, user: String, id: UUID) extends Deb
   private def doisMatch(dm: DatasetMetadata, doi: Option[String]) = {
     if (doi == dm.doi) Success(())
     else {
-      logger.error (s"DOI in datasetmetadata.json [${ dm.doi }] does not equal DOI in deposit.properties [$doi]")
-      Failure(BadRequestException(s"InvalidDoi: DOI must be obtained by calling GET /deposit/$id"))
+      logger.error(s"DOI in datasetmetadata.json [${ dm.doi }] does not equal DOI in deposit.properties [$doi]")
+      Failure(InvalidDoiException(id))
     }
   }
 }
@@ -243,8 +239,8 @@ object DepositDir {
    */
   def get(baseDir: File, user: String, id: UUID): Try[DepositDir] = {
     val depositDir = DepositDir(baseDir, user, id)
-    if (depositDir.baseDir.exists) Success(depositDir)
-    else Failure(NoSuchDepositException(user, id, null))
+    if (depositDir.bagDir.parent.exists) Success(depositDir)
+    else Failure(NoSuchDepositException(user, id, new FileNotFoundException()))
   }
 
   /**

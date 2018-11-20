@@ -205,7 +205,7 @@ paths:
         401:
           $ref: "#/components/responses/Unauthorized"
         404:
-          $ref: "#/components/responses/NotFoundContainingDepositDoesNotExist"
+          $ref: "#/components/responses/NotFound"
         410:
           $ref: "#/components/responses/Gone"
         500:
@@ -239,7 +239,7 @@ paths:
         401:
           $ref: "#/components/responses/Unauthorized"
         404:
-          $ref: "#/components/responses/NotFoundContainingDepositDoesNotExist"
+          $ref: "#/components/responses/NotFound"
         500:
           $ref: "#/components/responses/InternalServerError"
       security:
@@ -263,7 +263,7 @@ paths:
         401:
           $ref: "#/components/responses/Unauthorized"
         404:
-          $ref: "#/components/responses/NotFoundContainingDepositDoesNotExist"
+          $ref: "#/components/responses/NotFound"
         500:
           $ref: "#/components/responses/InternalServerError"
       security:
@@ -287,7 +287,7 @@ paths:
         401:
           $ref: "#/components/responses/Unauthorized"
         404:
-          $ref: "#/components/responses/NotFoundContainingDepositDoesNotExist"
+          $ref: "#/components/responses/NotFound"
         500:
           $ref: "#/components/responses/InternalServerError"
       security:
@@ -324,7 +324,7 @@ paths:
         403:
           $ref: "#/components/responses/ForbiddenStateTransition"
         404:
-          $ref: "#/components/responses/NotFoundContainingDepositDoesNotExist"
+          $ref: "#/components/responses/NotFound"
         500:
           $ref: "#/components/responses/InternalServerError"
       security:
@@ -382,7 +382,7 @@ paths:
         401:
           $ref: "#/components/responses/Unauthorized"
         404:
-          $ref: "#/components/responses/NotFoundContainingDepositDoesNotExist"
+          $ref: "#/components/responses/NotFound"
         500:
           $ref: "#/components/responses/InternalServerError"
       security:
@@ -539,8 +539,6 @@ paths:
       responses:
         204:
           $ref: "#/components/responses/DeleteOk"
-        400:
-          description: "Invalid id supplied"
         401:
           $ref: "#/components/responses/Unauthorized"
         403:
@@ -629,12 +627,7 @@ components:
         Forbidden. Illegal state transition. (Only allowed to transition from DRAFT to SUBMITTED and from REJECTED to DRAFT.)
 
     NotFound:
-      description: Not found.
-
-    NotFoundContainingDepositDoesNotExist:
-      description: |
-        Not found. The client may derive from this response that the containing deposit does
-        not exist, either.
+      description: Not found. The body specifies if the deposit or something in the deposit is not found.
 
     ConflictZipMustBeOnlyFile:
       description: A multipart/form-data message contained a ZIP part but also other parts.

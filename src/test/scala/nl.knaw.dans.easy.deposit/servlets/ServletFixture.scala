@@ -15,6 +15,9 @@
  */
 package nl.knaw.dans.easy.deposit.servlets
 
+import java.io
+
+import better.files.File
 import nl.knaw.dans.easy.deposit.EasyDepositApiApp
 import nl.knaw.dans.easy.deposit.authentication.AuthenticationProvider
 import org.eclipse.jetty.server.nio.SelectChannelConnector
@@ -56,5 +59,22 @@ trait ServletFixture extends EmbeddedJettyContainer {
     addServlet(userServlet, "/user/*")
     addServlet(authServlet, "/auth/*")
     addServlet(new EasyDepositApiServlet(app), "/*")
+  }
+
+  /**
+   * Mimics field values for: `<form method="post" enctype="multipart/form-data">`
+   *
+   * @param files tuples of:
+   *              - name in `<input type="file" name="some">`
+   *              - simple file name
+   *              - content of the file to create
+   * @return
+   */
+  def bodyParts(dir: File, files: Seq[(String, String, String)]): Seq[(String, io.File)] = {
+    dir.createDirectories()
+    files.map { case (formField, file, content) =>
+      (dir / file).write(content)
+      (formField, (dir / file).toJava)
+    }
   }
 }

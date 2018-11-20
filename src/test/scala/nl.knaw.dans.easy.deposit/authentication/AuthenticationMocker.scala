@@ -21,6 +21,7 @@ import org.scalamock.handlers.CallHandler2
 import org.scalamock.scalatest.MockFactory
 
 object AuthenticationMocker extends MockFactory {
+  // TODO separate instances per test class
   val mockedAuthenticationProvider: AuthenticationProvider = mock[AuthenticationProvider]
 
   def expectsInvalidUser: CallHandler2[String, String, Option[AuthUser]] = {

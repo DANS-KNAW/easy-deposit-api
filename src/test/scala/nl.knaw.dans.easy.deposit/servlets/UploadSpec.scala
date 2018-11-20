@@ -247,18 +247,8 @@ class UploadSpec extends TestSupportFixture with ServletFixture with ScalatraSui
     }
   }
 
-  /**
-   * Mimics field values for: `<form method="post" enctype="multipart/form-data">`
-   *
-   * @param files tuples of:
-   *              - name in `<input type="file" name="some">`
-   *              - simple file name
-   *              - content of the file to create
-   * @return
-   */
   private def createBodyParts(files: Seq[(String, String, String)]): Seq[(String, java.io.File)] = {
-    files.foreach { case (_, file, content) => (testDir / "input" / file).write(content) }
-    files.map { case (formField, file, _) => (formField, (testDir / "input" / file).toJava) }
+    bodyParts(testDir / "input", files)
   }
 
   private def createDataset: UUID = {

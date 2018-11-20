@@ -396,10 +396,6 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
     new MinimalDatasetMetadata(titles = Some(Seq("   \t"))).causesInvalidDocumentException(missingTitle)
   }
 
-  it should "report a missing DOI" in {
-    new MinimalDatasetMetadata(identifiers = None).causesInvalidDocumentException("Please first GET a DOI for this deposit")
-  }
-
   "issue-1538.json" should behave like validDatasetMetadata(
     input = parseTestResource("issue-1538.json").map(_.setDoi("mocked_DOI"))
   )
@@ -447,7 +443,7 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
         <ddm:accessRights>OPEN_ACCESS</ddm:accessRights>
       </ddm:profile>
       <ddm:dcmiMetadata>
-        <dcterms:identifier xsi:type="id-type:DOI">doi:10.17632/DANS.6wg5xccnjd.1</dcterms:identifier>
+        <dcterms:identifier xsi:type="id-type:DOI">10.17632/DANS.6wg5xccnjd.1</dcterms:identifier>
         <dcterms:identifier xsi:type="id-type:ISBN">test identifier 1</dcterms:identifier>
         <dcterms:identifier xsi:type="id-type:NWO-PROJECTNR">test identifier 2</dcterms:identifier>
         <dcterms:identifier xsi:type="id-type:ARCHIS-ZAAK-IDENTIFICATIE">archis nr. 1</dcterms:identifier>

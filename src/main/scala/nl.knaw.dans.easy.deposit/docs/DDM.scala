@@ -41,8 +41,6 @@ object DDM extends DebugEnhancedLogging {
   val schemaLocation: String = "https://easy.dans.knaw.nl/schemas/md/2018/05/ddm.xsd" // TODO property?
 
   def apply(dm: DatasetMetadata): Try[Elem] = Try {
-    dm.doi.getOrElse(throw invalidDatasetMetadataException(new Exception(s"Please first GET a DOI for this deposit")))
-
     val lang: String = dm.languageOfDescription.map(_.key).orNull // null omits attribute rendering
     <ddm:DDM
       xmlns:dc="http://purl.org/dc/elements/1.1/"

@@ -15,6 +15,8 @@
  */
 package nl.knaw.dans.easy.deposit
 
+import java.nio.file.NoSuchFileException
+
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata
 
 import scala.util.{ Failure, Success }
@@ -51,13 +53,13 @@ class DepositDirDatasetMetadataSpec extends TestSupportFixture {
   it should "report the deposit does not exist" in {
     // no preparations for a "lost" deposit
     dd.writeDatasetMetadataJson(DatasetMetadata()) should matchPattern {
-      case Failure(NoSuchDepositException(_, _, _)) =>
+      case Failure(_: NoSuchFileException) =>
     }
   }
 
   "get" should "complain about a not found file" in {
     dd.getDatasetMetadata should matchPattern {
-      case Failure(NoSuchDepositException(_, _, _)) =>
+      case Failure(CorruptDepositException(_, _, _)) =>
     }
   }
   it should "get the content" in {

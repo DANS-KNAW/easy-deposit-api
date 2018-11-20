@@ -21,7 +21,6 @@ import nl.knaw.dans.easy.deposit._
 import nl.knaw.dans.easy.deposit.authentication.AuthUser.UserState
 import nl.knaw.dans.easy.deposit.authentication.AuthenticationMocker._
 import nl.knaw.dans.easy.deposit.authentication.{ AuthUser, AuthenticationProvider }
-import nl.knaw.dans.easy.deposit.docs.DatasetMetadata
 import org.eclipse.jetty.http.HttpStatus._
 import org.scalamock.scalatest.MockFactory
 import org.scalatra.auth.Scentry
@@ -68,22 +67,6 @@ class DepositServletErrorSpec extends TestSupportFixture with ServletFixture wit
     }
   }
 
-  s"put /:uuid/metadata" should "report a lost dataset" in {
-    assumeSchemaAvailable
-    expectsUserFooBar
-    (mockedApp.checkDoi(_: String, _: UUID, _: DatasetMetadata)) expects("foo", uuid, *) returning
-      Failure(NoSuchDepositException("foo", uuid, new Exception()))
-
-    put(
-      uri = s"/$uuid/metadata",
-      body = """{"titles":["blabla"]}""",
-      headers = Seq(("Authorization", fooBarBasicAuthHeader))
-    ) {
-      status shouldBe NOT_FOUND_404
-      body shouldBe s"Deposit $uuid not found"
-    }
-  }
-
   s"get /:uuid/metadata" should "report a corrupt dataset" in {
     assumeSchemaAvailable
     (mockedApp.getDatasetMetadataForDeposit(_: String, _: UUID)) expects("foo", uuid) returning
@@ -97,22 +80,6 @@ class DepositServletErrorSpec extends TestSupportFixture with ServletFixture wit
     ) {
       body shouldBe s"Internal Server Error"
       status shouldBe INTERNAL_SERVER_ERROR_500
-    }
-  }
-
-  it should "report a missing dataset" in {
-    assumeSchemaAvailable
-    (mockedApp.getDatasetMetadataForDeposit(_: String, _: UUID)) expects("foo", uuid) returning
-      Failure(NoSuchDepositException("foo", uuid, new Exception("file not found")))
-
-    assumeSchemaAvailable
-    expectsUserFooBar
-    get(
-      uri = s"/$uuid/metadata",
-      headers = Seq(("Authorization", fooBarBasicAuthHeader))
-    ) {
-      body shouldBe s"Deposit $uuid not found"
-      status shouldBe NOT_FOUND_404
     }
   }
 }
