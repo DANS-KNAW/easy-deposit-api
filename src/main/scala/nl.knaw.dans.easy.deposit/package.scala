@@ -46,11 +46,11 @@ package object deposit {
   /**
    * Information about a file in the deposit
    *
-   * @param fileName the simple filename of the file
-   * @param dirPath  path of the containing directory, relative to the content base directory
+   * @param filename the simple filename of the file
+   * @param dirpath  path of the containing directory, relative to the content base directory
    * @param sha1sum  the SHA-1 checksum of the file data
    */
-  case class FileInfo(fileName: String, dirPath: Path, sha1sum: String)
+  case class FileInfo(filename: String, dirpath: Path, sha1sum: String)
 
   val prologue = """<?xml version='1.0' encoding='UTF-8'?>"""
 

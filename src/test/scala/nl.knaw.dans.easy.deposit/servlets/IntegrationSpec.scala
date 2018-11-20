@@ -152,7 +152,7 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
       (dataFilesBase / "path" / "to" / "text.txt").contentAsString shouldBe "Lorum ipsum"
     }
 
-    val expectedItem = """{"fileName":"text.txt","dirPath":"path/to/text.txt","sha1sum":"c5b8de8cc3587aef4e118a481115391033621e06"}"""
+    val expectedItem = """{"filename":"text.txt","dirpath":"path/to/text.txt","sha1sum":"c5b8de8cc3587aef4e118a481115391033621e06"}"""
     val expectedListItem = expectedItem.replace("/text.txt", "")
 
     // get file

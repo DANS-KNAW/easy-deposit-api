@@ -155,7 +155,7 @@ class HappyRoutesSpec extends TestSupportFixture with ServletFixture with Scalat
       uri = s"/deposit/$uuid/file/path/to/directory",
       headers = Seq(("Authorization", fooBarBasicAuthHeader))
     ) {
-      body shouldBe s"""[{"fileName":"a.txt","dirPath":"files/a.txt","sha1sum":"x"}]"""
+      body shouldBe s"""[{"filename":"a.txt","dirpath":"files/a.txt","sha1sum":"x"}]"""
       status shouldBe OK_200
     }
   }
@@ -169,7 +169,7 @@ class HappyRoutesSpec extends TestSupportFixture with ServletFixture with Scalat
       uri = s"/deposit/$uuid/file/a.txt",
       headers = Seq(("Authorization", fooBarBasicAuthHeader))
     ) {
-      body shouldBe s"""{"fileName":"a.txt","dirPath":"files/a.txt","sha1sum":"x"}"""
+      body shouldBe s"""{"filename":"a.txt","dirpath":"files/a.txt","sha1sum":"x"}"""
       status shouldBe OK_200
     }
   }
