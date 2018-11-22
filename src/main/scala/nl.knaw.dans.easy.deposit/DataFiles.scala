@@ -53,7 +53,7 @@ case class DataFiles(bag: DansBag) extends DebugEnhancedLogging {
    * will result in showing deleted files.
    *
    * @param path a relative path into data files directory of the bag.
-   * @return a list of [[FileInfo]] objects
+   * @return a list of FileInfo objects
    */
   def list(path: Path = Paths.get("")): Try[Seq[FileInfo]] = {
     val parentPath = bag.data / path.toString
@@ -77,7 +77,7 @@ case class DataFiles(bag: DansBag) extends DebugEnhancedLogging {
    * Lists information about a file.
    *
    * @param path a relative path into a data files.
-   * @return a [[FileInfo]] object
+   * @return a FileInfo object
    */
   def get(path: Path = Paths.get("")): Try[FileInfo] = {
     val manifestMap = bag.payloadManifests

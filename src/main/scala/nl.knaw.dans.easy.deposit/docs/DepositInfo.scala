@@ -34,7 +34,7 @@ import scala.util.Try
  * @param title            [[nl.knaw.dans.easy.deposit.DepositDir#getDepositInfo]] retrieves it from [[DatasetMetadata]]
  * @param state            [[nl.knaw.dans.easy.deposit.DepositDir#create]] stores it in deposit.properties
  * @param stateDescription stored in deposit.properties
- * @param date             stored with [[gov.loc.repository.bagit.creator.BagCreator]]
+ * @param date             stored with gov.loc.repository.bagit.creator.BagCreator
  *                         and as creation.timestamp in deposit.properties
  */
 case class DepositInfo(id: UUID = UUID.randomUUID(),

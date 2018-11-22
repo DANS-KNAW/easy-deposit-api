@@ -56,7 +56,7 @@ trait ResponseLogFormatter extends CookieFormatter {
   /**
    * Assembles the content for a log line.
    *
-   * Adding the logResponse method to [[ActionResult]] for the following examples
+   * Adding the logResponse method to ActionResult for the following examples
    * is explained by [[nl.knaw.dans.easy.deposit.logging]].
    *
    * @example
@@ -80,8 +80,8 @@ trait ResponseLogFormatter extends CookieFormatter {
    * }}}
    * @param actionResult the response created by the servlet
    * @param request      some info is used as a kind of bracketing the response log line with the request log line
-   * @param response     here we might find some info created by a [[org.scalatra.auth.ScentrySupport]] trait
-   *                     for a [[org.scalatra.ScalatraServlet]].
+   * @param response     here we might find some info created by a org.scalatra.auth.ScentrySupport trait
+   *                     for a org.scalatra.ScalatraServlet.
    * @return a formatted log line
    */
   def formatResponseLog(actionResult: ActionResult)
