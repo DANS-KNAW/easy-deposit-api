@@ -24,14 +24,11 @@ import nl.knaw.dans.easy.deposit.TestSupportFixture
 import nl.knaw.dans.easy.deposit.authentication.AuthUser.UserState
 import org.scalamock.scalatest.MockFactory
 
-import scala.util.Success
+import scala.util.{ Failure, Success, Try }
 
 class LdapAuthenticationSpec extends TestSupportFixture with MockFactory {
 
-  // TODO would separate instances per test fix dependencies between tests?
-  val ldapMocker = LdapMocker()
-
-  private def wire = new LdapAuthentication {
+  private def wire(ldapMocker: LdapMocker) = new LdapAuthentication {
     override val authentication: Authentication = new Authentication {
       override val ldapUserIdAttrName: String = ""
       override val ldapParentEntry: String = ""
@@ -46,65 +43,75 @@ class LdapAuthenticationSpec extends TestSupportFixture with MockFactory {
   }.authentication
 
   "getUser(user,password)" should "return an active user" in {
-    ldapMocker.expectLdapAttributes(new BasicAttributes() {
-      put("dansState", "ACTIVE")
-      put("uid", "someone")
-      put("easyGroups", "abc")
+    val authentication = wire(new LdapMocker {
+      expectLdapAttributes(new BasicAttributes() {
+        put("dansState", "ACTIVE")
+        put("uid", "someone")
+        put("easyGroups", "abc")
+      })
     })
-
-    wire.authenticate("someone", "somepassword") should matchPattern {
+    authentication.authenticate("someone", "somepassword") should matchPattern {
       case Some(AuthUser("someone", Seq("abc"), UserState.active)) =>
     }
   }
 
   it should "return none for a blocked user" in {
-    ldapMocker.expectLdapAttributes(new BasicAttributes() {
-      put("dansState", "BLOCKED")
+    val authentication = wire(new LdapMocker {
+      expectLdapAttributes(new BasicAttributes() {
+        put("dansState", "BLOCKED")
+      })
     })
-
-    wire.authenticate("someone", "somepassword") shouldBe None
+    authentication.authenticate("someone", "somepassword") shouldBe None
   }
 
   it should "fail on other ldap problems" in {
-    ldapMocker.expectLdapSearch throwing new Exception("whoops")
-    ldapMocker.expectLdapClose
-
-    wire.authenticate("someone", "somepassword") should matchPattern {
+    val authentication = wire(new LdapMocker {
+      expectLdapSearch throwing new Exception("whoops")
+      expectLdapClose
+    })
+    authentication.authenticate("someone", "somepassword") should matchPattern {
       case None => // different logging than with AuthenticationException
     }
   }
 
   it should "return none for an invalid username or password" in {
-    ldapMocker.expectLdapSearch throwing new AuthenticationException()
+    val authentication = wire(new LdapMocker {
+      expectLdapSearch throwing new AuthenticationException()
+    })
+    authentication.authenticate("someone", "somepassword") shouldBe None
+  }
 
-    wire.authenticate("someone", "somepassword") shouldBe None
+  it should "fail without an ldapContext" ignore { // TODO details in comment inside
+    // https://github.com/DANS-KNAW/easy-deposit-api/blob/b83b60e/src/main/scala/nl.knaw.dans.easy.deposit/authentication/EasyBasicAuthStrategy.scala#L38
+    // authenticate should return a Try[Option[User]]
+    // on Failure validate should call: halt[ServiceUnavailable().logResponse]
+    Try(wire(null).authenticate("someone", "somepassword")) should matchPattern {
+      case Failure(_: NullPointerException) =>
+    }
   }
 
   it should "not access ldap with a blank user" in {
-
-    wire.authenticate(" ", "somepassword") should matchPattern {
-      case None =>
-    }
+    // TODO logs "looking for user [ ]" what it is not supposed to do
+    wire(null).authenticate(" ", "somepassword") shouldBe None
   }
 
   it should "not access ldap with a blank password" in {
 
-    wire.authenticate("someone", " ") should matchPattern {
-      case None =>
-    }
+    wire(null).authenticate("someone", " ") shouldBe None
   }
 
   "getUser(user)" should "return user properties" in {
-    ldapMocker.expectLdapAttributes(new BasicAttributes() {
-      put("uid", "foo")
-      put("dansPrefixes", "van")
-      get("dansPrefixes").add("den")
-      put("sn", "Berg")
-      put("easyGroups", "Archeology")
-      get("easyGroups").add("History")
+    val authentication = wire(new LdapMocker {
+      expectLdapAttributes(new BasicAttributes() {
+        put("uid", "foo")
+        put("dansPrefixes", "van")
+        get("dansPrefixes").add("den")
+        put("sn", "Berg")
+        put("easyGroups", "Archeology")
+        get("easyGroups").add("History")
+      })
     })
-
-    inside(wire.getUser("someone")) {
+    inside(authentication.getUser("someone")) {
       case Success(user) => // just sampling the result
         user("dansPrefixes").toArray shouldBe Array("van", "den")
         user("easyGroups").toArray shouldBe Array("Archeology", "History")
