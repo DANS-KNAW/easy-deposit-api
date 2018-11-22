@@ -23,8 +23,9 @@ import javax.naming.ldap.LdapContext
 import nl.knaw.dans.easy.deposit.TestSupportFixture
 import nl.knaw.dans.easy.deposit.authentication.AuthUser.UserState
 import org.scalamock.scalatest.MockFactory
+import org.scalatest.exceptions.TestFailedException
 
-import scala.util.{ Failure, Success, Try }
+import scala.util.{ Failure, Success }
 
 class LdapAuthenticationSpec extends TestSupportFixture with MockFactory {
 
@@ -51,7 +52,7 @@ class LdapAuthenticationSpec extends TestSupportFixture with MockFactory {
       })
     })
     authentication.authenticate("someone", "somepassword") should matchPattern {
-      case Some(AuthUser("someone", Seq("abc"), UserState.active)) =>
+      case Success(Some(AuthUser("someone", Seq("abc"), UserState.active))) =>
     }
   }
 
@@ -61,7 +62,7 @@ class LdapAuthenticationSpec extends TestSupportFixture with MockFactory {
         put("dansState", "BLOCKED")
       })
     })
-    authentication.authenticate("someone", "somepassword") shouldBe None
+    authentication.authenticate("someone", "somepassword") shouldBe Success(None)
   }
 
   it should "fail on other ldap problems" in {
@@ -70,7 +71,8 @@ class LdapAuthenticationSpec extends TestSupportFixture with MockFactory {
       expectLdapClose
     })
     authentication.authenticate("someone", "somepassword") should matchPattern {
-      case None => // different logging than with AuthenticationException
+      // different logging than with AuthenticationException
+      case Failure(e: Exception) if e.getMessage == "whoops" =>
     }
   }
 
@@ -78,26 +80,22 @@ class LdapAuthenticationSpec extends TestSupportFixture with MockFactory {
     val authentication = wire(new LdapMocker {
       expectLdapSearch throwing new AuthenticationException()
     })
-    authentication.authenticate("someone", "somepassword") shouldBe None
+    authentication.authenticate("someone", "somepassword") shouldBe Success(None)
   }
 
-  it should "fail without an ldapContext" ignore { // TODO details in comment inside
-    // https://github.com/DANS-KNAW/easy-deposit-api/blob/b83b60e/src/main/scala/nl.knaw.dans.easy.deposit/authentication/EasyBasicAuthStrategy.scala#L38
-    // authenticate should return a Try[Option[User]]
-    // on Failure validate should call: halt[ServiceUnavailable().logResponse]
-    Try(wire(null).authenticate("someone", "somepassword")) should matchPattern {
-      case Failure(_: NullPointerException) =>
+  it should "fail without proper expectations" in {
+    wire(new LdapMocker).authenticate("someone", "somepassword") should matchPattern {
+      case Failure(e: TestFailedException) if e.getMessage().startsWith("Unexpected call") =>
     }
   }
 
-  it should "not access ldap with a blank user" in {
-    // TODO logs "looking for user [ ]" what it is not supposed to do
-    wire(null).authenticate(" ", "somepassword") shouldBe None
+  it should "not access ldap with a blank user" in pendingUntilFixed {
+    wire(new LdapMocker).authenticate(" ", "somepassword") shouldBe Success(None)
   }
 
-  it should "not access ldap with a blank password" in {
+  it should "not access ldap with a blank password" in pendingUntilFixed {
 
-    wire(null).authenticate("someone", " ") shouldBe None
+    wire(new LdapMocker).authenticate("someone", " ") shouldBe Success(None)
   }
 
   "getUser(user)" should "return user properties" in {

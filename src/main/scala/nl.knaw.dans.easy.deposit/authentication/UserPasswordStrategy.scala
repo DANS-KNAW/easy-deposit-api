@@ -44,7 +44,10 @@ class UserPasswordStrategy(protected override val app: ScalatraBase,
                            (implicit request: HttpServletRequest,
                             response: HttpServletResponse
                            ): Option[AuthUser] = {
-    authenticationProvider.authenticate(formFieldLogin, formFieldPassword)
+    authenticationProvider
+      .authenticate(formFieldLogin, formFieldPassword)
+      .getOrElse(None) // TODO or .getOrElse(halt(ServiceUnavailable.logResponse))
+    // or BadGateWay / InternalServer error depending on the type of error ?
   }
 }
 

@@ -35,7 +35,10 @@ class EasyBasicAuthStrategy(protected override val app: ScalatraBase,
                         (implicit request: HttpServletRequest,
                          response: HttpServletResponse
                         ): Option[AuthUser] = {
-    authenticationProvider.authenticate(userName, password)
+    authenticationProvider
+      .authenticate(userName, password)
+      .getOrElse(None) // TODO or .getOrElse(halt(ServiceUnavailable.logResponse))
+    // or BadGateWay / InternalServer error depending on the type of error ?
   }
 
   protected def getUserId(user: AuthUser)
