@@ -17,21 +17,20 @@ package nl.knaw.dans.easy.deposit.authentication
 
 import nl.knaw.dans.easy.deposit._
 import nl.knaw.dans.easy.deposit.authentication.AuthUser.UserState
-import nl.knaw.dans.easy.deposit.authentication.AuthenticationMocker._
 import nl.knaw.dans.easy.deposit.servlets.ServletFixture
 import org.eclipse.jetty.http.HttpStatus._
 import org.joda.time.format.DateTimeFormat
-import org.scalamock.scalatest.MockFactory
 import org.scalatra.auth.Scentry
 import org.scalatra.test.scalatest.ScalatraSuite
 
-class SessionSpec extends TestSupportFixture with ServletFixture with ScalatraSuite with MockFactory {
+class SessionSpec extends TestSupportFixture with ServletFixture with ScalatraSuite {
 
-  addServlet(new TestServlet(mockedAuthenticationProvider), "/deposit/*")
-  addServlet(new AuthTestServlet(mockedAuthenticationProvider), "/auth/*")
+  private val authMocker = new AuthenticationMocker() {}
+  addServlet(new TestServlet(authMocker.mockedAuthenticationProvider), "/deposit/*")
+  addServlet(new AuthTestServlet(authMocker.mockedAuthenticationProvider), "/auth/*")
 
   "GET /deposit" should "return 401 (Unauthorized) when neither cookie nor login params are provided" in {
-    expectsNoUser
+    authMocker.expectsNoUser
     get("/deposit") {
       status shouldBe UNAUTHORIZED_401
       body shouldBe "missing, invalid or expired credentials"
@@ -41,7 +40,7 @@ class SessionSpec extends TestSupportFixture with ServletFixture with ScalatraSu
   }
 
   it should "be ok when logging in on the flight with valid basic authentication" in {
-    expectsUserFooBar
+    authMocker.expectsUserFooBar
     get(
       uri = "/deposit",
       headers = Seq(("Authorization", fooBarBasicAuthHeader))
@@ -55,7 +54,7 @@ class SessionSpec extends TestSupportFixture with ServletFixture with ScalatraSu
   }
 
   it should "be ok with valid cookie token" in {
-    expectsNoUser
+    authMocker.expectsNoUser
     val jwtCookie = createJWT(AuthUser("foo", state = UserState.active))
 
     get(
@@ -70,7 +69,7 @@ class SessionSpec extends TestSupportFixture with ServletFixture with ScalatraSu
   }
 
   it should "fail with invalid cookie token" in {
-    expectsNoUser
+    authMocker.expectsNoUser
     val jwtCookie = "invalid cookie"
 
     get(
@@ -84,7 +83,7 @@ class SessionSpec extends TestSupportFixture with ServletFixture with ScalatraSu
   }
 
   "POST /auth/login" should "return 401 (Unauthorized) when invalid user-name password params are provided" in {
-    expectsInvalidUser
+    authMocker.expectsInvalidUser
     post(
       uri = "/auth/login",
       params = Seq(("login", "foo"), ("password", "bar"))
@@ -97,7 +96,7 @@ class SessionSpec extends TestSupportFixture with ServletFixture with ScalatraSu
   }
 
   it should "return 401 (Unauthorized) when the user has not confirmed the email" in {
-    expectsUserFooBarWithStatus(UserState.registered)
+    authMocker.expectsUserFooBarWithStatus(UserState.registered)
     post(
       uri = "/auth/login",
       params = Seq(("login", "foo"), ("password", "bar"))
@@ -110,7 +109,7 @@ class SessionSpec extends TestSupportFixture with ServletFixture with ScalatraSu
   }
 
   it should "return 401 (Unauthorized) when the user is blocked" in {
-    expectsUserFooBarWithStatus(UserState.blocked)
+    authMocker.expectsUserFooBarWithStatus(UserState.blocked)
     post(
       uri = "/auth/login",
       params = Seq(("login", "foo"), ("password", "bar"))
@@ -123,7 +122,7 @@ class SessionSpec extends TestSupportFixture with ServletFixture with ScalatraSu
   }
 
   it should "create a protected cookie when proper user-name password params are provided" in {
-    expectsUserFooBar
+    authMocker.expectsUserFooBar
     post(
       uri = "/auth/login",
       params = Seq(("login", "foo"), ("password", "bar"))
@@ -141,7 +140,7 @@ class SessionSpec extends TestSupportFixture with ServletFixture with ScalatraSu
   }
 
   it should "create a cookie when valid basic authentication is provided" in {
-    expectsUserFooBarWithStatus(UserState.active)
+    authMocker.expectsUserFooBarWithStatus(UserState.active)
     post(
       uri = "/auth/login",
       headers = Seq(("Authorization", fooBarBasicAuthHeader))
@@ -159,7 +158,7 @@ class SessionSpec extends TestSupportFixture with ServletFixture with ScalatraSu
   }
 
   "post /auth/logout" should "clear the cookie" in {
-    expectsNoUser
+    authMocker.expectsNoUser
     val jwtCookie = createJWT(AuthUser("foo", state = UserState.active))
 
     post(
@@ -179,7 +178,7 @@ class SessionSpec extends TestSupportFixture with ServletFixture with ScalatraSu
   }
 
   it should "not create a cookie if called with basic authentication" in {
-    expectsUserFooBar
+    authMocker.expectsUserFooBar
     post(
       uri = "/auth/logout",
       headers = Seq(("Authorization", fooBarBasicAuthHeader))

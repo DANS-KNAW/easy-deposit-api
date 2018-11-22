@@ -22,19 +22,19 @@ import better.files.File
 import better.files.File._
 import nl.knaw.dans.bag.DansBag
 import nl.knaw.dans.bag.v0.DansV0Bag
-import nl.knaw.dans.easy.deposit.authentication.AuthenticationMocker.mockedAuthenticationProvider
 import nl.knaw.dans.easy.deposit.authentication.TokenSupport.TokenConfig
 import nl.knaw.dans.easy.deposit.authentication.{ AuthConfig, AuthUser, AuthenticationProvider, TokenSupport }
 import nl.knaw.dans.easy.deposit.docs.{ DDM, DepositInfo }
 import org.apache.commons.configuration.PropertiesConfiguration
 import org.joda.time.{ DateTime, DateTimeUtils, DateTimeZone }
+import org.scalamock.scalatest.MockFactory
 import org.scalatest._
 import org.scalatest.enablers.Existence
 
 import scala.util.Failure
 import scala.xml.SAXParseException
 
-trait TestSupportFixture extends FlatSpec with Matchers with Inside with BeforeAndAfterEach {
+trait TestSupportFixture extends FlatSpec with Matchers with Inside with BeforeAndAfterEach with MockFactory {
   implicit def existenceOfFile[FILE <: better.files.File]: Existence[FILE] = _.exists
 
   lazy val testDir: File = currentWorkingDirectory / "target" / "test" / getClass.getSimpleName
@@ -95,7 +95,7 @@ trait TestSupportFixture extends FlatSpec with Matchers with Inside with BeforeA
   private class TokenSupportImpl() extends TokenSupport with AuthConfig {
 
     // required by AuthConfig but not by TokenSupport
-    def getAuthenticationProvider: AuthenticationProvider = mockedAuthenticationProvider
+    def getAuthenticationProvider: AuthenticationProvider = mock[AuthenticationProvider]
 
     def getProperties: PropertiesConfiguration = new PropertiesConfiguration()
   }

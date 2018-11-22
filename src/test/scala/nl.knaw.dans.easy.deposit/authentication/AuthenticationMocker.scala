@@ -20,8 +20,7 @@ import nl.knaw.dans.easy.deposit.authentication.AuthUser.UserState.UserState
 import org.scalamock.handlers.CallHandler2
 import org.scalamock.scalatest.MockFactory
 
-object AuthenticationMocker extends MockFactory {
-  // TODO would separate instances per test class or test fix dependencies between tests?
+trait AuthenticationMocker extends MockFactory {
   val mockedAuthenticationProvider: AuthenticationProvider = mock[AuthenticationProvider]
 
   def expectsInvalidUser: CallHandler2[String, String, Option[AuthUser]] = {

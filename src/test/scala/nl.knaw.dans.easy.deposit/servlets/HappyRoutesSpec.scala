@@ -19,25 +19,25 @@ import java.nio.file.{ Path, Paths }
 import java.util.UUID
 
 import nl.knaw.dans.easy.deposit._
-import nl.knaw.dans.easy.deposit.authentication.AuthenticationMocker._
+import nl.knaw.dans.easy.deposit.authentication.AuthenticationMocker
 import nl.knaw.dans.easy.deposit.docs.StateInfo.State._
 import nl.knaw.dans.easy.deposit.docs.{ DepositInfo, FileInfo, StateInfo }
 import org.eclipse.jetty.http.HttpStatus._
 import org.joda.time.DateTime
-import org.scalamock.scalatest.MockFactory
 import org.scalatra.test.scalatest.ScalatraSuite
 
 import scala.util.Success
 
-class HappyRoutesSpec extends TestSupportFixture with ServletFixture with ScalatraSuite with MockFactory {
+class HappyRoutesSpec extends TestSupportFixture with ServletFixture with ScalatraSuite {
 
+  private val authMocker = new AuthenticationMocker(){}
   private class MockedApp extends EasyDepositApiApp(minimalAppConfig)
   private val mockedApp = mock[MockedApp]
-  mountServlets(mockedApp, mockedAuthenticationProvider)
+  mountServlets(mockedApp, authMocker.mockedAuthenticationProvider)
 
   "get /" should "be ok" in {
     mockedApp.getVersion _ expects() returning "test"
-    expectsNoUser
+    authMocker.expectsNoUser
     get(uri = "/") {
       body shouldBe "EASY Deposit API Service running (test)"
       status shouldBe OK_200
@@ -45,7 +45,7 @@ class HappyRoutesSpec extends TestSupportFixture with ServletFixture with Scalat
   }
 
   "post /auth/login with proper user-name password" should "create a protected cookie" in {
-    expectsUserFooBar
+    authMocker.expectsUserFooBar
     post(
       uri = "/auth/login",
       params = Seq(("login", "foo"), ("password", "bar"))
@@ -59,7 +59,7 @@ class HappyRoutesSpec extends TestSupportFixture with ServletFixture with Scalat
 
   "post /deposit" should "create a deposit" in {
     val uuid = UUID.randomUUID()
-    expectsUserFooBar
+    authMocker.expectsUserFooBar
     (mockedApp.createDeposit(_: String)) expects "foo" returning
       Success(DepositInfo(uuid, title = "just a test"))
 
@@ -78,7 +78,7 @@ class HappyRoutesSpec extends TestSupportFixture with ServletFixture with Scalat
   "get /deposit" should "return DepositInfo records" in {
     val uuid1 = UUID.randomUUID()
     val uuid2 = UUID.randomUUID()
-    expectsUserFooBar
+    authMocker.expectsUserFooBar
     (mockedApp.getDeposits(_: String)) expects "foo" returning Success(Seq(
       DepositInfo(uuid1, "x", draft, "a", DateTime.now),
       DepositInfo(uuid2, "y", submitted, "b", DateTime.now)
@@ -98,7 +98,7 @@ class HappyRoutesSpec extends TestSupportFixture with ServletFixture with Scalat
   }
 
   "get /user" should "return a user with something for all attributes" in {
-    expectsUserFooBar
+    authMocker.expectsUserFooBar
     (mockedApp.getUser(_: String)) expects "foo" returning Success(Map(
       "uid" -> Seq("foo"),
       "cn" -> Seq("Jan"),
@@ -116,7 +116,7 @@ class HappyRoutesSpec extends TestSupportFixture with ServletFixture with Scalat
   }
 
   it should "return a user with minimal attributes" in {
-    expectsUserFooBar
+    authMocker.expectsUserFooBar
     (mockedApp.getUser(_: String)) expects "foo" returning Success(Map(
       "uid" -> Seq("foo"),
       "sn" -> Seq("Berg")
@@ -132,7 +132,7 @@ class HappyRoutesSpec extends TestSupportFixture with ServletFixture with Scalat
   }
 
   s"get /deposit/:uuid/state" should "return DatasetMetadata" in {
-    expectsUserFooBar
+    authMocker.expectsUserFooBar
     // TODO how to define expects for the curried method called by the PUT variant?
     (mockedApp.getDepositState(_: String, _: UUID)) expects("foo", uuid) returning
       Success(StateInfo(draft, "x"))
@@ -147,7 +147,7 @@ class HappyRoutesSpec extends TestSupportFixture with ServletFixture with Scalat
   }
 
   s"get /deposit/:uuid/file/path/to/directory" should "return a list with one FileInfo object in json format" in {
-    expectsUserFooBar
+    authMocker.expectsUserFooBar
     (mockedApp.getFileInfo(_: String, _: UUID, _: Path)) expects("foo", uuid, *) returning
       Success(Seq(FileInfo("a.txt", Paths.get("files/a.txt"), "x")))
 
@@ -161,7 +161,7 @@ class HappyRoutesSpec extends TestSupportFixture with ServletFixture with Scalat
   }
 
   s"get /deposit/:uuid/file/a.txt" should "return a FileInfo object in json format" in {
-    expectsUserFooBar
+    authMocker.expectsUserFooBar
     (mockedApp.getFileInfo(_: String, _: UUID, _: Path)) expects("foo", uuid, *) returning
       Success(FileInfo("a.txt", Paths.get("files/a.txt"), "x"))
 
@@ -176,7 +176,7 @@ class HappyRoutesSpec extends TestSupportFixture with ServletFixture with Scalat
 
   "put /deposit/:uuid/metadata" should "reject invalid datasetmetadata.json" in {
     assumeSchemaAvailable
-    expectsUserFooBar
+    authMocker.expectsUserFooBar
 
     put(
       uri = s"/deposit/$uuid/metadata",
