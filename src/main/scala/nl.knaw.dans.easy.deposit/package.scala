@@ -70,7 +70,7 @@ package object deposit {
   }
   implicit class FailFastStream[T](val stream: Stream[Try[T]]) extends AnyVal {
     // TODO candidate for nl.knaw.dans.lib.error ?
-    def failFastOr[R](onSuccess: Try[R]): Try[R] = {
+    def failFastOr[R](onSuccess: => Try[R]): Try[R] = {
       stream.find(_.isFailure) match {
         case None => onSuccess
         case Some(Failure(e)) => Failure[R](e)

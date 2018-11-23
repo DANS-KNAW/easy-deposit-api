@@ -48,14 +48,9 @@ case class StagedFilesTarget(draftBag: DansBag, destination: Path) extends Debug
         .partition(x => x.isSuccess)
       if (duplicates.nonEmpty) collectExistingFiles(duplicates)
       else {
-        // with triesOfSourceTarget.toStream.map(...)..find(_.isFailure).getOrElse(draftBag.save)
-        // all is still well
-        // with triesOfSourceTarget.toStream.map(...).failFastOr(draftBag.save)
-        // only one file is saved in files.xml
-        // TODO better test fore DataFiles.delete
-        triesOfSourceTarget.map(_.flatMap {
+        triesOfSourceTarget.toStream.map(_.flatMap {
           case (src: File, target: Path) => draftBag.addPayloadFile(src, target)(ATOMIC_MOVE)
-        }).find(_.isFailure).getOrElse(draftBag.save)
+        }).failFastOr(draftBag.save)
       }
     }
 
