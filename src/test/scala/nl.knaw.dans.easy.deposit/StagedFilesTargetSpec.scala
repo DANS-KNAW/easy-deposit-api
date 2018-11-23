@@ -16,13 +16,13 @@
 package nl.knaw.dans.easy.deposit
 
 import java.net.URL
-import java.nio.file.Paths
+import java.nio.file.{ FileAlreadyExistsException, Paths }
 
 import better.files.StringOps
 import nl.knaw.dans.bag.v0.DansV0Bag
 import nl.knaw.dans.lib.error._
 
-import scala.util.Success
+import scala.util.{ Failure, Success }
 
 class StagedFilesTargetSpec extends TestSupportFixture {
 
@@ -66,7 +66,7 @@ class StagedFilesTargetSpec extends TestSupportFixture {
     newBag.fetchFiles.size shouldBe 0
   }
 
-  it should "replace a fetch file" in {
+  it should "not replace a fetch file" in {
     (stagedDir / "some.thing").createFile().write("new content")
     val url = new URL("https://raw.githubusercontent.com/DANS-KNAW/easy-deposit-api/master/README.md")
     assumeSchemaAvailable
@@ -76,24 +76,28 @@ class StagedFilesTargetSpec extends TestSupportFixture {
     bag.fetchFiles.size shouldBe 1
 
     StagedFilesTarget(bag, Paths.get("path/to"))
-      .takeAllFrom(stagedDir) shouldBe Success(())
+      .takeAllFrom(stagedDir) should matchPattern {
+      case Failure(e: FileAlreadyExistsException) if e.getMessage == "path/to/some.thing" =>
+    }
 
     val newBag = readDraftBag
-    (newBag.data / "path/to/some.thing").contentAsString shouldBe "new content"
-    newBag.fetchFiles.size shouldBe 0
+    bag.data.list.size shouldBe 0
+    bag.fetchFiles.size shouldBe 1
   }
 
-  it should "replace a payload file" in {
+  it should "not replace a payload file" in {
     (stagedDir / "some.thing").createFile().write("new content")
     val bag = newEmptyBag.addPayloadFile("Lorum ipsum".inputStream, Paths.get("path/to/some.thing")).getOrRecover(e => fail(e))
     bag.save()
     (bag.data / "path/to/some.thing").contentAsString shouldBe "Lorum ipsum"
 
     StagedFilesTarget(bag, Paths.get("path/to"))
-      .takeAllFrom(stagedDir) shouldBe Success(())
+      .takeAllFrom(stagedDir) should matchPattern {
+      case Failure(e: FileAlreadyExistsException) if e.getMessage == "path/to/some.thing" =>
+    }
 
     val newBag = readDraftBag
-    (newBag.data / "path/to/some.thing").contentAsString shouldBe "new content"
+    (newBag.data / "path/to/some.thing").contentAsString shouldBe "Lorum ipsum"
     newBag.fetchFiles.size shouldBe 0
   }
 

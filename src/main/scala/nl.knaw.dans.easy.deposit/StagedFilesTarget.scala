@@ -37,6 +37,9 @@ case class StagedFilesTarget(draftBag: DansBag, destination: Path) extends Debug
    * @return
    */
   def takeAllFrom(stagingDir: File): Try[Any] = {
+    // read files.xml at most once, not at all if the first file appears to exist as payload
+    lazy val fetchFiles = draftBag.fetchFiles.map(_.file)
+
     def moveNewFiles = {
       logger.info(s"moving from staging [$stagingDir] to ${ draftBag.baseDir / destination.toString }")
       val (triesOfSourceTarget, duplicates) = stagingDir
@@ -53,18 +56,19 @@ case class StagedFilesTarget(draftBag: DansBag, destination: Path) extends Debug
 
     def sourceToTarget(sourceFile: File) = {
       val bagRelativePath = destination.resolve(stagingDir.relativize(sourceFile))
-      // TODO checking file system. Check fetch items too?
-      if ((draftBag.data / bagRelativePath.toString).exists)
+      val isPayload = (draftBag.data / bagRelativePath.toString).exists
+      lazy val isFetchItem = fetchFiles.contains(draftBag.data / bagRelativePath.toString)
+      if (logger.underlying.isDebugEnabled)
+        logger.debug(s"moving to $bagRelativePath isPayload=$isPayload isFetchItem=$isFetchItem")
+      if (isPayload || isFetchItem)
         Failure(new FileAlreadyExistsException(bagRelativePath.toString))
       else Success(sourceFile -> bagRelativePath)
     }
 
-    draftBag.lockUpload.flatMap(_ =>
-      moveNewFiles
-    )
+    draftBag.lockUpload.flatMap(_ => moveNewFiles)
   }
 
-  private def collectExistingFiles(duplicates: Iterator[Try[(File, Path)]]): Try[Nothing] = {
+  private def collectExistingFiles(duplicates: Iterator[Try[(File, Path)]]): Failure[Nothing] = {
     val msg = duplicates
       .map(_.failed.getOrElse(new Exception("should not get here")).getMessage)
       .mkString(", ")
