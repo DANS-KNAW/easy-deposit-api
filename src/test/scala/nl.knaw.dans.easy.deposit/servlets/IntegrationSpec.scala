@@ -19,18 +19,18 @@ import java.util.UUID
 
 import nl.knaw.dans.easy.deposit.PidRequesterComponent.PidRequester
 import nl.knaw.dans.easy.deposit.PidRequesterComponent.PidType.PidType
-import nl.knaw.dans.easy.deposit.authentication.AuthenticationMocker._
+import nl.knaw.dans.easy.deposit.authentication.AuthenticationMocker
 import nl.knaw.dans.easy.deposit.docs.{ DatasetMetadata, DepositInfo, JsonUtil }
 import nl.knaw.dans.easy.deposit.{ EasyDepositApiApp, _ }
 import nl.knaw.dans.lib.error._
 import org.eclipse.jetty.http.HttpStatus._
-import org.scalamock.scalatest.MockFactory
 import org.scalatra.test.scalatest.ScalatraSuite
 
 import scala.util.Success
 
-class IntegrationSpec extends TestSupportFixture with ServletFixture with ScalatraSuite with MockFactory {
+class IntegrationSpec extends TestSupportFixture with ServletFixture with ScalatraSuite {
 
+  private val authMocker = new AuthenticationMocker(){}
   override def beforeEach(): Unit = {
     super.beforeEach()
     clearTestDir()
@@ -39,21 +39,21 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
   private val app: EasyDepositApiApp = new EasyDepositApiApp(minimalAppConfig) {
     override val pidRequester: PidRequester = mock[PidRequester]
   }
-  mountServlets(app, mockedAuthenticationProvider)
+  mountServlets(app, authMocker.mockedAuthenticationProvider)
 
   private val basicAuthentication: (String, String) = ("Authorization", fooBarBasicAuthHeader)
 
   s"scenario: /deposit/:uuid/metadata life cycle" should "return default dataset metadata" in {
 
     // create dataset
-    expectsUserFooBar
+    authMocker.expectsUserFooBar
     val responseBody = post(uri = s"/deposit", headers = Seq(basicAuthentication)) { body }
     val uuid = DepositInfo(responseBody).map(_.id.toString).getOrRecover(e => fail(e.toString, e))
     val metadataURI = s"/deposit/$uuid/metadata"
 
     // create dataset metadata
     assumeSchemaAvailable
-    expectsUserFooBar
+    authMocker.expectsUserFooBar
     put(
       metadataURI, headers = Seq(basicAuthentication),
       body = """{"titles":["blabla"]}""" // more variations in DepositDirSpec
@@ -63,7 +63,7 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
     (testDir / "drafts" / "foo" / uuid.toString / "bag" / "metadata" / "dataset.json") should exist
 
     // get dataset metadata
-    expectsUserFooBar
+    authMocker.expectsUserFooBar
     get(metadataURI, headers = Seq(basicAuthentication)) {
       status shouldBe OK_200
       body shouldBe """{"titles":["blabla"],"privacySensitiveDataPresent":"unspecified","acceptLicenseAgreement":false}"""
@@ -71,7 +71,7 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
 
     // invalidate the metadata and try again
     (testDir / "drafts" / "foo" / uuid / "bag" / "metadata" / "dataset.json").write("---")
-    expectsUserFooBar
+    authMocker.expectsUserFooBar
     get(metadataURI, headers = Seq(basicAuthentication)) {
       status shouldBe INTERNAL_SERVER_ERROR_500
     }
@@ -81,14 +81,14 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
     // more variants in DDMSpec and DatasetMetadataSpec, here we test the full chain of error handling
 
     // create dataset
-    expectsUserFooBar
+    authMocker.expectsUserFooBar
     val responseBody = post(uri = s"/deposit", headers = Seq(basicAuthentication)) { body }
     val uuid = DepositInfo(responseBody).map(_.id.toString).getOrRecover(e => fail(e.toString, e))
     val metadataURI = s"/deposit/$uuid/metadata"
 
     // create dataset metadata
     assumeSchemaAvailable
-    expectsUserFooBar
+    authMocker.expectsUserFooBar
     put(
       metadataURI, headers = Seq(basicAuthentication),
       body = """{"spatialPoints": [{ "scheme": "RD", "x": "795,00", "y": "446750Z" }]}"""
@@ -102,7 +102,7 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
 
     // create two deposits
     val responseBodies: Seq[String] = (0 until 2).map { _ =>
-      expectsUserFooBar
+      authMocker.expectsUserFooBar
       post(
         uri = s"/deposit",
         headers = Seq(basicAuthentication)
@@ -111,7 +111,7 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
     responseBodies.foreach(_ should endWith("""Z"}"""))
 
     // list all deposits
-    expectsUserFooBar
+    authMocker.expectsUserFooBar
     get(uri = s"/deposit", headers = Seq(basicAuthentication)) {
       status shouldBe OK_200
       // random order
@@ -125,14 +125,14 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
   "scenario: POST /deposit; PUT /deposit/:uuid/file/...; GET /deposit/$uuid/file/..." should "return single FileInfo object respective an array of objects" in {
 
     // create dataset
-    expectsUserFooBar
+    authMocker.expectsUserFooBar
     val responseBody = post(uri = s"/deposit", headers = Seq(basicAuthentication)) { body }
     val uuid = DepositInfo(responseBody).map(_.id.toString).getOrRecover(e => fail(e.toString, e))
 
     val dataFilesBase = DepositDir(testDir / "drafts", "foo", UUID.fromString(uuid)).getDataFiles.get.bag.data
 
     // upload a file in a folder
-    expectsUserFooBar
+    authMocker.expectsUserFooBar
     put(
       uri = s"/deposit/$uuid/file/path/to/text.txt",
       headers = Seq(basicAuthentication),
@@ -146,14 +146,14 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
     val expectedListItem = expectedItem.replace("/text.txt", "")
 
     // get file
-    expectsUserFooBar
+    authMocker.expectsUserFooBar
     get(uri = s"/deposit/$uuid/file/path/to/text.txt", headers = Seq(basicAuthentication)) {
       status shouldBe OK_200
       body shouldBe expectedItem
     }
 
     // get directory
-    expectsUserFooBar
+    authMocker.expectsUserFooBar
     get(uri = s"/deposit/$uuid/file/path/", headers = Seq(basicAuthentication)) {
       status shouldBe OK_200
       body shouldBe s"""[$expectedListItem]"""
@@ -163,7 +163,7 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
   s"scenario: POST /deposit; twice GET /deposit/:uuid/doi" should "return 200" in {
 
     // create dataset
-    expectsUserFooBar
+    authMocker.expectsUserFooBar
     val responseBody = post(uri = s"/deposit", headers = Seq(basicAuthentication)) { body }
     val uuid = DepositInfo(responseBody).map(_.id.toString).getOrRecover(e => fail(e.toString, e))
 
@@ -173,7 +173,7 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
     val expectedDoiRecord = s"""{"doi":"$doi"}"""
 
     // get the doi twice
-    expectsUserFooBar
+    authMocker.expectsUserFooBar
     get(
       uri = s"/deposit/$uuid/doi",
       headers = Seq(basicAuthentication)
@@ -181,7 +181,7 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
       status shouldBe OK_200
       body shouldBe expectedDoiRecord
     }
-    expectsUserFooBar
+    authMocker.expectsUserFooBar
     get(uri = s"/deposit/$uuid/doi", headers = Seq(basicAuthentication)) {
       status shouldBe OK_200
       body shouldBe expectedDoiRecord
@@ -200,7 +200,7 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
     (testDir / "stage").createDirectories()
 
     // create dataset
-    expectsUserFooBar
+    authMocker.expectsUserFooBar
     val responseBody = post(uri = s"/deposit", headers = Seq(basicAuthentication)) { body }
     val uuid = DepositInfo(responseBody).map(_.id.toString).getOrRecover(e => fail(e.toString, e))
     val depositDir = testDir / "drafts" / "foo" / uuid.toString
@@ -210,7 +210,7 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
 
     // upload dataset metadata
     assumeSchemaAvailable
-    expectsUserFooBar
+    authMocker.expectsUserFooBar
     put(
       uri = s"/deposit/$uuid/metadata",
       headers = Seq(basicAuthentication),
@@ -221,7 +221,7 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
     }
 
     // submit
-    expectsUserFooBar
+    authMocker.expectsUserFooBar
     put(
       uri = s"/deposit/$uuid/state", headers = Seq(basicAuthentication),
       body = """{"state":"SUBMITTED","stateDescription":"blabla"}"""
@@ -244,13 +244,13 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
     )
 
     // create dataset
-    expectsUserFooBar
+    authMocker.expectsUserFooBar
     val responseBody = post(uri = s"/deposit", headers = Seq(basicAuthentication)) { body }
 
     val uuid = DepositInfo(responseBody).map(_.id.toString).getOrRecover(e => fail(e.toString, e))
     // upload dataset metadata
     assumeSchemaAvailable
-    expectsUserFooBar
+    authMocker.expectsUserFooBar
     put(
       uri = s"/deposit/$uuid/metadata",
       headers = Seq(basicAuthentication),
@@ -261,7 +261,7 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
     }
 
     // submit
-    expectsUserFooBar
+    authMocker.expectsUserFooBar
     put(
       uri = s"/deposit/$uuid/state",
       headers = Seq(basicAuthentication),
@@ -275,7 +275,7 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
   s"scenario: POST /deposit; hack state to ARCHIVED; SUBMIT" should "reject state transition" in {
 
     // create dataset
-    expectsUserFooBar
+    authMocker.expectsUserFooBar
     val responseBody = post(uri = s"/deposit", headers = Seq(basicAuthentication)) { body }
     val uuid = DepositInfo(responseBody).map(_.id.toString).getOrRecover(e => fail(e.toString, e))
 
@@ -284,7 +284,7 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
     props.write(props.contentAsString.replace("DRAFT", "ARCHIVED"))
 
     // submit
-    expectsUserFooBar
+    authMocker.expectsUserFooBar
     put(
       uri = s"/deposit/$uuid/state",
       headers = Seq(basicAuthentication),

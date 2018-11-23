@@ -19,38 +19,35 @@ import java.util.UUID
 
 import nl.knaw.dans.easy.deposit._
 import nl.knaw.dans.easy.deposit.authentication.AuthUser.UserState
-import nl.knaw.dans.easy.deposit.authentication.AuthenticationMocker._
-import nl.knaw.dans.easy.deposit.authentication.{ AuthUser, AuthenticationProvider }
+import nl.knaw.dans.easy.deposit.authentication.{ AuthUser, AuthenticationMocker, AuthenticationProvider }
 import org.eclipse.jetty.http.HttpStatus._
-import org.scalamock.scalatest.MockFactory
 import org.scalatra.auth.Scentry
 import org.scalatra.test.scalatest.ScalatraSuite
 
 import scala.util.Failure
 
-class DepositServletErrorSpec extends TestSupportFixture with ServletFixture with ScalatraSuite with MockFactory {
+class DepositServletErrorSpec extends TestSupportFixture with ServletFixture with ScalatraSuite {
 
+  private val authMocker = new AuthenticationMocker(){}
   private class MockedApp extends EasyDepositApiApp(minimalAppConfig)
   private val mockedApp = mock[MockedApp]
   private val depositServlet = new DepositServlet(mockedApp) {
-    override def getAuthenticationProvider: AuthenticationProvider = mockedAuthenticationProvider
+    override def getAuthenticationProvider: AuthenticationProvider = authMocker.mockedAuthenticationProvider
   }
   addServlet(depositServlet, "/*")
 
   "post /" should "return 500 (Internal Server Error) on a not expected exception and basic authentication" in {
     (mockedApp.createDeposit(_: String)) expects "foo" returning Failure(new Exception("whoops"))
-    expectsUserFooBar
+    authMocker.expectsUserFooBar
     post(uri = "/", headers = Seq(("Authorization", fooBarBasicAuthHeader))) {
       status shouldBe INTERNAL_SERVER_ERROR_500
       body shouldBe "Internal Server Error"
     }
   }
 
-  it should "return 500 (Internal Server Error) on a not expected exception and a cookie" ignore {
-    // TODO breaks "Post /auth/login" tests in SessionSpec. Destroy cookie to reset the state of what?
-    // these tests also break when "should create a protected cookie..." is executed as first
+  it should "return 500 (Internal Server Error) on a not expected exception and a cookie" in {
     val jwtCookie = createJWT(AuthUser("foo", state = UserState.active))
-    expectsUserFooBar
+    authMocker.expectsUserFooBar
     post(uri = "/", headers = Seq(("Cookie", s"${ Scentry.scentryAuthKey }=$jwtCookie"))) {
       status shouldBe INTERNAL_SERVER_ERROR_500
       body shouldBe "Internal Server Error"
@@ -60,7 +57,7 @@ class DepositServletErrorSpec extends TestSupportFixture with ServletFixture wit
   it should "not return an uncatched exception" in {
     // the test for not expected exceptions show the authentication method doesn't matter
     (mockedApp.createDeposit(_: String)) expects "foo" throwing new Exception("trouble in paradise")
-    expectsUserFooBar
+    authMocker.expectsUserFooBar
     post(uri = "/", headers = Seq(("Authorization", fooBarBasicAuthHeader))) {
       status shouldBe INTERNAL_SERVER_ERROR_500
       body shouldBe "Internal Server Error"
@@ -73,7 +70,7 @@ class DepositServletErrorSpec extends TestSupportFixture with ServletFixture wit
       Failure(CorruptDepositException("foo", uuid.toString, new Exception("invalid json")))
 
     assumeSchemaAvailable
-    expectsUserFooBar
+    authMocker.expectsUserFooBar
     get(
       uri = s"/$uuid/metadata",
       headers = Seq(("Authorization", fooBarBasicAuthHeader))

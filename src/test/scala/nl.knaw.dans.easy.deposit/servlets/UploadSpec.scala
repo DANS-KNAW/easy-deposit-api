@@ -20,16 +20,16 @@ import java.util.UUID
 
 import better.files.File
 import nl.knaw.dans.easy.deposit.PidRequesterComponent.PidRequester
-import nl.knaw.dans.easy.deposit.authentication.AuthenticationMocker.{ expectsUserFooBar, mockedAuthenticationProvider }
+import nl.knaw.dans.easy.deposit.authentication.AuthenticationMocker
 import nl.knaw.dans.easy.deposit.docs.DepositInfo
 import nl.knaw.dans.easy.deposit.{ DepositDir, EasyDepositApiApp, TestSupportFixture }
 import nl.knaw.dans.lib.error._
 import org.eclipse.jetty.http.HttpStatus._
-import org.scalamock.scalatest.MockFactory
 import org.scalatra.test.scalatest.ScalatraSuite
 
-class UploadSpec extends TestSupportFixture with ServletFixture with ScalatraSuite with MockFactory {
+class UploadSpec extends TestSupportFixture with ServletFixture with ScalatraSuite{
 
+  private val authMocker = new AuthenticationMocker(){}
   override def beforeEach(): Unit = {
     super.beforeEach()
     clearTestDir()
@@ -41,7 +41,7 @@ class UploadSpec extends TestSupportFixture with ServletFixture with ScalatraSui
   private val app: EasyDepositApiApp = new EasyDepositApiApp(minimalAppConfig) {
     override val pidRequester: PidRequester = null
   }
-  mountServlets(app, mockedAuthenticationProvider)
+  mountServlets(app, authMocker.mockedAuthenticationProvider)
 
   "POST" should "upload files from multiple form fields" in {
     val bodyParts = createBodyParts(Seq(
@@ -52,7 +52,7 @@ class UploadSpec extends TestSupportFixture with ServletFixture with ScalatraSui
     ))
     val uuid = createDataset
     val relativeTarget = "path/to/dir"
-    expectsUserFooBar
+    authMocker.expectsUserFooBar
     post(
       uri = s"/deposit/$uuid/file/$relativeTarget",
       params = Iterable(),
@@ -84,7 +84,7 @@ class UploadSpec extends TestSupportFixture with ServletFixture with ScalatraSui
       .createDirectories()
       .removePermission(PosixFilePermission.OWNER_WRITE)
 
-    expectsUserFooBar
+    authMocker.expectsUserFooBar
     post(
       uri = s"/deposit/$uuid/file/$relativeTarget",
       params = Iterable(),
@@ -105,7 +105,7 @@ class UploadSpec extends TestSupportFixture with ServletFixture with ScalatraSui
     val uuid = createDataset
     val relativeTarget = "path/to/dir"
     val absoluteTarget = (testDir / "drafts" / "foo" / uuid.toString / "bag/data" / relativeTarget).createDirectories()
-    expectsUserFooBar
+    authMocker.expectsUserFooBar
     post(
       uri = s"/deposit/$uuid/file/$relativeTarget",
       params = Iterable(),
@@ -126,7 +126,7 @@ class UploadSpec extends TestSupportFixture with ServletFixture with ScalatraSui
     val uuid = createDataset
     val relativeTarget = "path/to/dir"
     val absoluteTarget = (testDir / "drafts" / "foo" / uuid.toString / "bag/data" / relativeTarget).createDirectories()
-    expectsUserFooBar
+    authMocker.expectsUserFooBar
     post(
       uri = s"/deposit/$uuid/file/$relativeTarget",
       params = Iterable(),
@@ -144,7 +144,7 @@ class UploadSpec extends TestSupportFixture with ServletFixture with ScalatraSui
     val uuid = createDataset
     val relativeTarget = "path/to/dir"
     val absoluteTarget = (testDir / "drafts" / "foo" / uuid.toString / "bag/data" / relativeTarget).createDirectories()
-    expectsUserFooBar
+    authMocker.expectsUserFooBar
     post(
       uri = s"/deposit/$uuid/file/$relativeTarget",
       params = Iterable(),
@@ -164,7 +164,7 @@ class UploadSpec extends TestSupportFixture with ServletFixture with ScalatraSui
     val bagDir = testDir / "drafts" / "foo" / uuid.toString / "bag"
     val absoluteTarget = (bagDir / "data" / relativeTarget).createDirectories()
     absoluteTarget.list.size shouldBe 0 // precondition
-    expectsUserFooBar
+    authMocker.expectsUserFooBar
     post(
       uri = s"/deposit/$uuid/file/$relativeTarget",
       params = Iterable(),
@@ -174,13 +174,13 @@ class UploadSpec extends TestSupportFixture with ServletFixture with ScalatraSui
       body shouldBe ""
       status shouldBe OK_200
       absoluteTarget.walk().map(_.name).toList should contain theSameElementsAs List(
-          "dir", "login.html", "readme.md", "__MACOSX", "._login.html", "upload.html"
+        "dir", "login.html", "readme.md", "__MACOSX", "._login.html", "upload.html"
       )
       (bagDir / "manifest-sha1.txt")
         .lines
         .map(_.replaceAll(".* +", "")) should contain theSameElementsAs List(
-          "login.html", "readme.md", "__MACOSX/._login.html", "upload.html"
-        ).map("data/path/to/dir/" + _)
+        "login.html", "readme.md", "__MACOSX/._login.html", "upload.html"
+      ).map("data/path/to/dir/" + _)
 
     }
   }
@@ -189,7 +189,7 @@ class UploadSpec extends TestSupportFixture with ServletFixture with ScalatraSui
     val uuid = createDataset
 
     // upload a file
-    expectsUserFooBar
+    authMocker.expectsUserFooBar
     post(
       uri = s"/deposit/$uuid/file/path/to/",
       headers = Seq(basicAuthentication),
@@ -204,7 +204,7 @@ class UploadSpec extends TestSupportFixture with ServletFixture with ScalatraSui
     val uuid = createDataset
 
     // upload a file
-    expectsUserFooBar
+    authMocker.expectsUserFooBar
     post(
       uri = s"/deposit/$uuid/file/path/to/",
       headers = Seq(basicAuthentication, ("Content-Type", "text/plain")),
@@ -223,7 +223,7 @@ class UploadSpec extends TestSupportFixture with ServletFixture with ScalatraSui
     val longContent = "dolor sit amet"
 
     // first upload
-    expectsUserFooBar
+    authMocker.expectsUserFooBar
     put(
       uri = s"/deposit/$uuid/file/path/to/text.txt",
       headers = Seq(basicAuthentication),
@@ -235,7 +235,7 @@ class UploadSpec extends TestSupportFixture with ServletFixture with ScalatraSui
     }
 
     // second upload of same file
-    expectsUserFooBar
+    authMocker.expectsUserFooBar
     put(
       uri = s"/deposit/$uuid/file/path/to/text.txt",
       headers = Seq(basicAuthentication),
@@ -252,7 +252,7 @@ class UploadSpec extends TestSupportFixture with ServletFixture with ScalatraSui
   }
 
   private def createDataset: UUID = {
-    expectsUserFooBar
+    authMocker.expectsUserFooBar
     val responseBody = post(
       uri = s"/deposit",
       headers = Seq(basicAuthentication)

@@ -17,18 +17,17 @@ package nl.knaw.dans.easy.deposit.servlets
 
 import nl.knaw.dans.easy.deposit.PidRequesterComponent.PidType.PidType
 import nl.knaw.dans.easy.deposit.PidRequesterComponent.{ PidRequester, PidType }
-import nl.knaw.dans.easy.deposit.authentication.AuthenticationMocker.{ expectsUserFooBar, mockedAuthenticationProvider }
-import nl.knaw.dans.easy.deposit.authentication.AuthenticationProvider
+import nl.knaw.dans.easy.deposit.authentication.{ AuthenticationMocker, AuthenticationProvider }
 import nl.knaw.dans.easy.deposit.docs.DepositInfo
 import nl.knaw.dans.easy.deposit.{ EasyDepositApiApp, TestSupportFixture }
 import nl.knaw.dans.lib.error._
 import org.scalamock.handlers.CallHandler1
-import org.scalamock.scalatest.MockFactory
 import org.scalatra.test.scalatest.ScalatraSuite
 
 import scala.util.{ Success, Try }
 
-class DepositServletFixture extends TestSupportFixture with ServletFixture with ScalatraSuite with MockFactory {
+class DepositServletFixture extends TestSupportFixture with ServletFixture with ScalatraSuite {
+  private val authMocker = new AuthenticationMocker(){}
 
   private val app: EasyDepositApiApp = new EasyDepositApiApp(minimalAppConfig) {
     override val pidRequester: PidRequester = mock[PidRequester]
@@ -36,7 +35,7 @@ class DepositServletFixture extends TestSupportFixture with ServletFixture with 
   private val depositServlet = {
     new DepositServlet(app) {
       override def getAuthenticationProvider: AuthenticationProvider = {
-        mockedAuthenticationProvider
+        authMocker.mockedAuthenticationProvider
       }
     }
   }
@@ -44,13 +43,13 @@ class DepositServletFixture extends TestSupportFixture with ServletFixture with 
 
   override def beforeEach(): Unit = {
     super.beforeEach()
-    expectsUserFooBar
+    authMocker.expectsUserFooBar
   }
 
   /** @return uuid of the created deposit */
   def createDeposit: String = {
     val responseBody = post(s"/deposit/", headers = Seq(auth)) { body }
-    expectsUserFooBar // another time for the actual test
+    authMocker.expectsUserFooBar // another time for the actual test
     DepositInfo(responseBody).map(_.id.toString).getOrRecover(e => fail(e.toString, e))
   }
 

@@ -20,25 +20,26 @@ import nl.knaw.dans.easy.deposit.authentication.AuthUser.UserState.UserState
 import org.scalamock.handlers.CallHandler2
 import org.scalamock.scalatest.MockFactory
 
-object AuthenticationMocker extends MockFactory {
-  // TODO would separate instances per test class or test fix dependencies between tests?
+import scala.util.{ Success, Try }
+
+trait AuthenticationMocker extends MockFactory {
   val mockedAuthenticationProvider: AuthenticationProvider = mock[AuthenticationProvider]
 
-  def expectsInvalidUser: CallHandler2[String, String, Option[AuthUser]] = {
-    (mockedAuthenticationProvider.authenticate(_: String, _: String)) expects(*, *) returning None
+  def expectsInvalidUser: CallHandler2[String, String, Try[Option[AuthUser]]] = {
+    (mockedAuthenticationProvider.authenticate(_: String, _: String)) expects(*, *) returning Success(None)
   }
 
-  def expectsUserFooBar: CallHandler2[String, String, Option[AuthUser]] = {
+  def expectsUserFooBar: CallHandler2[String, String, Try[Option[AuthUser]]] = {
     (mockedAuthenticationProvider.authenticate(_: String, _: String)) expects("foo", "bar") returning
-      Some(AuthUser("foo", state = UserState.active))
+      Success(Some(AuthUser("foo", state = UserState.active)))
   }
 
-  def expectsUserFooBarWithStatus(userState: UserState): CallHandler2[String, String, Option[AuthUser]] = {
+  def expectsUserFooBarWithStatus(userState: UserState): CallHandler2[String, String, Try[Option[AuthUser]]] = {
     (mockedAuthenticationProvider.authenticate(_: String, _: String)) expects("foo", "bar") returning
-      Some(AuthUser("foo", state = userState))
+      Success(Some(AuthUser("foo", state = userState)))
   }
 
-  def expectsNoUser: CallHandler2[String, String, Option[AuthUser]] = {
+  def expectsNoUser: CallHandler2[String, String, Try[Option[AuthUser]]] = {
     (mockedAuthenticationProvider.authenticate(_: String, _: String)) expects(*, *) never()
   }
 }
