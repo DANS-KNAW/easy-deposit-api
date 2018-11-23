@@ -19,10 +19,10 @@ import java.nio.file.Paths
 import java.util.UUID
 
 import better.files.StringOps
-import nl.knaw.dans.bag.v0.DansV0Bag
+import nl.knaw.dans.bag.DansBag
 import nl.knaw.dans.easy.deposit.docs.StateInfo.State.State
 
-import scala.util.Try
+import scala.util.{ Failure, Success, Try }
 import scala.xml._
 
 package object deposit {
@@ -51,13 +51,31 @@ package object deposit {
       prologue + "\n" + printer.format(trimmed)
     }
   }
-  implicit class BagExtensions(val bag: DansV0Bag) extends AnyVal {
+  implicit class BagExtensions(val bag: DansBag) extends AnyVal {
     def addMetadataFile(content: Elem, target: String): Try[Any] = {
       bag.addTagFile(content.serialize.inputStream, Paths.get(s"metadata/$target"))
     }
 
     def addMetadataFile(content: String, target: String): Try[Any] = {
       bag.addTagFile(content.inputStream, Paths.get(s"metadata/$target"))
+    }
+
+    /**
+     * Creates a lock to prevent concurrent uploads that could overwrite files of one another.
+     * Uses a file in the bag that won't change after bag creation: bagit.txt */
+    def lockUpload: Try[Unit] = {
+      // TODO implement the lock
+      Success(())
+    }
+  }
+  implicit class FailFastStream[T](val stream: Stream[Try[T]]) extends AnyVal {
+    // TODO candidate for nl.knaw.dans.lib.error ?
+    def failFastOr[R](onSuccess: Try[R]): Try[R] = {
+      stream.find(_.isFailure) match {
+        case None => onSuccess
+        case Some(Failure(e)) => Failure[R](e)
+        case Some(_) => Failure[R](new Exception("should not get here, satisfying the compiler"))
+      }
     }
   }
 }

@@ -250,12 +250,15 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
    * @param is   the input stream to write from
    * @return `true` if a new file was created, `false` otherwise
    */
-  def writeDepositFile(is: => InputStream, user: String, id: UUID, path: Path): Try[Boolean] = for {
-    dataFiles <- getDataFiles(user, id)
-    _ = logger.info(s"uploading to [${ dataFiles.bag.baseDir }] of [$path]")
-    created <- dataFiles.write(is, path)
-    _ = logger.info(s"created=$created $user/$id/$path")
-  } yield created
+  def writeDepositFile(is: => InputStream, user: String, id: UUID, path: Path): Try[Boolean] = {
+    for {
+      dataFiles <- getDataFiles(user, id)
+      _ <- dataFiles.bag.lockUpload
+      _ = logger.info(s"uploading to [${ dataFiles.bag.baseDir }] of [$path]")
+      created <- dataFiles.write(is, path)
+      _ = logger.info(s"created=$created $user/$id/$path")
+    } yield created
+  }
 
   def stageFiles(userId: String, id: UUID, destination: Path): Try[(Dispose[File], StagedFilesTarget)] = for {
     deposit <- DepositDir.get(draftsDir, userId, id)

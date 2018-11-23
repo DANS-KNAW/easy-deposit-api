@@ -132,8 +132,7 @@ case class DataFiles(bag: DansBag) extends DebugEnhancedLogging {
     files
       .withFilter(!_.isDirectory)
       .map(f => removeFile(bag.data.relativize(f)))
-      .find(_.isFailure) // fail fast
-      .getOrElse(Success(bag))
+      .failFastOr(Success(bag))
   }
 
   private def removeFile(path: Path): Try[DansBag] = {

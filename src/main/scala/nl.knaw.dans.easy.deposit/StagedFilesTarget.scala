@@ -15,14 +15,14 @@
  */
 package nl.knaw.dans.easy.deposit
 
-import java.nio.file.Path
+import java.nio.file.{ FileAlreadyExistsException, Path }
 
 import better.files.File
 import nl.knaw.dans.bag.DansBag
+import nl.knaw.dans.bag.ImportOption.ATOMIC_MOVE
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 
-import scala.util.{ Success, Try }
-import nl.knaw.dans.bag.ImportOption.{ ATOMIC_MOVE, COPY, ImportOption, MOVE }
+import scala.util.{ Failure, Success, Try }
 
 /**
  * @param draftBag    the bag that receives the staged files as payload
@@ -31,30 +31,43 @@ import nl.knaw.dans.bag.ImportOption.{ ATOMIC_MOVE, COPY, ImportOption, MOVE }
 case class StagedFilesTarget(draftBag: DansBag, destination: Path) extends DebugEnhancedLogging {
 
   /**
+   * Moves files from stagingDir to draftBag if no files in the bag would be overwritten.
+   *
    * @param stagingDir the temporary container for files, unique per request, same mount as draftBag
    * @return
    */
   def takeAllFrom(stagingDir: File): Try[Any] = {
-    logger.info(s"moving from staging [$stagingDir] to ${ draftBag.baseDir / destination.toString }")
-
-    def moveToDraft(file: File): Try[Unit] = {
-      val bagRelativePath = destination.resolve(stagingDir.relativize(file))
-      // handle fetch items files just in case pruning gets implemented, for example after rejecting or un-publishing
-      val isPayload = (draftBag.data / bagRelativePath.toString).exists
-      lazy val isFetchItem = draftBag.fetchFiles.map(_.file).contains(draftBag.data / bagRelativePath.toString)
-      logger.debug(s"moving to $bagRelativePath isPayload=$isPayload isFetchItem=$isFetchItem") // TODO lazy?
-      for {
-        _ <- if (isPayload) draftBag.removePayloadFile(bagRelativePath)
-             else if (isFetchItem) draftBag.removeFetchItem(bagRelativePath)
-             else Success(draftBag.save())
-        _ <- draftBag.addPayloadFile(file, bagRelativePath)(ATOMIC_MOVE)
-      } yield ()
+    def moveNewFiles = {
+      logger.info(s"moving from staging [$stagingDir] to ${ draftBag.baseDir / destination.toString }")
+      val (triesOfSourceTarget, duplicates) = stagingDir
+        .list
+        .map(sourceToTarget)
+        .partition(x => x.isSuccess)
+      if (duplicates.nonEmpty) collectExistingFiles(duplicates)
+      else {
+        triesOfSourceTarget.toStream.map(_.flatMap {
+          case (src: File, target: Path) => draftBag.addPayloadFile(src, target)(ATOMIC_MOVE)
+        }).failFastOr(draftBag.save)
+      }
     }
 
-    stagingDir
-      .list
-      .map(moveToDraft)
-      .find(_.isFailure)
-      .getOrElse(draftBag.save)
+    def sourceToTarget(sourceFile: File) = {
+      val bagRelativePath = destination.resolve(stagingDir.relativize(sourceFile))
+      // TODO checking file system. Check fetch items too?
+      if ((draftBag.data / bagRelativePath.toString).exists)
+        Failure(new FileAlreadyExistsException(bagRelativePath.toString))
+      else Success(sourceFile -> bagRelativePath)
+    }
+
+    draftBag.lockUpload.flatMap(_ =>
+      moveNewFiles
+    )
+  }
+
+  private def collectExistingFiles(duplicates: Iterator[Try[(File, Path)]]): Try[Nothing] = {
+    val msg = duplicates
+      .map(_.failed.getOrElse(new Exception("should not get here")).getMessage)
+      .mkString(", ")
+    Failure(new FileAlreadyExistsException(msg))
   }
 }
