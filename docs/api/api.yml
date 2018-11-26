@@ -403,6 +403,9 @@ paths:
         In all other cases the files are all stored in the directory pointed to by `dir_path` and **it is not
         allowed** to include any files with `Content-Type: application/zip`. Note, that this means that only a flat
         list of files can be sent this way, i.e. not including any directory hierarchy.
+
+        Concurrent POST calls to the same deposit are not allowed. The result of concurrent PUT and POST calls is
+        undefined.
       parameters:
       - $ref: "#/components/parameters/DepositId"
       - $ref: "#/components/parameters/DirPath"
@@ -425,12 +428,16 @@ paths:
           $ref: "#/components/responses/MalformedZip"
         400.2:
           $ref: "#/components/responses/MustBeMultipartFormdata"
+        400.3:
+          $ref: "#/components/responses/ZipMustBeOnlyFile"
         401:
           $ref: "#/components/responses/Unauthorized"
         404:
           $ref: "#/components/responses/NotFound"
-        409:
-          $ref: "#/components/responses/ConflictZipMustBeOnlyFile"
+        409.1:
+          $ref: "#/components/responses/ConflictZipOverwritesFilesOnServer"
+        409.2:
+          $ref: "#/components/responses/ConflictConcurrentPostNotAllowed"
         500:
           $ref: "#/components/responses/InternalServerError"
       security:
@@ -629,8 +636,14 @@ components:
     NotFound:
       description: Not found. The body specifies if the deposit or something in the deposit is not found.
 
-    ConflictZipMustBeOnlyFile:
-      description: A multipart/form-data message contained a ZIP part but also other parts.
+    ZipMustBeOnlyFile:
+      description: Bad request. A multipart/form-data message contained a ZIP part but also other parts.
+
+    ConflictZipOverwritesFilesOnServer:
+      description: Conflict. Unpacked ZIP file would overwrite existing files on the server.
+
+    ConflictConcurrentPostNotAllowed:
+      description: Conflict. Concurrent POSTs to the same deposit are not allowed.
 
     Gone:
       description: |
