@@ -17,11 +17,11 @@ package nl.knaw.dans.easy.deposit.servlets
 
 import nl.knaw.dans.easy.deposit.PidRequesterComponent.PidType.PidType
 import nl.knaw.dans.easy.deposit.PidRequesterComponent.{ PidRequester, PidType }
-import nl.knaw.dans.easy.deposit.authentication.{ AuthenticationMocker, AuthenticationProvider }
+import nl.knaw.dans.easy.deposit.authentication.{ AuthUser, AuthenticationMocker, AuthenticationProvider }
 import nl.knaw.dans.easy.deposit.docs.DepositInfo
 import nl.knaw.dans.easy.deposit.{ EasyDepositApiApp, TestSupportFixture }
 import nl.knaw.dans.lib.error._
-import org.scalamock.handlers.CallHandler1
+import org.scalamock.handlers.{ CallHandler1, CallHandler2 }
 import org.scalatra.test.scalatest.ScalatraSuite
 
 import scala.util.{ Success, Try }
@@ -41,15 +41,17 @@ class DepositServletFixture extends TestSupportFixture with ServletFixture with 
   }
   addServlet(depositServlet, "/deposit/*")
 
+  def expectsUserFooBar: CallHandler2[String, String, Try[Option[AuthUser]]] = authMocker.expectsUserFooBar
+
   override def beforeEach(): Unit = {
     super.beforeEach()
-    authMocker.expectsUserFooBar
+    expectsUserFooBar
   }
 
   /** @return uuid of the created deposit */
   def createDeposit: String = {
     val responseBody = post(s"/deposit/", headers = Seq(auth)) { body }
-    authMocker.expectsUserFooBar // another time for the actual test
+    expectsUserFooBar // another time for the actual test
     DepositInfo(responseBody).map(_.id.toString).getOrRecover(e => fail(e.toString, e))
   }
 
