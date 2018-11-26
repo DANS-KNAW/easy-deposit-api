@@ -433,6 +433,8 @@ paths:
           $ref: "#/components/responses/ConflictZipMustBeOnlyFile"
         409.2:
           $ref: "#/components/responses/ConflictZipOverwritesFilesOnServer"
+        409.3:
+          $ref: "#/components/responses/ConflictFileAlreadyExistsOnServer"
         500:
           $ref: "#/components/responses/InternalServerError"
       security:
@@ -643,6 +645,9 @@ components:
 
     ConflictZipOverwritesFilesOnServer:
       description: Conflict. Unpacked ZIP file would overwrite existing files on the server.
+
+    ConflictFileAlreadyExistsOnServer:
+      description: Conflict. POST-ed file cannot be added, because it already exists on the server.
 
     Gone:
       description: |
