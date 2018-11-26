@@ -59,113 +59,125 @@ class DepositServlet(app: EasyDepositApiApp)
    */
 
   get("/") {
-    (for {
-      userId <- getUserId
-      deposits <- app.getDeposits(userId)
-    } yield Ok(body = toJson(deposits)))
-      .getOrRecover(respond).logResponse
+    {
+      for {
+        userId <- getUserId
+        deposits <- app.getDeposits(userId)
+      } yield Ok(body = toJson(deposits))
+    }.getOrRecover(respond)
   }
   post("/") {
-    (for {
-      userId <- getUserId
-      depositInfo <- app.createDeposit(userId)
-    } yield depositCreatedResponse(depositInfo))
-      .getOrRecover(respond).logResponse
+    {
+      for {
+        userId <- getUserId
+        depositInfo <- app.createDeposit(userId)
+      } yield depositCreatedResponse(depositInfo)
+    }.getOrRecover(respond)
   }
   get("/:uuid/metadata") {
-    (for {
-      uuid <- getUUID
-      dmd <- app.getDatasetMetadataForDeposit(user.id, uuid)
-    } yield Ok(body = toJson(dmd))
-      ).getOrRecover(respond).logResponse
+    {
+      for {
+        uuid <- getUUID
+        dmd <- app.getDatasetMetadataForDeposit(user.id, uuid)
+      } yield Ok(body = toJson(dmd))
+    }.getOrRecover(respond)
   }
   get("/:uuid/doi") {
-    (for {
-      uuid <- getUUID
-      doi <- app.getDoi(user.id, uuid)
-    } yield Ok(body = s"""{"doi":"$doi"}""")
-      ).getOrRecover(respond).logResponse
+    {
+      for {
+        uuid <- getUUID
+        doi <- app.getDoi(user.id, uuid)
+      } yield Ok(body = s"""{"doi":"$doi"}""")
+    }.getOrRecover(respond)
   }
   put("/:uuid/metadata") {
-    (for {
-      uuid <- getUUID
-      managedIS <- getRequestBodyAsManagedInputStream
-      datasetMetadata <- managedIS.apply(is => DatasetMetadata(is))
-      _ <- app.checkDoi(user.id, uuid, datasetMetadata)
-      _ <- app.writeDataMetadataToDeposit(datasetMetadata, user.id, uuid)
-    } yield NoContent()
-      ).getOrRecover(respond).logResponse
+    {
+      for {
+        uuid <- getUUID
+        managedIS <- getRequestBodyAsManagedInputStream
+        datasetMetadata <- managedIS.apply(is => DatasetMetadata(is))
+        _ <- app.checkDoi(user.id, uuid, datasetMetadata)
+        _ <- app.writeDataMetadataToDeposit(datasetMetadata, user.id, uuid)
+      } yield NoContent()
+    }.getOrRecover(respond)
   }
   get("/:uuid/state") {
-    (for {
-      uuid <- getUUID
-      depositState <- app.getDepositState(user.id, uuid)
-    } yield Ok(body = toJson(depositState))
-      ).getOrRecover(respond).logResponse
+    {
+      for {
+        uuid <- getUUID
+        depositState <- app.getDepositState(user.id, uuid)
+      } yield Ok(body = toJson(depositState))
+    }.getOrRecover(respond)
   }
   put("/:uuid/state") {
-    (for {
-      uuid <- getUUID
-      managedIS <- getRequestBodyAsManagedInputStream
-      stateInfo <- managedIS.apply(is => StateInfo(is))
-      _ <- app.setDepositState(stateInfo, user.id, uuid)
-    } yield NoContent()
-      ).getOrRecover(respond).logResponse
+    {
+      for {
+        uuid <- getUUID
+        managedIS <- getRequestBodyAsManagedInputStream
+        stateInfo <- managedIS.apply(is => StateInfo(is))
+        _ <- app.setDepositState(stateInfo, user.id, uuid)
+      } yield NoContent()
+    }.getOrRecover(respond)
   }
   delete("/:uuid") {
-    (for {
-      uuid <- getUUID
-      _ <- app.deleteDeposit(user.id, uuid)
-    } yield NoContent()
-      ).getOrRecover(respond).logResponse
+    {
+      for {
+        uuid <- getUUID
+        _ <- app.deleteDeposit(user.id, uuid)
+      } yield NoContent()
+    }.getOrRecover(respond)
   }
   get("/:uuid/file/*") { //dir and file
-    (for {
-      uuid <- getUUID
-      path <- getPath
-      contents <- app.getFileInfo(user.id, uuid, path)
-    } yield Ok(body = toJson(contents))
-      ).getOrRecover(respond).logResponse
+    {
+      for {
+        uuid <- getUUID
+        path <- getPath
+        contents <- app.getFileInfo(user.id, uuid, path)
+      } yield Ok(body = toJson(contents))
+    }.getOrRecover(respond)
   }
   post("/:uuid/file/*") { //file(s)
-    (for {
-      uuid <- getUUID
-      path <- getPath
-      _ <- isMultipart
-      fileItems = fileMultiParams.valuesIterator.flatten.buffered
-      maybeZipInputStream <- fileItems.nextAsZipIfOnlyOne
-      (managedStagingDir, stagedFilesTarget) <- app.stageFiles(user.id, uuid, path)
-      _ <- managedStagingDir.apply(stagingDir =>
-        maybeZipInputStream
-          .map(_.unzipPlainEntriesTo(stagingDir))
-          .getOrElse(fileItems.copyPlainItemsTo(stagingDir))
-          .flatMap(_ => stagedFilesTarget.takeAllFrom(stagingDir))
-      )
-    } yield Ok()
-      ).getOrRecover(respond).logResponse
+    {
+      for {
+        uuid <- getUUID
+        path <- getPath
+        _ <- isMultipart
+        fileItems = fileMultiParams.valuesIterator.flatten.buffered
+        maybeZipInputStream <- fileItems.nextAsZipIfOnlyOne
+        (managedStagingDir, stagedFilesTarget) <- app.stageFiles(user.id, uuid, path)
+        _ <- managedStagingDir.apply(stagingDir =>
+          maybeZipInputStream
+            .map(_.unzipPlainEntriesTo(stagingDir))
+            .getOrElse(fileItems.copyPlainItemsTo(stagingDir))
+            .flatMap(_ => stagedFilesTarget.takeAllFrom(stagingDir))
+        )
+      } yield Ok()
+    }.getOrRecover(respond)
   }
 
   put("/:uuid/file/*") { //file
-    (for {
-      uuid <- getUUID
-      path <- getPath
-      managedIS <- getRequestBodyAsManagedInputStream
-      newFileWasCreated <- managedIS.apply(app.writeDepositFile(_, user.id, uuid, path))
-    } yield if (newFileWasCreated)
-              Created(headers = Map("Location" -> request.uri.toASCIIString))
-            else Ok()
-      ).getOrRecover(respond).logResponse
+    {
+      for {
+        uuid <- getUUID
+        path <- getPath
+        managedIS <- getRequestBodyAsManagedInputStream
+        newFileWasCreated <- managedIS.apply(app.writeDepositFile(_, user.id, uuid, path))
+      } yield if (newFileWasCreated)
+                Created(headers = Map("Location" -> request.uri.toASCIIString))
+              else Ok()
+    }.getOrRecover(respond)
   }
   delete("/:uuid/file/*") { //dir and file
-    (for {
-      uuid <- getUUID
-      path <- getPath
-      _ <- app.deleteDepositFile(user.id, uuid, path)
-    } yield NoContent()
-      ).getOrRecover(respond).logResponse
+    {
+      for {
+        uuid <- getUUID
+        path <- getPath
+        _ <- app.deleteDepositFile(user.id, uuid, path)
+      } yield NoContent()
+    }.getOrRecover(respond)
   }
 
-  private def respond(t: Throwable): ActionResult = t match {
+  private def respond(t: Throwable): ActionResult = (t match {
     case e: IllegalStateTransitionException => Forbidden(e.getMessage)
     case e: NoSuchDepositException => noSuchDepositResponse(e)
     case e: NoSuchFileException => NotFound(body = s"${ e.getMessage } not found")
@@ -178,7 +190,7 @@ class DepositServlet(app: EasyDepositApiApp)
     case e: NotImplementedException => NotImplemented(e.getMessage)
     case e: SchemaNotAvailableException => InternalServerError(e.getMessage)
     case _ => notExpectedExceptionResponse(t)
-  }
+  }).logResponse
 
   private def noSuchDepositResponse(e: NoSuchDepositException): ActionResult = {
     // returning the message to the client might reveal absolute paths on the server
