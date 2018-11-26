@@ -40,20 +40,6 @@ case class StagedFilesTarget(draftBag: DansBag, destination: Path) extends Debug
     // read files.xml at most once, not at all if the first file appears to exist as payload
     lazy val fetchFiles = draftBag.fetchFiles.map(_.file)
 
-    def moveNewFiles = {
-      logger.info(s"moving from staging [$stagingDir] to ${ draftBag.baseDir / destination.toString }")
-      val (triesOfSourceTarget, duplicates) = stagingDir
-        .list
-        .map(sourceToTarget)
-        .partition(x => x.isSuccess)
-      if (duplicates.nonEmpty) collectExistingFiles(duplicates)
-      else {
-        triesOfSourceTarget.toStream.map(_.flatMap {
-          case (src: File, target: Path) => draftBag.addPayloadFile(src, target)(ATOMIC_MOVE)
-        }).failFastOr(draftBag.save)
-      }
-    }
-
     def sourceToTarget(sourceFile: File) = {
       val bagRelativePath = destination.resolve(stagingDir.relativize(sourceFile))
       val isPayload = (draftBag.data / bagRelativePath.toString).exists
@@ -65,7 +51,17 @@ case class StagedFilesTarget(draftBag: DansBag, destination: Path) extends Debug
       else Success(sourceFile -> bagRelativePath)
     }
 
-    draftBag.lockUpload.flatMap(_ => moveNewFiles)
+    logger.info(s"moving from staging [$stagingDir] to ${ draftBag.baseDir / destination.toString }")
+    val (triesOfSourceTarget, duplicates) = stagingDir
+      .list
+      .map(sourceToTarget)
+      .partition(x => x.isSuccess)
+    if (duplicates.nonEmpty) collectExistingFiles(duplicates)
+    else {
+      triesOfSourceTarget.toStream.map(_.flatMap {
+        case (src: File, target: Path) => draftBag.addPayloadFile(src, target)(ATOMIC_MOVE)
+      }).failFastOr(draftBag.save)
+    }
   }
 
   private def collectExistingFiles(duplicates: Iterator[Try[(File, Path)]]): Failure[Nothing] = {

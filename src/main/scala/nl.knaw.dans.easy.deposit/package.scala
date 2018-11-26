@@ -15,14 +15,14 @@
  */
 package nl.knaw.dans.easy
 
-import java.nio.file.Paths
+import java.nio.file.{ FileAlreadyExistsException, Paths }
 import java.util.UUID
 
 import better.files.StringOps
 import nl.knaw.dans.bag.DansBag
 import nl.knaw.dans.easy.deposit.docs.StateInfo.State.State
 
-import scala.util.{ Failure, Success, Try }
+import scala.util.{ Failure, Try }
 import scala.xml._
 
 package object deposit {
@@ -34,6 +34,9 @@ package object deposit {
 
   case class CorruptDepositException(user: String, id: String, cause: Throwable)
     extends DepositException(s"Invalid deposit uuid $id for user $user: ${ cause.getMessage }", cause)
+
+  case class ConcurrentUploadException(tempPrefix: String)
+    extends DepositException(s"Another upload is pending. Please try again later.", new FileAlreadyExistsException(tempPrefix))
 
   case class IllegalStateTransitionException(user: String, id: UUID, oldState: State, newState: State)
     extends DepositException(s"Cannot transition from $oldState to $newState (deposit id: $id, user: $user)", null)
@@ -58,14 +61,6 @@ package object deposit {
 
     def addMetadataFile(content: String, target: String): Try[Any] = {
       bag.addTagFile(content.inputStream, Paths.get(s"metadata/$target"))
-    }
-
-    /**
-     * Creates a lock to prevent concurrent uploads that could overwrite files of one another.
-     * Uses a file in the bag that won't change after bag creation: bagit.txt */
-    def lockUpload: Try[Unit] = {
-      // TODO implement the lock
-      Success(())
     }
   }
   implicit class FailFastStream[T](val stream: Stream[Try[T]]) extends AnyVal {
