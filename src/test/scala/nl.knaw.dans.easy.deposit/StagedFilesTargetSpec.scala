@@ -81,8 +81,8 @@ class StagedFilesTargetSpec extends TestSupportFixture {
     }
 
     val newBag = readDraftBag
-    bag.data.list.size shouldBe 0
-    bag.fetchFiles.size shouldBe 1
+    newBag.data.list.size shouldBe 0
+    newBag.fetchFiles.size shouldBe 1
   }
 
   it should "not replace a payload file" in {

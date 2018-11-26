@@ -36,7 +36,7 @@ case class StagedFilesTarget(draftBag: DansBag, destination: Path) extends Debug
    * @param stagingDir the temporary container for files, unique per request, same mount as draftBag
    * @return
    */
-  def takeAllFrom(stagingDir: File): Try[Any] = {
+  def takeAllFrom(stagingDir: File): Try[Unit] = {
     // read files.xml at most once, not at all if the first file appears to exist as payload
     lazy val fetchFiles = draftBag.fetchFiles.map(_.file)
 
