@@ -113,7 +113,7 @@ class UploadSpec extends TestSupportFixture with ServletFixture with ScalatraSui
       files = bodyParts
     ) {
       body shouldBe "A multipart/form-data message contained a ZIP [2.zip] part but also other parts."
-      status shouldBe CONFLICT_409
+      status shouldBe BAD_REQUEST_400
       absoluteTarget.list.size shouldBe 0 // preceding plain file not added to draft bag
     }
   }
@@ -134,7 +134,7 @@ class UploadSpec extends TestSupportFixture with ServletFixture with ScalatraSui
       files = bodyParts
     ) {
       body shouldBe "A multipart/form-data message contained a ZIP [1.zip] part but also other parts."
-      status shouldBe CONFLICT_409
+      status shouldBe BAD_REQUEST_400
       absoluteTarget.list.size shouldBe 0
     }
   }
