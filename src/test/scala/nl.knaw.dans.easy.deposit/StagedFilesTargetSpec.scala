@@ -45,7 +45,7 @@ class StagedFilesTargetSpec extends TestSupportFixture {
     bag.fetchFiles.size shouldBe 0
 
     StagedFilesTarget(bag, Paths.get("path/to"))
-      .takeAllFrom(stagedDir) shouldBe Success(())
+      .moveAllFrom(stagedDir) shouldBe Success(())
 
     val newBag = DansV0Bag.read(draftDir).getOrRecover(e => fail(e))
     (newBag.data / "path/to/some.thing").contentAsString shouldBe "new content"
@@ -59,7 +59,7 @@ class StagedFilesTargetSpec extends TestSupportFixture {
     bag.save()
 
     StagedFilesTarget(bag, Paths.get(""))
-      .takeAllFrom(stagedDir) shouldBe Success(())
+      .moveAllFrom(stagedDir) shouldBe Success(())
 
     val newBag = readDraftBag
     (newBag.data / "some.thing").contentAsString shouldBe "new content"
@@ -76,7 +76,7 @@ class StagedFilesTargetSpec extends TestSupportFixture {
     bag.fetchFiles.size shouldBe 1
 
     StagedFilesTarget(bag, Paths.get("path/to"))
-      .takeAllFrom(stagedDir) should matchPattern {
+      .moveAllFrom(stagedDir) should matchPattern {
       case Failure(e: FileAlreadyExistsException) if e.getMessage == "path/to/some.thing" =>
     }
 
@@ -92,7 +92,7 @@ class StagedFilesTargetSpec extends TestSupportFixture {
     (bag.data / "path/to/some.thing").contentAsString shouldBe "Lorum ipsum"
 
     StagedFilesTarget(bag, Paths.get("path/to"))
-      .takeAllFrom(stagedDir) should matchPattern {
+      .moveAllFrom(stagedDir) should matchPattern {
       case Failure(e: FileAlreadyExistsException) if e.getMessage == "path/to/some.thing" =>
     }
 
