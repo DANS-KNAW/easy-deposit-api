@@ -57,6 +57,31 @@ class UploadSpec extends DepositServletFixture {
         file.contentAsString shouldBe (testDir / "input" / file.name).contentAsString
       )
       (bagDir / "manifest-sha1.txt").lines.size shouldBe bodyParts.size
+      (testDir / "stage-upload").list.size shouldBe 0
+    }
+  }
+
+  it should "refuse concurrent posts" in {
+    val bodyParts = createBodyParts(Seq(
+      ("some", "1.txt", "Lorem ipsum dolor sit amet"),
+      ("some", "2.txt", "consectetur adipiscing elit"),
+      ("some", "3.txt", "sed do eiusmod tempor incididunt ut labore et dolore magna aliqua"),
+      ("more", "4.txt", "Ut enim ad minim veniam"),
+    ))
+    val uuid = createDeposit
+    (testDir / s"stage-upload/foo-$uuid-XYZ").createDirectories() // mocks a concurrent post
+    post(
+      uri = s"/deposit/$uuid/file/path/to/dir",
+      params = Iterable(),
+      headers = Seq(fooBarBasicAuthHeader),
+      files = bodyParts
+    ) {
+      status shouldBe CONFLICT_409
+      body shouldBe "Another upload is pending. Please try again later."
+      val bagDir = testDir / "drafts/foo" / uuid.toString / "bag"
+      (bagDir / "data").list.size shouldBe 0
+      (bagDir / "manifest-sha1.txt").lines.size shouldBe 0
+      (testDir / "stage-upload").list.size shouldBe 1
     }
   }
 
