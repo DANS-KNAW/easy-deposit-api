@@ -48,62 +48,62 @@ class NotFoundSpec extends DepositServletFixture {
   }
 
   "404 deposit not found" should "be returned by GET /deposit/{id}/metadata" in {
-    get(s"/deposit/$uuid/metadata", headers = Seq(auth)) { shouldBeNoSuchDeposit }
+    get(s"/deposit/$uuid/metadata", headers = Seq(fooBarBasicAuthHeader)) { shouldBeNoSuchDeposit }
   }
   it should "be returned by PUT /deposit/{id}/metadata" in {
-    put(s"/deposit/$uuid/metadata", headers = Seq(auth), body = "{}") { shouldBeNoSuchDeposit }
+    put(s"/deposit/$uuid/metadata", headers = Seq(fooBarBasicAuthHeader), body = "{}") { shouldBeNoSuchDeposit }
   }
   it should "be returned by GET /deposit/{id}/doi" in {
-    get(s"/deposit/$uuid/doi", headers = Seq(auth)) { shouldBeNoSuchDeposit }
+    get(s"/deposit/$uuid/doi", headers = Seq(fooBarBasicAuthHeader)) { shouldBeNoSuchDeposit }
   }
   it should "be returned by GET /deposit/{id}/state" in {
-    get(s"/deposit/$uuid/state", headers = Seq(auth)) { shouldBeNoSuchDeposit }
+    get(s"/deposit/$uuid/state", headers = Seq(fooBarBasicAuthHeader)) { shouldBeNoSuchDeposit }
   }
   it should "be returned by PUT /deposit/{id}/state" in {
-    put(s"/deposit/$uuid/state", headers = Seq(auth), body = state) { shouldBeNoSuchDeposit }
+    put(s"/deposit/$uuid/state", headers = Seq(fooBarBasicAuthHeader), body = state) { shouldBeNoSuchDeposit }
   }
   it should "be returned by DELETE /deposit/{id}" in {
-    delete(s"/deposit/$uuid", headers = Seq(auth)) { shouldBeNoSuchDeposit }
+    delete(s"/deposit/$uuid", headers = Seq(fooBarBasicAuthHeader)) { shouldBeNoSuchDeposit }
   }
   it should "be returned by GET /deposit/{id}/file/{dir_path}" in {
-    get(s"/deposit/$uuid/file/path/to/dir", headers = Seq(auth)) { shouldBeNoSuchDeposit }
+    get(s"/deposit/$uuid/file/path/to/dir", headers = Seq(fooBarBasicAuthHeader)) { shouldBeNoSuchDeposit }
   }
   it should "be returned by POST /deposit/{id}/file/{dir_path}" in {
-    post(s"/deposit/$uuid/file/path/to/dir", params = Iterable(), headers = Seq(auth), files = fileBodyParts) { shouldBeNoSuchDeposit }
+    post(s"/deposit/$uuid/file/path/to/dir", params = Iterable(), headers = Seq(fooBarBasicAuthHeader), files = fileBodyParts) { shouldBeNoSuchDeposit }
   }
   it should "be returned by DELETE /deposit/{id}/file/{dir_path}" in {
-    delete(s"/deposit/$uuid/file/path/to/dir", headers = Seq(auth)) { shouldBeNoSuchDeposit }
+    delete(s"/deposit/$uuid/file/path/to/dir", headers = Seq(fooBarBasicAuthHeader)) { shouldBeNoSuchDeposit }
   }
   it should "be returned by GET /deposit/{id}/file/{file_path}" in {
-    get(s"/deposit/$uuid/file/path/to/file.txt", headers = Seq(auth)) { shouldBeNoSuchDeposit }
+    get(s"/deposit/$uuid/file/path/to/file.txt", headers = Seq(fooBarBasicAuthHeader)) { shouldBeNoSuchDeposit }
   }
   it should "be returned by PUT /deposit/{id}/file/{file_path}" in {
-    put(s"/deposit/$uuid/file/path/to/file.txt", headers = Seq(auth)) { shouldBeNoSuchDeposit }
+    put(s"/deposit/$uuid/file/path/to/file.txt", headers = Seq(fooBarBasicAuthHeader)) { shouldBeNoSuchDeposit }
   }
   it should "be returned by DELETE /deposit/{id}/file/{file_path}" in {
-    delete(s"/deposit/$uuid/file/path/to/file.txt", headers = Seq(auth)) { shouldBeNoSuchDeposit }
+    delete(s"/deposit/$uuid/file/path/to/file.txt", headers = Seq(fooBarBasicAuthHeader)) { shouldBeNoSuchDeposit }
   }
 
   "404 other not found" should "be returned by GET /deposit/{id}/file/{dir_path}" in {
     val uuid = createDeposit
-    get(s"/deposit/$uuid/file/path/to/dir", headers = Seq(auth)) { shouldBeNotFound("path/to/dir not found") }
+    get(s"/deposit/$uuid/file/path/to/dir", headers = Seq(fooBarBasicAuthHeader)) { shouldBeNotFound("path/to/dir not found") }
   }
   it should "be returned by DELETE /deposit/{id}/file/{dir_path}" in {
     val uuid = createDeposit
-    delete(s"/deposit/$uuid/file/path/to/dir", headers = Seq(auth)) { shouldBeNotFound("path/to/dir not found") }
+    delete(s"/deposit/$uuid/file/path/to/dir", headers = Seq(fooBarBasicAuthHeader)) { shouldBeNotFound("path/to/dir not found") }
   }
   it should "be returned by GET /deposit/{id}/file/{file_path}" in {
     val uuid = createDeposit
-    get(s"/deposit/$uuid/file/path/to/file.txt", headers = Seq(auth)) { shouldBeNotFound("path/to/file.txt not found") }
+    get(s"/deposit/$uuid/file/path/to/file.txt", headers = Seq(fooBarBasicAuthHeader)) { shouldBeNotFound("path/to/file.txt not found") }
   }
   it should "be returned by DELETE /deposit/{id}/file/{file_path}" in {
     val uuid = createDeposit
-    delete(s"/deposit/$uuid/file/path/to/file.txt", headers = Seq(auth)) { shouldBeNotFound("path/to/file.txt not found") }
+    delete(s"/deposit/$uuid/file/path/to/file.txt", headers = Seq(fooBarBasicAuthHeader)) { shouldBeNotFound("path/to/file.txt not found") }
   }
   // TODO files/directories on the file system but not in files.xml and/or the other way around
 
   "410 Gone" should "be returned by GET /deposit/{id}/metadata" ignore { // TODO clean up not implemented?
-    get(s"/deposit/$uuid/metadata", headers = Seq(auth)) { status shouldBe GONE_410 }
+    get(s"/deposit/$uuid/metadata", headers = Seq(fooBarBasicAuthHeader)) { status shouldBe GONE_410 }
   }
 
   private def propsFile(uuid: String): File = testDir / "drafts/foo" / uuid / "deposit.properties"
@@ -113,31 +113,31 @@ class NotFoundSpec extends DepositServletFixture {
   "500 on missing metadata" should "be returned by GET /deposit/{id}/state (no file)" in {
     val uuid = createDeposit
     propsFile(uuid).delete()
-    get(s"/deposit/$uuid/state", headers = Seq(auth)) { shouldBeInternalServerError }
+    get(s"/deposit/$uuid/state", headers = Seq(fooBarBasicAuthHeader)) { shouldBeInternalServerError }
   }
 
   it should "be returned by GET /deposit/{id}/state (no property)" in {
     val uuid = createDeposit
     propsFile(uuid).write("foo = bar")
-    get(s"/deposit/$uuid/state", headers = Seq(auth)) { shouldBeInternalServerError }
+    get(s"/deposit/$uuid/state", headers = Seq(fooBarBasicAuthHeader)) { shouldBeInternalServerError }
   }
 
   it should "be returned by GET /deposit/{id}/metadata" in {
     val uuid = createDeposit
     jsonFile(uuid).delete()
-    get(s"/deposit/$uuid/metadata", headers = Seq(auth)) { shouldBeInternalServerError }
+    get(s"/deposit/$uuid/metadata", headers = Seq(fooBarBasicAuthHeader)) { shouldBeInternalServerError }
   }
 
   it should "be returned by GET /deposit/{id}/doi (no json)" in {
     val uuid = createDeposit
     jsonFile(uuid).delete()
-    get(s"/deposit/$uuid/doi", headers = Seq(auth)) { shouldBeInternalServerError }
+    get(s"/deposit/$uuid/doi", headers = Seq(fooBarBasicAuthHeader)) { shouldBeInternalServerError }
   }
 
   it should "be returned by GET /deposit/{id}/doi (no properties)" in {
     val uuid = createDeposit
     jsonFile(uuid).write("""{"identifiers":[{"scheme":"id-type:DOI","value":"10.17632/DANS.6wg5xccnjd.1"}]}""")
     propsFile(uuid).delete()
-    get(s"/deposit/$uuid/doi", headers = Seq(auth)) { shouldBeInternalServerError }
+    get(s"/deposit/$uuid/doi", headers = Seq(fooBarBasicAuthHeader)) { shouldBeInternalServerError }
   }
 }

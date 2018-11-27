@@ -45,7 +45,7 @@ class UploadSpec extends DepositServletFixture {
     post(
       uri = s"/deposit/$uuid/file/$relativeTarget",
       params = Iterable(),
-      headers = Seq(auth),
+      headers = Seq(fooBarBasicAuthHeader),
       files = bodyParts
     ) {
       body shouldBe ""
@@ -76,7 +76,7 @@ class UploadSpec extends DepositServletFixture {
     post(
       uri = s"/deposit/$uuid/file/$relativeTarget",
       params = Iterable(),
-      headers = Seq(auth),
+      headers = Seq(fooBarBasicAuthHeader),
       files = bodyParts
     ) {
       body shouldBe "Internal Server Error"
@@ -96,7 +96,7 @@ class UploadSpec extends DepositServletFixture {
     post(
       uri = s"/deposit/$uuid/file/$relativeTarget",
       params = Iterable(),
-      headers = Seq(auth),
+      headers = Seq(fooBarBasicAuthHeader),
       files = bodyParts
     ) {
       body shouldBe "A multipart/form-data message contained a ZIP [2.zip] part but also other parts."
@@ -116,7 +116,7 @@ class UploadSpec extends DepositServletFixture {
     post(
       uri = s"/deposit/$uuid/file/$relativeTarget",
       params = Iterable(),
-      headers = Seq(auth),
+      headers = Seq(fooBarBasicAuthHeader),
       files = bodyParts
     ) {
       body shouldBe "A multipart/form-data message contained a ZIP [1.zip] part but also other parts."
@@ -133,7 +133,7 @@ class UploadSpec extends DepositServletFixture {
     post(
       uri = s"/deposit/$uuid/file/$relativeTarget",
       params = Iterable(),
-      headers = Seq(auth),
+      headers = Seq(fooBarBasicAuthHeader),
       files = bodyParts
     ) {
       absoluteTarget.list.size shouldBe 0
@@ -152,7 +152,7 @@ class UploadSpec extends DepositServletFixture {
     post(
       uri = s"/deposit/$uuid/file/$relativeTarget",
       params = Iterable(),
-      headers = Seq(auth),
+      headers = Seq(fooBarBasicAuthHeader),
       files = Seq(("formFieldName", (testDir / "input/1.zip").toJava))
     ) {
       body shouldBe ""
@@ -175,7 +175,7 @@ class UploadSpec extends DepositServletFixture {
     // upload a file
     post(
       uri = s"/deposit/$uuid/file/path/to/",
-      headers = Seq(auth),
+      headers = Seq(fooBarBasicAuthHeader),
       body = "Lorem ipsum dolor sit amet"
     ) {
       status shouldBe BAD_REQUEST_400
@@ -185,12 +185,11 @@ class UploadSpec extends DepositServletFixture {
 
   it should "report an invalid content disposition" in {
     val uuid = createDataset
-    expectsUserFooBar// TODO why is there a third post that sets a cookie?
 
     // upload a file
     post(
       uri = s"/deposit/$uuid/file/path/to/",
-      headers = Seq(auth, ("Content-Type", "text/plain")),
+      headers = Seq(fooBarBasicAuthHeader, ("Content-Type", "text/plain")),
       body = "Lorem ipsum dolor sit amet"
     ) {
       status shouldBe BAD_REQUEST_400
@@ -208,7 +207,7 @@ class UploadSpec extends DepositServletFixture {
     // first upload
     put(
       uri = s"/deposit/$uuid/file/path/to/text.txt",
-      headers = Seq(auth),
+      headers = Seq(fooBarBasicAuthHeader),
       body = longContent
     ) {
       status shouldBe CREATED_201
@@ -217,10 +216,9 @@ class UploadSpec extends DepositServletFixture {
     }
 
     // second upload of same file
-    expectsUserFooBar
     put(
       uri = s"/deposit/$uuid/file/path/to/text.txt",
-      headers = Seq(auth),
+      headers = Seq(fooBarBasicAuthHeader),
       body = shortContent
     ) {
       status shouldBe OK_200
@@ -236,7 +234,7 @@ class UploadSpec extends DepositServletFixture {
   private def createDataset: UUID = {
     val responseBody = post(
       uri = s"/deposit",
-      headers = Seq(auth)
+      headers = Seq(fooBarBasicAuthHeader)
     ) {
       new String(bodyBytes)
     }

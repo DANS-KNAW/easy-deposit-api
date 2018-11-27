@@ -17,46 +17,34 @@ package nl.knaw.dans.easy.deposit.servlets
 
 import nl.knaw.dans.easy.deposit.PidRequesterComponent.PidType.PidType
 import nl.knaw.dans.easy.deposit.PidRequesterComponent.{ PidRequester, PidType }
-import nl.knaw.dans.easy.deposit.authentication.{ AuthUser, AuthenticationMocker, AuthenticationProvider }
+import nl.knaw.dans.easy.deposit.authentication.{ AuthenticationMocker, AuthenticationProvider }
 import nl.knaw.dans.easy.deposit.docs.DepositInfo
 import nl.knaw.dans.easy.deposit.{ EasyDepositApiApp, TestSupportFixture }
 import nl.knaw.dans.lib.error._
-import org.scalamock.handlers.{ CallHandler1, CallHandler2 }
+import org.scalamock.handlers.CallHandler1
 import org.scalatra.test.scalatest.ScalatraSuite
 
 import scala.util.{ Success, Try }
 
-class DepositServletFixture extends TestSupportFixture with ServletFixture with ScalatraSuite {
-  private val authMocker = new AuthenticationMocker(){}
-
+trait DepositServletFixture extends TestSupportFixture with ServletFixture with ScalatraSuite {
   private val app: EasyDepositApiApp = new EasyDepositApiApp(minimalAppConfig) {
     override val pidRequester: PidRequester = mock[PidRequester]
   }
-  private val depositServlet = {
-    new DepositServlet(app) {
-      override def getAuthenticationProvider: AuthenticationProvider = {
-        authMocker.mockedAuthenticationProvider
-      }
+  private val depositServlet = new DepositServlet(app) {
+    override def getAuthenticationProvider: AuthenticationProvider = {
+      new AuthenticationMocker() {
+        expectsUserFooBar anyNumberOfTimes()
+      }.mockedAuthenticationProvider
     }
   }
   addServlet(depositServlet, "/deposit/*")
 
-  def expectsUserFooBar: CallHandler2[String, String, Try[Option[AuthUser]]] = authMocker.expectsUserFooBar
-
-  override def beforeEach(): Unit = {
-    super.beforeEach()
-    expectsUserFooBar
-  }
-
   /** @return uuid of the created deposit */
   def createDeposit: String = {
-    val responseBody = post(s"/deposit/", headers = Seq(auth)) { body }
-    expectsUserFooBar // another time for the actual test
+    val responseBody = post(s"/deposit/", headers = Seq(fooBarBasicAuthHeader)) { body }
     DepositInfo(responseBody).map(_.id.toString).getOrRecover(e => fail(e.toString, e))
   }
 
   def mockDoiRequest(doi: String): CallHandler1[PidType, Try[String]] =
     (app.pidRequester.requestPid(_: PidType)) expects PidType.doi returning Success(doi)
-
-  val auth: (String, String) = ("Authorization", fooBarBasicAuthHeader)
 }

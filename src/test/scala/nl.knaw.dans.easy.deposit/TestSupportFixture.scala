@@ -58,13 +58,6 @@ trait TestSupportFixture extends FlatSpec with Matchers with Inside with BeforeA
   DateTimeUtils.setCurrentMillisFixed(new DateTime(nowUTC).getMillis)
   DateTimeZone.setDefault(DateTimeZone.forTimeZone(TimeZone.getTimeZone("Europe/Amsterdam")))
 
-  val fooBarBasicAuthHeader: String = authenticationHeader("foo", "bar")
-
-  def authenticationHeader(username: String, password: String, authType: String = "Basic"): String = {
-    val encoded = Base64.getEncoder.encodeToString(s"$username:$password".getBytes())
-    s"$authType $encoded"
-  }
-
   def minimalAppConfig: Configuration = {
     new Configuration("", new PropertiesConfiguration() {
       addProperty("deposits.stage.upload", testSubDir("stage-upload").toString())
