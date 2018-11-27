@@ -43,12 +43,11 @@ case class StagedFilesTarget(draftBag: DansBag, destination: Path) extends Debug
     val absDestination = draftBag.baseDir / destination.toString
 
     def sourceToTarget(sourceFile: File) = {
-      logger.info(s"Checking for files existing in $absDestination")
       val bagRelativePath = destination.resolve(stagingDir.relativize(sourceFile))
       val isPayload = (draftBag.data / bagRelativePath.toString).exists
       lazy val isFetchItem = fetchFiles.contains(draftBag.data / bagRelativePath.toString)
       if (logger.underlying.isDebugEnabled)
-        logger.debug(s"moving to $bagRelativePath isPayload=$isPayload isFetchItem=$isFetchItem")
+        logger.debug(s"Checking existence of $bagRelativePath isPayload=$isPayload isFetchItem=$isFetchItem")
       if (isPayload || isFetchItem)
         Failure(new FileAlreadyExistsException(bagRelativePath.toString))
       else Success(sourceFile -> bagRelativePath)

@@ -274,7 +274,7 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
       deposit <- DepositDir.get(draftsDir, userId, id)
       dataFiles <- deposit.getDataFiles
       stagingDir <- createManagedTempDir(prefix)
-      _ <- atMostOneTempDir(prefix)
+      _ <- atMostOneTempDir(prefix).doIfFailure { case _ => stagingDir.get() }
     } yield (stagingDir, StagedFilesTarget(dataFiles.bag, destination))
   }
 
