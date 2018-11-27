@@ -36,11 +36,14 @@ case class StagedFilesTarget(draftBag: DansBag, destination: Path) extends Debug
    * @param stagingDir the temporary container for files, unique per request, same mount as draftBag
    * @return
    */
-  def takeAllFrom(stagingDir: File): Try[Unit] = {
+  def moveAllFrom(stagingDir: File): Try[Unit] = {
     // read files.xml at most once, not at all if the first file appears to exist as payload
     lazy val fetchFiles = draftBag.fetchFiles.map(_.file)
 
+    val absDestination = draftBag.baseDir / destination.toString
+
     def sourceToTarget(sourceFile: File) = {
+      logger.info(s"Checking for files existing in $absDestination")
       val bagRelativePath = destination.resolve(stagingDir.relativize(sourceFile))
       val isPayload = (draftBag.data / bagRelativePath.toString).exists
       lazy val isFetchItem = fetchFiles.contains(draftBag.data / bagRelativePath.toString)
@@ -51,16 +54,24 @@ case class StagedFilesTarget(draftBag: DansBag, destination: Path) extends Debug
       else Success(sourceFile -> bagRelativePath)
     }
 
-    logger.info(s"moving from staging [$stagingDir] to ${ draftBag.baseDir / destination.toString }")
-    val (triesOfSourceTarget, duplicates) = stagingDir
+    val (successesOfSourceTarget, duplicates) = stagingDir
       .list
       .map(sourceToTarget)
-      .partition(x => x.isSuccess)
-    if (duplicates.nonEmpty) collectExistingFiles(duplicates)
+      .partition(triedTuple => triedTuple.isSuccess)
+
+    if (duplicates.nonEmpty)
+      collectExistingFiles(duplicates)
     else {
-      triesOfSourceTarget.toStream.map(_.flatMap {
-        case (src: File, target: Path) => draftBag.addPayloadFile(src, target)(ATOMIC_MOVE)
-      }).failFastOr(draftBag.save)
+      logger.info(s"Moving from staging [$stagingDir] to [$absDestination]")
+      successesOfSourceTarget.toStream.map {
+        _.flatMap { case (src: File, target: Path) => draftBag
+          .addPayloadFile(src, target)(ATOMIC_MOVE)
+          .recoverWith { case _: FileAlreadyExistsException =>
+            logger.warn(s"A concurrent PUT created $target, upload continues with the rest of the files.")
+            Success(draftBag)
+          }
+        }
+      }.failFastOr(draftBag.save)
     }
   }
 

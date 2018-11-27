@@ -149,7 +149,7 @@ class DepositServlet(app: EasyDepositApiApp)
           maybeZipInputStream
             .map(_.unzipPlainEntriesTo(stagingDir))
             .getOrElse(fileItems.copyPlainItemsTo(stagingDir))
-            .flatMap(_ => stagedFilesTarget.takeAllFrom(stagingDir))
+            .flatMap(_ => stagedFilesTarget.moveAllFrom(stagingDir))
         )
       } yield Ok()
     }.getOrRecover(respond)
