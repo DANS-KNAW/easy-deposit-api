@@ -43,7 +43,7 @@ class SessionSpec extends TestSupportFixture with ServletFixture with ScalatraSu
     authMocker.expectsUserFooBar
     get(
       uri = "/deposit",
-      headers = Seq(("Authorization", fooBarBasicAuthHeader))
+      headers = Seq(fooBarBasicAuthHeader)
     ) {
       body should startWith("AuthUser(foo,List(),ACTIVE) ")
       body should endWith(" EASY Deposit API Service running")
@@ -143,7 +143,7 @@ class SessionSpec extends TestSupportFixture with ServletFixture with ScalatraSu
     authMocker.expectsUserFooBarWithStatus(UserState.active)
     post(
       uri = "/auth/login",
-      headers = Seq(("Authorization", fooBarBasicAuthHeader))
+      headers = Seq(fooBarBasicAuthHeader)
     ) {
       body shouldBe ""
       status shouldBe NO_CONTENT_204
@@ -181,7 +181,7 @@ class SessionSpec extends TestSupportFixture with ServletFixture with ScalatraSu
     authMocker.expectsUserFooBar
     post(
       uri = "/auth/logout",
-      headers = Seq(("Authorization", fooBarBasicAuthHeader))
+      headers = Seq(fooBarBasicAuthHeader)
     ) {
       body shouldBe ""
       header("REMOTE_USER") shouldBe ""

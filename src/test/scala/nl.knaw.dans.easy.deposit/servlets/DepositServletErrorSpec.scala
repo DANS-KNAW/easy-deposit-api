@@ -39,7 +39,7 @@ class DepositServletErrorSpec extends TestSupportFixture with ServletFixture wit
   "post /" should "return 500 (Internal Server Error) on a not expected exception and basic authentication" in {
     (mockedApp.createDeposit(_: String)) expects "foo" returning Failure(new Exception("whoops"))
     authMocker.expectsUserFooBar
-    post(uri = "/", headers = Seq(("Authorization", fooBarBasicAuthHeader))) {
+    post(uri = "/", headers = Seq(fooBarBasicAuthHeader)) {
       status shouldBe INTERNAL_SERVER_ERROR_500
       body shouldBe "Internal Server Error"
     }
@@ -58,7 +58,7 @@ class DepositServletErrorSpec extends TestSupportFixture with ServletFixture wit
     // the test for not expected exceptions show the authentication method doesn't matter
     (mockedApp.createDeposit(_: String)) expects "foo" throwing new Exception("trouble in paradise")
     authMocker.expectsUserFooBar
-    post(uri = "/", headers = Seq(("Authorization", fooBarBasicAuthHeader))) {
+    post(uri = "/", headers = Seq(fooBarBasicAuthHeader)) {
       status shouldBe INTERNAL_SERVER_ERROR_500
       body shouldBe "Internal Server Error"
     }
@@ -73,7 +73,7 @@ class DepositServletErrorSpec extends TestSupportFixture with ServletFixture wit
     authMocker.expectsUserFooBar
     get(
       uri = s"/$uuid/metadata",
-      headers = Seq(("Authorization", fooBarBasicAuthHeader))
+      headers = Seq(fooBarBasicAuthHeader)
     ) {
       body shouldBe s"Internal Server Error"
       status shouldBe INTERNAL_SERVER_ERROR_500
