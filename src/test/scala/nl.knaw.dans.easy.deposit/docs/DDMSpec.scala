@@ -282,6 +282,15 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
       .causesInvalidDocumentException("cvc-datatype-valid.1.2.3: '2018-12-09T13:15:30+1000' is not a valid value of union type '#AnonType_W3CDTF'.")
   }
 
+  "dateTimeFormat with zone, where zone part is without minutes" should "fail" in  {
+    val invalidDates = Some(Seq(
+      Date(scheme = Some(W3CDTF.toString), value = "2018-12-09T13:15:30-05", DateQualifier.created), // small z for zone is not valid
+      Date(scheme = None, value = "2018", DateQualifier.available),
+    ))
+    new MinimalDatasetMetadata(dates = invalidDates)
+      .causesInvalidDocumentException("cvc-datatype-valid.1.2.3: '2018-12-09T13:15:30-05' is not a valid value of union type '#AnonType_W3CDTF'.")
+  }
+
   "minimal with points and boxes of issue 1538" should behave like {
     val input =
       """{  "spatialPoints": [
