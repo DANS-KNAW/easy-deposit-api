@@ -43,5 +43,4 @@ class UserServlet(app: EasyDepositApiApp) extends ProtectedServlet(app) {
     case e: InvalidDocumentException => badDocResponse(e)
     case _ => notExpectedExceptionResponse(t)
   }
-
 }
