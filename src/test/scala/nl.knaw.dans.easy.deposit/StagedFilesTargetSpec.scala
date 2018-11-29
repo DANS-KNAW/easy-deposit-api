@@ -101,6 +101,12 @@ class StagedFilesTargetSpec extends TestSupportFixture {
     newBag.fetchFiles.size shouldBe 0
   }
 
+  // TODO a test that would log the following line:
+  //  https://github.com/DANS-KNAW/easy-deposit-api/blob/748c663d/src/main/scala/nl.knaw.dans.easy.deposit/StagedFilesTarget.scala#L69
+  //  Mock a FileAlreadyExistsException by one of the addPayloadFile calls, that mocks a PUT request while processing a POST.
+  //  Preceding and subsequent files are expected to be added to the draft bag.
+  //  Without the recoverWith the request would return some error but still might have added some files.
+
   private def newEmptyBag = {
     DansV0Bag.empty(draftDir).getOrRecover(e => fail(e))
   }
