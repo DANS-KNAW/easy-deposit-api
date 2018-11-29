@@ -59,6 +59,10 @@ case class DataFiles(bag: DansBag) extends DebugEnhancedLogging {
     val parentPath = bag.data / path.toString
     val manifestMap = bag.payloadManifests
 
+    def toFileInfo(file: File, checksum: String): FileInfo = {
+      FileInfo(file.name, bag.data.relativize(file.parent), checksum)
+    }
+
     def convert(items: Map[File, String]) = {
       items
         .withFilter(_._1.isChildOf(parentPath))
@@ -86,15 +90,11 @@ case class DataFiles(bag: DansBag) extends DebugEnhancedLogging {
     val fileExists = manifests.get.contains(absolutePath)
     if (fileExists) {
       val checksum = manifests get absolutePath
-      Success(FileInfo(path.getFileName.toString, bag.data.relativize(absolutePath), checksum))
+      Success(FileInfo(path.getFileName.toString, bag.data.relativize(absolutePath.parent), checksum))
     }
     else {
       Failure(new NoSuchFileException(s"${ path.toString }"))
     }
-  }
-
-  private def toFileInfo(file: File, checksum: String): FileInfo = {
-    FileInfo(file.name, bag.data.relativize(file.parent), checksum)
   }
 
   /**

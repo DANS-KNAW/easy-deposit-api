@@ -149,13 +149,13 @@ class HappyRoutesSpec extends TestSupportFixture with ServletFixture with Scalat
   s"get /deposit/:uuid/file/path/to/directory" should "return a list with one FileInfo object in json format" in {
     authMocker.expectsUserFooBar
     (mockedApp.getFileInfo(_: String, _: UUID, _: Path)) expects("foo", uuid, *) returning
-      Success(Seq(FileInfo("a.txt", Paths.get("files/a.txt"), "x")))
+      Success(Seq(FileInfo("a.txt", Paths.get("files"), "x")))
 
     get(
       uri = s"/deposit/$uuid/file/path/to/directory",
       headers = Seq(("Authorization", fooBarBasicAuthHeader))
     ) {
-      body shouldBe s"""[{"filename":"a.txt","dirpath":"files/a.txt","sha1sum":"x"}]"""
+      body shouldBe s"""[{"filename":"a.txt","dirpath":"files","sha1sum":"x"}]"""
       status shouldBe OK_200
     }
   }
@@ -163,13 +163,13 @@ class HappyRoutesSpec extends TestSupportFixture with ServletFixture with Scalat
   s"get /deposit/:uuid/file/a.txt" should "return a FileInfo object in json format" in {
     authMocker.expectsUserFooBar
     (mockedApp.getFileInfo(_: String, _: UUID, _: Path)) expects("foo", uuid, *) returning
-      Success(FileInfo("a.txt", Paths.get("files/a.txt"), "x"))
+      Success(FileInfo("a.txt", Paths.get("files"), "x"))
 
     get(
       uri = s"/deposit/$uuid/file/a.txt",
       headers = Seq(("Authorization", fooBarBasicAuthHeader))
     ) {
-      body shouldBe s"""{"filename":"a.txt","dirpath":"files/a.txt","sha1sum":"x"}"""
+      body shouldBe s"""{"filename":"a.txt","dirpath":"files","sha1sum":"x"}"""
       status shouldBe OK_200
     }
   }

@@ -30,7 +30,8 @@ import scala.util.Success
 
 class IntegrationSpec extends TestSupportFixture with ServletFixture with ScalatraSuite {
 
-  private val authMocker = new AuthenticationMocker(){}
+  private val authMocker = new AuthenticationMocker() {}
+
   override def beforeEach(): Unit = {
     super.beforeEach()
     clearTestDir()
@@ -129,9 +130,8 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
     val responseBody = post(uri = s"/deposit", headers = Seq(basicAuthentication)) { body }
     val uuid = DepositInfo(responseBody).map(_.id.toString).getOrRecover(e => fail(e.toString, e))
 
+    // upload files in a folder (more variations in UploadSpec)
     val dataFilesBase = DepositDir(testDir / "drafts", "foo", UUID.fromString(uuid)).getDataFiles.get.bag.data
-
-    // upload a file in a folder
     authMocker.expectsUserFooBar
     put(
       uri = s"/deposit/$uuid/file/path/to/text.txt",
@@ -142,21 +142,26 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
       (dataFilesBase / "path" / "to" / "text.txt").contentAsString shouldBe "Lorum ipsum"
     }
 
-    val expectedItem = """{"filename":"text.txt","dirpath":"path/to/text.txt","sha1sum":"c5b8de8cc3587aef4e118a481115391033621e06"}"""
-    val expectedListItem = expectedItem.replace("/text.txt", "")
-
     // get file
     authMocker.expectsUserFooBar
-    get(uri = s"/deposit/$uuid/file/path/to/text.txt", headers = Seq(basicAuthentication)) {
+    get(
+      uri = s"/deposit/$uuid/file/path/to/text.txt",
+      headers = Seq(basicAuthentication)
+    ) {
       status shouldBe OK_200
-      body shouldBe expectedItem
+      // a single json object: {"..."}, more details are tested in DataFilesSpec.fileInfo
+      body should (fullyMatch regex """^\{.*"\}$""")
     }
 
     // get directory
     authMocker.expectsUserFooBar
-    get(uri = s"/deposit/$uuid/file/path/", headers = Seq(basicAuthentication)) {
+    get(
+      uri = s"/deposit/$uuid/file/path/",
+      headers = Seq(basicAuthentication)
+    ) {
       status shouldBe OK_200
-      body shouldBe s"""[$expectedListItem]"""
+      // a list of json objects: [{"..."}], more details are tested in DataFilesSpec.fileInfo
+      body should (fullyMatch regex """^\[\{.*"\}\]$""")
     }
   }
 

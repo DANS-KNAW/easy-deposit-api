@@ -67,7 +67,8 @@ class RichFileItemsSpec extends TestSupportFixture with MockFactory {
       "application/x-zip",
       "application/x-gzip",
     ).map(mockFileItem(s"some.thing", _))
-    fileItems.map { Iterator(_)
+    fileItems.map {
+      Iterator(_)
         .buffered
         .nextAsZipIfOnlyOne
         .map(_.isDefined)
@@ -119,12 +120,12 @@ class RichFileItemsSpec extends TestSupportFixture with MockFactory {
 
   private def mockFileItem(fileName: String, contentType: String = null) = {
     val mocked = mock[Part]
-    mocked.getSize _ expects() returning 20 anyNumberOfTimes()
-    mocked.getName _ expects() returning "formFieldName" anyNumberOfTimes()
+    (() => mocked.getSize) expects() returning 20 anyNumberOfTimes()
+    (() => mocked.getName) expects() returning "formFieldName" anyNumberOfTimes()
     mocked.getHeader _ expects "content-disposition" returning "filename=" + fileName anyNumberOfTimes()
     mocked.getHeader _ expects "content-type" returning contentType anyNumberOfTimes()
-    mocked.getContentType _ expects() returning contentType anyNumberOfTimes()
-    mocked.getInputStream _ expects() returning new ByteArrayInputStream("Lorem ipsum est".getBytes(StandardCharsets.UTF_8)) anyNumberOfTimes()
+    (() => mocked.getContentType) expects() returning contentType anyNumberOfTimes()
+    (() => mocked.getInputStream) expects() returning new ByteArrayInputStream("Lorem ipsum est".getBytes(StandardCharsets.UTF_8)) anyNumberOfTimes()
     FileItem(mocked)
   }
 }
