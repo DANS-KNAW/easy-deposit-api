@@ -15,6 +15,8 @@
  */
 package nl.knaw.dans.easy.deposit.docs
 
+import java.time.Year
+
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.{ PossiblySchemedKeyValue, PossiblySchemedValue, SchemedKeyValue, SchemedValue }
 import nl.knaw.dans.easy.deposit.docs.dm.DateScheme.W3CDTF
 import nl.knaw.dans.easy.deposit.docs.dm.PrivacySensitiveDataPresent.PrivacySensitiveDataPresent
@@ -44,8 +46,8 @@ class MinimalDatasetMetadata(
                               relations: Option[Seq[RelationType]] = None,
                               languagesOfFiles: Option[Seq[PossiblySchemedKeyValue]] = None,
                               dates: Option[Seq[Date]] = Some(Seq(
-                                Date(scheme = Some(W3CDTF.toString), value = "2018", DateQualifier.created),
-                                Date(scheme = Some(W3CDTF.toString), value = "2018", DateQualifier.available)
+                                Date(scheme = Some(W3CDTF.toString), value = Year.now.toString, DateQualifier.created),
+                                Date(scheme = Some(W3CDTF.toString), value = Year.now.toString, DateQualifier.available)
                               )),
                               sources: Option[Seq[String]] = None,
                               instructionsForReuse: Option[Seq[String]] = None,
