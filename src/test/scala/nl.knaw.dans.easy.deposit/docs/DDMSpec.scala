@@ -265,7 +265,7 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
     )
   }
 
-  "dateTimeFormat with little z for zone" should "fail" in  {
+  "MinimalDatasetMetadata" should "fail when given a dateTimeFormat with little z for zone" in  {
     val invalidDates = Some(Seq(
       Date(scheme = Some(W3CDTF.toString), value = "2018-12-09T13:15:30z", DateQualifier.created), // small z for zone is not valid
       dateAvailable2018,
@@ -274,7 +274,7 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
       .causesInvalidDocumentException("cvc-datatype-valid.1.2.3: '2018-12-09T13:15:30z' is not a valid value of union type '#AnonType_W3CDTF'.")
   }
 
-  "dateTimeFormat with zone, where zone part is without a semi colon" should "fail" in  {
+  it should "fail when given a dateTimeFormat with zone, where zone part is without a semi colon" in  {
     val invalidDates = Some(Seq(
       Date(scheme = Some(W3CDTF.toString), value = "2018-12-09T13:15:30+1000", DateQualifier.created), // small z for zone is not valid
       dateAvailable2018,
@@ -283,7 +283,7 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
       .causesInvalidDocumentException("cvc-datatype-valid.1.2.3: '2018-12-09T13:15:30+1000' is not a valid value of union type '#AnonType_W3CDTF'.")
   }
 
-  "dateTimeFormat with zone, where zone part is without minutes" should "fail" in  {
+  it should "fail when give a dateTimeFormat with zone, where zone part is without minutes" in  {
     val invalidDates = Some(Seq(
       Date(scheme = Some(W3CDTF.toString), value = "2018-12-09T13:15:30-05", DateQualifier.created), // small z for zone is not valid
       dateAvailable2018,
