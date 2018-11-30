@@ -122,26 +122,30 @@ class DataFilesSpec extends TestSupportFixture {
   "fileInfo" should "contain proper information about the files" in {
     val sha1 = "a57ec0c3239f30b29f1e9270581be50a70c74c04"
     val sha2 = "815bc8056fe15e00f24514051f1d06016852360c"
+    val expected = Seq(
+      FileInfo("1.txt", Paths.get("some/"), sha1),
+      FileInfo("2.txt", Paths.get("some/folder"), sha2),
+    )
     val bag = DansV0Bag
       .empty(testDir / "testBag").getOrRecover(fail("could not create test bag", _))
       .addPayloadFile("lorum ipsum".inputStream, Paths.get("some/1.txt")).getOrRecover(payloadFailure)
       .addPayloadFile("doler it".inputStream, Paths.get("some/folder/2.txt")).getOrRecover(payloadFailure)
     bag.save()
     val dataFiles = DataFiles(bag)
-    inside (dataFiles.list()) {
-      case Success(infos: Seq[_]) => infos should contain theSameElementsAs Seq(
-        FileInfo("1.txt",Paths.get("some/"),sha1),
-        FileInfo("2.txt",Paths.get("some/folder"),sha2),
-      )
-    }
+
+    // get FileInfo for a singe file, alias GET /deposit/{id}/file/some/folder/2.txt
     dataFiles.get(Paths.get("some/folder/2.txt")) should matchPattern {
       case Success(FileInfo("2.txt", p, _)) if p.toString == "some/folder"=>
     }
-    inside (dataFiles.list(Paths.get("some"))) {
-      case Success(infos: Seq[_]) => infos should contain theSameElementsAs Seq(
-        FileInfo("1.txt",Paths.get(""),sha1),
-        FileInfo("2.txt",Paths.get("folder"),sha2),
-      )
+
+    // get FileInfo for all files, alias GET /deposit/{id}/file
+    inside (dataFiles.list()) { case Success(infos: Seq[_]) =>
+      infos should contain theSameElementsAs expected
+    }
+
+    // get FileInfo recursively for a subfolder, alias GET /deposit/{id}/file/some
+    inside (dataFiles.list(Paths.get("some"))) { case Success(infos: Seq[_]) =>
+        infos should contain theSameElementsAs expected
     }
   }
 
