@@ -16,7 +16,7 @@
 package nl.knaw.dans.easy.deposit.servlets
 
 import java.io.IOException
-import java.nio.file.{ NoSuchFileException, Path, Paths }
+import java.nio.file.{ FileAlreadyExistsException, NoSuchFileException, Path, Paths }
 import java.util.UUID
 
 import nl.knaw.dans.easy.deposit.docs.DDM.SchemaNotAvailableException
@@ -184,6 +184,7 @@ class DepositServlet(app: EasyDepositApiApp)
     case e: InvalidResourceException => invalidResourceResponse(e)
     case e: InvalidDocumentException => badDocResponse(e)
     case e: ConcurrentUploadException => Conflict(e.getMessage)
+    case e: FileAlreadyExistsException => Conflict("Conflict, the following file(s) already exist on the server: "+e.getMessage)
     case e: InvalidDoiException => BadRequest(e.getMessage)
     case e: BadRequestException => BadRequest(e.getMessage)
     case e: ZipMustBeOnlyFileException => BadRequest(e.getMessage)

@@ -194,6 +194,30 @@ class UploadSpec extends DepositServletFixture {
     }
   }
 
+  it should "report existing files" in {
+    val bodyParts = createBodyParts(Seq(
+      ("some", "1.txt", "rababera"),
+      ("some", "2.txt", "rababera"),
+      ("some", "3.txt", "rababera"),
+      ("some", "4.txt", "rababera"),
+    ))
+    val uuid = createDeposit
+    val relativeTarget = "some"
+    val absoluteTarget = (testDir / "drafts" / "foo" / uuid.toString / "bag/data" / relativeTarget).createDirectories()
+    (absoluteTarget / "2.txt").createFile()
+    (absoluteTarget / "3.txt").createFile()
+    post(
+      uri = s"/deposit/$uuid/file/$relativeTarget",
+      params = Iterable(),
+      headers = Seq(fooBarBasicAuthHeader),
+      files = bodyParts
+    ) {
+      absoluteTarget.list.size shouldBe 2
+      status shouldBe CONFLICT_409
+      body shouldBe s"Conflict, the following file(s) already exist on the server: some/3.txt, some/2.txt"
+    }
+  }
+
   it should "report a missing content disposition" in {
     val uuid = createDeposit
 
