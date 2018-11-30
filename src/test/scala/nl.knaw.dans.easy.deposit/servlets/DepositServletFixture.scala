@@ -26,35 +26,25 @@ import org.scalatra.test.scalatest.ScalatraSuite
 
 import scala.util.{ Success, Try }
 
-class DepositServletFixture extends TestSupportFixture with ServletFixture with ScalatraSuite {
-  private val authMocker = new AuthenticationMocker(){}
-
+trait DepositServletFixture extends TestSupportFixture with ServletFixture with ScalatraSuite {
   private val app: EasyDepositApiApp = new EasyDepositApiApp(minimalAppConfig) {
     override val pidRequester: PidRequester = mock[PidRequester]
   }
-  private val depositServlet = {
-    new DepositServlet(app) {
-      override def getAuthenticationProvider: AuthenticationProvider = {
-        authMocker.mockedAuthenticationProvider
-      }
+  private val depositServlet = new DepositServlet(app) {
+    override def getAuthenticationProvider: AuthenticationProvider = {
+      new AuthenticationMocker() {
+        expectsUserFooBar anyNumberOfTimes()
+      }.mockedAuthenticationProvider
     }
   }
   addServlet(depositServlet, "/deposit/*")
 
-  override def beforeEach(): Unit = {
-    super.beforeEach()
-    authMocker.expectsUserFooBar
-  }
-
   /** @return uuid of the created deposit */
   def createDeposit: String = {
-    val responseBody = post(s"/deposit/", headers = Seq(auth)) { body }
-    authMocker.expectsUserFooBar // another time for the actual test
+    val responseBody = post(s"/deposit/", headers = Seq(fooBarBasicAuthHeader)) { body }
     DepositInfo(responseBody).map(_.id.toString).getOrRecover(e => fail(e.toString, e))
   }
 
   def mockDoiRequest(doi: String): CallHandler1[PidType, Try[String]] =
     (app.pidRequester.requestPid(_: PidType)) expects PidType.doi returning Success(doi)
-
-  val auth: (String, String) = ("Authorization", fooBarBasicAuthHeader)
 }

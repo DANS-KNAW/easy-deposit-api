@@ -78,8 +78,7 @@ package object servlets extends DebugEnhancedLogging {
             .continually(zipInputStream.getNextEntry)
             .takeWhile(Option(_).nonEmpty)
             .map(extract)
-            .find(_.isFailure)
-            .getOrElse(Success(()))
+            .failFastOr(Success(()))
         } yield ()
       }
     }
@@ -112,10 +111,9 @@ package object servlets extends DebugEnhancedLogging {
   implicit class RichFileItems(val fileItems: BufferedIterator[FileItem]) extends AnyVal {
 
     def copyPlainItemsTo(dir: File): Try[Unit] = {
-      fileItems
+      fileItems.toStream
         .map(_.copyNonZipTo(dir))
-        .find(_.isFailure)
-        .getOrElse(Success(()))
+        .failFastOr(Success(()))
     }
 
     def nextAsZipIfOnlyOne: Try[Option[ManagedResource[ZipInputStream]]] = {

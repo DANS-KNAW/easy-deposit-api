@@ -16,6 +16,7 @@
 package nl.knaw.dans.easy.deposit.servlets
 
 import java.io
+import java.util.Base64
 
 import better.files.File
 import nl.knaw.dans.easy.deposit.EasyDepositApiApp
@@ -76,5 +77,10 @@ trait ServletFixture extends EmbeddedJettyContainer {
       (dir / file).write(content)
       (formField, (dir / file).toJava)
     }
+  }
+
+  val fooBarBasicAuthHeader: (String, String) = {
+    val encoded = Base64.getEncoder.encodeToString("foo:bar".getBytes())
+    ("Authorization", s"Basic $encoded")
   }
 }

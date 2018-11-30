@@ -17,7 +17,7 @@ package nl.knaw.dans.easy.deposit
 
 import java.io.InputStream
 import java.net.URI
-import java.nio.file.Path
+import java.nio.file.{ FileAlreadyExistsException, Path }
 import java.util.UUID
 
 import better.files.File.temporaryDirectory
@@ -30,7 +30,7 @@ import nl.knaw.dans.lib.error._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.apache.commons.configuration.PropertiesConfiguration
 
-import scala.util.Try
+import scala.util.{ Failure, Success, Try }
 
 class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLogging
   with LdapAuthentication
@@ -58,7 +58,16 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
     configuration.version
   }
 
-  private val uploadStagingDir = getConfiguredDirectory("deposits.stage.upload")
+  private val uploadStagingDir = {
+    val dir = getConfiguredDirectory("deposits.stage.upload")
+    logger.info(s"Uploads are staged in $dir")
+    if (dir.nonEmpty) {
+      val msg = s"Pending uploads were probably interrupted. See logs lines with 'POST /deposit/{id}/file/{dir_path}'. Please remove their directories from the staging area: $dir"
+      logger.error(msg)
+      throw new FileAlreadyExistsException(msg)
+    }
+    dir
+  }
   private val draftsDir = getConfiguredDirectory("deposits.drafts")
   private lazy val submitter = new Submitter(
     stagingBaseDir = getConfiguredDirectory("deposits.stage"),
@@ -250,18 +259,36 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
    * @param is   the input stream to write from
    * @return `true` if a new file was created, `false` otherwise
    */
-  def writeDepositFile(is: => InputStream, user: String, id: UUID, path: Path): Try[Boolean] = for {
-    dataFiles <- getDataFiles(user, id)
-    _ = logger.info(s"uploading to [${ dataFiles.bag.baseDir }] of [$path]")
-    created <- dataFiles.write(is, path)
-    _ = logger.info(s"created=$created $user/$id/$path")
-  } yield created
+  def writeDepositFile(is: => InputStream, user: String, id: UUID, path: Path): Try[Boolean] = {
+    for {
+      dataFiles <- getDataFiles(user, id)
+      _ = logger.info(s"uploading to [${ dataFiles.bag.baseDir }] of [$path]")
+      created <- dataFiles.write(is, path)
+      _ = logger.info(s"created=$created $user/$id/$path")
+    } yield created
+  }
 
-  def stageFiles(userId: String, id: UUID, destination: Path): Try[(Dispose[File], StagedFilesTarget)] = for {
-    deposit <- DepositDir.get(draftsDir, userId, id)
-    dataFiles <- deposit.getDataFiles
-    stagingDir = temporaryDirectory(s"$userId-$id-", Some(uploadStagingDir.createDirectories()))
-  } yield (stagingDir, StagedFilesTarget(dataFiles.bag, destination))
+  def stageFiles(userId: String, id: UUID, destination: Path): Try[(Dispose[File], StagedFilesTarget)] = {
+    val prefix = s"$userId-$id-"
+    for {
+      deposit <- DepositDir.get(draftsDir, userId, id)
+      dataFiles <- deposit.getDataFiles
+      stagingDir <- createManagedTempDir(prefix)
+      _ <- atMostOneTempDir(prefix).doIfFailure { case _ => stagingDir.get() }
+    } yield (stagingDir, StagedFilesTarget(dataFiles.bag, destination))
+  }
+
+  // the directory is dropped when the resource is released
+  private def createManagedTempDir(prefix: String): Try[Dispose[File]] = Try {
+    temporaryDirectory(prefix, Some(uploadStagingDir.createDirectories()))
+  }
+
+  // prevents concurrent uploads, requires explicit cleanup of interrupted uploads
+  private def atMostOneTempDir(prefix: String): Try[Unit] = {
+    if (uploadStagingDir.list.count(_.name.startsWith(prefix)) > 1)
+      Failure(ConcurrentUploadException(prefix))
+    else Success(())
+  }
 
   /**
    * Deletes the given regular file or directory. The specified `path` must be relative to the content directory.
