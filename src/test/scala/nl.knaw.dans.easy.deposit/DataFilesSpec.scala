@@ -109,7 +109,7 @@ class DataFilesSpec extends TestSupportFixture {
     bag.save()
     val dataFiles = DataFiles(bag)
     dataFiles.list(Paths.get("folder2")) should matchPattern {
-      case Success(Seq(_))=>
+      case Success(Seq(_)) =>
     }
     dataFiles.list(Paths.get("folder1")) should matchPattern {
       case Success(Seq(_, _)) =>
@@ -135,17 +135,17 @@ class DataFilesSpec extends TestSupportFixture {
 
     // get FileInfo for a singe file, alias GET /deposit/{id}/file/some/folder/2.txt
     dataFiles.get(Paths.get("some/folder/2.txt")) should matchPattern {
-      case Success(FileInfo("2.txt", p, _)) if p.toString == "some/folder"=>
+      case Success(FileInfo("2.txt", p, _)) if p.toString == "some/folder" =>
     }
 
     // get FileInfo for all files, alias GET /deposit/{id}/file
-    inside (dataFiles.list()) { case Success(infos: Seq[_]) =>
+    inside(dataFiles.list()) { case Success(infos: Seq[_]) =>
       infos should contain theSameElementsAs expected
     }
 
     // get FileInfo recursively for a subfolder, alias GET /deposit/{id}/file/some
-    inside (dataFiles.list(Paths.get("some"))) { case Success(infos: Seq[_]) =>
-        infos should contain theSameElementsAs expected
+    inside(dataFiles.list(Paths.get("some"))) { case Success(infos: Seq[_]) =>
+      infos should contain theSameElementsAs expected
     }
   }
 

@@ -30,7 +30,7 @@ import scala.util.Success
 
 class HappyRoutesSpec extends TestSupportFixture with ServletFixture with ScalatraSuite {
 
-  private val authMocker = new AuthenticationMocker(){}
+  private val authMocker = new AuthenticationMocker() {}
   private class MockedApp extends EasyDepositApiApp(minimalAppConfig)
   private val mockedApp = mock[MockedApp]
   mountServlets(mockedApp, authMocker.mockedAuthenticationProvider)
