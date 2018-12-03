@@ -7,6 +7,9 @@ ExecStart=/bin/java \
    -Dapp.home=/opt/dans.knaw.nl/easy-deposit-api \
    -jar /opt/dans.knaw.nl/easy-deposit-api/bin/easy-deposit-api.jar run-service
 
+# Java returns 143 even if the SIGTERM was handled correctly.
+SuccessExitStatus=143
+
 User=easy-deposit-api
 Group=easy-deposit-api
 

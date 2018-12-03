@@ -107,7 +107,7 @@ case class DataFiles(bag: DansBag) extends DebugEnhancedLogging {
   def write(is: InputStream, path: Path): Try[Boolean] = {
     val fileExists = (bag.data / path.toString).exists
     for {
-      _ <- if (fileExists) removeFile(path)
+      _ <- if (fileExists) bag.removePayloadFile(path)
            else Success(())
       _ <- bag.addPayloadFile(is, path)
       _ <- bag.save
@@ -124,21 +124,14 @@ case class DataFiles(bag: DansBag) extends DebugEnhancedLogging {
     val file = bag.data / path.toString
     if (!file.exists) Failure(new NoSuchFileException(path.toString))
     else (if (file.isDirectory) removeDir(file.walk().toStream)
-          else removeFile(path)
+          else bag.removePayloadFile(path)
       ).flatMap(_.save)
   }
 
   private def removeDir(files: Stream[File]): Try[DansBag] = {
     files
       .withFilter(!_.isDirectory)
-      .map(f => removeFile(bag.data.relativize(f)))
-      .find(_.isFailure) // fail fast
-      .getOrElse(Success(bag))
-  }
-
-  private def removeFile(path: Path): Try[DansBag] = {
-    // saving after each file causes calculation of at least 4 check sums in tagmanifest
-    // still one deleted file can show up after a crash between delete and completing the save
-    bag.removePayloadFile(path)
+      .map(f => bag.removePayloadFile(bag.data.relativize(f)))
+      .failFastOr(Success(bag))
   }
 }

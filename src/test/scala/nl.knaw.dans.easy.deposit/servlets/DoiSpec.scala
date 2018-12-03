@@ -54,86 +54,86 @@ class DoiSpec extends DepositServletFixture {
   "GET /deposit/{id}/doi" should "return a fresh DOI" in {
     val uuid = createDeposit
     mockDoiRequest(doi) once()
-    get(s"/deposit/$uuid/doi", headers = Seq(auth)) { shouldReturnDOI }
+    get(s"/deposit/$uuid/doi", headers = Seq(fooBarBasicAuthHeader)) { shouldReturnDOI }
   }
 
   it should "fail when json has a DOI and properties not" in {
     val uuid = createDeposit
     jsonFile(uuid).write(s"""{$doiForJson}""")
-    get(s"/deposit/$uuid/doi", headers = Seq(auth)) { shouldReturnBadRequest(uuid) }
+    get(s"/deposit/$uuid/doi", headers = Seq(fooBarBasicAuthHeader)) { shouldReturnBadRequest(uuid) }
   }
 
   it should "fail when DOI's are different" in {
     val uuid = createDeposit
     jsonFile(uuid).write(s"""{$doiForJson}""")
-    get(s"/deposit/$uuid/doi", headers = Seq(auth)) { shouldReturnBadRequest(uuid) }
+    get(s"/deposit/$uuid/doi", headers = Seq(fooBarBasicAuthHeader)) { shouldReturnBadRequest(uuid) }
   }
 
   it should "return DOI when properties has a DOI but json not" in {
     // this can happen when a client asks twice for a DOI without saving the metadata in between
     val uuid = createDeposit
     propsFile(uuid).append(doiProperty)
-    get(s"/deposit/$uuid/doi", headers = Seq(auth)) { shouldReturnDOI }
+    get(s"/deposit/$uuid/doi", headers = Seq(fooBarBasicAuthHeader)) { shouldReturnDOI }
   }
 
   "PUT /deposit/{id}/metadata" should "succeed when DOI's are equal" in {
     val uuid = createDeposit
     propsFile(uuid).append(doiProperty)
-    put(s"/deposit/$uuid/metadata", headers = Seq(auth), body = s"""{$doiForJson}""") { status shouldBe NO_CONTENT_204 }
+    put(s"/deposit/$uuid/metadata", headers = Seq(fooBarBasicAuthHeader), body = s"""{$doiForJson}""") { status shouldBe NO_CONTENT_204 }
   }
 
   it should "succeed without any DOI" in {
     val uuid = createDeposit
-    put(s"/deposit/$uuid/metadata", headers = Seq(auth), body = "{}") { status shouldBe NO_CONTENT_204 }
+    put(s"/deposit/$uuid/metadata", headers = Seq(fooBarBasicAuthHeader), body = "{}") { status shouldBe NO_CONTENT_204 }
   }
 
   it should "fail when DOI's are different" in {
     val uuid = createDeposit
     propsFile(uuid).append(doiProperty + "xyz")
-    put(s"/deposit/$uuid/metadata", headers = Seq(auth), body = s"""{$doiForJson}""") { shouldReturnBadRequest(uuid) }
+    put(s"/deposit/$uuid/metadata", headers = Seq(fooBarBasicAuthHeader), body = s"""{$doiForJson}""") { shouldReturnBadRequest(uuid) }
   }
 
   it should "fail when json has a DOI but properties not" in {
     val uuid = createDeposit
-    put(s"/deposit/$uuid/metadata", headers = Seq(auth), body = s"""{$doiForJson}""") { shouldReturnBadRequest(uuid) }
+    put(s"/deposit/$uuid/metadata", headers = Seq(fooBarBasicAuthHeader), body = s"""{$doiForJson}""") { shouldReturnBadRequest(uuid) }
   }
 
   it should "fail when properties has a DOI but json not" in {
     val uuid = createDeposit
     propsFile(uuid).append(doiProperty)
-    put(s"/deposit/$uuid/metadata", headers = Seq(auth), body = "{}") { shouldReturnBadRequest(uuid) }
+    put(s"/deposit/$uuid/metadata", headers = Seq(fooBarBasicAuthHeader), body = "{}") { shouldReturnBadRequest(uuid) }
   }
 
   "PUT /deposit/{id}/state" should "succeed when DOI's are equal" in {
     val uuid = createDeposit
     propsFile(uuid).append(doiProperty)
     jsonFile(uuid).write(s"""{$doiForJson,$mandatoryOnSubmit}""")
-    put(s"/deposit/$uuid/state", headers = Seq(auth), body = submit) { status shouldBe NO_CONTENT_204 }
+    put(s"/deposit/$uuid/state", headers = Seq(fooBarBasicAuthHeader), body = submit) { status shouldBe NO_CONTENT_204 }
   }
 
   it should "fail without any DOI" in {
     val uuid = createDeposit
     jsonFile(uuid).write(s"""{$mandatoryOnSubmit}""")
-    put(s"/deposit/$uuid/state", headers = Seq(auth), body = submit) { shouldReturnBadRequest(uuid) }
+    put(s"/deposit/$uuid/state", headers = Seq(fooBarBasicAuthHeader), body = submit) { shouldReturnBadRequest(uuid) }
   }
 
   it should "fail when DOI's are different" in {
     val uuid = createDeposit
     propsFile(uuid).append(doiProperty + "xyz")
     jsonFile(uuid).write(s"""{$doiForJson,$mandatoryOnSubmit}""")
-    put(s"/deposit/$uuid/state", headers = Seq(auth), body = submit) { shouldReturnBadRequest(uuid) }
+    put(s"/deposit/$uuid/state", headers = Seq(fooBarBasicAuthHeader), body = submit) { shouldReturnBadRequest(uuid) }
   }
 
   it should "fail when json has a DOI but properties not" in {
     val uuid = createDeposit
     jsonFile(uuid).write(s"""{$doiForJson,$mandatoryOnSubmit}""")
-    put(s"/deposit/$uuid/state", headers = Seq(auth), body = submit) { shouldReturnBadRequest(uuid) }
+    put(s"/deposit/$uuid/state", headers = Seq(fooBarBasicAuthHeader), body = submit) { shouldReturnBadRequest(uuid) }
   }
 
   it should "fail when properties has a DOI but json not" in {
     val uuid = createDeposit
     jsonFile(uuid).write(s"""{$mandatoryOnSubmit}""")
     propsFile(uuid).append(doiProperty)
-    put(s"/deposit/$uuid/state", headers = Seq(auth), body = submit) { shouldReturnBadRequest(uuid) }
+    put(s"/deposit/$uuid/state", headers = Seq(fooBarBasicAuthHeader), body = submit) { shouldReturnBadRequest(uuid) }
   }
 }

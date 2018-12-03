@@ -16,13 +16,13 @@
 package nl.knaw.dans.easy.deposit
 
 import java.net.URL
-import java.nio.file.Paths
+import java.nio.file.{ FileAlreadyExistsException, Paths }
 
 import better.files.StringOps
 import nl.knaw.dans.bag.v0.DansV0Bag
 import nl.knaw.dans.lib.error._
 
-import scala.util.Success
+import scala.util.{ Failure, Success }
 
 class StagedFilesTargetSpec extends TestSupportFixture {
 
@@ -45,7 +45,7 @@ class StagedFilesTargetSpec extends TestSupportFixture {
     bag.fetchFiles.size shouldBe 0
 
     StagedFilesTarget(bag, Paths.get("path/to"))
-      .takeAllFrom(stagedDir) shouldBe Success(())
+      .moveAllFrom(stagedDir) shouldBe Success(())
 
     val newBag = DansV0Bag.read(draftDir).getOrRecover(e => fail(e))
     (newBag.data / "path/to/some.thing").contentAsString shouldBe "new content"
@@ -59,14 +59,14 @@ class StagedFilesTargetSpec extends TestSupportFixture {
     bag.save()
 
     StagedFilesTarget(bag, Paths.get(""))
-      .takeAllFrom(stagedDir) shouldBe Success(())
+      .moveAllFrom(stagedDir) shouldBe Success(())
 
     val newBag = readDraftBag
     (newBag.data / "some.thing").contentAsString shouldBe "new content"
     newBag.fetchFiles.size shouldBe 0
   }
 
-  it should "replace a fetch file" in {
+  it should "not replace a fetch file" in {
     (stagedDir / "some.thing").createFile().write("new content")
     val url = new URL("https://raw.githubusercontent.com/DANS-KNAW/easy-deposit-api/master/README.md")
     assumeSchemaAvailable
@@ -76,26 +76,36 @@ class StagedFilesTargetSpec extends TestSupportFixture {
     bag.fetchFiles.size shouldBe 1
 
     StagedFilesTarget(bag, Paths.get("path/to"))
-      .takeAllFrom(stagedDir) shouldBe Success(())
+      .moveAllFrom(stagedDir) should matchPattern {
+      case Failure(e: FileAlreadyExistsException) if e.getMessage == "path/to/some.thing" =>
+    }
 
     val newBag = readDraftBag
-    (newBag.data / "path/to/some.thing").contentAsString shouldBe "new content"
-    newBag.fetchFiles.size shouldBe 0
+    newBag.data.list.size shouldBe 0
+    newBag.fetchFiles.size shouldBe 1
   }
 
-  it should "replace a payload file" in {
+  it should "not replace a payload file" in {
     (stagedDir / "some.thing").createFile().write("new content")
     val bag = newEmptyBag.addPayloadFile("Lorum ipsum".inputStream, Paths.get("path/to/some.thing")).getOrRecover(e => fail(e))
     bag.save()
     (bag.data / "path/to/some.thing").contentAsString shouldBe "Lorum ipsum"
 
     StagedFilesTarget(bag, Paths.get("path/to"))
-      .takeAllFrom(stagedDir) shouldBe Success(())
+      .moveAllFrom(stagedDir) should matchPattern {
+      case Failure(e: FileAlreadyExistsException) if e.getMessage == "path/to/some.thing" =>
+    }
 
     val newBag = readDraftBag
-    (newBag.data / "path/to/some.thing").contentAsString shouldBe "new content"
+    (newBag.data / "path/to/some.thing").contentAsString shouldBe "Lorum ipsum"
     newBag.fetchFiles.size shouldBe 0
   }
+
+  // TODO a test that would log the following line:
+  //  https://github.com/DANS-KNAW/easy-deposit-api/blob/748c663d/src/main/scala/nl.knaw.dans.easy.deposit/StagedFilesTarget.scala#L69
+  //  Mock a FileAlreadyExistsException by one of the addPayloadFile calls, that mocks a PUT request while processing a POST.
+  //  Preceding and subsequent files are expected to be added to the draft bag.
+  //  Without the recoverWith the request would return some error but still might have added some files without saving the sha's in the manifests.
 
   private def newEmptyBag = {
     DansV0Bag.empty(draftDir).getOrRecover(e => fail(e))

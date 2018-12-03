@@ -44,5 +44,3 @@ class UserServlet(app: EasyDepositApiApp) extends ProtectedServlet(app) {
     case _ => notExpectedExceptionResponse(t)
   }
 }
-
-

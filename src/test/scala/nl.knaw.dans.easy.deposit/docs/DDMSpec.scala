@@ -229,11 +229,12 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
     )
   }
 
+  private val dateAvailable2018 = Date(scheme = None, value = "2018", DateQualifier.available)
   "minimal with various types of dates" should behave like {
     // with and without qualifier, varying precision
     val dates = Some(Seq(
       Date(scheme = None, value = "2018", DateQualifier.created),
-      Date(scheme = None, value = "2018", DateQualifier.available),
+      dateAvailable2018,
       Date(scheme = None, value = "Groundhog day", DateQualifier.dateAccepted),
       Date(scheme = None, value = "Groundhog day", DateQualifier.dateCopyrighted),
       Date(scheme = None, value = "Groundhog day", DateQualifier.issued),
@@ -241,6 +242,8 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
       Date(scheme = None, value = "Groundhog day", DateQualifier.valid),
       Date(scheme = Some(W3CDTF.toString), value = "2018", DateQualifier.valid),
       Date(scheme = Some(W3CDTF.toString), value = "2018-12", DateQualifier.valid),
+      Date(scheme = Some(W3CDTF.toString), value = "2018-12-09T08:15:30-05:00", DateQualifier.valid),
+      Date(scheme = Some(W3CDTF.toString), value = "2018-12-09T13:15:30Z", DateQualifier.valid),
     ))
     validDatasetMetadata(
       input = Try(new MinimalDatasetMetadata(dates = dates)),
@@ -255,9 +258,38 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
           <dcterms:valid>Groundhog day</dcterms:valid>
           <dcterms:valid xsi:type="dcterms:W3CDTF">2018</dcterms:valid>
           <dcterms:valid xsi:type="dcterms:W3CDTF">2018-12</dcterms:valid>
+          <dcterms:valid xsi:type="dcterms:W3CDTF">2018-12-09T08:15:30-05:00</dcterms:valid>
+          <dcterms:valid xsi:type="dcterms:W3CDTF">2018-12-09T13:15:30Z</dcterms:valid>
           <dcterms:dateSubmitted xsi:type="dcterms:W3CDTF">{ nowYMD }</dcterms:dateSubmitted>
         </ddm:dcmiMetadata>
     )
+  }
+
+  "MinimalDatasetMetadata" should "fail when given a dateTimeFormat with little z for zone" in  {
+    val invalidDates = Some(Seq(
+      Date(scheme = Some(W3CDTF.toString), value = "2018-12-09T13:15:30z", DateQualifier.created), // small z for zone is not valid
+      dateAvailable2018,
+    ))
+    new MinimalDatasetMetadata(dates = invalidDates)
+      .causesInvalidDocumentException("cvc-datatype-valid.1.2.3: '2018-12-09T13:15:30z' is not a valid value of union type '#AnonType_W3CDTF'.")
+  }
+
+  it should "fail when given a dateTimeFormat with zone, where zone part is without a semi colon" in  {
+    val invalidDates = Some(Seq(
+      Date(scheme = Some(W3CDTF.toString), value = "2018-12-09T13:15:30+1000", DateQualifier.created), // small z for zone is not valid
+      dateAvailable2018,
+    ))
+    new MinimalDatasetMetadata(dates = invalidDates)
+      .causesInvalidDocumentException("cvc-datatype-valid.1.2.3: '2018-12-09T13:15:30+1000' is not a valid value of union type '#AnonType_W3CDTF'.")
+  }
+
+  it should "fail when give a dateTimeFormat with zone, where zone part is without minutes" in  {
+    val invalidDates = Some(Seq(
+      Date(scheme = Some(W3CDTF.toString), value = "2018-12-09T13:15:30-05", DateQualifier.created), // small z for zone is not valid
+      dateAvailable2018,
+    ))
+    new MinimalDatasetMetadata(dates = invalidDates)
+      .causesInvalidDocumentException("cvc-datatype-valid.1.2.3: '2018-12-09T13:15:30-05' is not a valid value of union type '#AnonType_W3CDTF'.")
   }
 
   "minimal with points and boxes of issue 1538" should behave like {

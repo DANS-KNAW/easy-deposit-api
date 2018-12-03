@@ -65,7 +65,7 @@ class HappyRoutesSpec extends TestSupportFixture with ServletFixture with Scalat
 
     post(
       uri = "/deposit",
-      headers = Seq(("Authorization", fooBarBasicAuthHeader))
+      headers = Seq(fooBarBasicAuthHeader)
     ) {
       status shouldBe CREATED_201
       body shouldBe s"""{"id":"$uuid","title":"just a test","state":"DRAFT","stateDescription":"Deposit is open for changes.","date":"$nowUTC"}"""
@@ -86,7 +86,7 @@ class HappyRoutesSpec extends TestSupportFixture with ServletFixture with Scalat
 
     get(
       uri = "/deposit",
-      headers = Seq(("Authorization", fooBarBasicAuthHeader))
+      headers = Seq(fooBarBasicAuthHeader)
     ) {
       status shouldBe OK_200
       // TODO IntegrationSpec seems to apply CEST consistently, should be Z anyway
@@ -108,7 +108,7 @@ class HappyRoutesSpec extends TestSupportFixture with ServletFixture with Scalat
     ))
     get(
       uri = "/user",
-      headers = Seq(("Authorization", fooBarBasicAuthHeader))
+      headers = Seq(fooBarBasicAuthHeader)
     ) {
       body shouldBe """{"userName":"foo","firstName":"Jan","prefix":"van den","lastName":"Berg","groups":["Archeology","History"]}"""
       status shouldBe OK_200
@@ -124,7 +124,7 @@ class HappyRoutesSpec extends TestSupportFixture with ServletFixture with Scalat
 
     get(
       uri = "/user",
-      headers = Seq(("Authorization", fooBarBasicAuthHeader))
+      headers = Seq(fooBarBasicAuthHeader)
     ) {
       body shouldBe """{"userName":"foo","lastName":"Berg"}"""
       status shouldBe OK_200
@@ -139,7 +139,7 @@ class HappyRoutesSpec extends TestSupportFixture with ServletFixture with Scalat
 
     get(
       uri = s"/deposit/$uuid/state",
-      headers = Seq(("Authorization", fooBarBasicAuthHeader))
+      headers = Seq(fooBarBasicAuthHeader)
     ) {
       body shouldBe s"""{"state":"DRAFT","stateDescription":"x"}"""
       status shouldBe OK_200
@@ -153,7 +153,7 @@ class HappyRoutesSpec extends TestSupportFixture with ServletFixture with Scalat
 
     get(
       uri = s"/deposit/$uuid/file/path/to/directory",
-      headers = Seq(("Authorization", fooBarBasicAuthHeader))
+      headers = Seq(fooBarBasicAuthHeader)
     ) {
       body shouldBe s"""[{"filename":"a.txt","dirpath":"files","sha1sum":"x"}]"""
       status shouldBe OK_200
@@ -167,7 +167,7 @@ class HappyRoutesSpec extends TestSupportFixture with ServletFixture with Scalat
 
     get(
       uri = s"/deposit/$uuid/file/a.txt",
-      headers = Seq(("Authorization", fooBarBasicAuthHeader))
+      headers = Seq(fooBarBasicAuthHeader)
     ) {
       body shouldBe s"""{"filename":"a.txt","dirpath":"files","sha1sum":"x"}"""
       status shouldBe OK_200
@@ -181,7 +181,7 @@ class HappyRoutesSpec extends TestSupportFixture with ServletFixture with Scalat
     put(
       uri = s"/deposit/$uuid/metadata",
       body = """{"title":"blabla"}""", // N.B: key should be plural
-      headers = Seq(("Authorization", fooBarBasicAuthHeader))
+      headers = Seq(fooBarBasicAuthHeader)
     ) {
       status shouldBe BAD_REQUEST_400
       body shouldBe """Bad Request. invalid DatasetMetadata: don't recognize {"title":"blabla"}"""
