@@ -144,10 +144,9 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
 
     // get file
     authMocker.expectsUserFooBar
-    get(uri = s"/deposit/$uuid/file/path/to/text.txt", headers = Seq(fooBarBasicAuthHeader)) {
     get(
       uri = s"/deposit/$uuid/file/path/to/text.txt",
-      headers = Seq(basicAuthentication)
+      headers = Seq(fooBarBasicAuthHeader)
     ) {
       status shouldBe OK_200
       // a single json object: {"..."}, more details are tested in DataFilesSpec.fileInfo
@@ -156,10 +155,9 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
 
     // get directory
     authMocker.expectsUserFooBar
-    get(uri = s"/deposit/$uuid/file/path/", headers = Seq(fooBarBasicAuthHeader)) {
     get(
       uri = s"/deposit/$uuid/file/path/",
-      headers = Seq(basicAuthentication)
+      headers = Seq(fooBarBasicAuthHeader)
     ) {
       status shouldBe OK_200
       // a list of json objects: [{"..."}], more details are tested in DataFilesSpec.fileInfo
