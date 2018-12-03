@@ -28,7 +28,7 @@ object Mocker extends MockFactory {
     headers.foreach { case (key: String, values: Seq[String]) =>
       response.getHeaders _ expects key anyNumberOfTimes() returning values.asJava
     }
-    response.getHeaderNames _ expects() anyNumberOfTimes() returning headers.keys.toSeq.asJava
+    (() => response.getHeaderNames) expects() anyNumberOfTimes() returning headers.keys.toSeq.asJava
     response
   }
 
@@ -38,7 +38,7 @@ object Mocker extends MockFactory {
     headers.foreach { case (key: String, values: Seq[String]) =>
       request.getHeaders _ expects key anyNumberOfTimes() returning values.iterator.asJavaEnumeration
     }
-    request.getHeaderNames _ expects() anyNumberOfTimes() returning headers.keys.iterator.asJavaEnumeration
+    (() => request.getHeaderNames) expects() anyNumberOfTimes() returning headers.keys.iterator.asJavaEnumeration
     request
   }
 }

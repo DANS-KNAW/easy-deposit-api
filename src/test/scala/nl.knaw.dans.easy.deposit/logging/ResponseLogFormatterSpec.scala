@@ -56,7 +56,7 @@ class ResponseLogFormatterSpec extends TestSupportFixture with MockFactory {
 
   private def mockRequest = {
     val req = mock[HttpServletRequest]
-    req.getMethod _ expects() returning "GET" anyNumberOfTimes()
+    (() => req.getMethod) expects() returning "GET" anyNumberOfTimes()
     req
   }
 }

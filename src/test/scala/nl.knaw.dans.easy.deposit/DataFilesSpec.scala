@@ -108,10 +108,8 @@ class DataFilesSpec extends TestSupportFixture {
       .addPayloadFile(randomContent, Paths.get("folder2/4.txt")).getOrRecover(payloadFailure)
     bag.save()
     val dataFiles = DataFiles(bag)
-    val path2 = Paths.get("folder2")
-
-    dataFiles.list(path2) should matchPattern {
-      case Success(Seq(FileInfo("4.txt", p, _))) if p == path2 => // no order problem as the next cases would have
+    dataFiles.list(Paths.get("folder2")) should matchPattern {
+      case Success(Seq(_)) =>
     }
     dataFiles.list(Paths.get("folder1")) should matchPattern {
       case Success(Seq(_, _)) =>
@@ -121,17 +119,33 @@ class DataFilesSpec extends TestSupportFixture {
     }
   }
 
-  "fileInfo" should "return proper information about the file" in {
+  "fileInfo" should "contain proper information about the files" in {
+    val sha1 = "a57ec0c3239f30b29f1e9270581be50a70c74c04"
+    val sha2 = "815bc8056fe15e00f24514051f1d06016852360c"
+    val expected = Seq(
+      FileInfo("1.txt", Paths.get("some/"), sha1),
+      FileInfo("2.txt", Paths.get("some/folder"), sha2),
+    )
     val bag = DansV0Bag
       .empty(testDir / "testBag").getOrRecover(fail("could not create test bag", _))
-      .addPayloadFile(randomContent, Paths.get("1.txt")).getOrRecover(payloadFailure)
-      .addPayloadFile(randomContent, Paths.get("folder1/2.txt")).getOrRecover(payloadFailure)
+      .addPayloadFile("lorum ipsum".inputStream, Paths.get("some/1.txt")).getOrRecover(payloadFailure)
+      .addPayloadFile("doler it".inputStream, Paths.get("some/folder/2.txt")).getOrRecover(payloadFailure)
     bag.save()
     val dataFiles = DataFiles(bag)
-    val path = Paths.get("folder1/2.txt")
 
-    dataFiles.get(path) should matchPattern {
-      case Success(FileInfo("2.txt", `path`, _)) =>
+    // get FileInfo for a singe file, alias GET /deposit/{id}/file/some/folder/2.txt
+    dataFiles.get(Paths.get("some/folder/2.txt")) should matchPattern {
+      case Success(FileInfo("2.txt", p, _)) if p.toString == "some/folder" =>
+    }
+
+    // get FileInfo for all files, alias GET /deposit/{id}/file
+    inside(dataFiles.list()) { case Success(infos: Seq[_]) =>
+      infos should contain theSameElementsAs expected
+    }
+
+    // get FileInfo recursively for a subfolder, alias GET /deposit/{id}/file/some
+    inside(dataFiles.list(Paths.get("some"))) { case Success(infos: Seq[_]) =>
+      infos should contain theSameElementsAs expected
     }
   }
 

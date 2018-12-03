@@ -114,11 +114,11 @@ class RequestLogFormatterSpec extends TestSupportFixture with MockFactory {
       "HTTP_AUTHORIZATION" -> Seq("basic 123x_"),
       "foo" -> Seq("bar")
     ))
-    request.getMethod _ expects() anyNumberOfTimes() returning
+    (() => request.getMethod) expects() anyNumberOfTimes() returning
       "GET"
-    request.getRequestURL _ expects() anyNumberOfTimes() returning
+    (() => request.getRequestURL) expects() anyNumberOfTimes() returning
       new StringBuffer("http://does.not.exist.dans.knaw.nl")
-    request.getRemoteAddr _ expects() anyNumberOfTimes() returning
+    (() => request.getRemoteAddr) expects() anyNumberOfTimes() returning
       "12.34.56.78"
     request
   }
