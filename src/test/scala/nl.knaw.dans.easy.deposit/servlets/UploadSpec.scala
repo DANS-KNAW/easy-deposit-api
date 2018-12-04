@@ -218,7 +218,7 @@ class UploadSpec extends DepositServletFixture {
       files = Seq(("formFieldName", (testDir / "input/1.zip").toJava))
     ) {
       body shouldBe ""
-      status shouldBe OK_200
+      status shouldBe CREATED_201
       absoluteTarget.walk().map(_.name).toList should contain theSameElementsAs List(
         "data", "login.html", "readme.md", "__MACOSX", "._login.html", "upload.html"
       )
