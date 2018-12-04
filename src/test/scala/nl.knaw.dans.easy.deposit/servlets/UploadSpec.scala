@@ -294,7 +294,6 @@ class UploadSpec extends DepositServletFixture {
     }
   }
 
-
   s"PUT" should "return 201 for a new respectively 204 for a replaced file" in {
     val uuid = createDeposit
 
