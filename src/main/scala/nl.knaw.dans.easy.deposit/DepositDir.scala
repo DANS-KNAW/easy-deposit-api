@@ -273,7 +273,7 @@ object DepositDir {
       addProperty("curation.required", "yes")
       addProperty("curation.performed", "no")
       addProperty("bag-store.bag-id", depositInfo.id)
-      addProperty("identifier.doi.registered", "no")
+      addProperty("identifier.dans-doi.registered", "no")
       addProperty("identifier.dans-doi.action", "create")
     }.save(depositDir.depositPropertiesFile.toJava)
   }
