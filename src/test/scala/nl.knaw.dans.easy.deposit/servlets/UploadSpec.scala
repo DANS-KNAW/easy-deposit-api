@@ -192,6 +192,54 @@ class UploadSpec extends DepositServletFixture {
       ).map("data/path/to/dir/" + _)
 
     }
+    // get should show uploaded files
+    get(
+      uri = s"/deposit/$uuid/file/",
+      headers = Seq(fooBarBasicAuthHeader),
+    ) {
+      status shouldBe OK_200
+      body should include ("""{"filename":"readme.md","dirpath":"path/to/dir",""")
+      body should include ("""{"filename":"._login.html","dirpath":"path/to/dir/__MACOSX",""")
+      body should include ("""{"filename":"upload.html","dirpath":"path/to/dir",""")
+      body should include ("""{"filename":"login.html","dirpath":"path/to/dir",""")
+    }
+  }
+
+  it should "extract all ZIP to root of data dir in the bag" in {
+    File("src/test/resources/manual-test/Archive.zip").copyTo(testDir / "input" / "1.zip")
+    val uuid = createDeposit
+    val bagDir = testDir / "drafts" / "foo" / uuid.toString / "bag"
+    val absoluteTarget = (bagDir / "data").createDirectories()
+    absoluteTarget.list.size shouldBe 0 // precondition
+    post(
+      uri = s"/deposit/$uuid/file/",
+      params = Iterable(),
+      headers = Seq(fooBarBasicAuthHeader),
+      files = Seq(("formFieldName", (testDir / "input/1.zip").toJava))
+    ) {
+      body shouldBe ""
+      status shouldBe OK_200
+      absoluteTarget.walk().map(_.name).toList should contain theSameElementsAs List(
+        "data", "login.html", "readme.md", "__MACOSX", "._login.html", "upload.html"
+      )
+      (bagDir / "manifest-sha1.txt")
+        .lines
+        .map(_.replaceAll(".* +", "")) should contain theSameElementsAs List(
+        "login.html", "readme.md", "__MACOSX/._login.html", "upload.html"
+      ).map("data/" + _)
+
+    }
+    // get should show uploaded files
+    get(
+      uri = s"/deposit/$uuid/file/",
+      headers = Seq(fooBarBasicAuthHeader),
+    ) {
+      status shouldBe OK_200
+      body should include ("""{"filename":"readme.md","dirpath":"",""")
+      body should include ("""{"filename":"._login.html","dirpath":"__MACOSX",""")
+      body should include ("""{"filename":"upload.html","dirpath":"",""")
+      body should include ("""{"filename":"login.html","dirpath":"",""")
+    }
   }
 
   it should "report existing files" in {
@@ -246,6 +294,7 @@ class UploadSpec extends DepositServletFixture {
     }
   }
 
+
   s"PUT" should "return 201 for a new respectively 204 for a replaced file" in {
     val uuid = createDeposit
 
@@ -265,6 +314,7 @@ class UploadSpec extends DepositServletFixture {
     }
 
     // second upload of same file
+    val sha = "c5b8de8cc3587aef4e118a481115391033621e06"
     put(
       uri = s"/deposit/$uuid/file/path/to/text.txt",
       headers = Seq(fooBarBasicAuthHeader),
@@ -272,7 +322,42 @@ class UploadSpec extends DepositServletFixture {
     ) {
       status shouldBe NO_CONTENT_204
       (bagBase / "data/path/to/text.txt").contentAsString shouldBe shortContent
-      (bagBase / "manifest-sha1.txt").contentAsString shouldBe "c5b8de8cc3587aef4e118a481115391033621e06  data/path/to/text.txt\n"
+      (bagBase / "manifest-sha1.txt").contentAsString shouldBe s"$sha  data/path/to/text.txt\n"
+    }
+
+    // get should show uploaded file once
+    get(
+      uri = s"/deposit/$uuid/file/path",
+      headers = Seq(fooBarBasicAuthHeader),
+    ) {
+      status shouldBe OK_200
+      body shouldBe s"""[{"filename":"text.txt","dirpath":"path/to","sha1sum":"$sha"}]"""
+    }
+  }
+
+  it should "upload file to root of data folder" in {
+    val uuid = createDeposit
+
+    val bagBase = DepositDir(testDir / "drafts", "foo", UUID.fromString(uuid.toString)).getDataFiles.get.bag
+    val shortContent = "Lorum ipsum"
+    val sha = "c5b8de8cc3587aef4e118a481115391033621e06"
+    put(
+      uri = s"/deposit/$uuid/file/text.txt",
+      headers = Seq(fooBarBasicAuthHeader),
+      body = shortContent
+    ) {
+      status shouldBe CREATED_201
+      (bagBase / "data/text.txt").contentAsString shouldBe shortContent
+      (bagBase / "manifest-sha1.txt").contentAsString shouldBe s"$sha  data/text.txt\n"
+    }
+
+    // get should show uploaded file once
+    get(
+      uri = s"/deposit/$uuid/file/",
+      headers = Seq(fooBarBasicAuthHeader),
+    ) {
+      status shouldBe OK_200
+      body shouldBe s"""[{"filename":"text.txt","dirpath":"","sha1sum":"$sha"}]"""
     }
   }
 
