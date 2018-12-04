@@ -37,14 +37,17 @@ package object servlets extends DebugEnhancedLogging {
   private val post = "-compress(ed)?"
   private val contentTypeZipPattern = s"application/(($pre($post)?)|(x$post))"
 
+  val contentTypeJson: (String, String) = "content-type" -> "application/json;charset=UTF-8"
+  val contentTypePlainText: (String, String) = "content-type" -> "text/plain;charset=UTF-8"
+
   def notExpectedExceptionResponse(t: Throwable): ActionResult = {
     logger.error(s"Not expected exception: ${ t.getMessage }", t)
-    InternalServerError("Internal Server Error")
+    InternalServerError("Internal Server Error", Map(contentTypePlainText))
   }
 
   def badDocResponse(t: Throwable): ActionResult = {
     logger.error(t.getMessage)
-    BadRequest(s"Bad Request. ${ t.getMessage }")
+    BadRequest(s"Bad Request. ${ t.getMessage }", Map(contentTypePlainText))
   }
 
   implicit class RichManagedZipInputStream(val zipInputStream: ManagedResource[ZipInputStream]) extends AnyVal {

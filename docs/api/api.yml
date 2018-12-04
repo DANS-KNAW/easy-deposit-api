@@ -507,12 +507,6 @@ paths:
               type: string
               format: binary
       responses:
-        200:
-          description: Updated existing file.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/FileInfo"
         201:
           description: Created new file.
           headers:
@@ -524,6 +518,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/FileInfo"
+        204:
+          description: Updated existing file.
         400:
           $ref: "#/components/responses/ZipFileNotAllowed"
         401:

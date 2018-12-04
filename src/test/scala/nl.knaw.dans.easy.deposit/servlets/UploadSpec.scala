@@ -49,7 +49,7 @@ class UploadSpec extends DepositServletFixture {
       files = bodyParts
     ) {
       body shouldBe ""
-      status shouldBe OK_200
+      status shouldBe CREATED_201
       val bagDir = testDir / "drafts/foo" / uuid.toString / "bag"
       val uploaded = (bagDir / "data" / relativeTarget).list
       uploaded.size shouldBe bodyParts.size
@@ -181,7 +181,7 @@ class UploadSpec extends DepositServletFixture {
       files = Seq(("formFieldName", (testDir / "input/1.zip").toJava))
     ) {
       body shouldBe ""
-      status shouldBe OK_200
+      status shouldBe CREATED_201
       absoluteTarget.walk().map(_.name).toList should contain theSameElementsAs List(
         "dir", "login.html", "readme.md", "__MACOSX", "._login.html", "upload.html"
       )
@@ -246,7 +246,7 @@ class UploadSpec extends DepositServletFixture {
     }
   }
 
-  s"PUT" should "return 201 for a new respectively 200 for a replaced file" in {
+  s"PUT" should "return 201 for a new respectively 204 for a replaced file" in {
     val uuid = createDeposit
 
     val bagBase = DepositDir(testDir / "drafts", "foo", UUID.fromString(uuid.toString)).getDataFiles.get.bag
@@ -270,7 +270,7 @@ class UploadSpec extends DepositServletFixture {
       headers = Seq(fooBarBasicAuthHeader),
       body = shortContent
     ) {
-      status shouldBe OK_200
+      status shouldBe NO_CONTENT_204
       (bagBase / "data/path/to/text.txt").contentAsString shouldBe shortContent
       (bagBase / "manifest-sha1.txt").contentAsString shouldBe "c5b8de8cc3587aef4e118a481115391033621e06  data/path/to/text.txt\n"
     }

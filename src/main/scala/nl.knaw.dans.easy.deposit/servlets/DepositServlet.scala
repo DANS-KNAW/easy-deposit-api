@@ -21,7 +21,7 @@ import java.util.UUID
 
 import nl.knaw.dans.easy.deposit.docs.DDM.SchemaNotAvailableException
 import nl.knaw.dans.easy.deposit.docs.JsonUtil.{ InvalidDocumentException, toJson }
-import nl.knaw.dans.easy.deposit.docs.{ DatasetMetadata, DepositInfo, StateInfo }
+import nl.knaw.dans.easy.deposit.docs.{ DatasetMetadata, StateInfo }
 import nl.knaw.dans.easy.deposit.logging._
 import nl.knaw.dans.easy.deposit.servlets.DepositServlet.{ BadRequestException, InvalidResourceException, ZipMustBeOnlyFileException }
 import nl.knaw.dans.easy.deposit.{ EasyDepositApiApp, _ }
@@ -63,7 +63,7 @@ class DepositServlet(app: EasyDepositApiApp)
       for {
         userId <- getUserId
         deposits <- app.getDeposits(userId)
-      } yield Ok(body = toJson(deposits))
+      } yield Ok(body = toJson(deposits), headers = Map(contentTypeJson))
     }.getOrRecover(respond)
   }
   post("/") {
@@ -71,7 +71,8 @@ class DepositServlet(app: EasyDepositApiApp)
       for {
         userId <- getUserId
         depositInfo <- app.createDeposit(userId)
-      } yield depositCreatedResponse(depositInfo)
+        locationHeader = "Location" -> s"${ request.getRequestURL }/${ depositInfo.id }"
+      } yield Created(body = toJson(depositInfo), headers = Map(contentTypeJson, locationHeader))
     }.getOrRecover(respond)
   }
   get("/:uuid/metadata") {
@@ -79,7 +80,7 @@ class DepositServlet(app: EasyDepositApiApp)
       for {
         uuid <- getUUID
         dmd <- app.getDatasetMetadataForDeposit(user.id, uuid)
-      } yield Ok(body = toJson(dmd))
+      } yield Ok(body = toJson(dmd), headers = Map(contentTypeJson))
     }.getOrRecover(respond)
   }
   get("/:uuid/doi") {
@@ -87,7 +88,7 @@ class DepositServlet(app: EasyDepositApiApp)
       for {
         uuid <- getUUID
         doi <- app.getDoi(user.id, uuid)
-      } yield Ok(body = s"""{"doi":"$doi"}""")
+      } yield Ok(body = s"""{"doi":"$doi"}""", headers = Map(contentTypeJson))
     }.getOrRecover(respond)
   }
   put("/:uuid/metadata") {
@@ -106,7 +107,7 @@ class DepositServlet(app: EasyDepositApiApp)
       for {
         uuid <- getUUID
         depositState <- app.getDepositState(user.id, uuid)
-      } yield Ok(body = toJson(depositState))
+      } yield Ok(body = toJson(depositState), headers = Map(contentTypeJson))
     }.getOrRecover(respond)
   }
   put("/:uuid/state") {
@@ -133,7 +134,7 @@ class DepositServlet(app: EasyDepositApiApp)
         uuid <- getUUID
         path <- getPath
         contents <- app.getFileInfo(user.id, uuid, path)
-      } yield Ok(body = toJson(contents))
+      } yield Ok(body = toJson(contents), headers = Map(contentTypeJson))
     }.getOrRecover(respond)
   }
   post("/:uuid/file/*") { //file(s)
@@ -151,7 +152,7 @@ class DepositServlet(app: EasyDepositApiApp)
             .getOrElse(fileItems.copyPlainItemsTo(stagingDir))
             .flatMap(_ => stagedFilesTarget.moveAllFrom(stagingDir))
         )
-      } yield Ok()
+      } yield Created()
     }.getOrRecover(respond)
   }
 
@@ -164,7 +165,7 @@ class DepositServlet(app: EasyDepositApiApp)
         newFileWasCreated <- managedIS.apply(app.writeDepositFile(_, user.id, uuid, path))
       } yield if (newFileWasCreated)
                 Created(headers = Map("Location" -> request.uri.toASCIIString))
-              else Ok()
+              else NoContent()
     }.getOrRecover(respond)
   }
   delete("/:uuid/file/*") { //dir and file
@@ -178,25 +179,25 @@ class DepositServlet(app: EasyDepositApiApp)
   }
 
   private def respond(t: Throwable): ActionResult = (t match {
-    case e: IllegalStateTransitionException => Forbidden(e.getMessage)
+    case e: IllegalStateTransitionException => Forbidden(e.getMessage, Map(contentTypePlainText))
     case e: NoSuchDepositException => noSuchDepositResponse(e)
-    case e: NoSuchFileException => NotFound(body = s"${ e.getMessage } not found")
+    case e: NoSuchFileException => NotFound(body = s"${ e.getMessage } not found", Map(contentTypePlainText))
     case e: InvalidResourceException => invalidResourceResponse(e)
     case e: InvalidDocumentException => badDocResponse(e)
-    case e: ConcurrentUploadException => Conflict(e.getMessage)
-    case e: FileAlreadyExistsException => Conflict("Conflict. The following file(s) already exist on the server: "+e.getMessage)
-    case e: InvalidDoiException => BadRequest(e.getMessage)
-    case e: BadRequestException => BadRequest(e.getMessage)
-    case e: ZipMustBeOnlyFileException => BadRequest(e.getMessage)
-    case e: NotImplementedException => NotImplemented(e.getMessage)
-    case e: SchemaNotAvailableException => InternalServerError(e.getMessage)
+    case e: ConcurrentUploadException => Conflict(e.getMessage, Map(contentTypePlainText))
+    case e: FileAlreadyExistsException => Conflict("Conflict. The following file(s) already exist on the server: " + e.getMessage, Map(contentTypePlainText))
+    case e: InvalidDoiException => BadRequest(e.getMessage, Map(contentTypePlainText))
+    case e: BadRequestException => BadRequest(e.getMessage, Map(contentTypePlainText))
+    case e: ZipMustBeOnlyFileException => BadRequest(e.getMessage, Map(contentTypePlainText))
+    case e: NotImplementedException => NotImplemented(e.getMessage, Map(contentTypePlainText))
+    case e: SchemaNotAvailableException => InternalServerError(e.getMessage, Map(contentTypePlainText))
     case _ => notExpectedExceptionResponse(t)
   }).logResponse
 
   private def noSuchDepositResponse(e: NoSuchDepositException): ActionResult = {
     // returning the message to the client might reveal absolute paths on the server
     logWhatIsHiddenForGetOrRecoverResponse(s"${ user.id } ${ request.uri } $e")
-    NotFound(body = s"Deposit ${ e.id } not found")
+    NotFound(body = s"Deposit ${ e.id } not found", Map(contentTypePlainText))
   }
 
   private def invalidResourceResponse(t: InvalidResourceException): ActionResult = {
@@ -207,13 +208,6 @@ class DepositServlet(app: EasyDepositApiApp)
 
   private def logWhatIsHiddenForGetOrRecoverResponse(message: String): Unit = {
     logger.info(s"user[$getUserId] ${ request.getMethod } ${ request.getRequestURL } : ${ message }")
-  }
-
-  private def depositCreatedResponse(depositInfo: DepositInfo) = {
-    Created(
-      body = toJson(depositInfo),
-      headers = Map("Location" -> s"${ request.getRequestURL }/${ depositInfo.id }")
-    )
   }
 
   private def getUserId: Try[String] = {
