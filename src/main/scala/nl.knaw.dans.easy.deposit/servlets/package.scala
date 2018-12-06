@@ -37,8 +37,7 @@ package object servlets extends DebugEnhancedLogging {
   private val post = "-compress(ed)?"
   private val contentTypeZipPattern = s"application/(($pre($post)?)|(x$post))"
 
-  val contentTypeJson: (String, String) = "content-type" -> "application/json;charset=UTF-8"
-  val contentTypePlainText: (String, String) = "content-type" -> "text/plain;charset=UTF-8"
+  private val contentTypePlainText: (String, String) = "content-type" -> "text/plain;charset=UTF-8"
 
   def notExpectedExceptionResponse(t: Throwable): ActionResult = {
     logger.error(s"Not expected exception: ${ t.getMessage }", t)
