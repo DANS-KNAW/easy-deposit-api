@@ -18,11 +18,7 @@ package nl.knaw.dans.easy.deposit.docs
 import nl.knaw.dans.easy.deposit.TestSupportFixture
 import nl.knaw.dans.lib.error._
 
-import scala.xml.PrettyPrinter
-
 class FilesXmlSpec extends TestSupportFixture {
-  // pretty provides friendly trouble shooting for complex XML's
-  private val prettyPrinter: PrettyPrinter = new scala.xml.PrettyPrinter(1024, 2)
 
   override def beforeEach(): Unit = {
     super.beforeEach()
@@ -47,13 +43,15 @@ class FilesXmlSpec extends TestSupportFixture {
     (testDir / "data" / "test.txt").touch()
     (testDir / "data" / "folder" / "test.xml").touch()
 
-    (createFilesXml \ "file").toList.sortBy(_.attribute("filepath").toString) shouldBe
+    val xml = createFilesXml
+    (xml \ "file").toList.sortBy(_.attribute("filepath").toString) shouldBe
         <file filepath="data/folder/test.xml">
           <dcterms:format>application/xml</dcterms:format>
         </file>
         <file filepath="data/test.txt">
           <dcterms:format>text/plain</dcterms:format>
         </file>
+    FilesXml.validate(xml)
   }
 
   private def createFilesXml = {
