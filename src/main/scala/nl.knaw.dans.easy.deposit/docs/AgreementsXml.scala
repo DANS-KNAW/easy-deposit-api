@@ -23,7 +23,7 @@ import scala.xml.Elem
 object AgreementsXml {
   def apply(userId: String, dateSubmitted: DateTime, dm: DatasetMetadata): Try[Elem] = {
     for {
-      _ <- dm.licenceAccepted
+      _ <- dm.DepositAgreementAccepted
       privacy <- dm.hasPrivacySensitiveData
     } yield
       <agr:agreements
@@ -34,7 +34,7 @@ object AgreementsXml {
         <agr:licenseAgreement>
           <agr:depositorId>{userId}</agr:depositorId>
           <dateAccepted>{dateSubmitted}</dateAccepted>
-          <agr:licenseAgreementAccepted>{dm.acceptLicenseAgreement}</agr:licenseAgreementAccepted>
+          <agr:licenseAgreementAccepted>{dm.acceptDepositAgreement}</agr:licenseAgreementAccepted>
         </agr:licenseAgreement>
         <agr:personalDataStatement>
           <agr:signerId>{userId}</agr:signerId>

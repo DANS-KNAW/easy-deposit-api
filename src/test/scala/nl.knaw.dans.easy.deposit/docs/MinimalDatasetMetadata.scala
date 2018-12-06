@@ -63,7 +63,7 @@ class MinimalDatasetMetadata(
                               spatialCoverages: Option[Seq[PossiblySchemedKeyValue]] = None,
                               messageForDataManager: Option[String] = None,
                               privacySensitiveDataPresent: PrivacySensitiveDataPresent = PrivacySensitiveDataPresent.unspecified,
-                              acceptLicenseAgreement: Boolean = false,
+                              acceptDepositAgreement: Boolean = false,
                             )
   extends DatasetMetadata(
     identifiers,
@@ -93,5 +93,5 @@ class MinimalDatasetMetadata(
     spatialCoverages,
     messageForDataManager,
     privacySensitiveDataPresent,
-    acceptLicenseAgreement,
+    acceptDepositAgreement,
   )

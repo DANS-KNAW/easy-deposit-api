@@ -858,7 +858,7 @@ components:
           - no
           - unspecified
 
-        acceptLicenseAgreement:
+        acceptDepositAgreement:
           type: boolean
 
     # Components of DatasetMetadata below

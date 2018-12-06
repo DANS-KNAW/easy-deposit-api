@@ -55,7 +55,7 @@ case class DatasetMetadata(private val identifiers: Option[Seq[SchemedValue]] = 
                            spatialCoverages: Option[Seq[PossiblySchemedKeyValue]] = None,
                            messageForDataManager: Option[String] = None,
                            private val privacySensitiveDataPresent: PrivacySensitiveDataPresent = PrivacySensitiveDataPresent.unspecified,
-                           acceptLicenseAgreement: Boolean = false,
+                           acceptDepositAgreement: Boolean = false,
                           ) {
   lazy val hasPrivacySensitiveData: Try[Boolean] = privacySensitiveDataPresent match {
     case PrivacySensitiveDataPresent.yes => Success(true)
@@ -63,8 +63,8 @@ case class DatasetMetadata(private val identifiers: Option[Seq[SchemedValue]] = 
     case PrivacySensitiveDataPresent.unspecified => Failure(missingValue("PrivacySensitiveDataPresent"))
   }
 
-  lazy val licenceAccepted: Try[Unit] = if (acceptLicenseAgreement) Success(())
-                                        else Failure(missingValue("AcceptLicenseAgreement"))
+  lazy val DepositAgreementAccepted: Try[Unit] = if (acceptDepositAgreement) Success(())
+                                                 else Failure(missingValue("AcceptDepositAgreement"))
 
   //// dates
   private val specialDateQualifiers = Seq(DateQualifier.created, DateQualifier.available)
