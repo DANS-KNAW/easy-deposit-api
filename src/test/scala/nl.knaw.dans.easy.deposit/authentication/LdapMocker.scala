@@ -36,16 +36,16 @@ case class LdapMocker() extends MockFactory {
   }
 
   def expectLdapClose: CallHandler0[Unit] = {
-    mockedLdapContext.close _ expects()
+    (() => mockedLdapContext.close()) expects()
   }
 
   def expectLdapAttributes(attributes: BasicAttributes): Unit = {
     expectLdapSearch returning mockedLdapSearchResults
-    mockedLdapContext.close _ expects()
+    (() => mockedLdapContext.close()) expects()
 
-    mockedLdapSearchResults.hasMoreElements _ expects() returning true
-    mockedLdapSearchResults.hasMoreElements _ expects() returning false
-    mockedLdapSearchResults.nextElement _ expects() returning mockedLdapSearchResult
-    mockedLdapSearchResult.getAttributes _ expects() returning attributes
+    (() => mockedLdapSearchResults.hasMoreElements) expects() returning true
+    (() => mockedLdapSearchResults.hasMoreElements) expects() returning false
+    (() => mockedLdapSearchResults.nextElement) expects() returning mockedLdapSearchResult
+    (() => mockedLdapSearchResult.getAttributes) expects() returning attributes
   }
 }
