@@ -19,10 +19,7 @@ import java.io.{ BufferedInputStream, ByteArrayInputStream }
 import java.net.UnknownHostException
 import java.nio.charset.StandardCharsets
 
-import javax.xml.XMLConstants
-import javax.xml.transform.Source
 import javax.xml.transform.stream.StreamSource
-import javax.xml.validation.{ Schema, SchemaFactory }
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata._
 import nl.knaw.dans.easy.deposit.docs.JsonUtil.InvalidDocumentException
 import nl.knaw.dans.easy.deposit.docs.StringUtils._
@@ -36,9 +33,9 @@ import scala.util.{ Failure, Try }
 import scala.xml.Utility.trim
 import scala.xml._
 
-object DDM extends DebugEnhancedLogging {
-  val schemaNameSpace: String = "http://easy.dans.knaw.nl/schemas/md/ddm/"
-  val schemaLocation: String = "https://easy.dans.knaw.nl/schemas/md/2018/05/ddm.xsd" // TODO property?
+object DDM extends SchemedXml with DebugEnhancedLogging {
+  override protected val schemaNameSpace: String = "http://easy.dans.knaw.nl/schemas/md/ddm/"
+  override protected val schemaLocation: String = "https://easy.dans.knaw.nl/schemas/md/2018/05/ddm.xsd"
 
   def apply(dm: DatasetMetadata): Try[Elem] = Try {
     val lang: String = dm.languageOfDescription.map(_.key).orNull // null omits attribute rendering
@@ -167,12 +164,6 @@ object DDM extends DebugEnhancedLogging {
 
   // pretty provides friendly trouble shooting for complex XML's
   private val prettyPrinter: PrettyPrinter = new scala.xml.PrettyPrinter(1024, 2)
-
-  lazy val triedSchema: Try[Schema] = Try { // loading postponed until we actually start validating
-    SchemaFactory
-      .newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI)
-      .newSchema(Array(new StreamSource(schemaLocation)).toArray[Source])
-  }
 
   private def validate(ddm: Elem): Try[Elem] = {
     logger.debug(prettyPrinter.format(ddm))
