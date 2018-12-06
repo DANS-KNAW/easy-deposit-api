@@ -36,7 +36,7 @@ class HappyRoutesSpec extends TestSupportFixture with ServletFixture with Scalat
   mountServlets(mockedApp, authMocker.mockedAuthenticationProvider)
 
   "get /" should "be ok" in {
-    mockedApp.getVersion _ expects() returning "test"
+    (() => mockedApp.getVersion) expects() returning "test"
     authMocker.expectsNoUser
     get(uri = "/") {
       body shouldBe "EASY Deposit API Service running (test)"
