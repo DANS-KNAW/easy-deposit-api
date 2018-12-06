@@ -204,5 +204,5 @@
   }],
   "messageForDataManager": "",
   "privacySensitiveDataPresent": "unspecified",
-  "acceptLicenseAgreement": false
+  "acceptDepositAgreement": false
 }

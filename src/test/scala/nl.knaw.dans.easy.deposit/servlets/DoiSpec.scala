@@ -38,7 +38,7 @@ class DoiSpec extends DepositServletFixture {
        |  "audiences": [ { "scheme": "string", "value": "string", "key": "D33000" } ],
        |  "accessRights": {"category": "OPEN_ACCESS", "group": "string"},
        |  "privacySensitiveDataPresent": "no",
-       |  "acceptLicenseAgreement": true,
+       |  "acceptDepositAgreement": true,
        |""".stripMargin
 
   private def shouldReturnDOI = {
