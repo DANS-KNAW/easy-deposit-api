@@ -63,7 +63,7 @@ case class DatasetMetadata(private val identifiers: Option[Seq[SchemedValue]] = 
     case PrivacySensitiveDataPresent.unspecified => Failure(missingValue("PrivacySensitiveDataPresent"))
   }
 
-  lazy val DepositAgreementAccepted: Try[Unit] = if (acceptDepositAgreement) Success(())
+  lazy val depositAgreementAccepted: Try[Unit] = if (acceptDepositAgreement) Success(())
                                                  else Failure(missingValue("AcceptDepositAgreement"))
 
   //// dates

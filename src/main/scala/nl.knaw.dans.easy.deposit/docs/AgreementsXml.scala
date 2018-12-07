@@ -26,7 +26,7 @@ object AgreementsXml extends SchemedXml {
 
   def apply(userId: String, dateSubmitted: DateTime, dm: DatasetMetadata): Try[Elem] = {
     for {
-      _ <- dm.DepositAgreementAccepted
+      _ <- dm.depositAgreementAccepted
       privacy <- dm.hasPrivacySensitiveData
     } yield
       <agr:agreements
