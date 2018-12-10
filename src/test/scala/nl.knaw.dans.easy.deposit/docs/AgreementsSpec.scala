@@ -19,8 +19,9 @@ import nl.knaw.dans.easy.deposit.TestSupportFixture
 import nl.knaw.dans.easy.deposit.docs.JsonUtil.InvalidDocumentException
 import nl.knaw.dans.easy.deposit.docs.dm.PrivacySensitiveDataPresent
 import org.joda.time.DateTime
+import org.xml.sax.SAXParseException
 
-import scala.util.{ Failure, Success }
+import scala.util.{ Failure, Success, Try }
 
 class AgreementsSpec extends TestSupportFixture {
 
@@ -62,6 +63,7 @@ class AgreementsSpec extends TestSupportFixture {
         acceptDepositAgreement = true,
         privacySensitiveDataPresent = PrivacySensitiveDataPresent.no
       )
-    ) should matchPattern { case Failure(InvalidDocumentException(_, e)) if e.getMessage == "Please set AcceptDepositAgreement" => }
+    ).flatMap(AgreementsXml.validate) should matchPattern { case Failure(e: SAXParseException) if e.getMessage.contains("is not a valid value for 'NCName'") => }
+    // not an InvalidDocumentException as a missing user-id would be a programming error
   }
 }

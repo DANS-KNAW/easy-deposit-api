@@ -36,7 +36,7 @@ object AgreementsXml extends SchemedXml {
           xsi:schemaLocation={s"$schemaNameSpace $schemaLocation"}>
         <licenseAgreement>
           <depositorId>{userId}</depositorId>
-          <dateAccepted>{dateSubmitted}</dateAccepted>
+          <dcterms:dateAccepted>{dateSubmitted}</dcterms:dateAccepted>
           <licenseAgreementAccepted>{dm.acceptDepositAgreement}</licenseAgreementAccepted>
         </licenseAgreement>
         <personalDataStatement>
