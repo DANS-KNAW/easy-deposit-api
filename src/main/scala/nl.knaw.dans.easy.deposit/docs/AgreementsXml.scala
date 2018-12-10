@@ -21,29 +21,29 @@ import scala.util.Try
 import scala.xml.Elem
 
 object AgreementsXml extends SchemedXml {
-  override protected val schemaNameSpace = "http://easy.dans.knaw.nl/schemas/bag/metadata/agreements"
-  override protected val schemaLocation = "http://easy.dans.knaw.nl/schemas/bag/metadata/agreements/2018/05/agreements.xsd"
+  override protected val schemaNameSpace = "http://easy.dans.knaw.nl/schemas/bag/metadata/agreements/"
+  override protected val schemaLocation = "https://easy.dans.knaw.nl/schemas/bag/metadata/agreements/2018/05/agreements.xsd"
 
   def apply(userId: String, dateSubmitted: DateTime, dm: DatasetMetadata): Try[Elem] = {
     for {
       _ <- dm.depositAgreementAccepted
       privacy <- dm.hasPrivacySensitiveData
     } yield
-      <agr:agreements
-          xmlns:agr={schemaNameSpace}
+      <agreements
+          xmlns={schemaNameSpace}
           xmlns:dcterms="http://purl.org/dc/terms/"
           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
           xsi:schemaLocation={s"$schemaNameSpace $schemaLocation"}>
-        <agr:licenseAgreement>
-          <agr:depositorId>{userId}</agr:depositorId>
+        <licenseAgreement>
+          <depositorId>{userId}</depositorId>
           <dateAccepted>{dateSubmitted}</dateAccepted>
-          <agr:licenseAgreementAccepted>{dm.acceptDepositAgreement}</agr:licenseAgreementAccepted>
-        </agr:licenseAgreement>
-        <agr:personalDataStatement>
-          <agr:signerId>{userId}</agr:signerId>
-          <agr:dateSigned>{dateSubmitted}</agr:dateSigned>
-          <agr:containsPrivacySensitiveData>{privacy}</agr:containsPrivacySensitiveData>
-        </agr:personalDataStatement>
-      </agr:agreements>
+          <licenseAgreementAccepted>{dm.acceptDepositAgreement}</licenseAgreementAccepted>
+        </licenseAgreement>
+        <personalDataStatement>
+          <signerId>{userId}</signerId>
+          <dateSigned>{dateSubmitted}</dateSigned>
+          <containsPrivacySensitiveData>{privacy}</containsPrivacySensitiveData>
+        </personalDataStatement>
+      </agreements>
   }
 }
