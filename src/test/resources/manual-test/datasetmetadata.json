@@ -165,5 +165,5 @@
   ],
   "messageForDataManager": "string",
   "privacySensitiveDataPresent": "yes",
-  "acceptLicenseAgreement": true
+  "acceptDepositAgreement": true
 }

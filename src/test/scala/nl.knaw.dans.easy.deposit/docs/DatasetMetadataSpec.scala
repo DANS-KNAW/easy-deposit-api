@@ -72,7 +72,7 @@ class DatasetMetadataSpec extends TestSupportFixture {
         |}""".stripMargin
     val parsed = prepareDatasetMetadata(example)
     toJson(parsed) shouldBe
-      """{"creators":[],"privacySensitiveDataPresent":"unspecified","acceptLicenseAgreement":false}"""
+      """{"creators":[],"privacySensitiveDataPresent":"unspecified","acceptDepositAgreement":false}"""
   }
 
   private def prepareDatasetMetadata(example: String): DatasetMetadata = {

@@ -37,7 +37,7 @@ class DepositDirDatasetMetadataSpec extends TestSupportFixture {
 
     dd.writeDatasetMetadataJson(DatasetMetadata()) shouldBe Success(())
     metadataFile.contentAsString shouldBe
-      """{"privacySensitiveDataPresent":"unspecified","acceptLicenseAgreement":false}"""
+      """{"privacySensitiveDataPresent":"unspecified","acceptDepositAgreement":false}"""
   }
 
   it should "overwrite existing metadata" in {
@@ -47,7 +47,7 @@ class DepositDirDatasetMetadataSpec extends TestSupportFixture {
 
     dd.writeDatasetMetadataJson(DatasetMetadata()) shouldBe Success(())
     metadataFile.contentAsString shouldBe
-      """{"privacySensitiveDataPresent":"unspecified","acceptLicenseAgreement":false}"""
+      """{"privacySensitiveDataPresent":"unspecified","acceptDepositAgreement":false}"""
   }
 
   it should "report the deposit does not exist" in {

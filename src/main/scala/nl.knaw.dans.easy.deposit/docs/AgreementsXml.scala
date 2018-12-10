@@ -20,27 +20,30 @@ import org.joda.time.DateTime
 import scala.util.Try
 import scala.xml.Elem
 
-object AgreementsXml {
+object AgreementsXml extends SchemedXml {
+  override protected val schemaNameSpace = "http://easy.dans.knaw.nl/schemas/bag/metadata/agreements/"
+  override protected val schemaLocation = "https://easy.dans.knaw.nl/schemas/bag/metadata/agreements/2018/05/agreements.xsd"
+
   def apply(userId: String, dateSubmitted: DateTime, dm: DatasetMetadata): Try[Elem] = {
     for {
-      _ <- dm.licenceAccepted
+      _ <- dm.depositAgreementAccepted
       privacy <- dm.hasPrivacySensitiveData
     } yield
-      <agr:agreements
-          xmlns:agr="http://easy.dans.knaw.nl/schemas/bag/metadata/agreements/"
+      <agreements
+          xmlns={schemaNameSpace}
           xmlns:dcterms="http://purl.org/dc/terms/"
           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-          xsi:schemaLocation="http://easy.dans.knaw.nl/schemas/bag/metadata/agreements/ agreements.xsd">
-        <agr:licenseAgreement>
-          <agr:depositorId>{userId}</agr:depositorId>
-          <dateAccepted>{dateSubmitted}</dateAccepted>
-          <agr:licenseAgreementAccepted>{dm.acceptLicenseAgreement}</agr:licenseAgreementAccepted>
-        </agr:licenseAgreement>
-        <agr:personalDataStatement>
-          <agr:signerId>{userId}</agr:signerId>
-          <agr:dateSigned>{dateSubmitted}</agr:dateSigned>
-          <agr:containsPrivacySensitiveData>{privacy}</agr:containsPrivacySensitiveData>
-        </agr:personalDataStatement>
-      </agr:agreements>
+          xsi:schemaLocation={s"$schemaNameSpace $schemaLocation"}>
+        <licenseAgreement>
+          <depositorId>{userId}</depositorId>
+          <dcterms:dateAccepted>{dateSubmitted}</dcterms:dateAccepted>
+          <licenseAgreementAccepted>{dm.acceptDepositAgreement}</licenseAgreementAccepted>
+        </licenseAgreement>
+        <personalDataStatement>
+          <signerId>{userId}</signerId>
+          <dateSigned>{dateSubmitted}</dateSigned>
+          <containsPrivacySensitiveData>{privacy}</containsPrivacySensitiveData>
+        </personalDataStatement>
+      </agreements>
   }
 }

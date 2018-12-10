@@ -16,7 +16,7 @@
 package nl.knaw.dans.easy.deposit
 
 import java.net.UnknownHostException
-import java.util.{ Base64, TimeZone, UUID }
+import java.util.{ TimeZone, UUID }
 
 import better.files.File
 import better.files.File._

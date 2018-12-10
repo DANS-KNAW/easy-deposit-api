@@ -65,7 +65,7 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
     authMocker.expectsUserFooBar
     get(metadataURI, headers = Seq(fooBarBasicAuthHeader)) {
       status shouldBe OK_200
-      body shouldBe """{"titles":["blabla"],"privacySensitiveDataPresent":"unspecified","acceptLicenseAgreement":false}"""
+      body shouldBe """{"titles":["blabla"],"privacySensitiveDataPresent":"unspecified","acceptDepositAgreement":false}"""
     }
 
     // invalidate the metadata and try again
