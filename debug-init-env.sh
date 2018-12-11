@@ -20,5 +20,6 @@ TEMPDIR=data
 touch $TEMPDIR/easy-deposit-api.log
 mkdir $TEMPDIR/drafts
 mkdir $TEMPDIR/stage
+mkdir $TEMPDIR/stage-upload
 mkdir $TEMPDIR/easy-ingest-flow-inbox
 echo "OK"
