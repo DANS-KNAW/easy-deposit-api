@@ -105,6 +105,7 @@ class DoiSpec extends DepositServletFixture {
   }
 
   "PUT /deposit/{id}/state" should "succeed when DOI's are equal" in {
+    assumeSchemaAvailable
     val uuid = createDeposit
     propsFile(uuid).append(doiProperty)
     jsonFile(uuid).write(s"""{$doiForJson,$mandatoryOnSubmit}""")
