@@ -15,24 +15,35 @@
  */
 package nl.knaw.dans.easy.deposit
 
+import java.net.UnknownHostException
+
 import better.files.StringOps
 import javax.xml.transform.stream.StreamSource
+import javax.xml.validation.Schema
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 
-import scala.util.Try
-import scala.xml.{ Elem, PrettyPrinter }
+import scala.util.{ Failure, Try }
+import scala.xml.{ Elem, PrettyPrinter, SAXParseException }
 
 package object docs extends DebugEnhancedLogging {
   // pretty provides friendly trouble shooting for complex XML's
   val prettyPrinter: PrettyPrinter = new scala.xml.PrettyPrinter(1024, 2)
 
+  implicit class triedSchemaExtension(val triedSchema: Try[Schema]) extends AnyVal {
+    def isAvailble: Boolean = {
+      triedSchema match {
+        case Failure(e: SAXParseException) if e.getCause.isInstanceOf[UnknownHostException] => false
+        case _ => true
+      }
+    }
+  }
+
   implicit class validateWithSchema(val schemedXml: SchemedXml) extends AnyVal {
     def validate(elem: Elem): Try[Unit] = {
-      assume(AgreementsXml.triedSchema.isSuccess)
       val prettyXML = prettyPrinter.format(elem)
       trace("\n" + prettyXML)
       val source = new StreamSource(prettyXML.inputStream)
-      AgreementsXml.triedSchema.map(_.newValidator().validate(source))
+      schemedXml.triedSchema.map(_.newValidator().validate(source))
     }
   }
 }

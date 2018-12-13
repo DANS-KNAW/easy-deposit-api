@@ -43,6 +43,7 @@ class FilesXmlSpec extends TestSupportFixture {
     (testDir / "data" / "test.txt").touch()
     (testDir / "data" / "folder" / "test.xml").touch()
 
+    assume(FilesXml.triedSchema.isAvailble)
     val xml = createFilesXml
     (xml \ "file").toList.sortBy(_.attribute("filepath").toString) shouldBe
         <file filepath="data/folder/test.xml">
