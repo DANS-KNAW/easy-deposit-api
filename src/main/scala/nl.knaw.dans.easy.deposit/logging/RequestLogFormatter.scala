@@ -110,8 +110,8 @@ trait RequestLogFormatter extends CookieFormatter {
   protected def formatRequestLog: String = {
     val method = request.getMethod
     val requestURL = request.getRequestURL.toString
-    val formattedHeaders = headersToString(formatHeaders(getHeaderMap))
-    val formattedParams = parametersToString(formatParameters(multiParams))
+    val formattedHeaders = headersToString(getHeaderMap)
+    val formattedParams = parametersToString(multiParams)
     val formattedRemoteAddress = formatRemoteAddress(Option(request.getRemoteAddr).getOrElse(""))
 
     // TODO perhaps more of https://github.com/scalatra/scalatra/blob/2.7.x/core/src/main/scala/org/scalatra/util/RequestLogging.scala#L70-L85
