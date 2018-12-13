@@ -20,6 +20,7 @@ import java.nio.file.{ FileAlreadyExistsException, Paths }
 
 import better.files.StringOps
 import nl.knaw.dans.bag.v0.DansV0Bag
+import nl.knaw.dans.easy.deposit.docs._
 import nl.knaw.dans.lib.error._
 
 import scala.util.{ Failure, Success }
@@ -69,7 +70,7 @@ class StagedFilesTargetSpec extends TestSupportFixture {
   it should "not replace a fetch file" in {
     (stagedDir / "some.thing").createFile().write("new content")
     val url = new URL("https://raw.githubusercontent.com/DANS-KNAW/easy-deposit-api/master/README.md")
-    assumeSchemaAvailable
+    assume(DDM.triedSchema.isAvailble)
     val bag = newEmptyBag.addFetchItem(url, Paths.get("path/to/some.thing")).getOrRecover(e => fail(e))
     bag.save()
     bag.data.list.size shouldBe 0
