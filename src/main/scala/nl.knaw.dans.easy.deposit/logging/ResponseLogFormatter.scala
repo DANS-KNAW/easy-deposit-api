@@ -38,7 +38,7 @@ trait ResponseLogFormatter extends CookieFormatter {
     }
   }
 
-  private def getHeaderMap: HeaderMap = {
+  private def getHeaderMap(response: HttpServletResponse): HeaderMap = {
     // looks the same method as for RequestLogFormatter, but everywhere different classes
     response.getHeaderNames.asScala.toSeq.map(
       name => name -> Option(response.getHeaders(name)).map(_.asScala.toSeq).getOrElse(Seq.empty)
@@ -88,7 +88,7 @@ trait ResponseLogFormatter extends CookieFormatter {
                        (implicit request: HttpServletRequest, response: HttpServletResponse): String = {
     val method = request.getMethod
     val status = actionResult.status
-    val formattedAuthHeaders = authHeadersToString(getHeaderMap)
+    val formattedAuthHeaders = authHeadersToString(getHeaderMap(response))
     val formattedActionHeaders = actionHeadersToString(actionResult)
     s"${ method } returned status=${ status }; authHeaders=$formattedAuthHeaders; actionHeaders=$formattedActionHeaders"
   }

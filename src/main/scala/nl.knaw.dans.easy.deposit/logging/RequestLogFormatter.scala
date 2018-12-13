@@ -15,6 +15,7 @@
  */
 package nl.knaw.dans.easy.deposit.logging
 
+import javax.servlet.http.HttpServletRequest
 import org.scalatra.{ MultiParams, ScalatraBase }
 
 import scala.collection.JavaConverters._
@@ -51,7 +52,7 @@ trait RequestLogFormatter extends CookieFormatter {
     }
   }
 
-  private def getHeaderMap: HeaderMap = {
+  private def getHeaderMap(request: HttpServletRequest): HeaderMap = {
     // looks the same method as for ResponseLogFormatter, but everywhere different classes
     request.getHeaderNames
       .asScala.toSeq
@@ -110,8 +111,8 @@ trait RequestLogFormatter extends CookieFormatter {
   protected def formatRequestLog: String = {
     val method = request.getMethod
     val requestURL = request.getRequestURL.toString
-    val formattedHeaders = headersToString(formatHeaders(getHeaderMap))
-    val formattedParams = parametersToString(formatParameters(multiParams))
+    val formattedHeaders = headersToString(getHeaderMap(request))
+    val formattedParams = parametersToString(multiParams)
     val formattedRemoteAddress = formatRemoteAddress(Option(request.getRemoteAddr).getOrElse(""))
 
     // TODO perhaps more of https://github.com/scalatra/scalatra/blob/2.7.x/core/src/main/scala/org/scalatra/util/RequestLogging.scala#L70-L85
