@@ -19,6 +19,7 @@ import java.io.{ BufferedInputStream, ByteArrayInputStream }
 import java.net.UnknownHostException
 import java.nio.charset.StandardCharsets
 
+import better.files.StringOps
 import javax.xml.transform.stream.StreamSource
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata._
 import nl.knaw.dans.easy.deposit.docs.JsonUtil.InvalidDocumentException
@@ -166,13 +167,10 @@ object DDM extends SchemedXml with DebugEnhancedLogging {
   private val prettyPrinter: PrettyPrinter = new scala.xml.PrettyPrinter(1024, 2)
 
   private def validate(ddm: Elem): Try[Elem] = {
-    logger.debug(prettyPrinter.format(ddm))
-    triedSchema.map(schema =>
-      managedInputStream(ddm)
-        .apply(inputStream => schema
-          .newValidator()
-          .validate(new StreamSource(inputStream))
-        )
+    val xmlString = prettyPrinter.format(ddm)
+    logger.trace(xmlString)
+    triedSchema.map(_.newValidator()
+      .validate(new StreamSource(xmlString.inputStream))
     )
   }.map(_ => ddm)
     .recoverWith {
@@ -181,15 +179,6 @@ object DDM extends SchemedXml with DebugEnhancedLogging {
         Failure(SchemaNotAvailableException(e))
       case e: SAXParseException => Failure(invalidDatasetMetadataException(e))
     }
-
-  private def managedInputStream(ddm: Elem): ManagedResource[BufferedInputStream] = {
-    Using.bufferedInputStream(
-      new ByteArrayInputStream(
-        prettyPrinter
-          .format(ddm)
-          .getBytes(StandardCharsets.UTF_8)
-      ))
-  }
 
   private def invalidDatasetMetadataException(exception: Exception) = {
     InvalidDocumentException("DatasetMetadata", exception)
