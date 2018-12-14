@@ -21,7 +21,7 @@ import nl.knaw.dans.easy.deposit.docs.dm.PrivacySensitiveDataPresent
 import org.joda.time.DateTime
 import org.xml.sax.SAXParseException
 
-import scala.util.{ Failure, Success, Try }
+import scala.util.{ Failure, Success }
 
 class AgreementsSpec extends TestSupportFixture {
 

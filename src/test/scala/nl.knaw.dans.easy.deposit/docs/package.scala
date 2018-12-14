@@ -17,13 +17,11 @@ package nl.knaw.dans.easy.deposit
 
 import java.net.UnknownHostException
 
-import better.files.StringOps
-import javax.xml.transform.stream.StreamSource
 import javax.xml.validation.Schema
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 
 import scala.util.{ Failure, Try }
-import scala.xml.{ Elem, PrettyPrinter, SAXParseException }
+import scala.xml.{ PrettyPrinter, SAXParseException }
 
 package object docs extends DebugEnhancedLogging {
   // pretty provides friendly trouble shooting for complex XML's
@@ -35,15 +33,6 @@ package object docs extends DebugEnhancedLogging {
         case Failure(e: SAXParseException) if e.getCause.isInstanceOf[UnknownHostException] => false
         case _ => true
       }
-    }
-  }
-
-  implicit class validateWithSchema(val schemedXml: SchemedXml) extends AnyVal {
-    def validate(elem: Elem): Try[Unit] = {
-      val prettyXML = prettyPrinter.format(elem)
-      trace("\n" + prettyXML)
-      val source = new StreamSource(prettyXML.inputStream)
-      schemedXml.triedSchema.map(_.newValidator().validate(source))
     }
   }
 }
