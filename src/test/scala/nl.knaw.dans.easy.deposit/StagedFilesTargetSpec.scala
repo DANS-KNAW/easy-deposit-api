@@ -36,7 +36,7 @@ class StagedFilesTargetSpec extends TestSupportFixture {
     stagedDir.createDirectories()
   }
 
-  "takeAllFrom" should "add payload files" in {
+  "moveAllFrom" should "add payload files" in {
     (stagedDir / "sub/path").createDirectories()
     (stagedDir / "sub/path/some.thing").createFile().write("new content")
     (stagedDir / "some.thing").createFile().write("new content")
