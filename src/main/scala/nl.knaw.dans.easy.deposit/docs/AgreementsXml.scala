@@ -34,11 +34,11 @@ object AgreementsXml extends SchemedXml {
           xmlns:dcterms="http://purl.org/dc/terms/"
           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
           xsi:schemaLocation={s"$schemaNameSpace $schemaLocation"}>
-        <licenseAgreement>
+        <depositAgreement>
           <depositorId>{userId}</depositorId>
           <dcterms:dateAccepted>{dateSubmitted}</dcterms:dateAccepted>
           <depositAgreementAccepted>{dm.acceptDepositAgreement}</depositAgreementAccepted>
-        </licenseAgreement>
+        </depositAgreement>
         <personalDataStatement>
           <signerId>{userId}</signerId>
           <dateSigned>{dateSubmitted}</dateSigned>
