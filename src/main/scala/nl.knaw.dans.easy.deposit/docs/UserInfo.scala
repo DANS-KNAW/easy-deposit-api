@@ -24,7 +24,6 @@ case class UserInfo(userName: String,
                     firstName: Option[String] = None,
                     prefix: Option[String] = None,
                     lastName: String,
-                    groups: Option[Seq[String]] = None
                    )
 object UserInfo {
   def apply(input: JsonInput): Try[UserInfo] = input.deserialize[UserInfo]
@@ -42,8 +41,6 @@ object UserInfo {
       prefix = attributes.get("dansPrefixes").map(s => s.mkString(" ")),
 
       lastName = attributes.getOrElse("sn", Seq.empty).headOption.getOrElse(""),
-
-      groups = attributes.get("easyGroups")
     )
   }
 }

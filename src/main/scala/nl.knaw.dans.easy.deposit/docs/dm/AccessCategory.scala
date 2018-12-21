@@ -23,6 +23,4 @@ object AccessCategory extends Enumeration {
   val restrictedRequest: AccessCategory = Value("REQUEST_PERMISSION")
 }
 
-case class AccessRights(category: AccessCategory,
-                        group: Option[String], // TODO fix unit tests to drop this too
-                       )
+case class AccessRights(category: AccessCategory)
