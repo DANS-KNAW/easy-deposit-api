@@ -22,7 +22,7 @@ import scala.xml.Elem
 
 object AgreementsXml extends SchemedXml {
   override protected val schemaNameSpace = "http://easy.dans.knaw.nl/schemas/bag/metadata/agreements/"
-  override protected val schemaLocation = "https://easy.dans.knaw.nl/schemas/bag/metadata/agreements/2018/05/agreements.xsd"
+  override protected val schemaLocation = "https://easy.dans.knaw.nl/schemas/bag/metadata/agreements/2018/12/agreements.xsd"
 
   def apply(userId: String, dateSubmitted: DateTime, dm: DatasetMetadata): Try[Elem] = {
     for {
@@ -34,11 +34,11 @@ object AgreementsXml extends SchemedXml {
           xmlns:dcterms="http://purl.org/dc/terms/"
           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
           xsi:schemaLocation={s"$schemaNameSpace $schemaLocation"}>
-        <licenseAgreement>
+        <depositAgreement>
           <depositorId>{userId}</depositorId>
           <dcterms:dateAccepted>{dateSubmitted}</dcterms:dateAccepted>
-          <licenseAgreementAccepted>{dm.acceptDepositAgreement}</licenseAgreementAccepted>
-        </licenseAgreement>
+          <depositAgreementAccepted>{dm.acceptDepositAgreement}</depositAgreementAccepted>
+        </depositAgreement>
         <personalDataStatement>
           <signerId>{userId}</signerId>
           <dateSigned>{dateSubmitted}</dateSigned>
