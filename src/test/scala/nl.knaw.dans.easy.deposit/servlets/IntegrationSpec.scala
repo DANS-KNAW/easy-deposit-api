@@ -19,9 +19,9 @@ import java.util.UUID
 
 import nl.knaw.dans.easy.deposit.PidRequesterComponent.PidRequester
 import nl.knaw.dans.easy.deposit.PidRequesterComponent.PidType.PidType
+import nl.knaw.dans.easy.deposit._
 import nl.knaw.dans.easy.deposit.authentication.AuthenticationMocker
-import nl.knaw.dans.easy.deposit.docs.{ DatasetMetadata, DepositInfo, JsonUtil }
-import nl.knaw.dans.easy.deposit.{ EasyDepositApiApp, _ }
+import nl.knaw.dans.easy.deposit.docs._
 import nl.knaw.dans.lib.error._
 import org.eclipse.jetty.http.HttpStatus._
 import org.scalatra.test.scalatest.ScalatraSuite
@@ -51,7 +51,7 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
     val metadataURI = s"/deposit/$uuid/metadata"
 
     // create dataset metadata
-    assumeSchemaAvailable
+    assume(DDM.triedSchema.isAvailble)
     authMocker.expectsUserFooBar
     put(
       metadataURI, headers = Seq(fooBarBasicAuthHeader),
@@ -86,7 +86,7 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
     val metadataURI = s"/deposit/$uuid/metadata"
 
     // create dataset metadata
-    assumeSchemaAvailable
+    assume(DDM.triedSchema.isAvailble)
     authMocker.expectsUserFooBar
     put(
       metadataURI, headers = Seq(fooBarBasicAuthHeader),
@@ -214,7 +214,7 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
     (depositDir / "deposit.properties").append(s"identifier.doi=$doi")
 
     // upload dataset metadata
-    assumeSchemaAvailable
+    assume(DDM.triedSchema.isAvailble)
     authMocker.expectsUserFooBar
     put(
       uri = s"/deposit/$uuid/metadata",
@@ -254,7 +254,7 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
 
     val uuid = DepositInfo(responseBody).map(_.id.toString).getOrRecover(e => fail(e.toString, e))
     // upload dataset metadata
-    assumeSchemaAvailable
+    assume(DDM.triedSchema.isAvailble)
     authMocker.expectsUserFooBar
     put(
       uri = s"/deposit/$uuid/metadata",

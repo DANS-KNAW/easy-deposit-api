@@ -15,7 +15,6 @@
  */
 package nl.knaw.dans.easy.deposit
 
-import java.net.UnknownHostException
 import java.util.{ TimeZone, UUID }
 
 import better.files.File
@@ -24,15 +23,12 @@ import nl.knaw.dans.bag.DansBag
 import nl.knaw.dans.bag.v0.DansV0Bag
 import nl.knaw.dans.easy.deposit.authentication.TokenSupport.TokenConfig
 import nl.knaw.dans.easy.deposit.authentication.{ AuthConfig, AuthUser, AuthenticationProvider, TokenSupport }
-import nl.knaw.dans.easy.deposit.docs.{ DDM, DepositInfo }
+import nl.knaw.dans.easy.deposit.docs._
 import org.apache.commons.configuration.PropertiesConfiguration
 import org.joda.time.{ DateTime, DateTimeUtils, DateTimeZone }
 import org.scalamock.scalatest.MockFactory
 import org.scalatest._
 import org.scalatest.enablers.Existence
-
-import scala.util.Failure
-import scala.xml.SAXParseException
 
 trait TestSupportFixture extends FlatSpec with Matchers with Inside with BeforeAndAfterEach with MockFactory {
   implicit def existenceOfFile[FILE <: better.files.File]: Existence[FILE] = _.exists
@@ -98,12 +94,5 @@ trait TestSupportFixture extends FlatSpec with Matchers with Inside with BeforeA
 
   def createJWT(user: AuthUser): String = {
     tokenSupport.encodeJWT(user)
-  }
-
-  def assumeSchemaAvailable: Assertion = {
-    assume(DDM.triedSchema match {
-      case Failure(e: SAXParseException) if e.getCause.isInstanceOf[UnknownHostException] => false
-      case _ => true
-    })
   }
 }

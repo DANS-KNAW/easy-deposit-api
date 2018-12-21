@@ -21,7 +21,7 @@ import java.util.UUID
 import nl.knaw.dans.easy.deposit._
 import nl.knaw.dans.easy.deposit.authentication.AuthenticationMocker
 import nl.knaw.dans.easy.deposit.docs.StateInfo.State._
-import nl.knaw.dans.easy.deposit.docs.{ DepositInfo, FileInfo, StateInfo }
+import nl.knaw.dans.easy.deposit.docs._
 import org.eclipse.jetty.http.HttpStatus._
 import org.joda.time.DateTime
 import org.scalatra.test.scalatest.ScalatraSuite
@@ -175,7 +175,7 @@ class HappyRoutesSpec extends TestSupportFixture with ServletFixture with Scalat
   }
 
   "put /deposit/:uuid/metadata" should "reject invalid datasetmetadata.json" in {
-    assumeSchemaAvailable
+    assume(DDM.triedSchema.isAvailble)
     authMocker.expectsUserFooBar
 
     put(

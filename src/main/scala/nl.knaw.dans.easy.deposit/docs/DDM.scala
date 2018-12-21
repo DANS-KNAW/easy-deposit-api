@@ -15,11 +15,8 @@
  */
 package nl.knaw.dans.easy.deposit.docs
 
-import java.io.{ BufferedInputStream, ByteArrayInputStream }
 import java.net.UnknownHostException
-import java.nio.charset.StandardCharsets
 
-import javax.xml.transform.stream.StreamSource
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata._
 import nl.knaw.dans.easy.deposit.docs.JsonUtil.InvalidDocumentException
 import nl.knaw.dans.easy.deposit.docs.StringUtils._
@@ -27,7 +24,6 @@ import nl.knaw.dans.easy.deposit.docs.dm._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import nl.knaw.dans.lib.string._
 import org.xml.sax.SAXParseException
-import resource.{ ManagedResource, Using }
 
 import scala.util.{ Failure, Try }
 import scala.xml.Utility.trim
@@ -79,7 +75,12 @@ object DDM extends SchemedXml with DebugEnhancedLogging {
         { dm.license.getNonEmpty.map(str => <dcterms:license>{ str }</dcterms:license>) /* xsi:type="dcterms:URI" not supported by json */ }
       </ddm:dcmiMetadata>
     </ddm:DDM>
-  }.flatMap(validate)
+  }.flatMap(validate).recoverWith {
+    case e: SAXParseException if e.getCause.isInstanceOf[UnknownHostException] =>
+      logger.error(e.getMessage, e)
+      Failure(SchemaNotAvailableException(e))
+    case e: SAXParseException => Failure(invalidDatasetMetadataException(e))
+  }
 
   private def details(point: SpatialPoint) = {
     <Point xmlns="http://www.opengis.net/gml">
@@ -160,35 +161,6 @@ object DDM extends SchemedXml with DebugEnhancedLogging {
         ))
       }
     }
-  }
-
-  // pretty provides friendly trouble shooting for complex XML's
-  private val prettyPrinter: PrettyPrinter = new scala.xml.PrettyPrinter(1024, 2)
-
-  private def validate(ddm: Elem): Try[Elem] = {
-    logger.debug(prettyPrinter.format(ddm))
-    triedSchema.map(schema =>
-      managedInputStream(ddm)
-        .apply(inputStream => schema
-          .newValidator()
-          .validate(new StreamSource(inputStream))
-        )
-    )
-  }.map(_ => ddm)
-    .recoverWith {
-      case e: SAXParseException if e.getCause.isInstanceOf[UnknownHostException] =>
-        logger.error(e.getMessage, e)
-        Failure(SchemaNotAvailableException(e))
-      case e: SAXParseException => Failure(invalidDatasetMetadataException(e))
-    }
-
-  private def managedInputStream(ddm: Elem): ManagedResource[BufferedInputStream] = {
-    Using.bufferedInputStream(
-      new ByteArrayInputStream(
-        prettyPrinter
-          .format(ddm)
-          .getBytes(StandardCharsets.UTF_8)
-      ))
   }
 
   private def invalidDatasetMetadataException(exception: Exception) = {

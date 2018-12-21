@@ -15,10 +15,6 @@
  */
 package nl.knaw.dans.easy.deposit.docs
 
-import javax.xml.XMLConstants
-import javax.xml.transform.Source
-import javax.xml.transform.stream.StreamSource
-import javax.xml.validation.{ Schema, SchemaFactory }
 import nl.knaw.dans.easy.deposit.TestSupportFixture
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.{ SchemedKeyValue, SchemedValue }
 import nl.knaw.dans.easy.deposit.docs.JsonUtil.InvalidDocumentException
@@ -265,7 +261,7 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
     )
   }
 
-  "MinimalDatasetMetadata" should "fail when given a dateTimeFormat with little z for zone" in  {
+  "MinimalDatasetMetadata" should "fail when given a dateTimeFormat with little z for zone" in {
     val invalidDates = Some(Seq(
       Date(scheme = Some(W3CDTF.toString), value = "2018-12-09T13:15:30z", DateQualifier.created), // small z for zone is not valid
       dateAvailable2018,
@@ -274,7 +270,7 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
       .causesInvalidDocumentException("cvc-datatype-valid.1.2.3: '2018-12-09T13:15:30z' is not a valid value of union type '#AnonType_W3CDTF'.")
   }
 
-  it should "fail when given a dateTimeFormat with zone, where zone part is without a semi colon" in  {
+  it should "fail when given a dateTimeFormat with zone, where zone part is without a semi colon" in {
     val invalidDates = Some(Seq(
       Date(scheme = Some(W3CDTF.toString), value = "2018-12-09T13:15:30+1000", DateQualifier.created), // small z for zone is not valid
       dateAvailable2018,
@@ -283,7 +279,7 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
       .causesInvalidDocumentException("cvc-datatype-valid.1.2.3: '2018-12-09T13:15:30+1000' is not a valid value of union type '#AnonType_W3CDTF'.")
   }
 
-  it should "fail when give a dateTimeFormat with zone, where zone part is without minutes" in  {
+  it should "fail when give a dateTimeFormat with zone, where zone part is without minutes" in {
     val invalidDates = Some(Seq(
       Date(scheme = Some(W3CDTF.toString), value = "2018-12-09T13:15:30-05", DateQualifier.created), // small z for zone is not valid
       dateAvailable2018,
@@ -592,7 +588,7 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
 
   private implicit class RichDatasetMetadata(input: MinimalDatasetMetadata) {
     def causesInvalidDocumentException(expectedMessage: String): Assertion = {
-      assumeSchemaAvailable
+      assume(DDM.triedSchema.isAvailble)
       DDM(input) should matchPattern {
         case Failure(InvalidDocumentException("DatasetMetadata", t)) if t.getMessage == expectedMessage =>
       }
@@ -620,13 +616,13 @@ trait DdmBehavior {
     lazy val triedDDM = DDM(datasetMetadata)
 
     if (expectedDdmContent.nonEmpty) it should "generate expected DDM" in {
-      assumeSchemaAvailable
+      assume(DDM.triedSchema.isAvailble)
       prettyPrinter.format(subset(triedDDM.getOrRecover(e => fail(e)))) shouldBe
         prettyPrinter.format(emptyDDM.copy(child = expectedDdmContent))
     }
 
     it should "generate valid DDM" in {
-      assumeSchemaAvailable
+      assume(DDM.triedSchema.isAvailble)
       triedDDM shouldBe a[Success[_]]
     }
   }
