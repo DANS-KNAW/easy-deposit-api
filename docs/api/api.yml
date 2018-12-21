@@ -872,12 +872,7 @@ components:
           type: string
           enum:
           - OPEN_ACCESS
-          - OPEN_ACCESS_FOR_REGISTERED_USERS
-          - GROUP_ACCESS
           - REQUEST_PERMISSION
-          - NO_ACCESS
-        group:
-          type: string
 
     Author:
       type: object
