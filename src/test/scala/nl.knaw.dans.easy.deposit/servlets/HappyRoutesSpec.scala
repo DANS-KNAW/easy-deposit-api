@@ -174,7 +174,7 @@ class HappyRoutesSpec extends TestSupportFixture with ServletFixture with Scalat
   }
 
   "put /deposit/:uuid/metadata" should "reject invalid datasetmetadata.json" in {
-    assume(DDM.triedSchema.isAvailble)
+    assume(DDM.triedSchema.isAvailable)
     authMocker.expectsUserFooBar
 
     put(
