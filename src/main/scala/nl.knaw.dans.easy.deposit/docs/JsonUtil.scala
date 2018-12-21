@@ -72,7 +72,7 @@ object JsonUtil {
     RelationQualifier,
     DateQualifier,
     State,
-    AccessCategory,
+    AccessRights,
     PrivacySensitiveDataPresent,
   )
 

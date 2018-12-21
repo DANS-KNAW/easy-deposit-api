@@ -217,9 +217,7 @@
     "pub1",
     "pub2"
   ],
-  "accessRights": {
-    "category": "OPEN_ACCESS"
-  },
+  "accessRights": "OPEN_ACCESS",
   "license": "http://creativecommons.org/publicdomain/zero/1.0",
   "types": [
     {

@@ -864,15 +864,10 @@ components:
     # Components of DatasetMetadata below
 
     AccessRights:
-      type: object
-      required:
-      - category
-      properties:
-        category:
-          type: string
-          enum:
-          - OPEN_ACCESS
-          - REQUEST_PERMISSION
+      type: string
+      enum:
+      - OPEN_ACCESS
+      - REQUEST_PERMISSION
 
     Author:
       type: object

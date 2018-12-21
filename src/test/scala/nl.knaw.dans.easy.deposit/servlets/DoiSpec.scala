@@ -36,7 +36,7 @@ class DoiSpec extends DepositServletFixture {
        |    { "scheme": "dcterms:W3CDTF", "value": "2018-05-31", "qualifier": "dcterms:created" },
        |  ],
        |  "audiences": [ { "scheme": "string", "value": "string", "key": "D33000" } ],
-       |  "accessRights": {"category": "OPEN_ACCESS"},
+       |  "accessRights": "OPEN_ACCESS",
        |  "privacySensitiveDataPresent": "no",
        |  "acceptDepositAgreement": true,
        |""".stripMargin

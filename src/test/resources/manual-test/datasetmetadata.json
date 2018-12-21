@@ -116,9 +116,7 @@
   "publishers": [
     "string"
   ],
-  "accessRights": {
-    "category": "OPEN_ACCESS"
-  },
+  "accessRights": "OPEN_ACCESS",
   "license": "string",
   "types": [
     {

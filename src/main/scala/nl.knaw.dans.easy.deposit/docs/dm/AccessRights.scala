@@ -15,12 +15,8 @@
  */
 package nl.knaw.dans.easy.deposit.docs.dm
 
-import nl.knaw.dans.easy.deposit.docs.dm.AccessCategory.AccessCategory
-
-object AccessCategory extends Enumeration {
-  type AccessCategory = Value
-  val open: AccessCategory = Value("OPEN_ACCESS")
-  val restrictedRequest: AccessCategory = Value("REQUEST_PERMISSION")
+object AccessRights extends Enumeration {
+  type AccessRights = Value
+  val open: AccessRights = Value("OPEN_ACCESS")
+  val restrictedRequest: AccessRights = Value("REQUEST_PERMISSION")
 }
-
-case class AccessRights(category: AccessCategory)
