@@ -44,8 +44,8 @@ trait SchemedXml extends DebugEnhancedLogging {
   def validate(xml: Elem): Try[Elem] = {
     val xmlString = prettyPrinter.format(xml)
     logger.trace(xmlString)
-    triedSchema.map(_.newValidator()
-      .validate(new StreamSource(xmlString.inputStream))
-    )
-  }.map(_ => xml)
+    triedSchema
+      .map(_.newValidator().validate(new StreamSource(xmlString.inputStream)))
+      .map(_ => xml)
+  }
 }

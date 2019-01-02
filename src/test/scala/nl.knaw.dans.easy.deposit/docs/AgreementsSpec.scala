@@ -46,7 +46,7 @@ class AgreementsSpec extends TestSupportFixture {
     ) should matchPattern { case Failure(InvalidDocumentException(_, e)) if e.getMessage == "Please set PrivacySensitiveDataPresent" => }
   }
   "schema validation" should "succeed" in {
-    assume(AgreementsXml.triedSchema.isAvailble)
+    assume(AgreementsXml.triedSchema.isAvailable)
     AgreementsXml(
       "user",
       DateTime.now,
@@ -57,7 +57,7 @@ class AgreementsSpec extends TestSupportFixture {
     ).flatMap(AgreementsXml.validate) should matchPattern { case Success(_) => }
   }
   it should "complain about missing user" in {
-    assume(AgreementsXml.triedSchema.isAvailble)
+    assume(AgreementsXml.triedSchema.isAvailable)
     AgreementsXml(
       null,
       DateTime.now,

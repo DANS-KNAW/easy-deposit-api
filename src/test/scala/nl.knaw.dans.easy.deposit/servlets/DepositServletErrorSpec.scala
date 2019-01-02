@@ -66,7 +66,7 @@ class DepositServletErrorSpec extends TestSupportFixture with ServletFixture wit
   }
 
   s"get /:uuid/metadata" should "report a corrupt dataset" in {
-    assume(DDM.triedSchema.isAvailble)
+    assume(DDM.triedSchema.isAvailable)
     (mockedApp.getDatasetMetadataForDeposit(_: String, _: UUID)) expects("foo", uuid) returning
       Failure(CorruptDepositException("foo", uuid.toString, new Exception("invalid json")))
 
