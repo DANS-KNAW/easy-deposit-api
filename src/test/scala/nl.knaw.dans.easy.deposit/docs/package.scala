@@ -28,7 +28,7 @@ package object docs extends DebugEnhancedLogging {
   val prettyPrinter: PrettyPrinter = new scala.xml.PrettyPrinter(1024, 2)
 
   implicit class triedSchemaExtension(val triedSchema: Try[Schema]) extends AnyVal {
-    def isAvailble: Boolean = {
+    def isAvailable: Boolean = {
       triedSchema match {
         case Failure(e: SAXParseException) if e.getCause.isInstanceOf[UnknownHostException] => false
         case _ => true

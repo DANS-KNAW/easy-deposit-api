@@ -51,7 +51,7 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
     val metadataURI = s"/deposit/$uuid/metadata"
 
     // create dataset metadata
-    assume(DDM.triedSchema.isAvailble)
+    assume(DDM.triedSchema.isAvailable)
     authMocker.expectsUserFooBar
     put(
       metadataURI, headers = Seq(fooBarBasicAuthHeader),
@@ -86,7 +86,7 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
     val metadataURI = s"/deposit/$uuid/metadata"
 
     // create dataset metadata
-    assume(DDM.triedSchema.isAvailble)
+    assume(DDM.triedSchema.isAvailable)
     authMocker.expectsUserFooBar
     put(
       metadataURI, headers = Seq(fooBarBasicAuthHeader),
@@ -214,7 +214,7 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
     (depositDir / "deposit.properties").append(s"identifier.doi=$doi")
 
     // upload dataset metadata
-    assume(DDM.triedSchema.isAvailble)
+    assume(DDM.triedSchema.isAvailable)
     authMocker.expectsUserFooBar
     put(
       uri = s"/deposit/$uuid/metadata",
@@ -254,7 +254,7 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
 
     val uuid = DepositInfo(responseBody).map(_.id.toString).getOrRecover(e => fail(e.toString, e))
     // upload dataset metadata
-    assume(DDM.triedSchema.isAvailble)
+    assume(DDM.triedSchema.isAvailable)
     authMocker.expectsUserFooBar
     put(
       uri = s"/deposit/$uuid/metadata",
