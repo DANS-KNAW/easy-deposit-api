@@ -588,7 +588,7 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
 
   private implicit class RichDatasetMetadata(input: MinimalDatasetMetadata) {
     def causesInvalidDocumentException(expectedMessage: String): Assertion = {
-      assume(DDM.triedSchema.isAvailble)
+      assume(DDM.triedSchema.isAvailable)
       DDM(input) should matchPattern {
         case Failure(InvalidDocumentException("DatasetMetadata", t)) if t.getMessage == expectedMessage =>
       }
@@ -616,13 +616,13 @@ trait DdmBehavior {
     lazy val triedDDM = DDM(datasetMetadata)
 
     if (expectedDdmContent.nonEmpty) it should "generate expected DDM" in {
-      assume(DDM.triedSchema.isAvailble)
+      assume(DDM.triedSchema.isAvailable)
       prettyPrinter.format(subset(triedDDM.getOrRecover(e => fail(e)))) shouldBe
         prettyPrinter.format(emptyDDM.copy(child = expectedDdmContent))
     }
 
     it should "generate valid DDM" in {
-      assume(DDM.triedSchema.isAvailble)
+      assume(DDM.triedSchema.isAvailable)
       triedDDM shouldBe a[Success[_]]
     }
   }
