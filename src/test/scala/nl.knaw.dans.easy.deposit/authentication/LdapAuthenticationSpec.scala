@@ -48,11 +48,10 @@ class LdapAuthenticationSpec extends TestSupportFixture with MockFactory {
       expectLdapAttributes(new BasicAttributes() {
         put("dansState", "ACTIVE")
         put("uid", "someone")
-        put("easyGroups", "abc")
       })
     })
     authentication.authenticate("someone", "somepassword") should matchPattern {
-      case Success(Some(AuthUser("someone", Seq("abc"), UserState.active))) =>
+      case Success(Some(AuthUser("someone", UserState.active))) =>
     }
   }
 
@@ -105,14 +104,11 @@ class LdapAuthenticationSpec extends TestSupportFixture with MockFactory {
         put("dansPrefixes", "van")
         get("dansPrefixes").add("den")
         put("sn", "Berg")
-        put("easyGroups", "Archeology")
-        get("easyGroups").add("History")
       })
     })
     inside(authentication.getUser("someone")) {
       case Success(user) => // just sampling the result
         user("dansPrefixes").toArray shouldBe Array("van", "den")
-        user("easyGroups").toArray shouldBe Array("Archeology", "History")
     }
   }
 }

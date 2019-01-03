@@ -143,8 +143,7 @@
   "instructionsForReuse": ["how to use this data"],
   "publishers": ["publisher1"],
   "accessRights": {
-    "category": "GROUP_ACCESS",
-    "group": "Archaelogy"
+    "category": "OPEN_ACCESS"
   },
   "license": "http://license/cc",
   "types": [

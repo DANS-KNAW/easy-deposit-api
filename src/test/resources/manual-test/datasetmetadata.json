@@ -117,8 +117,7 @@
     "string"
   ],
   "accessRights": {
-    "category": "OPEN_ACCESS",
-    "group": "string"
+    "category": "OPEN_ACCESS"
   },
   "license": "string",
   "types": [

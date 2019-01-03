@@ -38,20 +38,19 @@
   "dates": [
     {
       "scheme": "dcterms:W3CDTF",
-      "value": "2018-03-19",
+      "value": "2018-03-19T01:00:00+01:00",
       "qualifier": "dcterms:created"
     },
     {
       "scheme": "dcterms:W3CDTF",
-      "value": "2018-05-14",
+      "value": "2018-05-14T01:00:00+02:00",
       "qualifier": "dcterms:available"
     }
   ],
   "accessRights": {
-    "category": "GROUP_ACCESS",
-    "group": "archaeology"
+    "category": "REQUEST_PERMISSION"
   },
-  "license": "DANS-CONDITIONS-OF-USE",
+  "license": "http://creativecommons.org/publicdomain/zero/1.0",
   "privacySensitiveDataPresent": "yes",
   "acceptDepositAgreement": false
 }

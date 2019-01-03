@@ -51,7 +51,7 @@ class MinimalDatasetMetadata(
                               instructionsForReuse: Option[Seq[String]] = None,
                               publishers: Option[Seq[String]] = None,
                               accessRights: Option[AccessRights] = Some(
-                                AccessRights(category = AccessCategory.open, group = None)
+                                AccessRights(category = AccessCategory.open)
                               ),
                               license: Option[String] = None,
                               typesDcmi: Option[Seq[String]] = None,

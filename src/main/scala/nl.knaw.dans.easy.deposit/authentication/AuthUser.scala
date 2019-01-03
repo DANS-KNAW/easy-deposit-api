@@ -23,7 +23,6 @@ import scala.util.{ Failure, Try }
 
 /** A user with minimal properties: just for identification and authorisation */
 case class AuthUser(id: String,
-                    groups: Seq[String] = Seq.empty,
                     state: UserState
                    )
 
@@ -46,16 +45,13 @@ object AuthUser {
       attributes.getOrElse("uid", Seq.empty)
         .headOption // mandatory: https://github.com/DANS-KNAW/dans.easy-ldap-dir/blob/f17c391/files/easy-schema.ldif#L83-L84
         .getOrElse(""),
-      attributes.getOrElse("easyGroups", Seq.empty),
       attributes.getOrElse("dansState", Seq.empty)
         .headOption.map(value => UserState.withName(value))
         .getOrElse(UserState.blocked)
     )
   }
 
-  private class ActiveAuthUser(id: String,
-                               groups: Seq[String] = Seq.empty
-                              ) extends AuthUser(id, groups, UserState.active)
+  private class ActiveAuthUser(id: String) extends AuthUser(id, UserState.active)
 
   private implicit val jsonFormats: Formats = new DefaultFormats {}
 

@@ -46,7 +46,8 @@ class DatasetMetadataSpec extends TestSupportFixture {
   }
 
   it should "not fail for UI test data (some fields)" in {
-    // https://github.com/DANS-KNAW/easy-deposit-ui/blob/81b21a08ce1a8a3d86ef74148c1e024188080e10/src/test/typescript/mockserver/metadata.ts#L586-L642
+    // https://github.com/DANS-KNAW/easy-deposit-ui/blob/f0d74722b36997389462b7bdd8191f5743aef45f/src/test/typescript/mockserver/metadata.ts#L597-L652
+    // added:  "acceptDepositAgreement": false
     roundTripTest("datasetmetadata-from-ui-some.json")
   }
 

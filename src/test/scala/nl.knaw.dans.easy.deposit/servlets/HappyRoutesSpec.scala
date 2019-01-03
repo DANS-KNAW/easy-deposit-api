@@ -104,13 +104,12 @@ class HappyRoutesSpec extends TestSupportFixture with ServletFixture with Scalat
       "cn" -> Seq("Jan"),
       "dansPrefixes" -> Seq("van", "den"),
       "sn" -> Seq("Berg"),
-      "easyGroups" -> Seq("Archeology", "History")
     ))
     get(
       uri = "/user",
       headers = Seq(fooBarBasicAuthHeader)
     ) {
-      body shouldBe """{"userName":"foo","firstName":"Jan","prefix":"van den","lastName":"Berg","groups":["Archeology","History"]}"""
+      body shouldBe """{"userName":"foo","firstName":"Jan","prefix":"van den","lastName":"Berg"}"""
       status shouldBe OK_200
     }
   }
