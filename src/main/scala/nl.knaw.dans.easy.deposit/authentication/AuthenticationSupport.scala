@@ -31,7 +31,10 @@ trait AuthenticationSupport extends ScentrySupport[AuthUser] {
   /** read method name as: fromCookie, see configured scentry.store */
   override protected def fromSession: PartialFunction[String, AuthUser] = {
     case token: String => decodeJWT(token)
-      .doIfSuccess { user => scentry.store.set(encodeJWT(user)) } // refresh cookie
+      .doIfSuccess { user =>
+        logger.debug(s"fromSession (cookie)")
+        scentry.store.set(encodeJWT(user))
+      } // refresh cookie
       .doIfFailure { case t => logger.info(s"invalid authentication: $t") }
       .getOrElse(null)
   }
@@ -42,7 +45,9 @@ trait AuthenticationSupport extends ScentrySupport[AuthUser] {
       user.state match {
         case UserState.registered => halt(Unauthorized("Please confirm your email.").logResponse)
         case UserState.blocked => halt(Unauthorized("invalid credentials").logResponse)
-        case UserState.active => encodeJWT(user)
+        case UserState.active =>
+          logger.debug(s"toSession (cookie)")
+          encodeJWT(user)
       }
   }
 

@@ -17,6 +17,7 @@ package nl.knaw.dans.easy.deposit.authentication
 
 import nl.knaw.dans.easy.deposit._
 import nl.knaw.dans.easy.deposit.authentication.AuthUser.UserState
+import nl.knaw.dans.easy.deposit.logging.{ PlainAuthResponseHeaders, PlainCookies, PlainHeaders, PlainRemoteAddress }
 import nl.knaw.dans.easy.deposit.servlets.ServletFixture
 import org.eclipse.jetty.http.HttpStatus._
 import org.joda.time.format.DateTimeFormat
@@ -26,8 +27,8 @@ import org.scalatra.test.scalatest.ScalatraSuite
 class SessionSpec extends TestSupportFixture with ServletFixture with ScalatraSuite {
 
   private val authMocker = new AuthenticationMocker() {}
-  addServlet(new TestServlet(authMocker.mockedAuthenticationProvider), "/deposit/*")
-  addServlet(new AuthTestServlet(authMocker.mockedAuthenticationProvider), "/auth/*")
+  addServlet(new TestServlet(authMocker.mockedAuthenticationProvider) with PlainHeaders with PlainCookies, "/deposit/*")
+  addServlet(new AuthTestServlet(authMocker.mockedAuthenticationProvider) with PlainHeaders with PlainCookies with PlainRemoteAddress, "/auth/*")
 
   "GET /deposit" should "return 401 (Unauthorized) when neither cookie nor login params are provided" in {
     authMocker.expectsNoUser
@@ -170,7 +171,8 @@ class SessionSpec extends TestSupportFixture with ServletFixture with ScalatraSu
       header("Expires") shouldBe "Thu, 01 Jan 1970 00:00:00 GMT" // page cache
       header("REMOTE_USER") shouldBe ""
       val newCookie = header("Set-Cookie")
-      newCookie should startWith("scentry.auth.default.user=;") // note the empty value
+      println(header.toSeq.mkString("===========","\n===========",""))
+      newCookie should include("scentry.auth.default.user=;") // note the empty value
       newCookie should include(";Path=/")
       newCookie should include(";Expires=")
       newCookie should include(";HttpOnly")
