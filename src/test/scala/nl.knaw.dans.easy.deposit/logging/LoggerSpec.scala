@@ -106,8 +106,12 @@ class LoggerSpec extends TestSupportFixture with ServletFixture with ScalatraSui
     get(uri = path) {
       body shouldBe "How do you do?"
       status shouldBe OK_200
-      stringBuffer.toString should include("GET http://localhost")
-      stringBuffer.toString should include("GET returned status=200")
+      val port = localPort.getOrElse("None")
+      val loggedLines = stringBuffer.toString().split("\n")
+      loggedLines.head should startWith (s"GET http://localhost:$port$path")
+      loggedLines.last should startWith (s"GET returned status=200; ")
+      loggedLines.last.toLowerCase() should include (s"content-type -> [text/plain;charset=utf-8]")
+      loggedLines.last should include (s"actionHeaders=[]")
     }
   }
 }
