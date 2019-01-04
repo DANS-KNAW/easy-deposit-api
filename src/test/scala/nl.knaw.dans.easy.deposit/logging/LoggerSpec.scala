@@ -47,9 +47,12 @@ class LoggerSpec extends TestSupportFixture with ServletFixture with ScalatraSui
     }
   }
   val stringBuffer = new StringBuilder
-  addServlet(new TestServlet() with CustomResponseLogger with CustomRequestLogger with ResponseLogFormatter with RequestLogFormatter, "/1")
-  addServlet(new TestServlet() with CustomLoggers with ResponseLogFormatter with RequestLogFormatter, "/2")
-  addServlet(new TestServlet() with CustomLoggers with ResponseLogFormatter with CustomRequestLogFormatter, "/3")
+  private val combinedLoggerPath = "/combinedLogger"
+  private val requestLoggerPath = "/combinedLogger"
+  private val customFormatterpath = "/combinedLogger"
+  addServlet(new TestServlet() with CustomResponseLogger with CustomRequestLogger with ResponseLogFormatter with RequestLogFormatter, combinedLoggerPath)
+  addServlet(new TestServlet() with CustomLoggers with ResponseLogFormatter with RequestLogFormatter, requestLoggerPath)
+  addServlet(new TestServlet() with CustomLoggers with ResponseLogFormatter with CustomRequestLogFormatter, customFormatterpath)
 
   trait CustomResponseLogger extends AbstractResponseLogger {
     this: ScalatraBase with ResponseLogFormatter =>
@@ -87,20 +90,20 @@ class LoggerSpec extends TestSupportFixture with ServletFixture with ScalatraSui
   }
 
   "separate custom loggers" should "override default loggers" in {
-    shouldDivertLogging("/1")
+    shouldDivertLogging(combinedLoggerPath)
   }
 
   "combined custom loggers" should "override default loggers" in {
-    shouldDivertLogging("/2")
+    shouldDivertLogging(requestLoggerPath)
   }
 
   "custom request formatter" should "alter logged content" in {
-    shouldDivertLogging("/3", formattedRemote = "127.0.0.1")
+    shouldDivertLogging(customFormatterpath, formattedRemote = "127.0.0.1")
   }
 
-  private def shouldDivertLogging(servlet: String, formattedRemote: String = "**.**.**.1") = {
+  private def shouldDivertLogging(path: String, formattedRemote: String = "**.**.**.1") = {
     stringBuffer.clear()
-    get(uri = servlet) {
+    get(uri = path) {
       body shouldBe "How do you do?"
       status shouldBe OK_200
       stringBuffer.toString should include("GET http://localhost")
