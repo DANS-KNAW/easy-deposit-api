@@ -23,7 +23,7 @@ import org.scalamock.scalatest.MockFactory
 import scala.util.{ Success, Try }
 
 trait AuthenticationMocker extends MockFactory {
-  val mockedAuthenticationProvider: AuthenticationProvider = mock[AuthenticationProvider]
+  val mockedAuthenticationProvider: AuthenticationProvider
 
   def expectsInvalidUser: CallHandler2[String, String, Try[Option[AuthUser]]] = {
     (mockedAuthenticationProvider.authenticate(_: String, _: String)) expects(*, *) returning Success(None)

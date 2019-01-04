@@ -26,7 +26,9 @@ import org.scalatra.test.scalatest.ScalatraSuite
 
 class SessionSpec extends TestSupportFixture with ServletFixture with ScalatraSuite {
 
-  private val authMocker = new AuthenticationMocker() {}
+  private val authMocker = new AuthenticationMocker() {
+    override val mockedAuthenticationProvider: AuthenticationProvider = mock[AuthenticationProvider]
+  }
   addServlet(new TestServlet(authMocker.mockedAuthenticationProvider) with PlainHeaders with PlainCookies, "/deposit/*")
   addServlet(new AuthTestServlet(authMocker.mockedAuthenticationProvider) with PlainHeaders with PlainCookies with PlainRemoteAddress, "/auth/*")
 

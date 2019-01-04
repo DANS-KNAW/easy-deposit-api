@@ -19,7 +19,7 @@ import java.nio.file.{ Path, Paths }
 import java.util.UUID
 
 import nl.knaw.dans.easy.deposit._
-import nl.knaw.dans.easy.deposit.authentication.AuthenticationMocker
+import nl.knaw.dans.easy.deposit.authentication.{ AuthenticationMocker, AuthenticationProvider }
 import nl.knaw.dans.easy.deposit.docs.StateInfo.State._
 import nl.knaw.dans.easy.deposit.docs._
 import org.eclipse.jetty.http.HttpStatus._
@@ -30,7 +30,9 @@ import scala.util.Success
 
 class HappyRoutesSpec extends TestSupportFixture with ServletFixture with ScalatraSuite {
 
-  private val authMocker = new AuthenticationMocker() {}
+  private val authMocker = new AuthenticationMocker() {
+    override val mockedAuthenticationProvider: AuthenticationProvider = mock[AuthenticationProvider]
+  }
   private class MockedApp extends EasyDepositApiApp(minimalAppConfig)
   private val mockedApp = mock[MockedApp]
   mountServlets(mockedApp, authMocker.mockedAuthenticationProvider)

@@ -22,17 +22,19 @@ import nl.knaw.dans.easy.deposit.docs.DepositInfo
 import nl.knaw.dans.easy.deposit.{ EasyDepositApiApp, TestSupportFixture }
 import nl.knaw.dans.lib.error._
 import org.scalamock.handlers.CallHandler1
+import org.scalamock.scalatest.MockFactory
 import org.scalatra.test.scalatest.ScalatraSuite
 
 import scala.util.{ Success, Try }
 
-trait DepositServletFixture extends TestSupportFixture with ServletFixture with ScalatraSuite {
+trait DepositServletFixture extends TestSupportFixture with ServletFixture with ScalatraSuite  with MockFactory {
   private val app: EasyDepositApiApp = new EasyDepositApiApp(minimalAppConfig) {
     override val pidRequester: PidRequester = mock[PidRequester]
   }
   private val depositServlet = new DepositServlet(app) {
     override def getAuthenticationProvider: AuthenticationProvider = {
       new AuthenticationMocker() {
+        override val mockedAuthenticationProvider: AuthenticationProvider = mock[AuthenticationProvider]
         expectsUserFooBar anyNumberOfTimes()
       }.mockedAuthenticationProvider
     }
