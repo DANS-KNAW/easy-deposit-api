@@ -25,7 +25,7 @@ import org.joda.time.format.DateTimeFormat
 import org.scalatra.auth.Scentry
 import org.scalatra.test.scalatest.ScalatraSuite
 
-class SessionSpec extends TestSupportFixture with ServletFixture with ScalatraSuite with DebugEnhancedLogging{
+class SessionSpec extends TestSupportFixture with ServletFixture with ScalatraSuite {
 
   private val authMocker = new AuthenticationMocker() {
     override val mockedAuthenticationProvider: AuthenticationProvider = mock[AuthenticationProvider]
@@ -173,12 +173,7 @@ class SessionSpec extends TestSupportFixture with ServletFixture with ScalatraSu
       header("Content-Type").toLowerCase shouldBe "text/html;charset=utf-8"
       header("Expires") shouldBe "Thu, 01 Jan 1970 00:00:00 GMT" // page cache
       header("REMOTE_USER") shouldBe ""
-      val newCookie = header("Set-Cookie")
-      logger.debug(header.toSeq.mkString("\n===========", "\n===========", ""))
-      newCookie should include("scentry.auth.default.user=;") // note the empty value
-      newCookie should include(";Path=/")
-      newCookie should include(";Expires=")
-      newCookie should include(";HttpOnly")
+      shouldHaveOneEmptyCookie
     }
   }
 
@@ -190,9 +185,19 @@ class SessionSpec extends TestSupportFixture with ServletFixture with ScalatraSu
     ) {
       body shouldBe ""
       header("REMOTE_USER") shouldBe ""
-      header("Set-Cookie") should startWith("scentry.auth.default.user=;")
       status shouldBe NO_CONTENT_204
+      shouldHaveOneEmptyCookie
     }
+  }
+
+  private def shouldHaveOneEmptyCookie = {
+    val newCookie = response.headers("Set-Cookie")
+    val lastCookie = newCookie.lastOption.getOrElse("")
+    lastCookie should include("scentry.auth.default.user=;") // note the empty value
+    lastCookie should include(";Path=/")
+    lastCookie should include(";Expires=")
+    lastCookie should include(";HttpOnly")
+    newCookie.size shouldBe 1
   }
 
   def cookieAge(cookie: String): Long = {
