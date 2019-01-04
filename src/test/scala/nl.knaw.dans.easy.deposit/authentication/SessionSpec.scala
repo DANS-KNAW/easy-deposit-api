@@ -17,14 +17,15 @@ package nl.knaw.dans.easy.deposit.authentication
 
 import nl.knaw.dans.easy.deposit._
 import nl.knaw.dans.easy.deposit.authentication.AuthUser.UserState
-import nl.knaw.dans.easy.deposit.logging.{ PlainAuthResponseHeaders, PlainCookies, PlainHeaders, PlainRemoteAddress }
+import nl.knaw.dans.easy.deposit.logging.{ PlainCookies, PlainHeaders, PlainRemoteAddress }
 import nl.knaw.dans.easy.deposit.servlets.ServletFixture
+import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.eclipse.jetty.http.HttpStatus._
 import org.joda.time.format.DateTimeFormat
 import org.scalatra.auth.Scentry
 import org.scalatra.test.scalatest.ScalatraSuite
 
-class SessionSpec extends TestSupportFixture with ServletFixture with ScalatraSuite {
+class SessionSpec extends TestSupportFixture with ServletFixture with ScalatraSuite with DebugEnhancedLogging{
 
   private val authMocker = new AuthenticationMocker() {
     override val mockedAuthenticationProvider: AuthenticationProvider = mock[AuthenticationProvider]
@@ -173,7 +174,7 @@ class SessionSpec extends TestSupportFixture with ServletFixture with ScalatraSu
       header("Expires") shouldBe "Thu, 01 Jan 1970 00:00:00 GMT" // page cache
       header("REMOTE_USER") shouldBe ""
       val newCookie = header("Set-Cookie")
-      println(header.toSeq.mkString("===========","\n===========",""))
+      logger.debug(header.toSeq.mkString("\n===========", "\n===========", ""))
       newCookie should include("scentry.auth.default.user=;") // note the empty value
       newCookie should include(";Path=/")
       newCookie should include(";Expires=")
