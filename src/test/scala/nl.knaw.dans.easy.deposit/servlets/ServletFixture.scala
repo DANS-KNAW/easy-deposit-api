@@ -21,7 +21,6 @@ import java.util.Base64
 import better.files.File
 import nl.knaw.dans.easy.deposit.EasyDepositApiApp
 import nl.knaw.dans.easy.deposit.authentication.AuthenticationProvider
-import org.eclipse.jetty.server.nio.SelectChannelConnector
 import org.scalatra.test.EmbeddedJettyContainer
 import org.scalatra.test.scalatest.ScalatraSuite
 
@@ -31,20 +30,6 @@ import org.scalatra.test.scalatest.ScalatraSuite
  */
 trait ServletFixture extends EmbeddedJettyContainer {
   this: ScalatraSuite =>
-
-  override def localPort: Option[Int] = server.getConnectors.collectFirst {
-    case x: SelectChannelConnector => x.getLocalPort
-  }
-
-  override def baseUrl: String = {
-    server.getConnectors.collectFirst {
-      case conn: SelectChannelConnector =>
-        val host = Option(conn.getHost).getOrElse("localhost")
-        val port = conn.getLocalPort
-        require(port > 0, "The detected local port is < 1, that's not allowed")
-        "http://%s:%d".format(host, port)
-    }.getOrElse(sys.error("can't calculate base URL: no connector"))
-  }
 
   def mountServlets(app: EasyDepositApiApp, authenticationProvider: AuthenticationProvider): Unit = {
     val userServlet = new UserServlet(app) {
