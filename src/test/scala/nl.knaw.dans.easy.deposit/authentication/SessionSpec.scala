@@ -34,7 +34,7 @@ class SessionSpec extends TestSupportFixture with ServletFixture with ScalatraSu
     get("/deposit") {
       status shouldBe UNAUTHORIZED_401
       body shouldBe "missing, invalid or expired credentials"
-      header("Content-Type") shouldBe "text/plain;charset=utf-8"
+      header("Content-Type").toLowerCase shouldBe "text/plain;charset=utf-8"
       response.headers should not contain key("Set-Cookie")
     }
   }
@@ -77,7 +77,7 @@ class SessionSpec extends TestSupportFixture with ServletFixture with ScalatraSu
       headers = Seq(("Cookie", s"${ Scentry.scentryAuthKey }=$jwtCookie"))
     ) {
       status shouldBe UNAUTHORIZED_401
-      header("Content-Type") shouldBe "text/plain;charset=utf-8"
+      header("Content-Type").toLowerCase shouldBe "text/plain;charset=utf-8"
       response.headers should not contain key("Set-Cookie")
     }
   }
@@ -90,7 +90,7 @@ class SessionSpec extends TestSupportFixture with ServletFixture with ScalatraSu
     ) {
       body shouldBe "invalid credentials"
       status shouldBe UNAUTHORIZED_401
-      header("Content-Type") shouldBe "text/plain;charset=utf-8"
+      header("Content-Type").toLowerCase shouldBe "text/plain;charset=utf-8"
       response.headers should not contain key("Set-Cookie")
     }
   }
@@ -103,7 +103,7 @@ class SessionSpec extends TestSupportFixture with ServletFixture with ScalatraSu
     ) {
       body shouldBe "Please confirm your email."
       status shouldBe UNAUTHORIZED_401
-      header("Content-Type") shouldBe "text/plain;charset=utf-8"
+      header("Content-Type").toLowerCase shouldBe "text/plain;charset=utf-8"
       response.headers should not contain key("Set-Cookie")
     }
   }
@@ -116,7 +116,7 @@ class SessionSpec extends TestSupportFixture with ServletFixture with ScalatraSu
     ) {
       body shouldBe "invalid credentials"
       status shouldBe UNAUTHORIZED_401
-      header("Content-Type") shouldBe "text/plain;charset=utf-8"
+      header("Content-Type").toLowerCase shouldBe "text/plain;charset=utf-8"
       response.headers should not contain key("Set-Cookie")
     }
   }
@@ -166,7 +166,7 @@ class SessionSpec extends TestSupportFixture with ServletFixture with ScalatraSu
       headers = Seq(("Cookie", s"${ Scentry.scentryAuthKey }=$jwtCookie"))
     ) {
       status shouldBe NO_CONTENT_204
-      header("Content-Type") shouldBe "text/html;charset=utf-8"
+      header("Content-Type").toLowerCase shouldBe "text/html;charset=utf-8"
       header("Expires") shouldBe "Thu, 01 Jan 1970 00:00:00 GMT" // page cache
       header("REMOTE_USER") shouldBe ""
       val newCookie = header("Set-Cookie")
