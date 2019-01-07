@@ -15,22 +15,41 @@
  */
 package nl.knaw.dans.easy.deposit.authentication
 
+import nl.knaw.dans.easy.deposit.PidRequesterComponent.PidRequester
 import nl.knaw.dans.easy.deposit._
 import nl.knaw.dans.easy.deposit.authentication.AuthUser.UserState
-import nl.knaw.dans.easy.deposit.logging.{ PlainCookies, PlainHeaders, PlainRemoteAddress }
-import nl.knaw.dans.easy.deposit.servlets.ServletFixture
+import nl.knaw.dans.easy.deposit.logging.{ PlainCookies, PlainHeaders, PlainRemoteAddress, _ }
+import nl.knaw.dans.easy.deposit.servlets.{ AuthServlet, ProtectedServlet, ServletFixture }
 import org.eclipse.jetty.http.HttpStatus._
+import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat
+import org.scalatra.Ok
 import org.scalatra.auth.Scentry
 import org.scalatra.test.scalatest.ScalatraSuite
 
 class SessionSpec extends TestSupportFixture with ServletFixture with ScalatraSuite {
 
+  private val app: EasyDepositApiApp = new EasyDepositApiApp(minimalAppConfig) {
+    override val pidRequester: PidRequester = mock[PidRequester]
+  }
   private val authMocker = new AuthenticationMocker() {
     override val mockedAuthenticationProvider: AuthenticationProvider = mock[AuthenticationProvider]
   }
-  addServlet(new TestServlet(authMocker.mockedAuthenticationProvider) with PlainHeaders with PlainCookies, "/deposit/*")
-  addServlet(new AuthTestServlet(authMocker.mockedAuthenticationProvider) with PlainHeaders with PlainCookies with PlainRemoteAddress, "/auth/*")
+  private val authServlet = new AuthServlet(app) with PlainHeaders with PlainCookies with PlainRemoteAddress {
+    override def getAuthenticationProvider: AuthenticationProvider = authMocker.mockedAuthenticationProvider
+  }
+  private val testServlet = new ProtectedServlet(app) with PlainHeaders with PlainCookies {
+    override def getAuthenticationProvider: AuthenticationProvider = authMocker.mockedAuthenticationProvider
+
+    get("/") {
+      contentType = "text/plain"
+      Ok(s"$user ${ new DateTime() }: EASY Deposit API Service running")
+        .logResponse
+    }
+  }
+
+  addServlet(testServlet, "/deposit/*")
+  addServlet(authServlet, "/auth/*")
 
   "GET /deposit" should "return 401 (Unauthorized) when neither cookie nor login params are provided" in {
     authMocker.expectsNoUser
