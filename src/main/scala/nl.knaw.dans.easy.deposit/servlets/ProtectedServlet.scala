@@ -16,10 +16,16 @@
 package nl.knaw.dans.easy.deposit.servlets
 
 import nl.knaw.dans.easy.deposit.EasyDepositApiApp
+import nl.knaw.dans.easy.deposit.authentication.{ AuthenticationSupport, EasyBasicAuthStrategy }
 import nl.knaw.dans.easy.deposit.logging._
 import org.scalatra.Unauthorized
 
 class ProtectedServlet(app: EasyDepositApiApp) extends AbstractAuthServlet(app) {
+  self =>
+  override protected def registerAuthStrategies: Unit = {
+    super.registerAuthStrategies
+    scentry.register(EasyBasicAuthStrategy.getClass.getSimpleName, _ => new EasyBasicAuthStrategy(self, getAuthenticationProvider, AuthenticationSupport.realm))
+  }
 
   before() {
     if (!isAuthenticated) {

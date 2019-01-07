@@ -152,7 +152,6 @@ class SessionSpec extends TestSupportFixture with ServletFixture with ScalatraSu
       status shouldBe NO_CONTENT_204
       body shouldBe ""
       header("Expires") shouldBe "Thu, 01 Jan 1970 00:00:00 GMT" // page cache
-      header("REMOTE_USER") shouldBe "foo"
       val newCookie = header("Set-Cookie")
       newCookie should startWith regex "scentry.auth.default.user=[^;].+;"
       newCookie should include(";Path=/")
@@ -161,21 +160,15 @@ class SessionSpec extends TestSupportFixture with ServletFixture with ScalatraSu
     }
   }
 
-  it should "create a cookie when valid basic authentication is provided" in {
+  it should "fail when valid basic authentication is provided" in {
     authMocker.expectsUserFooBarWithStatus(UserState.active)
     post(
       uri = "/auth/login",
       headers = Seq(fooBarBasicAuthHeader)
     ) {
-      body shouldBe ""
-      status shouldBe NO_CONTENT_204
-      header("Expires") shouldBe "Thu, 01 Jan 1970 00:00:00 GMT" // page cache
-      header("REMOTE_USER") shouldBe "foo"
-      val newCookie = header("Set-Cookie")
-      newCookie should startWith regex "scentry.auth.default.user=[^;].+;"
-      newCookie should include(";Path=/")
-      newCookie should include(";HttpOnly")
-      cookieAge(newCookie) should be < 1000L
+      body shouldBe "invalid credentials"
+      status shouldBe UNAUTHORIZED_401
+      header("Set-Cookie") shouldBe null
     }
   }
 
@@ -190,8 +183,7 @@ class SessionSpec extends TestSupportFixture with ServletFixture with ScalatraSu
       status shouldBe NO_CONTENT_204
       header("Content-Type").toLowerCase shouldBe "text/html;charset=utf-8"
       header("Expires") shouldBe "Thu, 01 Jan 1970 00:00:00 GMT" // page cache
-      header("REMOTE_USER") shouldBe ""
-      shouldHaveEmptyCookie(1)
+      shouldHaveEmptyCookie
     }
   }
 
@@ -202,22 +194,21 @@ class SessionSpec extends TestSupportFixture with ServletFixture with ScalatraSu
       headers = Seq(fooBarBasicAuthHeader)
     ) {
       body shouldBe ""
-      header("REMOTE_USER") shouldBe ""
       status shouldBe NO_CONTENT_204
       // TODO basic authentication is intended for internal test purposes
       //  if exposed beyond the firewall we need to prevent the first cookie
-      shouldHaveEmptyCookie(2)
+      shouldHaveEmptyCookie
     }
   }
 
-  private def shouldHaveEmptyCookie(nrOfCookies: Int): Any = {
+  private def shouldHaveEmptyCookie: Any = {
     val newCookie = response.headers("Set-Cookie")
     val lastCookie = newCookie.lastOption.getOrElse("")
     lastCookie should include("scentry.auth.default.user=;") // note the empty value
     lastCookie should include(";Path=/")
     lastCookie should include(";Expires=")
     lastCookie should include(";HttpOnly")
-    newCookie.size shouldBe nrOfCookies
+    newCookie.size shouldBe 1
   }
 
   def cookieAge(cookie: String): Long = {
