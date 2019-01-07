@@ -48,8 +48,8 @@ class LoggerSpec extends TestSupportFixture with ServletFixture with ScalatraSui
   }
   val stringBuffer = new StringBuilder
   private val combinedLoggerPath = "/combinedLogger"
-  private val requestLoggerPath = "/combinedLogger"
-  private val customFormatterpath = "/combinedLogger"
+  private val requestLoggerPath = "/requestLogger"
+  private val customFormatterpath = "/customFormatLogger"
   addServlet(new TestServlet() with CustomResponseLogger with CustomRequestLogger with ResponseLogFormatter with RequestLogFormatter, combinedLoggerPath)
   addServlet(new TestServlet() with CustomLoggers with ResponseLogFormatter with RequestLogFormatter, requestLoggerPath)
   addServlet(new TestServlet() with CustomLoggers with ResponseLogFormatter with CustomRequestLogFormatter, customFormatterpath)
