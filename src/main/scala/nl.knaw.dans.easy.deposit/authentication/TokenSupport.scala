@@ -45,7 +45,6 @@ trait TokenSupport extends DebugEnhancedLogging {
   logger.info(s"tokenConfig: ${ tokenConfig.copy(secretKey = "*****") }")
 
   def encodeJWT(user: AuthUser): String = {
-    logger.debug(s"encoding user cookie")
     // TODO Add other user properties, audience=?=remote-ip?
     // Claim.content can only have primitive members, not even lists
     val claim = JwtClaim(s"""{"uid":"${ user.id }"}""")
@@ -55,7 +54,6 @@ trait TokenSupport extends DebugEnhancedLogging {
   }
 
   def decodeJWT(token: String): Try[AuthUser] = {
-    logger.debug(s"decoding user cookie")
     for {
       decoded <- Jwt.decode(token, tokenConfig.secretKey, Seq(tokenConfig.algorithm))
       parsed <- fromJson(decoded)
