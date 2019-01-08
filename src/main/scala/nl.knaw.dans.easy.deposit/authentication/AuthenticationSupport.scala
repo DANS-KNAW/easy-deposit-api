@@ -18,7 +18,6 @@ package nl.knaw.dans.easy.deposit.authentication
 import java.net.URL
 
 import nl.knaw.dans.easy.deposit.authentication.AuthUser.UserState
-import nl.knaw.dans.easy.deposit.authentication.AuthenticationSupport._
 import nl.knaw.dans.easy.deposit.logging._
 import nl.knaw.dans.lib.error._
 import org.scalatra._
