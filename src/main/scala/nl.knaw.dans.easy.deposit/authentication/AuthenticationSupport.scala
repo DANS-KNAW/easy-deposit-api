@@ -74,6 +74,7 @@ trait AuthenticationSupport extends ScentrySupport[AuthUser] {
    */
   override protected def registerAuthStrategies: Unit = {
     scentry.register(UserPasswordStrategy.getClass.getSimpleName, _ => new UserPasswordStrategy(self, getAuthenticationProvider))
+    scentry.register(EasyBasicAuthStrategy.getClass.getSimpleName, _ => new EasyBasicAuthStrategy(self, getAuthenticationProvider, AuthenticationSupport.realm))
 
     // don't need a cookie-with-token strategy:
     // scentry uses the configured scentry.store and the implementation of from/to-Session methods
@@ -93,5 +94,5 @@ trait AuthenticationSupport extends ScentrySupport[AuthUser] {
 object AuthenticationSupport {
 
   // the same username and password combination should work for any page within the same realm
-  val realm = "easy-deposit"
+  private val realm = "easy-deposit"
 }
