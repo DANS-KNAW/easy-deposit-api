@@ -20,7 +20,7 @@ import java.util.UUID
 import nl.knaw.dans.easy.deposit.PidRequesterComponent.PidRequester
 import nl.knaw.dans.easy.deposit.PidRequesterComponent.PidType.PidType
 import nl.knaw.dans.easy.deposit._
-import nl.knaw.dans.easy.deposit.authentication.AuthenticationMocker
+import nl.knaw.dans.easy.deposit.authentication.{ AuthenticationMocker, AuthenticationProvider }
 import nl.knaw.dans.easy.deposit.docs._
 import nl.knaw.dans.lib.error._
 import org.eclipse.jetty.http.HttpStatus._
@@ -30,7 +30,9 @@ import scala.util.Success
 
 class IntegrationSpec extends TestSupportFixture with ServletFixture with ScalatraSuite {
 
-  private val authMocker = new AuthenticationMocker() {}
+  private val authMocker = new AuthenticationMocker() {
+    override val mockedAuthenticationProvider: AuthenticationProvider = mock[AuthenticationProvider]
+  }
 
   override def beforeEach(): Unit = {
     super.beforeEach()

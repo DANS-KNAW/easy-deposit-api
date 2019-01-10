@@ -18,6 +18,7 @@ package nl.knaw.dans.easy.deposit.servlets
 import nl.knaw.dans.easy.deposit.EasyDepositApiApp
 import nl.knaw.dans.easy.deposit.authentication._
 import nl.knaw.dans.easy.deposit.logging.{ RequestLogger, ResponseLogger }
+import nl.knaw.dans.lib.error._
 import org.apache.commons.configuration.PropertiesConfiguration
 import org.scalatra.ScalatraServlet
 
@@ -27,6 +28,13 @@ abstract class AbstractAuthServlet(app: EasyDepositApiApp) extends ScalatraServl
   with AuthenticationSupport
   with TokenSupport
   with AuthConfig {
+
+  override protected def fromSession: PartialFunction[String, AuthUser] = {
+    // prevents refreshing a cookie on logout
+    case token: String => decodeJWT(token)
+      .doIfFailure { case t => logger.info(s"invalid authentication: $t") }
+      .getOrElse(null)
+  }
 
   override def getAuthenticationProvider: AuthenticationProvider = app.authentication
 

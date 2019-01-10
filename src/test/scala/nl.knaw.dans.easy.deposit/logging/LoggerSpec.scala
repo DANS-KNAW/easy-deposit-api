@@ -47,6 +47,12 @@ class LoggerSpec extends TestSupportFixture with ServletFixture with ScalatraSui
     }
   }
   val stringBuffer = new StringBuilder
+  private val combinedLoggerPath = "/combinedLogger"
+  private val requestLoggerPath = "/requestLogger"
+  private val customFormatterpath = "/customFormatLogger"
+  addServlet(new TestServlet() with CustomResponseLogger with CustomRequestLogger with ResponseLogFormatter with RequestLogFormatter, combinedLoggerPath)
+  addServlet(new TestServlet() with CustomLoggers with ResponseLogFormatter with RequestLogFormatter, requestLoggerPath)
+  addServlet(new TestServlet() with CustomLoggers with ResponseLogFormatter with CustomRequestLogFormatter, customFormatterpath)
 
   trait CustomResponseLogger extends AbstractResponseLogger {
     this: ScalatraBase with ResponseLogFormatter =>
@@ -84,51 +90,28 @@ class LoggerSpec extends TestSupportFixture with ServletFixture with ScalatraSui
   }
 
   "separate custom loggers" should "override default loggers" in {
-
-    class MyServlet() extends TestServlet
-      with CustomResponseLogger with CustomRequestLogger
-      with ResponseLogFormatter with RequestLogFormatter {}
-    addServlet(new MyServlet(), "/*")
-
-    shouldDivertLogging()
+    shouldDivertLogging(combinedLoggerPath)
   }
 
   "combined custom loggers" should "override default loggers" in {
-
-    class MyServlet() extends TestServlet
-      with CustomLoggers
-      with ResponseLogFormatter
-      with RequestLogFormatter {}
-    addServlet(new MyServlet(), "/*")
-
-    shouldDivertLogging()
+    shouldDivertLogging(requestLoggerPath)
   }
 
   "custom request formatter" should "alter logged content" in {
-
-    class MyServlet() extends TestServlet
-      with CustomLoggers
-      with ResponseLogFormatter
-      with CustomRequestLogFormatter {}
-    addServlet(new MyServlet(), "/*")
-
-    shouldDivertLogging(formattedRemote = "127.0.0.1")
+    shouldDivertLogging(customFormatterpath, formattedRemote = "127.0.0.1")
   }
 
-  private def shouldDivertLogging(formattedRemote: String = "**.**.**.1") = {
+  private def shouldDivertLogging(path: String, formattedRemote: String = "**.**.**.1") = {
     stringBuffer.clear()
-    get(uri = "/") {
+    get(uri = path) {
       body shouldBe "How do you do?"
       status shouldBe OK_200
       val port = localPort.getOrElse("None")
-      val javaVersion = System.getProperty("java.version")
-      val clientVersion = "4.5.3" // org.apache.httpcomponents dependency; may change when upgrading scalatra-scalatest
-      val defaultHeaders =
-        s"""Connection -> [keep-alive], Accept-Encoding -> [gzip,deflate], User-Agent -> [Apache-HttpClient/$clientVersion (Java/$javaVersion)], Host -> [localhost:$port]"""
-      stringBuffer.toString() shouldBe
-        s"""GET http://localhost:$port/ remote=$formattedRemote; params=[]; headers=[$defaultHeaders]
-           |GET returned status=200; authHeaders=[Content-Type -> [text/plain;charset=UTF-8]]; actionHeaders=[]
-           |""".stripMargin
+      val loggedLines = stringBuffer.toString().split("\n")
+      loggedLines.head should startWith(s"GET http://localhost:$port$path")
+      loggedLines.last should startWith(s"GET returned status=200; ")
+      loggedLines.last.toLowerCase() should include(s"content-type -> [text/plain;charset=utf-8]")
+      loggedLines.last should include(s"actionHeaders=[]")
     }
   }
 }

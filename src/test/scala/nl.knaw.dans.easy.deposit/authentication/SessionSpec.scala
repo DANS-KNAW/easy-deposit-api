@@ -15,26 +15,48 @@
  */
 package nl.knaw.dans.easy.deposit.authentication
 
+import nl.knaw.dans.easy.deposit.PidRequesterComponent.PidRequester
 import nl.knaw.dans.easy.deposit._
 import nl.knaw.dans.easy.deposit.authentication.AuthUser.UserState
-import nl.knaw.dans.easy.deposit.servlets.ServletFixture
+import nl.knaw.dans.easy.deposit.logging._
+import nl.knaw.dans.easy.deposit.servlets.{ AuthServlet, ProtectedServlet, ServletFixture }
 import org.eclipse.jetty.http.HttpStatus._
+import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat
+import org.scalatra.Ok
 import org.scalatra.auth.Scentry
 import org.scalatra.test.scalatest.ScalatraSuite
 
 class SessionSpec extends TestSupportFixture with ServletFixture with ScalatraSuite {
 
-  private val authMocker = new AuthenticationMocker() {}
-  addServlet(new TestServlet(authMocker.mockedAuthenticationProvider), "/deposit/*")
-  addServlet(new AuthTestServlet(authMocker.mockedAuthenticationProvider), "/auth/*")
+  private val app: EasyDepositApiApp = new EasyDepositApiApp(minimalAppConfig) {
+    override val pidRequester: PidRequester = mock[PidRequester]
+  }
+  private val authMocker = new AuthenticationMocker() {
+    override val mockedAuthenticationProvider: AuthenticationProvider = mock[AuthenticationProvider]
+  }
+  private val authServlet = new AuthServlet(app) with PlainHeaders with PlainCookies with PlainRemoteAddress {
+    override def getAuthenticationProvider: AuthenticationProvider = authMocker.mockedAuthenticationProvider
+  }
+  private val testServlet = new ProtectedServlet(app) with PlainHeaders with PlainCookies {
+    override def getAuthenticationProvider: AuthenticationProvider = authMocker.mockedAuthenticationProvider
+
+    get("/") {
+      contentType = "text/plain"
+      Ok(s"$user ${ new DateTime() }: EASY Deposit API Service running")
+        .logResponse
+    }
+  }
+
+  addServlet(testServlet, "/deposit/*")
+  addServlet(authServlet, "/auth/*")
 
   "GET /deposit" should "return 401 (Unauthorized) when neither cookie nor login params are provided" in {
     authMocker.expectsNoUser
     get("/deposit") {
       status shouldBe UNAUTHORIZED_401
       body shouldBe "missing, invalid or expired credentials"
-      header("Content-Type") shouldBe "text/plain;charset=UTF-8"
+      header("Content-Type").toLowerCase shouldBe "text/plain;charset=utf-8"
       response.headers should not contain key("Set-Cookie")
     }
   }
@@ -77,7 +99,7 @@ class SessionSpec extends TestSupportFixture with ServletFixture with ScalatraSu
       headers = Seq(("Cookie", s"${ Scentry.scentryAuthKey }=$jwtCookie"))
     ) {
       status shouldBe UNAUTHORIZED_401
-      header("Content-Type") shouldBe "text/plain;charset=UTF-8"
+      header("Content-Type").toLowerCase shouldBe "text/plain;charset=utf-8"
       response.headers should not contain key("Set-Cookie")
     }
   }
@@ -90,7 +112,7 @@ class SessionSpec extends TestSupportFixture with ServletFixture with ScalatraSu
     ) {
       body shouldBe "invalid credentials"
       status shouldBe UNAUTHORIZED_401
-      header("Content-Type") shouldBe "text/plain;charset=UTF-8"
+      header("Content-Type").toLowerCase shouldBe "text/plain;charset=utf-8"
       response.headers should not contain key("Set-Cookie")
     }
   }
@@ -103,7 +125,7 @@ class SessionSpec extends TestSupportFixture with ServletFixture with ScalatraSu
     ) {
       body shouldBe "Please confirm your email."
       status shouldBe UNAUTHORIZED_401
-      header("Content-Type") shouldBe "text/plain;charset=UTF-8"
+      header("Content-Type").toLowerCase shouldBe "text/plain;charset=utf-8"
       response.headers should not contain key("Set-Cookie")
     }
   }
@@ -116,7 +138,7 @@ class SessionSpec extends TestSupportFixture with ServletFixture with ScalatraSu
     ) {
       body shouldBe "invalid credentials"
       status shouldBe UNAUTHORIZED_401
-      header("Content-Type") shouldBe "text/plain;charset=UTF-8"
+      header("Content-Type").toLowerCase shouldBe "text/plain;charset=utf-8"
       response.headers should not contain key("Set-Cookie")
     }
   }
@@ -166,14 +188,10 @@ class SessionSpec extends TestSupportFixture with ServletFixture with ScalatraSu
       headers = Seq(("Cookie", s"${ Scentry.scentryAuthKey }=$jwtCookie"))
     ) {
       status shouldBe NO_CONTENT_204
-      header("Content-Type") shouldBe "text/html;charset=UTF-8"
+      header("Content-Type").toLowerCase shouldBe "text/html;charset=utf-8"
       header("Expires") shouldBe "Thu, 01 Jan 1970 00:00:00 GMT" // page cache
       header("REMOTE_USER") shouldBe ""
-      val newCookie = header("Set-Cookie")
-      newCookie should startWith("scentry.auth.default.user=;") // note the empty value
-      newCookie should include(";Path=/")
-      newCookie should include(";Expires=")
-      newCookie should include(";HttpOnly")
+      shouldHaveEmptyCookie(1)
     }
   }
 
@@ -185,9 +203,21 @@ class SessionSpec extends TestSupportFixture with ServletFixture with ScalatraSu
     ) {
       body shouldBe ""
       header("REMOTE_USER") shouldBe ""
-      header("Set-Cookie") should startWith("scentry.auth.default.user=;")
       status shouldBe NO_CONTENT_204
+      // TODO basic authentication is intended for internal test purposes
+      //  if exposed beyond the firewall we need to prevent the first cookie
+      shouldHaveEmptyCookie(2)
     }
+  }
+
+  private def shouldHaveEmptyCookie(nrOfCookies: Int): Any = {
+    val newCookie = response.headers("Set-Cookie")
+    val lastCookie = newCookie.lastOption.getOrElse("")
+    lastCookie should include("scentry.auth.default.user=;") // note the empty value
+    lastCookie should include(";Path=/")
+    lastCookie should include(";Expires=")
+    lastCookie should include(";HttpOnly")
+    newCookie.size shouldBe nrOfCookies
   }
 
   def cookieAge(cookie: String): Long = {

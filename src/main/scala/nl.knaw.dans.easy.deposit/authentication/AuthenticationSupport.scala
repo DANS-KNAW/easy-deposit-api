@@ -18,7 +18,6 @@ package nl.knaw.dans.easy.deposit.authentication
 import java.net.URL
 
 import nl.knaw.dans.easy.deposit.authentication.AuthUser.UserState
-import nl.knaw.dans.easy.deposit.authentication.AuthenticationSupport._
 import nl.knaw.dans.easy.deposit.logging._
 import nl.knaw.dans.lib.error._
 import org.scalatra._
@@ -75,7 +74,7 @@ trait AuthenticationSupport extends ScentrySupport[AuthUser] {
    */
   override protected def registerAuthStrategies: Unit = {
     scentry.register(UserPasswordStrategy.getClass.getSimpleName, _ => new UserPasswordStrategy(self, getAuthenticationProvider))
-    scentry.register(EasyBasicAuthStrategy.getClass.getSimpleName, _ => new EasyBasicAuthStrategy(self, getAuthenticationProvider, realm))
+    scentry.register(EasyBasicAuthStrategy.getClass.getSimpleName, _ => new EasyBasicAuthStrategy(self, getAuthenticationProvider, AuthenticationSupport.realm))
 
     // don't need a cookie-with-token strategy:
     // scentry uses the configured scentry.store and the implementation of from/to-Session methods
@@ -96,11 +95,4 @@ object AuthenticationSupport {
 
   // the same username and password combination should work for any page within the same realm
   private val realm = "easy-deposit"
-
-  private val headers = List( // among others values from org.scalatra.BasicAuthStrategy
-    "Authorization",
-    "HTTP_AUTHORIZATION",
-    "X-HTTP_AUTHORIZATION",
-    "X_HTTP_AUTHORIZATION"
-  ).map(_.toLowerCase)
 }

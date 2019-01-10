@@ -29,7 +29,9 @@ import scala.util.Failure
 
 class DepositServletErrorSpec extends TestSupportFixture with ServletFixture with ScalatraSuite {
 
-  private val authMocker = new AuthenticationMocker() {}
+  private val authMocker = new AuthenticationMocker() {
+    override val mockedAuthenticationProvider: AuthenticationProvider = mock[AuthenticationProvider]
+  }
   private class MockedApp extends EasyDepositApiApp(minimalAppConfig)
   private val mockedApp = mock[MockedApp]
   private val depositServlet = new DepositServlet(mockedApp) {
