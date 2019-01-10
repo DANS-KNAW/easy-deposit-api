@@ -65,6 +65,7 @@ class DepositServlet(app: EasyDepositApiApp)
         deposits <- app.getDeposits(userId)
       } yield Ok(body = toJson(deposits), headers = Map(contentTypeJson))
     }.getOrRecover(respond)
+      .logResponse
   }
   post("/") {
     {
@@ -74,6 +75,7 @@ class DepositServlet(app: EasyDepositApiApp)
         locationHeader = "Location" -> s"${ request.getRequestURL }/${ depositInfo.id }"
       } yield Created(body = toJson(depositInfo), headers = Map(contentTypeJson, locationHeader))
     }.getOrRecover(respond)
+      .logResponse
   }
   get("/:uuid/metadata") {
     {
@@ -82,6 +84,7 @@ class DepositServlet(app: EasyDepositApiApp)
         dmd <- app.getDatasetMetadataForDeposit(user.id, uuid)
       } yield Ok(body = toJson(dmd), headers = Map(contentTypeJson))
     }.getOrRecover(respond)
+      .logResponse
   }
   get("/:uuid/doi") {
     {
@@ -90,6 +93,7 @@ class DepositServlet(app: EasyDepositApiApp)
         doi <- app.getDoi(user.id, uuid)
       } yield Ok(body = s"""{"doi":"$doi"}""", headers = Map(contentTypeJson))
     }.getOrRecover(respond)
+      .logResponse
   }
   put("/:uuid/metadata") {
     {
@@ -101,6 +105,7 @@ class DepositServlet(app: EasyDepositApiApp)
         _ <- app.writeDataMetadataToDeposit(datasetMetadata, user.id, uuid)
       } yield NoContent()
     }.getOrRecover(respond)
+      .logResponse
   }
   get("/:uuid/state") {
     {
@@ -109,6 +114,7 @@ class DepositServlet(app: EasyDepositApiApp)
         depositState <- app.getDepositState(user.id, uuid)
       } yield Ok(body = toJson(depositState), headers = Map(contentTypeJson))
     }.getOrRecover(respond)
+      .logResponse
   }
   put("/:uuid/state") {
     {
@@ -119,6 +125,7 @@ class DepositServlet(app: EasyDepositApiApp)
         _ <- app.setDepositState(stateInfo, user.id, uuid)
       } yield NoContent()
     }.getOrRecover(respond)
+      .logResponse
   }
   delete("/:uuid") {
     {
@@ -127,6 +134,7 @@ class DepositServlet(app: EasyDepositApiApp)
         _ <- app.deleteDeposit(user.id, uuid)
       } yield NoContent()
     }.getOrRecover(respond)
+      .logResponse
   }
   get("/:uuid/file/*") { //dir and file
     {
@@ -136,6 +144,7 @@ class DepositServlet(app: EasyDepositApiApp)
         contents <- app.getFileInfo(user.id, uuid, path)
       } yield Ok(body = toJson(contents), headers = Map(contentTypeJson))
     }.getOrRecover(respond)
+      .logResponse
   }
   post("/:uuid/file/*") { //file(s)
     {
@@ -154,6 +163,7 @@ class DepositServlet(app: EasyDepositApiApp)
         )
       } yield Created()
     }.getOrRecover(respond)
+      .logResponse
   }
 
   put("/:uuid/file/*") { //file
@@ -167,6 +177,7 @@ class DepositServlet(app: EasyDepositApiApp)
                 Created(headers = Map("Location" -> request.uri.toASCIIString))
               else NoContent()
     }.getOrRecover(respond)
+      .logResponse
   }
   delete("/:uuid/file/*") { //dir and file
     {
@@ -176,9 +187,10 @@ class DepositServlet(app: EasyDepositApiApp)
         _ <- app.deleteDepositFile(user.id, uuid, path)
       } yield NoContent()
     }.getOrRecover(respond)
+      .logResponse
   }
 
-  private def respond(t: Throwable): ActionResult = (t match {
+  private def respond(t: Throwable): ActionResult = t match {
     case e: IllegalStateTransitionException => Forbidden(e.getMessage, Map(contentTypePlainText))
     case e: NoSuchDepositException => noSuchDepositResponse(e)
     case e: NoSuchFileException => NotFound(body = s"${ e.getMessage } not found", Map(contentTypePlainText))
@@ -192,7 +204,7 @@ class DepositServlet(app: EasyDepositApiApp)
     case e: NotImplementedException => NotImplemented(e.getMessage, Map(contentTypePlainText))
     case e: SchemaNotAvailableException => InternalServerError(e.getMessage, Map(contentTypePlainText))
     case _ => notExpectedExceptionResponse(t)
-  }).logResponse
+  }
 
   private def noSuchDepositResponse(e: NoSuchDepositException): ActionResult = {
     // returning the message to the client might reveal absolute paths on the server
