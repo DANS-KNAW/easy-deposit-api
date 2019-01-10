@@ -18,7 +18,7 @@ package nl.knaw.dans.easy.deposit.authentication
 import nl.knaw.dans.easy.deposit.PidRequesterComponent.PidRequester
 import nl.knaw.dans.easy.deposit._
 import nl.knaw.dans.easy.deposit.authentication.AuthUser.UserState
-import nl.knaw.dans.easy.deposit.logging.{ PlainCookies, PlainHeaders, PlainRemoteAddress, _ }
+import nl.knaw.dans.easy.deposit.logging._
 import nl.knaw.dans.easy.deposit.servlets.{ AuthServlet, ProtectedServlet, ServletFixture }
 import org.eclipse.jetty.http.HttpStatus._
 import org.joda.time.DateTime
