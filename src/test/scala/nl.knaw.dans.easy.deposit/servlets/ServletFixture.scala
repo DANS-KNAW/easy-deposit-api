@@ -32,19 +32,20 @@ trait ServletFixture extends EmbeddedJettyContainer {
   this: ScalatraSuite =>
 
   def mountServlets(app: EasyDepositApiApp, authenticationProvider: AuthenticationProvider): Unit = {
-    val userServlet = new UserServlet(app) {
+    val userServlet = new UserServlet(app) with UndoMasking {
       override def getAuthenticationProvider: AuthenticationProvider = authenticationProvider
     }
-    val depositServlet = new DepositServlet(app) {
+    val depositServlet = new DepositServlet(app) with UndoMasking {
       override def getAuthenticationProvider: AuthenticationProvider = authenticationProvider
     }
-    val authServlet = new AuthServlet(app) {
+    val authServlet = new AuthServlet(app) with UndoMasking {
       override def getAuthenticationProvider: AuthenticationProvider = authenticationProvider
     }
+    val appServlet = new EasyDepositApiServlet(app) with UndoMasking
     addServlet(depositServlet, "/deposit/*")
     addServlet(userServlet, "/user/*")
     addServlet(authServlet, "/auth/*")
-    addServlet(new EasyDepositApiServlet(app), "/*")
+    addServlet(appServlet, "/*")
   }
 
   /**

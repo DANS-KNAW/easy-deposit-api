@@ -19,7 +19,7 @@ import nl.knaw.dans.easy.deposit.PidRequesterComponent.PidRequester
 import nl.knaw.dans.easy.deposit._
 import nl.knaw.dans.easy.deposit.authentication.AuthUser.UserState
 import nl.knaw.dans.lib.logging.servlet._
-import nl.knaw.dans.easy.deposit.servlets.{ AuthServlet, ProtectedServlet, ServletFixture }
+import nl.knaw.dans.easy.deposit.servlets.{ AuthServlet, ProtectedServlet, ServletFixture, UndoMasking }
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.eclipse.jetty.http.HttpStatus._
 import org.joda.time.DateTime
@@ -37,10 +37,10 @@ class SessionSpec extends TestSupportFixture with ServletFixture with ScalatraSu
     override val mockedAuthenticationProvider: AuthenticationProvider = mock[AuthenticationProvider]
   }
 
-  private val authServlet = new AuthServlet(app) { // TODO with PlainLogFormatter
+  private val authServlet = new AuthServlet(app) with UndoMasking {
     override def getAuthenticationProvider: AuthenticationProvider = authMocker.mockedAuthenticationProvider
   }
-  private val testServlet = new ProtectedServlet(app) { // TODO with PlainLogFormatter
+  private val testServlet = new ProtectedServlet(app) with UndoMasking {
     override def getAuthenticationProvider: AuthenticationProvider = authMocker.mockedAuthenticationProvider
 
     get("/") {
