@@ -17,8 +17,8 @@ package nl.knaw.dans.easy.deposit.authentication
 
 import javax.servlet.http.{ HttpServletRequest, HttpServletResponse }
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
-import org.scalatra.ScalatraBase
 import org.scalatra.auth.strategy.BasicAuthStrategy
+import org.scalatra.{ ScalatraBase, Unauthorized }
 
 object EasyBasicAuthStrategy {}
 
@@ -45,4 +45,16 @@ class EasyBasicAuthStrategy(protected override val app: ScalatraBase,
                          (implicit request: HttpServletRequest, response: HttpServletResponse): String = {
     user.id
   }
+
+  override def unauthenticated()(implicit request: HttpServletRequest, response: HttpServletResponse): Unit = {
+    val response = Unauthorized(headers = Map("WWW-Authenticate" -> challenge))
+
+    // TODO @jo-pol this requires a `.logResponse` instead of this info log!
+    logger.info(s"unauthenticated response ${ response.headers }")
+    app halt response
+  }
+
+  // we need to change the challenge's name to disable the browser's default login prompt
+  // http://voidcanvas.com/how-to-disable-browsers-default-login-prompt-on-401-response/
+  override protected def challenge: String = "x" + super.challenge
 }

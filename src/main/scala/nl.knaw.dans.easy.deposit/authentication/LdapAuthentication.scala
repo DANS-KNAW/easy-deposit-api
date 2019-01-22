@@ -55,10 +55,7 @@ trait LdapAuthentication extends DebugEnhancedLogging {
     def authenticate(userName: String, password: String): Try[Option[AuthUser]] = {
       findUser(userName, userContextProperties(userName, password))
         .doIfFailure { case t => logger.error(s"authentication of [$userName] failed with $t", t) }
-        .map(_
-          .map(props => AuthUser(props))
-          .find(_.state == UserState.active)
-        )
+        .map(_.map(props => AuthUser(props)).find(_.state == UserState.active))
     }
 
     private def findUser(searchedUserName: String, contextProperties: util.Hashtable[String, String]) = {
