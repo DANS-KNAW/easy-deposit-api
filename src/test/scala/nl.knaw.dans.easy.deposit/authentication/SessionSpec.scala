@@ -204,8 +204,6 @@ class SessionSpec extends TestSupportFixture with ServletFixture with ScalatraSu
       body shouldBe ""
       header("REMOTE_USER") shouldBe ""
       status shouldBe NO_CONTENT_204
-      // TODO basic authentication is intended for internal test purposes
-      //  if exposed beyond the firewall we need to prevent the first cookie
       shouldHaveEmptyCookie(2)
     }
   }
