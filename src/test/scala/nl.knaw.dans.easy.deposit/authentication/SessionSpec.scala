@@ -104,37 +104,6 @@ class SessionSpec extends TestSupportFixture with ServletFixture with ScalatraSu
     }
   }
 
-  "POST /auth/login" should "return 401 (Unauthorized) when invalid user-name password params are provided" in {
-    authMocker.expectsInvalidUser
-    post(
-      uri = "/auth/login",
-      params = Seq(("login", "foo"), ("password", "bar"))
-    ) {
-      body shouldBe "invalid credentials"
-      status shouldBe UNAUTHORIZED_401
-      header("Content-Type").toLowerCase shouldBe "text/plain;charset=utf-8"
-      response.headers should not contain key("Set-Cookie")
-    }
-  }
-
-  it should "create a cookie when valid basic authentication is provided" in {
-    authMocker.expectsUserFooBarWithStatus(UserState.active)
-    post(
-      uri = "/auth/login",
-      headers = Seq(fooBarBasicAuthHeader)
-    ) {
-      body shouldBe ""
-      status shouldBe NO_CONTENT_204
-      header("Expires") shouldBe "Thu, 01 Jan 1970 00:00:00 GMT" // page cache
-      header("REMOTE_USER") shouldBe "foo"
-      val newCookie = header("Set-Cookie")
-      newCookie should startWith regex "scentry.auth.default.user=[^;].+;"
-      newCookie should include(";Path=/")
-      newCookie should include(";HttpOnly")
-      cookieAge(newCookie) should be < 1000L
-    }
-  }
-
   "post /auth/logout" should "clear the cookie" in {
     authMocker.expectsNoUser
     val jwtCookie = createJWT(AuthUser("foo", state = UserState.active))
@@ -161,6 +130,37 @@ class SessionSpec extends TestSupportFixture with ServletFixture with ScalatraSu
       header("REMOTE_USER") shouldBe ""
       status shouldBe NO_CONTENT_204
       shouldHaveEmptyCookie(2)
+    }
+  }
+
+  "POST /auth/login" should "create a cookie when valid basic authentication is provided" in {
+    authMocker.expectsUserFooBarWithStatus(UserState.active)
+    post(
+      uri = "/auth/login",
+      headers = Seq(fooBarBasicAuthHeader)
+    ) {
+      body shouldBe ""
+      status shouldBe NO_CONTENT_204
+      header("Expires") shouldBe "Thu, 01 Jan 1970 00:00:00 GMT" // page cache
+      header("REMOTE_USER") shouldBe "foo"
+      val newCookie = header("Set-Cookie")
+      newCookie should startWith regex "scentry.auth.default.user=[^;].+;"
+      newCookie should include(";Path=/")
+      newCookie should include(";HttpOnly")
+      cookieAge(newCookie) should be < 1000L
+    }
+  }
+
+  it should "return 401 (Unauthorized) when invalid user-name password params are provided" in {
+    authMocker.expectsInvalidUser
+    post(
+      uri = "/auth/login",
+      params = Seq(("login", "foo"), ("password", "bar"))
+    ) {
+      body shouldBe "invalid credentials"
+      status shouldBe UNAUTHORIZED_401
+      header("Content-Type").toLowerCase shouldBe "text/plain;charset=utf-8"
+      response.headers should not contain key("Set-Cookie")
     }
   }
 
