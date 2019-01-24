@@ -42,11 +42,11 @@ class EasyBasicAuthStrategy(protected override val app: ScalatraBase with Abstra
                          response: HttpServletResponse
                         ): Option[AuthUser] = {
     def haltWithInvalidUser = {
-      app halt Unauthorized(body = "invalid user-name/password combination").logResponse
+      app halt Unauthorized(body = "invalid username/password").logResponse
     }
 
     def haltWithRegisteredUser = {
-      app halt Unauthorized(body = "please confirm your registration e-mail").logResponse
+      app halt Unauthorized(body = "please confirm your registration before logging in").logResponse
     }
 
     def haltWithFailure = {
@@ -59,7 +59,7 @@ class EasyBasicAuthStrategy(protected override val app: ScalatraBase with Abstra
       case Success(None) |
            Success(Some(AuthUser(_, UserState.blocked))) => haltWithInvalidUser
       case Success(Some(AuthUser(id, state))) =>
-        logger.error(s"state [$state] not known for user with $id")
+        logger.error(s"unknown state '$state' for user '$id'")
         haltWithInvalidUser
       case Failure(e) =>
         logger.error(e.getMessage, e)
