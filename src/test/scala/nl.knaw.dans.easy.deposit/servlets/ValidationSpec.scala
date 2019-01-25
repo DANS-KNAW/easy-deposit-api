@@ -15,12 +15,95 @@
  */
 package nl.knaw.dans.easy.deposit.servlets
 
+import nl.knaw.dans.easy.deposit.docs.JsonUtil.InvalidDocumentException
 import nl.knaw.dans.easy.deposit.docs._
 import nl.knaw.dans.easy.deposit.docs.dm.Author
 import org.eclipse.jetty.http.HttpStatus._
+import org.json4s.JsonInput
+import nl.knaw.dans.easy.deposit.docs.JsonUtil._
 import org.scalatest.Assertion
+import nl.knaw.dans.lib.error._
+import org.xml.sax.SAXParseException
+
+import scala.util.Failure
 
 class ValidationSpec extends DepositServletFixture {
+
+  "PUT(metadata) should succeed with incomplete authors, PUT(submitted)" should "fail for an empty creator" in {
+    def checkSubmitResponse = {
+      body should include("The content of element 'dcx-dai:creatorDetails' is not complete")
+      body shouldNot include("The content of element 'dcx-dai:contributorDetails' is not complete")
+      // a client has no clue about the second violation on contributorDetails
+      status shouldBe BAD_REQUEST_400
+    }
+
+    saveAndSubmit(checkSubmitResponse _, mandatoryOnSubmit.copy(
+      creators = Some(Seq(Author())),
+      contributors = Some(Seq(Author())),
+    ))
+  }
+
+  it should "fail for an empty contributor" in {
+    def checkSubmitResponse = {
+      body should include("The content of element 'dcx-dai:contributorDetails' is not complete")
+      // a client has no clue which one in the list is violating the requirements
+      status shouldBe BAD_REQUEST_400
+    }
+
+    saveAndSubmit(checkSubmitResponse _, mandatoryOnSubmit.copy(
+      contributors = Some(Seq(
+        Author(initials = Some("A.S."), surname = Some("Terix")),
+        Author(),
+      )),
+    ))
+  }
+
+  // So far full round trip tests. They fire four requests each, in turn creating/updating files.
+  // The following tests belong to the same theme of this test class,
+  // but are reduced to the essence for faster execution.
+  // Parsing json is part of PUT(metadata), creating a DDM object is part of PUT(submitted).
+
+  it should "fail for an author with just a last name" in {
+    DDM(mandatoryOnSubmit.copy(
+      creators = Some(Seq(parseAuthor("""{ "surname": "Einstein" }""")))
+    )) should matchPattern {
+      case Failure(InvalidDocumentException(_, cause: SAXParseException))
+        if cause.getMessage.contains("The content of element 'dcx-dai:author' is not complete")
+        && cause.getLineNumber == 8 =>
+      // TODO error handling should produce the XML line(s) to give the client a clue about the violating instance
+    }
+  }
+
+  it should "fail for an author with just initials" in {
+    DDM(mandatoryOnSubmit.copy(
+      creators = Some(Seq(parseAuthor("""{ "initials": "A" }""")))
+    )) should matchPattern {
+      case Failure(InvalidDocumentException(_, cause: Throwable))
+        if cause.getMessage.contains("The content of element 'dcx-dai:creatorDetails' is not complete") =>
+    }
+  }
+
+  it should "fail for an organisation with insertions" in pendingUntilFixed { // TODO fix schema?
+    DDM(mandatoryOnSubmit.copy(
+      creators = Some(Seq(parseAuthor("""{ "insertions": "von", "organization": "ETH Zurich" }""")))
+    )) should matchPattern {
+      case Failure(InvalidDocumentException(_, cause: Throwable))
+        if cause.getMessage.contains("The content of element 'dcx-dai:creatorDetails' is not complete") =>
+    }
+  }
+
+  it should "fail for an organisation with titles" in pendingUntilFixed {
+    DDM(mandatoryOnSubmit.copy(
+      creators = Some(Seq(parseAuthor("""{ "titles": "Sir", "organization": "Oxbridge" }""")))
+    )) should matchPattern {
+      case Failure(InvalidDocumentException(_, cause: Throwable))
+        if cause.getMessage.contains("The content of element 'dcx-dai:creatorDetails' is not complete") =>
+    }
+  }
+
+  def parseAuthor(input: JsonInput): Author = input
+    .deserialize[Author]
+    .getOrRecover(e => fail(s"loading test data failed: ${e.getMessage}; $input", e))
 
   private val mandatoryOnSubmit = DatasetMetadata(
     """{
@@ -36,88 +119,7 @@ class ValidationSpec extends DepositServletFixture {
       |  "privacySensitiveDataPresent": "no",
       |  "acceptDepositAgreement": true,
       |}""".stripMargin
-  ).getOrElse(fail("loading test data failed"))
-
-
-  "PUT(metadata) should succeed with incomplete authors, PUT(submitted)" should "fail for an empty contributor" in {
-    def checkSubmitResponse = {
-      body should include("The content of element 'dcx-dai:contributorDetails' is not complete")
-      // a client has no which one in the list is violating the requirements
-      status shouldBe BAD_REQUEST_400
-    }
-
-    saveAndSubmit(checkSubmitResponse _, mandatoryOnSubmit.copy(
-      contributors = Some(Seq(
-        Author(initials = Some("A.S."), surname = Some("Terix")),
-        Author(),
-      )),
-    ))
-  }
-
-  it should "fail for an empty creator" in {
-    def checkSubmitResponse = {
-      body should include("The content of element 'dcx-dai:creatorDetails' is not complete")
-      body shouldNot include("The content of element 'dcx-dai:contributorDetails' is not complete")
-      // a client has no clue about the second violation on contributorDetails
-      status shouldBe BAD_REQUEST_400
-    }
-
-    saveAndSubmit(checkSubmitResponse _, mandatoryOnSubmit.copy(
-      creators = Some(Seq(Author())),
-      contributors = Some(Seq(Author())),
-    ))
-  }
-
-  it should "fail for an author with just a last name" in {
-    def checkSubmitResponse = {
-      body should include("The content of element 'dcx-dai:author' is not complete")
-      // a client has no clue this is about a creator or contributor, let alone which one
-      status shouldBe BAD_REQUEST_400
-    }
-
-    saveAndSubmit(checkSubmitResponse _, mandatoryOnSubmit.copy(
-      creators = Some(Seq(Author(surname = Some("Somebody"))))
-    ))
-  }
-
-  it should "fail for an author with just initials" in {
-    def checkSubmitResponse = {
-      body should include("The content of element 'dcx-dai:creatorDetails' is not complete")
-      status shouldBe BAD_REQUEST_400
-    }
-
-    saveAndSubmit(checkSubmitResponse _, mandatoryOnSubmit.copy(
-      creators = Some(Seq(Author(initials = Some("S."))))
-    ))
-  }
-
-  it should "fail for an organisation with insertions" in pendingUntilFixed { // TODO fix schema?
-    def checkSubmitResponse = {
-      body should include("The content of element 'dcx-dai:creatorDetails' is not complete")
-      status shouldBe BAD_REQUEST_400
-    }
-
-    saveAndSubmit(checkSubmitResponse _, mandatoryOnSubmit.copy(
-      creators = Some(Seq(Author(
-        insertions = Some("von"),
-        organization = Some("ETH Zurich"),
-      )))
-    ))
-  }
-
-  it should "fail for an organisation with titles" in pendingUntilFixed {
-    def checkSubmitResponse = {
-      body should include("The content of element 'dcx-dai:creatorDetails' is not complete")
-      status shouldBe BAD_REQUEST_400
-    }
-
-    saveAndSubmit(checkSubmitResponse _, mandatoryOnSubmit.copy(
-      creators = Some(Seq(Author(
-        insertions = Some("Sir"),
-        organization = Some("Oxbridge"),
-      )))
-    ))
-  }
+  ).getOrElse(fail("loading mandatory test data failed"))
 
   private def saveAndSubmit(checkSubmitResponse: () => Assertion,
                             metadata: DatasetMetadata
