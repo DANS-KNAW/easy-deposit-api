@@ -16,7 +16,6 @@
 package nl.knaw.dans.easy.deposit.docs.dm
 
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.{ SchemedKeyValue, SchemedValue }
-import nl.knaw.dans.easy.deposit.docs.StringUtils._
 import nl.knaw.dans.lib.string._
 
 case class Author(titles: Option[String] = None,
@@ -27,16 +26,11 @@ case class Author(titles: Option[String] = None,
                   ids: Option[Seq[SchemedValue]] = None,
                   organization: Option[String] = None,
                  ) extends Requirements {
-  private val hasMandatory: Boolean = organization.isProvided || (surname.isProvided && initials.isProvided)
-  private val hasRedundant: Boolean = !surname.isProvided && (titles.isProvided || insertions.isProvided)
   private val incompleteMsg = "Author needs one of (organisation | surname and initials)"
-  private val redundantMsg = "Author has no surname so neither titles nor insertions"
-  require(hasMandatory, buildMsg(incompleteMsg))
-  require(!hasRedundant, buildMsg(redundantMsg))
 
   def isRightsHolder: Boolean = role.exists(_.key == "RightsHolder")
 
-  override def toString: String = {
+  override def toString: String = { // for <dcterms:rightsHolder>
     def name = Seq(titles, initials, insertions, surname)
       .collect { case Some(s) if !s.isBlank => s }
       .mkString(" ")
@@ -45,7 +39,6 @@ case class Author(titles: Option[String] = None,
       case (Some(_), Some(org)) => s"$name ($org)"
       case (None, Some(org)) => org
       case (Some(_), None) => name
-      // only when requires is implemented incorrect:
       case (None, None) => throw new IllegalArgumentException(buildMsg(incompleteMsg))
     }
   }

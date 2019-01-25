@@ -214,26 +214,6 @@ class DatasetMetadataSpec extends TestSupportFixture {
     DatasetMetadata("""{ "contributors": [ { "organization": "University of Zurich" } ] }""") shouldBe a[Success[_]]
   }
 
-  it should "reject an author without initials" in {
-    """{ "contributors": [ { "surname": "Einstein" } ] }"""
-      .causesInvalidDocumentException("""requirement failed: Author needs one of (organisation | surname and initials); got {"surname":"Einstein"} Author""")
-  }
-
-  it should "reject an author without surname" in {
-    """{ "contributors": [ { "initials": "A" } ] }"""
-      .causesInvalidDocumentException("""requirement failed: Author needs one of (organisation | surname and initials); got {"initials":"A"} Author""")
-  }
-
-  it should "reject an organisation with titles" in {
-    """{ "contributors": [ { "surname": "", "titles": "A", "organization": "University of Zurich" } ] }"""
-      .causesInvalidDocumentException( """requirement failed: Author has no surname so neither titles nor insertions; got {"titles":"A","surname":"","organization":"University of Zurich"} Author""")
-  }
-
-  it should "reject an organisation with insertions" in {
-    """{ "contributors": [ { "insertions": "van der", "organization": "University of Zurich" } ] }"""
-      .causesInvalidDocumentException("""requirement failed: Author has no surname so neither titles nor insertions; got {"insertions":"van der","organization":"University of Zurich"} Author""")
-  }
-
   "DatasetMetadata.dates" should "reject dcterms:dateSubmitted" in {
     """{"dates": [{ "qualifier": "dcterms:dateSubmitted", "value": "2018-12", "scheme": "dcterms:W3CDTF" }]}"""
       .causesInvalidDocumentException("""requirement failed: No dcterms:dateSubmitted allowed; got [{"scheme":"dcterms:W3CDTF","value":"2018-12","qualifier":"dcterms:dateSubmitted"}]""")
