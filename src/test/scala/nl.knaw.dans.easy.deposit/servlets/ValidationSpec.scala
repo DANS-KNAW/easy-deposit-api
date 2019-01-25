@@ -26,6 +26,7 @@ import org.scalatest.exceptions.TestFailedException
 import org.xml.sax.SAXParseException
 
 import scala.util.{ Failure, Success }
+import scala.xml.Elem
 
 class ValidationSpec extends DepositServletFixture {
 
@@ -327,6 +328,44 @@ class ValidationSpec extends DepositServletFixture {
     ) should matchPattern {
       case Failure(InvalidDocumentException("DatasetMetadata", cause: IllegalArgumentException))
         if cause.getMessage == """don't recognize {"foo":"bar"}""" =>
+    }
+  }
+
+  "PUT(metadata) should succeed with invalid spatial fields, PUT(submitted)" should "fail for an invalid decimal point for north" in {
+    DDM(parseIntoValidForSubmit("""{"spatialBoxes": [ { "scheme": "RD", "north": "486890,5", "east": 121811.88, "south": 436172.5,  "west": 91232.016 }]}""")
+    ) should matchPattern {
+      case Failure(InvalidDocumentException(_, cause: Throwable))
+        if cause.getMessage.contains("'486890,5' is not a valid value for 'double'") =>
+    }
+  }
+
+  it should "fail for an invalid decimal point for x" in {
+    DDM(parseIntoValidForSubmit("""{"spatialPoints": [{ "scheme": "RD", "x": "795,00", "y": "446750Z" }]}""")
+    ) should matchPattern {
+      case Failure(InvalidDocumentException(_, cause: Throwable))
+        if cause.getMessage.contains("'795,00' is not a valid value for 'double'") =>
+    }
+  }
+
+  it should "fail for an empty x" in pendingUntilFixed {
+    DDM(parseIntoValidForSubmit("""{"spatialPoints": [{ "scheme": "RD", "x": "", "y": "446750" }]}""")
+    ) should matchPattern {
+      case Failure(InvalidDocumentException(_, cause: Throwable))
+        if cause.getMessage.contains("xxx") =>
+    }
+  }
+
+  it should "succeed with a scheme in a point" in {
+    DDM(parseIntoValidForSubmit("""{"spatialPoints": [{ "scheme": "degrees", "x": "795.00", "y": "446750" }]}""")
+    ) should matchPattern {
+      case Success(xml: Elem) => // TODO apply xPath to check the fragment?
+    }
+  }
+
+  it should "succeed for a missing scheme in a point" in { // TODO should it really succeed?
+    DDM(parseIntoValidForSubmit("""{"spatialPoints": [{ "x": "795.00", "y": "446750" }]}""")
+    ) should matchPattern {
+      case Success(xml: Elem) =>
     }
   }
 

@@ -41,27 +41,23 @@ object Spatial {
   }
 }
 
-trait SchemedSpatial extends Requirements {
-  val scheme: String
-  requireNonEmptyString(scheme)
+trait SchemedSpatial {
+  val scheme: Option[String]
 
   lazy val srsName: String = {
     scheme match {
-      case "degrees" => Spatial.DEGREES_SRS_NAME
-      case "RD" => Spatial.RD_SRS_NAME
-      case s if s.trim.isEmpty => null // will suppress the XML attribute
-      case _ => scheme
+      case Some("degrees") => Spatial.DEGREES_SRS_NAME
+      case Some("RD") => Spatial.RD_SRS_NAME
+      case Some(s) if s.trim.nonEmpty => s
+      case _ => null // will suppress the XML attribute
     }
   }
 }
 
-case class SpatialPoint(override val scheme: String,
+case class SpatialPoint(override val scheme: Option[String],
                         x: String,
                         y: String,
-                       ) extends Requirements with SchemedSpatial {
-  requireDouble(x)
-  requireDouble(y)
-
+                       ) extends SchemedSpatial {
   lazy val pos: String = srsName match {
     case Spatial.RD_SRS_NAME => s"$x $y"
     case Spatial.DEGREES_SRS_NAME => s"$y $x"
@@ -69,17 +65,12 @@ case class SpatialPoint(override val scheme: String,
   }
 }
 
-case class SpatialBox(override val scheme: String,
+case class SpatialBox(override val scheme: Option[String],
                       north: String,
                       east: String,
                       south: String,
                       west: String,
-                     ) extends Requirements with SchemedSpatial {
-  requireDouble(north)
-  requireDouble(east)
-  requireDouble(south)
-  requireDouble(west)
-
+                     ) extends SchemedSpatial {
   /*
    * Note that Y is along North - South and X is along East - West
    * The lower corner is with the minimal coordinate values and upper corner with the maximal coordinate values
