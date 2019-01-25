@@ -35,10 +35,11 @@ class ValidationSpec extends DepositServletFixture {
       |  "accessRights": {"category": "OPEN_ACCESS"},
       |  "privacySensitiveDataPresent": "no",
       |  "acceptDepositAgreement": true,
-      |}""".stripMargin).getOrElse(fail("loading test data failed"))
+      |}""".stripMargin
+  ).getOrElse(fail("loading test data failed"))
 
 
-  "PUT(metadata) should succeed, PUT(submitted)" should "fail for an empty contributor" in {
+  "PUT(metadata) should succeed with incomplete authors, PUT(submitted)" should "fail for an empty contributor" in {
     def checkSubmitResponse = {
       body should include("The content of element 'dcx-dai:contributorDetails' is not complete")
       // a client has no which one in the list is violating the requirements
@@ -70,12 +71,51 @@ class ValidationSpec extends DepositServletFixture {
   it should "fail for an author with just a last name" in {
     def checkSubmitResponse = {
       body should include("The content of element 'dcx-dai:author' is not complete")
-      // a client has no clue this is about a creator or contributor
+      // a client has no clue this is about a creator or contributor, let alone which one
       status shouldBe BAD_REQUEST_400
     }
 
     saveAndSubmit(checkSubmitResponse _, mandatoryOnSubmit.copy(
       creators = Some(Seq(Author(surname = Some("Somebody"))))
+    ))
+  }
+
+  it should "fail for an author with just initials" in {
+    def checkSubmitResponse = {
+      body should include("The content of element 'dcx-dai:creatorDetails' is not complete")
+      status shouldBe BAD_REQUEST_400
+    }
+
+    saveAndSubmit(checkSubmitResponse _, mandatoryOnSubmit.copy(
+      creators = Some(Seq(Author(initials = Some("S."))))
+    ))
+  }
+
+  it should "fail for an organisation with insertions" in pendingUntilFixed { // TODO fix schema?
+    def checkSubmitResponse = {
+      body should include("The content of element 'dcx-dai:creatorDetails' is not complete")
+      status shouldBe BAD_REQUEST_400
+    }
+
+    saveAndSubmit(checkSubmitResponse _, mandatoryOnSubmit.copy(
+      creators = Some(Seq(Author(
+        insertions = Some("von"),
+        organization = Some("ETH Zurich"),
+      )))
+    ))
+  }
+
+  it should "fail for an organisation with titles" in pendingUntilFixed {
+    def checkSubmitResponse = {
+      body should include("The content of element 'dcx-dai:creatorDetails' is not complete")
+      status shouldBe BAD_REQUEST_400
+    }
+
+    saveAndSubmit(checkSubmitResponse _, mandatoryOnSubmit.copy(
+      creators = Some(Seq(Author(
+        insertions = Some("Sir"),
+        organization = Some("Oxbridge"),
+      )))
     ))
   }
 
