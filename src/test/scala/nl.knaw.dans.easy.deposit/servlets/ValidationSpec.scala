@@ -18,11 +18,9 @@ package nl.knaw.dans.easy.deposit.servlets
 import nl.knaw.dans.easy.deposit.docs.JsonUtil.InvalidDocumentException
 import nl.knaw.dans.easy.deposit.docs._
 import nl.knaw.dans.easy.deposit.docs.dm.Author
-import org.eclipse.jetty.http.HttpStatus._
-import org.json4s.JsonInput
-import nl.knaw.dans.easy.deposit.docs.JsonUtil._
-import org.scalatest.Assertion
 import nl.knaw.dans.lib.error._
+import org.eclipse.jetty.http.HttpStatus._
+import org.scalatest.Assertion
 import org.xml.sax.SAXParseException
 
 import scala.util.Failure
@@ -33,7 +31,7 @@ class ValidationSpec extends DepositServletFixture {
     def checkSubmitResponse = {
       body should include("The content of element 'dcx-dai:creatorDetails' is not complete")
       body shouldNot include("The content of element 'dcx-dai:contributorDetails' is not complete")
-      // a client has no clue about the second violation on contributorDetails
+      // a client has no clue there is a second violation on contributorDetails
       status shouldBe BAD_REQUEST_400
     }
 
@@ -65,46 +63,81 @@ class ValidationSpec extends DepositServletFixture {
 
   it should "fail for an author with just a last name" in {
     DDM(mandatoryOnSubmit.copy(
-      creators = Some(Seq(parseAuthor("""{ "surname": "Einstein" }""")))
+      creators = parse("""{ "creators": [ { "surname": "Einstein" }]}""").creators
     )) should matchPattern {
-      case Failure(InvalidDocumentException(_, cause: SAXParseException))
+      case Failure(InvalidDocumentException("DatasetMetadata", cause: SAXParseException))
         if cause.getMessage.contains("The content of element 'dcx-dai:author' is not complete")
-        && cause.getLineNumber == 8 =>
+          && cause.getLineNumber == 8 =>
       // TODO error handling should produce the XML line(s) to give the client a clue about the violating instance
     }
   }
 
   it should "fail for an author with just initials" in {
     DDM(mandatoryOnSubmit.copy(
-      creators = Some(Seq(parseAuthor("""{ "initials": "A" }""")))
+      creators = parse("""{ "creators": [ { "initials": "A" }]}""").creators
     )) should matchPattern {
-      case Failure(InvalidDocumentException(_, cause: Throwable))
+      case Failure(InvalidDocumentException("DatasetMetadata", cause: SAXParseException))
         if cause.getMessage.contains("The content of element 'dcx-dai:creatorDetails' is not complete") =>
     }
   }
 
-  it should "fail for an organisation with insertions" in pendingUntilFixed { // TODO fix schema?
+  it should "fail for a rightsHolding creator with neither surname nor organisation" in {
     DDM(mandatoryOnSubmit.copy(
-      creators = Some(Seq(parseAuthor("""{ "insertions": "von", "organization": "ETH Zurich" }""")))
+      creators = parse(
+        """{ "creators": [
+          |  { "role": {
+          |      "scheme": "datacite:contributorType",
+          |      "key": "RightsHolder",
+          |      "value": "Rights Holder"
+          |    }
+          |  }
+          |]}""".stripMargin).creators
     )) should matchPattern {
-      case Failure(InvalidDocumentException(_, cause: Throwable))
+      case Failure(InvalidDocumentException("DatasetMetadata", cause: SAXParseException))
         if cause.getMessage.contains("The content of element 'dcx-dai:creatorDetails' is not complete") =>
     }
   }
 
-  it should "fail for an organisation with titles" in pendingUntilFixed {
+
+  it should "fail for a rightsHolding contributor with neither surname nor organisation" in {
     DDM(mandatoryOnSubmit.copy(
-      creators = Some(Seq(parseAuthor("""{ "titles": "Sir", "organization": "Oxbridge" }""")))
+      contributors = parse(
+        """{ "contributors": [
+          |  { "role": {
+          |      "scheme": "datacite:contributorType",
+          |      "key": "RightsHolder",
+          |      "value": "Rights Holder"
+          |    }
+          |  }
+          |]}""".stripMargin).contributors
     )) should matchPattern {
-      case Failure(InvalidDocumentException(_, cause: Throwable))
-        if cause.getMessage.contains("The content of element 'dcx-dai:creatorDetails' is not complete") =>
+      case Failure(InvalidDocumentException("DatasetMetadata", cause: SAXParseException))
+        if cause.getMessage.contains("The content of element 'dcx-dai:contributorDetails' is not complete") =>
     }
   }
 
-  def parseAuthor(input: JsonInput): Author = input
-    .deserialize[Author]
-    .getOrRecover(e => fail(s"loading test data failed: ${e.getMessage}; $input", e))
+  it should "fail for organisations with insertions and/or titles" in {
+    DDM(mandatoryOnSubmit.copy(
+      creators = parse(
+        """{ "creators": [
+          |  { "titles": "Baron", "insertions": "van", "organization": "Nyenrode" },
+          |  { "organization": "Harvard" }
+          |  { "titles": "Sir", "organization": "Oxbridge" }
+          |  { "titles": "Mr" }
+          |  { "insertions": "von", "organization": "ETH Zurich" },
+          |]}""".stripMargin).creators
+    )) should matchPattern {
+      case Failure(InvalidDocumentException("DatasetMetadata", cause: IllegalArgumentException))
+        if cause.getMessage == """An author without surname should have neither titles nor insertions, got: {"titles":"Baron","insertions":"van","organization":"Nyenrode"}, {"titles":"Sir","organization":"Oxbridge"}, {"titles":"Mr"}, {"insertions":"von","organization":"ETH Zurich"}""" =>
+    }
+  }
 
+  private def parse(input: String) = {
+    DatasetMetadata(input)
+      .getOrRecover(e => fail(s"loading test data failed: ${ e.getMessage }; $input", e))
+  }
+
+  // makes sure we only get errors on the field under test
   private val mandatoryOnSubmit = DatasetMetadata(
     """{
       |  "titles": ["blabla"],

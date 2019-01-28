@@ -16,7 +16,11 @@
 package nl.knaw.dans.easy.deposit.docs.dm
 
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.{ SchemedKeyValue, SchemedValue }
+import nl.knaw.dans.easy.deposit.docs.JsonUtil
+import nl.knaw.dans.easy.deposit.docs.StringUtils._
 import nl.knaw.dans.lib.string._
+
+import scala.util.{ Failure, Success, Try }
 
 case class Author(titles: Option[String] = None,
                   initials: Option[String] = None,
@@ -26,7 +30,7 @@ case class Author(titles: Option[String] = None,
                   ids: Option[Seq[SchemedValue]] = None,
                   organization: Option[String] = None,
                  ) extends Requirements {
-  private val incompleteMsg = "Author needs one of (organisation | surname and initials)"
+  private val hasRedundant: Boolean = !surname.isProvided && (titles.isProvided || insertions.isProvided)
 
   def isRightsHolder: Boolean = role.exists(_.key == "RightsHolder")
 
@@ -39,7 +43,16 @@ case class Author(titles: Option[String] = None,
       case (Some(_), Some(org)) => s"$name ($org)"
       case (None, Some(org)) => org
       case (Some(_), None) => name
-      case (None, None) => throw new IllegalArgumentException(buildMsg(incompleteMsg))
+      case (None, None) => "" // schema validation will fail for creator respectively contributor
     }
+  }
+}
+object Author {
+  private[docs] def validate(authors: Seq[Author]): Try[Unit] = {
+    val invalid = authors.filter(_.hasRedundant)
+    if (invalid.isEmpty) Success(())
+    else Failure(new IllegalArgumentException(
+      s"An author without surname should have neither titles nor insertions, got: ${ invalid.map(JsonUtil.toJson).mkString(", ") }"
+    ))
   }
 }

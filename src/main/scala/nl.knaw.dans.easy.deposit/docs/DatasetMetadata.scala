@@ -78,8 +78,9 @@ case class DatasetMetadata(private val identifiers: Option[Seq[SchemedValue]] = 
   atMostOne(datesCreated)
   atMostOne(datesAvailable)
 
+  private lazy val authors: Seq[Author] = (contributors.toSeq ++ creators.toSeq).flatten
   // duplicates for plain strings in dcterms (which has no place for IDs as contributors/creators do)
-  lazy val rightsHolders: Seq[String] = (contributors.toSeq ++ creators.toSeq).flatten
+  lazy val rightsHolders: Seq[String] = authors
     .withFilter(_.isRightsHolder)
     .map(_.toString)
 
@@ -97,6 +98,11 @@ case class DatasetMetadata(private val identifiers: Option[Seq[SchemedValue]] = 
   def setDoi(value: String): DatasetMetadata = {
     val ids = identifiers.getOrElse(Seq.empty).filterNot(_.scheme == doiScheme)
     this.copy(identifiers = Some(ids :+ SchemedValue(doiScheme, value)))
+  }
+
+  /** Validations as far as not covered by DDM schema validation. */
+  private[docs] def validate(): Try[Unit] = {
+    Author.validate(authors)
   }
 }
 

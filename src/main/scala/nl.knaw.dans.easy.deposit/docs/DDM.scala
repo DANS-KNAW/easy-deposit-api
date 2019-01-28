@@ -33,7 +33,7 @@ object DDM extends SchemedXml with DebugEnhancedLogging {
   override protected val schemaNameSpace: String = "http://easy.dans.knaw.nl/schemas/md/ddm/"
   override protected val schemaLocation: String = "https://easy.dans.knaw.nl/schemas/md/2018/05/ddm.xsd"
 
-  def apply(dm: DatasetMetadata): Try[Elem] = Try {
+  private def toXML(dm: DatasetMetadata) = Try {
     val lang: String = dm.languageOfDescription.map(_.key).orNull // null omits attribute rendering
     <ddm:DDM
       xmlns:dc="http://purl.org/dc/elements/1.1/"
@@ -75,11 +75,20 @@ object DDM extends SchemedXml with DebugEnhancedLogging {
         { dm.license.getNonEmpty.map(str => <dcterms:license>{ str }</dcterms:license>) /* xsi:type="dcterms:URI" not supported by json */ }
       </ddm:dcmiMetadata>
     </ddm:DDM>
-  }.flatMap(validate).recoverWith {
+  }
+
+  def apply(dm: DatasetMetadata): Try[Elem] = {
+    for {
+      _ <- dm.validate()
+      xml <- toXML(dm)
+      _ <- validate(xml)
+    } yield xml
+  }.recoverWith {
     case e: SAXParseException if e.getCause.isInstanceOf[UnknownHostException] =>
       logger.error(e.getMessage, e)
       Failure(SchemaNotAvailableException(e))
     case e: SAXParseException => Failure(invalidDatasetMetadataException(e))
+    case e: IllegalArgumentException => Failure(invalidDatasetMetadataException(e))
   }
 
   private def details(point: SpatialPoint) = {
