@@ -56,11 +56,13 @@ class EasyBasicAuthStrategy(protected override val app: ScalatraBase with Abstra
     authenticationProvider.authenticate(userName, password) match {
       case Success(Some(AuthUser(id, UserState.active))) => Some(AuthUser(id, UserState.active))
       case Success(Some(AuthUser(_, UserState.registered))) => haltWithRegisteredUser
-      case Success(None) |
-           Success(Some(AuthUser(_, UserState.blocked))) => haltWithInvalidUser
+      case Success(Some(AuthUser(id, UserState.blocked))) =>
+        logger.warn(s"blocked user '$id' tried to login")
+        haltWithInvalidUser
       case Success(Some(AuthUser(id, state))) =>
         logger.error(s"unknown state '$state' for user '$id'")
         haltWithInvalidUser
+      case Success(None) => haltWithInvalidUser
       case Failure(e) =>
         logger.error(e.getMessage, e)
         haltWithFailure
