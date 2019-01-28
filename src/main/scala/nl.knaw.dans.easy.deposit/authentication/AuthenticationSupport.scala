@@ -73,7 +73,7 @@ trait AuthenticationSupport extends ScentrySupport[AuthUser] {
    * progressively use all registered strategies to log the user in, falling back if necessary.
    */
   override protected def registerAuthStrategies: Unit = {
-    scentry.register(EasyBasicAuthStrategy.getClass.getSimpleName, _ => new EasyBasicAuthStrategy(self, getAuthenticationProvider, AuthenticationSupport.realm))
+    scentry.register(classOf[EasyBasicAuthStrategy].getSimpleName, _ => new EasyBasicAuthStrategy(self, getAuthenticationProvider, AuthenticationSupport.realm))
 
     // don't need a cookie-with-token strategy:
     // scentry uses the configured scentry.store and the implementation of from/to-Session methods

@@ -24,8 +24,6 @@ import org.scalatra.{ ScalatraBase, ServiceUnavailable, Unauthorized }
 
 import scala.util.{ Failure, Success }
 
-object EasyBasicAuthStrategy {}
-
 class EasyBasicAuthStrategy(protected override val app: ScalatraBase with AbstractResponseLogger,
                             authenticationProvider: AuthenticationProvider,
                             realm: String
