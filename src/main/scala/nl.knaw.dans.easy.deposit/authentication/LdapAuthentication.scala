@@ -20,7 +20,6 @@ import java.util
 import javax.naming.directory.{ Attribute, SearchControls, SearchResult }
 import javax.naming.ldap.{ InitialLdapContext, LdapContext }
 import javax.naming.{ AuthenticationException, Context }
-import nl.knaw.dans.easy.deposit.authentication.AuthUser.UserState
 import nl.knaw.dans.lib.error.TryExtensions
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import resource.managed
@@ -55,10 +54,7 @@ trait LdapAuthentication extends DebugEnhancedLogging {
     def authenticate(userName: String, password: String): Try[Option[AuthUser]] = {
       findUser(userName, userContextProperties(userName, password))
         .doIfFailure { case t => logger.error(s"authentication of [$userName] failed with $t", t) }
-        .map(_
-          .map(props => AuthUser(props))
-          .find(_.state == UserState.active)
-        )
+        .map(_.map(AuthUser(_)))
     }
 
     private def findUser(searchedUserName: String, contextProperties: util.Hashtable[String, String]) = {

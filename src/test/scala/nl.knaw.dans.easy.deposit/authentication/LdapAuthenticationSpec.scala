@@ -55,13 +55,16 @@ class LdapAuthenticationSpec extends TestSupportFixture with MockFactory {
     }
   }
 
-  it should "return none for a blocked user" in {
+  it should "return a blocked user" in {
     val authentication = wire(new LdapMocker {
       expectLdapAttributes(new BasicAttributes() {
         put("dansState", "BLOCKED")
+        put("uid", "someone")
       })
     })
-    authentication.authenticate("someone", "somepassword") shouldBe Success(None)
+    authentication.authenticate("someone", "somepassword") should matchPattern {
+      case Success(Some(AuthUser("someone", UserState.blocked))) =>
+    }
   }
 
   it should "fail on other ldap problems" in {
