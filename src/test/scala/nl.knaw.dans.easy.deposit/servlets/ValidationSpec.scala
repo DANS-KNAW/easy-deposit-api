@@ -21,9 +21,10 @@ import nl.knaw.dans.easy.deposit.docs.dm.Author
 import nl.knaw.dans.lib.error._
 import org.eclipse.jetty.http.HttpStatus._
 import org.scalatest.Assertion
+import org.scalatest.exceptions.TestFailedException
 import org.xml.sax.SAXParseException
 
-import scala.util.Failure
+import scala.util.{ Failure, Success }
 
 class ValidationSpec extends DepositServletFixture {
 
@@ -132,12 +133,22 @@ class ValidationSpec extends DepositServletFixture {
     }
   }
 
-  private def parse(input: String) = {
+  "PUT(metadata) and PUT(submitted)" should "succeed for the base object for each test" in {
+    DDM(mandatoryOnSubmit) shouldBe a[Success[_]]
+  }
+
+  /**
+   * @param input json object with metadata fragment under test
+   * @return To be injected into a valid-for-submission instance
+   * @throws TestFailedException when the test data can't be deserialized
+   *                             and thus would be rejected by PUT(metadata).
+   */
+  private def parse(input: String): DatasetMetadata = {
     DatasetMetadata(input)
       .getOrRecover(e => fail(s"loading test data failed: ${ e.getMessage }; $input", e))
   }
 
-  // makes sure we only get errors on the field under test
+  /** Tests inject parsed input into this object to check error handling. */
   private val mandatoryOnSubmit = DatasetMetadata(
     """{
       |  "titles": ["blabla"],
