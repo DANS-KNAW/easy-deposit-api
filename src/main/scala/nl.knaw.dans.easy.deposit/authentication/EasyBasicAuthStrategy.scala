@@ -44,7 +44,7 @@ class EasyBasicAuthStrategy(protected override val app: ScalatraBase with Abstra
     }
 
     def haltWithRegisteredUser = {
-      app halt Unauthorized(body = "please confirm your registration before logging in").logResponse
+      app halt Unauthorized(body = "please confirm your registration first").logResponse
     }
 
     def haltWithFailure = {
