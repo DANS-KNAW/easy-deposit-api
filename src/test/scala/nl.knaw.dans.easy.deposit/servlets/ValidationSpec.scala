@@ -64,7 +64,7 @@ class ValidationSpec extends DepositServletFixture {
 
   it should "fail for an author with just a last name" in {
     DDM(mandatoryOnSubmit.copy(
-      creators = parse("""{ "creators": [ { "surname": "Einstein" }]}""").creators
+      creators = parse("""{ "creators": [ { "surname": "Einstein", "initials": "  " }]}""").creators
     )) should matchPattern {
       case Failure(InvalidDocumentException("DatasetMetadata", cause: SAXParseException))
         if cause.getMessage.contains("'dcx-dai:author' is not complete")
@@ -75,7 +75,7 @@ class ValidationSpec extends DepositServletFixture {
 
   it should "fail for an author with just initials" in {
     DDM(mandatoryOnSubmit.copy(
-      creators = parse("""{ "creators": [ { "initials": "A" }]}""").creators
+      creators = parse("""{ "creators": [ { "surname": "  ", "initials": "A" }]}""").creators
     )) should matchPattern {
       case Failure(InvalidDocumentException("DatasetMetadata", cause: SAXParseException))
         if cause.getMessage.contains("'dcx-dai:creatorDetails' is not complete") =>
@@ -210,7 +210,7 @@ class ValidationSpec extends DepositServletFixture {
       creators = parse(
         """{ "creators": [
           |  { "titles": "Baron", "insertions": "van", "organization": "Nyenrode" },
-          |  { "organization": "Harvard" }
+          |  { "organization": "Harvard", "insertions": "  ", "surname": "  " }
           |  { "titles": "Sir", "organization": "Oxbridge" }
           |  { "titles": "Mr" }
           |  { "insertions": "von", "organization": "ETH Zurich" },
