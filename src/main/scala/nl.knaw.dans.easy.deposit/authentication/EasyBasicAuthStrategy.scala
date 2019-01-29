@@ -67,7 +67,6 @@ class EasyBasicAuthStrategy(protected override val app: ScalatraBase with Abstra
     }
   }
 
-
   protected def getUserId(user: AuthUser)
                          (implicit request: HttpServletRequest, response: HttpServletResponse): String = {
     user.id
