@@ -46,19 +46,6 @@ class HappyRoutesSpec extends TestSupportFixture with ServletFixture with Scalat
     }
   }
 
-  "post /auth/login with proper user-name password" should "create a protected cookie" in {
-    authMocker.expectsUserFooBar
-    post(
-      uri = "/auth/login",
-      params = Seq(("login", "foo"), ("password", "bar"))
-    ) {
-      status shouldBe NO_CONTENT_204
-      body shouldBe ""
-      header("Set-Cookie") should startWith("scentry.auth.default.user=") // details in TypicalSessionSpec
-      header("Set-Cookie") shouldNot startWith("scentry.auth.default.user=;")
-    }
-  }
-
   "post /deposit" should "create a deposit" in {
     val uuid = UUID.randomUUID()
     authMocker.expectsUserFooBar

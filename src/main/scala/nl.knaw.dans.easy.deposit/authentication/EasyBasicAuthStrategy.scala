@@ -16,17 +16,21 @@
 package nl.knaw.dans.easy.deposit.authentication
 
 import javax.servlet.http.{ HttpServletRequest, HttpServletResponse }
+import nl.knaw.dans.easy.deposit.authentication.AuthUser.UserState
+import nl.knaw.dans.easy.deposit.logging._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
-import org.scalatra.ScalatraBase
 import org.scalatra.auth.strategy.BasicAuthStrategy
+import org.scalatra.{ ScalatraBase, ServiceUnavailable, Unauthorized }
 
-object EasyBasicAuthStrategy {}
+import scala.util.{ Failure, Success }
 
-class EasyBasicAuthStrategy(protected override val app: ScalatraBase,
+class EasyBasicAuthStrategy(protected override val app: ScalatraBase with AbstractResponseLogger,
                             authenticationProvider: AuthenticationProvider,
                             realm: String
                            ) extends BasicAuthStrategy[AuthUser](app, realm)
   with DebugEnhancedLogging {
+
+  implicit val responseLogger: AbstractResponseLogger = app
 
   override def name: String = getClass.getSimpleName
 
@@ -35,10 +39,32 @@ class EasyBasicAuthStrategy(protected override val app: ScalatraBase,
                         (implicit request: HttpServletRequest,
                          response: HttpServletResponse
                         ): Option[AuthUser] = {
-    authenticationProvider
-      .authenticate(userName, password)
-      .getOrElse(None) // TODO or .getOrElse(halt(ServiceUnavailable.logResponse))
-    // or BadGateWay / InternalServer error depending on the type of error ?
+    def haltWithInvalidUser = {
+      app halt Unauthorized(body = "invalid username/password").logResponse
+    }
+
+    def haltWithRegisteredUser = {
+      app halt Unauthorized(body = "please confirm your registration first").logResponse
+    }
+
+    def haltWithFailure = {
+      app halt ServiceUnavailable(body = "login service temporarily not available").logResponse
+    }
+
+    authenticationProvider.authenticate(userName, password) match {
+      case Success(Some(AuthUser(id, UserState.active))) => Some(AuthUser(id, UserState.active))
+      case Success(Some(AuthUser(_, UserState.registered))) => haltWithRegisteredUser
+      case Success(Some(AuthUser(id, UserState.blocked))) =>
+        logger.warn(s"blocked user '$id' tried to login")
+        haltWithInvalidUser
+      case Success(Some(AuthUser(id, state))) =>
+        logger.error(s"unknown state '$state' for user '$id'")
+        haltWithInvalidUser
+      case Success(None) => haltWithInvalidUser
+      case Failure(e) =>
+        logger.error(e.getMessage, e)
+        haltWithFailure
+    }
   }
 
   protected def getUserId(user: AuthUser)

@@ -51,7 +51,7 @@ class SessionSpec extends TestSupportFixture with ServletFixture with ScalatraSu
   addServlet(testServlet, "/deposit/*")
   addServlet(authServlet, "/auth/*")
 
-  "GET /deposit" should "return 401 (Unauthorized) when neither cookie nor login params are provided" in {
+  "GET /deposit" should "return 401 (Unauthorized) when neither cookie nor basic authentication are provided" in {
     authMocker.expectsNoUser
     get("/deposit") {
       status shouldBe UNAUTHORIZED_401
@@ -61,7 +61,7 @@ class SessionSpec extends TestSupportFixture with ServletFixture with ScalatraSu
     }
   }
 
-  it should "be ok when logging in on the flight with valid basic authentication" in {
+  it should "be ok when logging in with a valid user-name password" in {
     authMocker.expectsUserFooBar
     get(
       uri = "/deposit",
@@ -104,81 +104,6 @@ class SessionSpec extends TestSupportFixture with ServletFixture with ScalatraSu
     }
   }
 
-  "POST /auth/login" should "return 401 (Unauthorized) when invalid user-name password params are provided" in {
-    authMocker.expectsInvalidUser
-    post(
-      uri = "/auth/login",
-      params = Seq(("login", "foo"), ("password", "bar"))
-    ) {
-      body shouldBe "invalid credentials"
-      status shouldBe UNAUTHORIZED_401
-      header("Content-Type").toLowerCase shouldBe "text/plain;charset=utf-8"
-      response.headers should not contain key("Set-Cookie")
-    }
-  }
-
-  it should "return 401 (Unauthorized) when the user has not confirmed the email" in {
-    authMocker.expectsUserFooBarWithStatus(UserState.registered)
-    post(
-      uri = "/auth/login",
-      params = Seq(("login", "foo"), ("password", "bar"))
-    ) {
-      body shouldBe "Please confirm your email."
-      status shouldBe UNAUTHORIZED_401
-      header("Content-Type").toLowerCase shouldBe "text/plain;charset=utf-8"
-      response.headers should not contain key("Set-Cookie")
-    }
-  }
-
-  it should "return 401 (Unauthorized) when the user is blocked" in {
-    authMocker.expectsUserFooBarWithStatus(UserState.blocked)
-    post(
-      uri = "/auth/login",
-      params = Seq(("login", "foo"), ("password", "bar"))
-    ) {
-      body shouldBe "invalid credentials"
-      status shouldBe UNAUTHORIZED_401
-      header("Content-Type").toLowerCase shouldBe "text/plain;charset=utf-8"
-      response.headers should not contain key("Set-Cookie")
-    }
-  }
-
-  it should "create a protected cookie when proper user-name password params are provided" in {
-    authMocker.expectsUserFooBar
-    post(
-      uri = "/auth/login",
-      params = Seq(("login", "foo"), ("password", "bar"))
-    ) {
-      status shouldBe NO_CONTENT_204
-      body shouldBe ""
-      header("Expires") shouldBe "Thu, 01 Jan 1970 00:00:00 GMT" // page cache
-      header("REMOTE_USER") shouldBe "foo"
-      val newCookie = header("Set-Cookie")
-      newCookie should startWith regex "scentry.auth.default.user=[^;].+;"
-      newCookie should include(";Path=/")
-      newCookie should include(";HttpOnly")
-      cookieAge(newCookie) should be < 1000L
-    }
-  }
-
-  it should "create a cookie when valid basic authentication is provided" in {
-    authMocker.expectsUserFooBarWithStatus(UserState.active)
-    post(
-      uri = "/auth/login",
-      headers = Seq(fooBarBasicAuthHeader)
-    ) {
-      body shouldBe ""
-      status shouldBe NO_CONTENT_204
-      header("Expires") shouldBe "Thu, 01 Jan 1970 00:00:00 GMT" // page cache
-      header("REMOTE_USER") shouldBe "foo"
-      val newCookie = header("Set-Cookie")
-      newCookie should startWith regex "scentry.auth.default.user=[^;].+;"
-      newCookie should include(";Path=/")
-      newCookie should include(";HttpOnly")
-      cookieAge(newCookie) should be < 1000L
-    }
-  }
-
   "post /auth/logout" should "clear the cookie" in {
     authMocker.expectsNoUser
     val jwtCookie = createJWT(AuthUser("foo", state = UserState.active))
@@ -204,9 +129,38 @@ class SessionSpec extends TestSupportFixture with ServletFixture with ScalatraSu
       body shouldBe ""
       header("REMOTE_USER") shouldBe ""
       status shouldBe NO_CONTENT_204
-      // TODO basic authentication is intended for internal test purposes
-      //  if exposed beyond the firewall we need to prevent the first cookie
       shouldHaveEmptyCookie(2)
+    }
+  }
+
+  "POST /auth/login" should "create a cookie when valid basic authentication is provided" in {
+    authMocker.expectsUserFooBarWithStatus(UserState.active)
+    post(
+      uri = "/auth/login",
+      headers = Seq(fooBarBasicAuthHeader)
+    ) {
+      body shouldBe ""
+      status shouldBe NO_CONTENT_204
+      header("Expires") shouldBe "Thu, 01 Jan 1970 00:00:00 GMT" // page cache
+      header("REMOTE_USER") shouldBe "foo"
+      val newCookie = header("Set-Cookie")
+      newCookie should startWith regex "scentry.auth.default.user=[^;].+;"
+      newCookie should include(";Path=/")
+      newCookie should include(";HttpOnly")
+      cookieAge(newCookie) should be < 1000L
+    }
+  }
+
+  it should "return 401 (Unauthorized) when invalid user-name password params are provided" in {
+    authMocker.expectsInvalidUser
+    post(
+      uri = "/auth/login",
+      params = Seq(("login", "foo"), ("password", "bar"))
+    ) {
+      body shouldBe "invalid credentials"
+      status shouldBe UNAUTHORIZED_401
+      header("Content-Type").toLowerCase shouldBe "text/plain;charset=utf-8"
+      response.headers should not contain key("Set-Cookie")
     }
   }
 
