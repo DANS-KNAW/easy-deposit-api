@@ -51,7 +51,7 @@ class SessionSpec extends TestSupportFixture with ServletFixture with ScalatraSu
   addServlet(testServlet, "/deposit/*")
   addServlet(authServlet, "/auth/*")
 
-  "GET /deposit" should "return 401 (Unauthorized) when neither cookie nor login params are provided" in {
+  "GET /deposit" should "return 401 (Unauthorized) when neither cookie nor basic authentication are provided" in {
     authMocker.expectsNoUser
     get("/deposit") {
       status shouldBe UNAUTHORIZED_401
@@ -61,7 +61,7 @@ class SessionSpec extends TestSupportFixture with ServletFixture with ScalatraSu
     }
   }
 
-  it should "be ok when logging in on the flight with valid basic authentication" in {
+  it should "be ok when logging in with a valid user-name password" in {
     authMocker.expectsUserFooBar
     get(
       uri = "/deposit",
