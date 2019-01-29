@@ -30,8 +30,8 @@ class ValidationSpec extends DepositServletFixture {
 
   "PUT(metadata) should succeed with incomplete authors, PUT(submitted)" should "fail for an empty creator" in {
     def checkSubmitResponse = {
-      body should include("The content of element 'dcx-dai:creatorDetails' is not complete")
-      body shouldNot include("The content of element 'dcx-dai:contributorDetails' is not complete")
+      body should include("'dcx-dai:creatorDetails' is not complete")
+      body shouldNot include("'dcx-dai:contributorDetails' is not complete")
       // a client has no clue there is a second violation on contributorDetails
       status shouldBe BAD_REQUEST_400
     }
@@ -44,7 +44,7 @@ class ValidationSpec extends DepositServletFixture {
 
   it should "fail for an empty contributor" in {
     def checkSubmitResponse = {
-      body should include("The content of element 'dcx-dai:contributorDetails' is not complete")
+      body should include("'dcx-dai:contributorDetails' is not complete")
       // a client has no clue which one in the list is violating the requirements
       status shouldBe BAD_REQUEST_400
     }
@@ -67,7 +67,7 @@ class ValidationSpec extends DepositServletFixture {
       creators = parse("""{ "creators": [ { "surname": "Einstein" }]}""").creators
     )) should matchPattern {
       case Failure(InvalidDocumentException("DatasetMetadata", cause: SAXParseException))
-        if cause.getMessage.contains("The content of element 'dcx-dai:author' is not complete")
+        if cause.getMessage.contains("'dcx-dai:author' is not complete")
           && cause.getLineNumber == 8 =>
       // TODO error handling should produce the XML line(s) to give the client a clue about the violating instance
     }
@@ -78,7 +78,95 @@ class ValidationSpec extends DepositServletFixture {
       creators = parse("""{ "creators": [ { "initials": "A" }]}""").creators
     )) should matchPattern {
       case Failure(InvalidDocumentException("DatasetMetadata", cause: SAXParseException))
-        if cause.getMessage.contains("The content of element 'dcx-dai:creatorDetails' is not complete") =>
+        if cause.getMessage.contains("'dcx-dai:creatorDetails' is not complete") =>
+    }
+  }
+
+  it should "fail without creators" in {
+    DDM(mandatoryOnSubmit.copy(
+      creators = parse("""{ "creators": []}""").creators
+    )) should matchPattern {
+      case Failure(InvalidDocumentException("DatasetMetadata", cause: SAXParseException))
+        if cause.getMessage.contains("Invalid content was found starting with element 'ddm:created'") =>
+    }
+  }
+
+  it should "fail for an ID without schema" in pendingUntilFixed {
+    DDM(mandatoryOnSubmit.copy(
+      creators = parse(
+        """{ "creators": [ {
+          |  "initials": "A",
+          |  "surname": "Einstein",
+          |  "ids": [{ "scheme": "id-type:ORCID" }]
+          |}]}""".stripMargin).creators
+    )) should matchPattern {
+      case Failure(InvalidDocumentException("DatasetMetadata", cause: SAXParseException))
+        if cause.getMessage.contains(" is not complete") =>
+    }
+  }
+
+  it should "fail for an ID without a value" in pendingUntilFixed {
+    DDM(mandatoryOnSubmit.copy(
+      creators = parse(
+        """{ "creators": [ {
+          |  "initials": "A",
+          |  "surname": "Einstein",
+          |  "ids": [{ "value": "0000-0002-9079-593X" }]
+          |}]}""".stripMargin).creators
+    )) should matchPattern {
+      case Failure(InvalidDocumentException("DatasetMetadata", cause: SAXParseException))
+        if cause.getMessage.contains(" is not complete") =>
+    }
+  }
+
+  it should "fail for a role without a key" in pendingUntilFixed {
+    DDM(mandatoryOnSubmit.copy(
+      creators = parse(
+        """{ "creators": [
+          |  { "role": {
+          |      "scheme": "datacite:contributorType",
+          |      "value": "Rights Holder"
+          |    },
+          |    "organization": "KNAW"
+          |  }
+          |]}""".stripMargin).creators
+    )) should matchPattern {
+      case Failure(InvalidDocumentException("DatasetMetadata", cause: SAXParseException))
+        if cause.getMessage.contains(" is not complete") =>
+    }
+  }
+
+  it should "fail for a role without a value" in pendingUntilFixed {
+    DDM(mandatoryOnSubmit.copy(
+      creators = parse(
+        """{ "creators": [
+          |  { "role": {
+          |      "scheme": "datacite:contributorType",
+          |      "key": "RightsHolder"
+          |    },
+          |    "organization": "KNAW"
+          |  }
+          |]}""".stripMargin).creators
+    )) should matchPattern {
+      case Failure(InvalidDocumentException("DatasetMetadata", cause: SAXParseException))
+        if cause.getMessage.contains(" is not complete") =>
+    }
+  }
+
+  it should "fail for a role without a scheme " in pendingUntilFixed {
+    DDM(mandatoryOnSubmit.copy(
+      creators = parse(
+        """{ "creators": [
+          |  { "role": {
+          |      "key": "RightsHolder",
+          |      "value": "Rights Holder"
+          |    },
+          |    "organization": "KNAW"
+          |  }
+          |]}""".stripMargin).creators
+    )) should matchPattern {
+      case Failure(InvalidDocumentException("DatasetMetadata", cause: SAXParseException))
+        if cause.getMessage.contains("'dcx-dai:creatorDetails' is not complete") =>
     }
   }
 
@@ -95,7 +183,7 @@ class ValidationSpec extends DepositServletFixture {
           |]}""".stripMargin).creators
     )) should matchPattern {
       case Failure(InvalidDocumentException("DatasetMetadata", cause: SAXParseException))
-        if cause.getMessage.contains("The content of element 'dcx-dai:creatorDetails' is not complete") =>
+        if cause.getMessage.contains("'dcx-dai:creatorDetails' is not complete") =>
     }
   }
 
@@ -113,7 +201,7 @@ class ValidationSpec extends DepositServletFixture {
           |]}""".stripMargin).contributors
     )) should matchPattern {
       case Failure(InvalidDocumentException("DatasetMetadata", cause: SAXParseException))
-        if cause.getMessage.contains("The content of element 'dcx-dai:contributorDetails' is not complete") =>
+        if cause.getMessage.contains("'dcx-dai:contributorDetails' is not complete") =>
     }
   }
 
@@ -134,6 +222,7 @@ class ValidationSpec extends DepositServletFixture {
   }
 
   "PUT(metadata) and PUT(submitted)" should "succeed for the base object for each test" in {
+    // more valid data is tested in other test classes with src/test/resources/manual-test/*.json
     DDM(mandatoryOnSubmit) shouldBe a[Success[_]]
   }
 
@@ -148,7 +237,7 @@ class ValidationSpec extends DepositServletFixture {
       .getOrRecover(e => fail(s"loading test data failed: ${ e.getMessage }; $input", e))
   }
 
-  /** Tests inject parsed input into this object to check error handling. */
+  /** Tests inject parsed input into this object to check and document error reporting. */
   private val mandatoryOnSubmit = DatasetMetadata(
     """{
       |  "titles": ["blabla"],
