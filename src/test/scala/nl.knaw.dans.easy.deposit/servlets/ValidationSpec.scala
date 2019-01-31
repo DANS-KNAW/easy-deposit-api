@@ -15,9 +15,10 @@
  */
 package nl.knaw.dans.easy.deposit.servlets
 
+import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.{ PossiblySchemedValue, SchemedValue }
 import nl.knaw.dans.easy.deposit.docs.JsonUtil.InvalidDocumentException
 import nl.knaw.dans.easy.deposit.docs._
-import nl.knaw.dans.easy.deposit.docs.dm.Author
+import nl.knaw.dans.easy.deposit.docs.dm.{ Author, Date }
 import nl.knaw.dans.lib.error._
 import org.eclipse.jetty.http.HttpStatus._
 import org.scalatest.Assertion
@@ -63,7 +64,7 @@ class ValidationSpec extends DepositServletFixture {
   // Parsing json is part of PUT(metadata), creating a DDM object is part of PUT(submitted).
 
   it should "fail for an author with just a last name" in {
-    DDM(parse("""{ "creators": [ { "surname": "Einstein", "initials": "  " }]}""")
+    DDM(parseIntoValidForSubmit("""{ "creators": [ { "surname": "Einstein", "initials": "  " }]}""")
     ) should matchPattern {
       case Failure(InvalidDocumentException("DatasetMetadata", cause: SAXParseException))
         if cause.getMessage.contains("'dcx-dai:author' is not complete")
@@ -73,7 +74,7 @@ class ValidationSpec extends DepositServletFixture {
   }
 
   it should "fail for an author with just initials" in {
-    DDM(parse("""{ "creators": [ { "surname": "  ", "initials": "A" }]}""")
+    DDM(parseIntoValidForSubmit("""{ "creators": [ { "surname": "  ", "initials": "A" }]}""")
     ) should matchPattern {
       case Failure(InvalidDocumentException("DatasetMetadata", cause: SAXParseException))
         if cause.getMessage.contains("'dcx-dai:creatorDetails' is not complete") =>
@@ -81,7 +82,7 @@ class ValidationSpec extends DepositServletFixture {
   }
 
   it should "fail without creators" in {
-    DDM(parse("""{ "creators": []}""")
+    DDM(parseIntoValidForSubmit("""{ "creators": []}""")
     ) should matchPattern {
       case Failure(InvalidDocumentException("DatasetMetadata", cause: SAXParseException))
         if cause.getMessage.contains("Invalid content was found starting with element 'ddm:created'") =>
@@ -89,12 +90,12 @@ class ValidationSpec extends DepositServletFixture {
   }
 
   it should "fail for an ID without schema" in pendingUntilFixed {
-    DDM(parse(
-        """{ "creators": [ {
-          |  "initials": "A",
-          |  "surname": "Einstein",
-          |  "ids": [{ "scheme": "id-type:ORCID" }]
-          |}]}""")
+    DDM(parseIntoValidForSubmit(
+      """{ "creators": [ {
+        |  "initials": "A",
+        |  "surname": "Einstein",
+        |  "ids": [{ "scheme": "id-type:ORCID" }]
+        |}]}""")
     ) should matchPattern {
       case Failure(InvalidDocumentException("DatasetMetadata", cause: SAXParseException))
         if cause.getMessage.contains(" is not complete") =>
@@ -102,12 +103,12 @@ class ValidationSpec extends DepositServletFixture {
   }
 
   it should "fail for an ID without a value" in pendingUntilFixed {
-    DDM(parse(
-        """{ "creators": [ {
-          |  "initials": "A",
-          |  "surname": "Einstein",
-          |  "ids": [{ "value": "0000-0002-9079-593X" }]
-          |}]}""")
+    DDM(parseIntoValidForSubmit(
+      """{ "creators": [ {
+        |  "initials": "A",
+        |  "surname": "Einstein",
+        |  "ids": [{ "value": "0000-0002-9079-593X" }]
+        |}]}""")
     ) should matchPattern {
       case Failure(InvalidDocumentException("DatasetMetadata", cause: SAXParseException))
         if cause.getMessage.contains(" is not complete") =>
@@ -115,15 +116,15 @@ class ValidationSpec extends DepositServletFixture {
   }
 
   it should "fail for a role without a key" in pendingUntilFixed {
-    DDM(parse(
-        """{ "creators": [
-          |  { "role": {
-          |      "scheme": "datacite:contributorType",
-          |      "value": "Rights Holder"
-          |    },
-          |    "organization": "KNAW"
-          |  }
-          |]}""")
+    DDM(parseIntoValidForSubmit(
+      """{ "creators": [
+        |  { "role": {
+        |      "scheme": "datacite:contributorType",
+        |      "value": "Rights Holder"
+        |    },
+        |    "organization": "KNAW"
+        |  }
+        |]}""")
     ) should matchPattern {
       case Failure(InvalidDocumentException("DatasetMetadata", cause: SAXParseException))
         if cause.getMessage.contains(" is not complete") =>
@@ -131,15 +132,15 @@ class ValidationSpec extends DepositServletFixture {
   }
 
   it should "fail for a role without a value" in pendingUntilFixed {
-    DDM(parse(
-        """{ "creators": [
-          |  { "role": {
-          |      "scheme": "datacite:contributorType",
-          |      "key": "RightsHolder"
-          |    },
-          |    "organization": "KNAW"
-          |  }
-          |]}""")
+    DDM(parseIntoValidForSubmit(
+      """{ "creators": [
+        |  { "role": {
+        |      "scheme": "datacite:contributorType",
+        |      "key": "RightsHolder"
+        |    },
+        |    "organization": "KNAW"
+        |  }
+        |]}""")
     ) should matchPattern {
       case Failure(InvalidDocumentException("DatasetMetadata", cause: SAXParseException))
         if cause.getMessage.contains(" is not complete") =>
@@ -147,15 +148,15 @@ class ValidationSpec extends DepositServletFixture {
   }
 
   it should "fail for a role without a scheme " in pendingUntilFixed {
-    DDM(parse(
-        """{ "creators": [
-          |  { "role": {
-          |      "key": "RightsHolder",
-          |      "value": "Rights Holder"
-          |    },
-          |    "organization": "KNAW"
-          |  }
-          |]}""")
+    DDM(parseIntoValidForSubmit(
+      """{ "creators": [
+        |  { "role": {
+        |      "key": "RightsHolder",
+        |      "value": "Rights Holder"
+        |    },
+        |    "organization": "KNAW"
+        |  }
+        |]}""")
     ) should matchPattern {
       case Failure(InvalidDocumentException("DatasetMetadata", cause: SAXParseException))
         if cause.getMessage.contains("'dcx-dai:creatorDetails' is not complete") =>
@@ -163,15 +164,15 @@ class ValidationSpec extends DepositServletFixture {
   }
 
   it should "fail for a rightsHolding creator with neither surname nor organisation" in {
-    DDM(parse(
-        """{ "creators": [
-          |  { "role": {
-          |      "scheme": "datacite:contributorType",
-          |      "key": "RightsHolder",
-          |      "value": "Rights Holder"
-          |    }
-          |  }
-          |]}""")
+    DDM(parseIntoValidForSubmit(
+      """{ "creators": [
+        |  { "role": {
+        |      "scheme": "datacite:contributorType",
+        |      "key": "RightsHolder",
+        |      "value": "Rights Holder"
+        |    }
+        |  }
+        |]}""")
     ) should matchPattern {
       case Failure(InvalidDocumentException("DatasetMetadata", cause: SAXParseException))
         if cause.getMessage.contains("'dcx-dai:creatorDetails' is not complete") =>
@@ -180,15 +181,15 @@ class ValidationSpec extends DepositServletFixture {
 
 
   it should "fail for a rightsHolding contributor with neither surname nor organisation" in {
-    DDM(parse(
-        """{ "contributors": [
-          |  { "role": {
-          |      "scheme": "datacite:contributorType",
-          |      "key": "RightsHolder",
-          |      "value": "Rights Holder"
-          |    }
-          |  }
-          |]}""")
+    DDM(parseIntoValidForSubmit(
+      """{ "contributors": [
+        |  { "role": {
+        |      "scheme": "datacite:contributorType",
+        |      "key": "RightsHolder",
+        |      "value": "Rights Holder"
+        |    }
+        |  }
+        |]}""")
     ) should matchPattern {
       case Failure(InvalidDocumentException("DatasetMetadata", cause: SAXParseException))
         if cause.getMessage.contains("'dcx-dai:contributorDetails' is not complete") =>
@@ -196,17 +197,88 @@ class ValidationSpec extends DepositServletFixture {
   }
 
   it should "fail for organisations with insertions and/or titles" in {
-    DDM(parse(
-        """{ "creators": [
-          |  { "titles": "Baron", "insertions": "van", "organization": "Nyenrode" },
-          |  { "organization": "Harvard", "insertions": "  ", "surname": "  " }
-          |  { "titles": "Sir", "organization": "Oxbridge" }
-          |  { "titles": "Mr" }
-          |  { "insertions": "von", "organization": "ETH Zurich" },
-          |]}""")
+    DDM(parseIntoValidForSubmit(
+      """{ "creators": [
+        |  { "titles": "Baron", "insertions": "van", "organization": "Nyenrode" },
+        |  { "organization": "Harvard", "insertions": "  ", "surname": "  " }
+        |  { "titles": "Sir", "organization": "Oxbridge" }
+        |  { "titles": "Mr" }
+        |  { "insertions": "von", "organization": "ETH Zurich" },
+        |]}""")
     ) should matchPattern {
       case Failure(InvalidDocumentException("DatasetMetadata", cause: IllegalArgumentException))
         if cause.getMessage == """An author without surname should have neither titles nor insertions, got: {"titles":"Baron","insertions":"van","organization":"Nyenrode"}, {"titles":"Sir","organization":"Oxbridge"}, {"titles":"Mr"}, {"insertions":"von","organization":"ETH Zurich"}""" =>
+    }
+  }
+
+  "PUT(metadata) should succeed with incomplete date(s), PUT(submitted)" should "fail without date created" in {
+    DDM(parseIntoValidForSubmit("""{"dates": []}""")) should matchPattern {
+      case Failure(InvalidDocumentException("DatasetMetadata", cause: SAXParseException))
+        if cause.getMessage.contains(""":created}' is expected.""") =>
+    }
+  }
+
+  it should "fail without date available" in {
+    DDM(parseIntoValidForSubmit("""{"dates": [{ "scheme": "dcterms:W3CDTF", "value": "2018-05-31", "qualifier": "dcterms:created" }]}""")
+    ) should matchPattern {
+      case Failure(InvalidDocumentException("DatasetMetadata", cause: SAXParseException))
+        if cause.getMessage.contains(""":available}' is expected.""") =>
+    }
+  }
+
+  "PUT(metadata)" should "fail with a date submitted" in {
+    DatasetMetadata(
+      """{"dates": [{ "scheme": "dcterms:W3CDTF", "value": "2018-05-31", "qualifier": "dcterms:dateSubmitted" }]}"""
+    ) should matchPattern {
+      case Failure(InvalidDocumentException("DatasetMetadata", cause: IllegalArgumentException))
+        if cause.getMessage == """requirement failed: No dcterms:dateSubmitted allowed; got [{"scheme":"dcterms:W3CDTF","value":"2018-05-31","qualifier":"dcterms:dateSubmitted"}]""" =>
+    }
+  }
+
+  it should "fail with a repeated dcterms:created" in {
+    DatasetMetadata(
+      """{"dates": [
+        |   { "value": "2018", "qualifier": "dcterms:created" },
+        |   { "value": "2017", "qualifier": "dcterms:created" },
+        |]}""".stripMargin
+    ) should matchPattern {
+      case Failure(InvalidDocumentException("DatasetMetadata", cause: IllegalArgumentException))
+        if cause.getMessage == """requirement failed: At most one allowed; got [{"value":"2018","qualifier":"dcterms:created"},{"value":"2017","qualifier":"dcterms:created"}]""" =>
+    }
+  }
+
+  it should "fail with a repeated dcterms:available" in {
+    DatasetMetadata(
+      """{"dates": [
+        |  { "qualifier": "dcterms:available", "value": "2018", "scheme": "dcterms:W3CDTF" },
+        |  { "qualifier": "dcterms:available", "value": "2018-12", "scheme": "dcterms:W3CDTF" },
+        |  { "qualifier": "dcterms:created", "value": "2018-12", "scheme": "dcterms:W3CDTF" },
+        |]}""".stripMargin
+    ) should matchPattern {
+      case Failure(InvalidDocumentException("DatasetMetadata", cause: IllegalArgumentException))
+        if cause.getMessage == """requirement failed: At most one allowed; got [{"scheme":"dcterms:W3CDTF","value":"2018","qualifier":"dcterms:available"},{"scheme":"dcterms:W3CDTF","value":"2018-12","qualifier":"dcterms:available"}]""" =>
+    }
+  }
+
+  it should "fail with an invalid enum value" in {
+    // assuming this behaviour for all fields with one of JsonUtil.enumerations
+    DatasetMetadata(
+      """{"dates": [{ "scheme": "dcterms:W3CDTF", "value": "2018-05-31", "qualifier": "dcterms:submitted" }]}"""
+    ) should matchPattern {
+      case Failure(InvalidDocumentException("DatasetMetadata", cause: IllegalArgumentException))
+        if cause.getMessage.contains("""don't recognize {"dates":[""") =>
+      // too bad JsonUtil.rejectNotExpectedContent doesn't specify which date is not recognized
+    }
+  }
+
+  it should "fail with an unknown field" in {
+    // assuming this behaviour for all fields with one of JsonUtil.enumerations
+    DatasetMetadata(
+      """{"foo": "bar"}"""
+    ) should matchPattern {
+      case Failure(InvalidDocumentException("DatasetMetadata", cause: IllegalArgumentException))
+        if cause.getMessage.contains("""don't recognize {"foo":"bar"}""") =>
+      // too bad JsonUtil.rejectNotExpectedContent doesn't specify which date is not recognized
     }
   }
 
@@ -217,44 +289,59 @@ class ValidationSpec extends DepositServletFixture {
 
   /**
    * @param input json object with metadata fragment under test
-   * @return public option fields of parsed input injected into a valid-for-submission instance
-   * @throws TestFailedException when the input can't be parsed
+   * @return option fields of parsed input injected into a valid-for-submission instance.
+   *         Either the provided private option fields are injected or
+   *         the provided public option fields are injected.
+   * @throws TestFailedException when the input can't be parsed at all
    *                             and thus would be rejected by PUT(metadata).
    */
-  private def parse(input: String): DatasetMetadata = {
-    val parsed = DatasetMetadata(input.stripMargin)
-      .getOrRecover(e => fail(s"loading test data failed: ${ e.getMessage }; $input", e))
-
-    mandatoryOnSubmit.copy(
-      // (alternative)identifiers and types(DCMI) are private and thus not injectable
-      // but other fields have the same types to test validation
-      languageOfDescription = parsed.languageOfDescription orElse mandatoryOnSubmit.languageOfDescription,
-      titles = parsed.titles orElse mandatoryOnSubmit.titles,
-      alternativeTitles = parsed.alternativeTitles orElse mandatoryOnSubmit.alternativeTitles,
-      descriptions = parsed.descriptions orElse mandatoryOnSubmit.descriptions,
-      creators = parsed.creators orElse mandatoryOnSubmit.creators,
-      contributors = parsed.contributors orElse mandatoryOnSubmit.contributors,
-      audiences = parsed.audiences orElse mandatoryOnSubmit.audiences,
-      subjects = parsed.subjects orElse mandatoryOnSubmit.subjects,
-      relations = parsed.relations orElse mandatoryOnSubmit.relations,
-      languagesOfFiles = parsed.languagesOfFiles orElse mandatoryOnSubmit.languagesOfFiles,
-      // TODO dates are private and thus not injectable for testing
-      sources = parsed.sources orElse mandatoryOnSubmit.sources,
-      instructionsForReuse = parsed.instructionsForReuse orElse mandatoryOnSubmit.instructionsForReuse,
-      publishers = parsed.publishers orElse mandatoryOnSubmit.publishers,
-      accessRights = parsed.accessRights orElse mandatoryOnSubmit.accessRights,
-      license = parsed.license orElse mandatoryOnSubmit.license,
-      formats = parsed.formats orElse mandatoryOnSubmit.formats,
-      temporalCoverages = parsed.temporalCoverages orElse mandatoryOnSubmit.temporalCoverages,
-      spatialPoints = parsed.spatialPoints orElse mandatoryOnSubmit.spatialPoints,
-      spatialBoxes = parsed.spatialBoxes orElse mandatoryOnSubmit.spatialBoxes,
-      spatialCoverages = parsed.spatialCoverages orElse mandatoryOnSubmit.spatialCoverages,
-      messageForDataManager = parsed.messageForDataManager orElse mandatoryOnSubmit.messageForDataManager,
-      // privacySensitiveDataPresent and acceptDepositAgreement are not options and thus not injected
-    )
+  private def parseIntoValidForSubmit(input: String): DatasetMetadata = {
+    new JsonUtil.RichJsonInput(input)
+      .deserialize[PrivateDatasetMetadataValues].map { parsed =>
+      mandatoryOnSubmit.copy(
+        identifiers = parsed.identifiers,
+        alternativeIdentifiers = parsed.alternativeIdentifiers,
+        dates = parsed.dates,
+        typesDcmi = parsed.typesDcmi,
+        types = parsed.types,
+      )
+    }.getOrElse {
+      val parsed = DatasetMetadata(input.stripMargin)
+        .getOrRecover(e => fail(s"loading test data failed: ${ e.getMessage }; $input", e))
+      mandatoryOnSubmit.copy(
+        languageOfDescription = parsed.languageOfDescription orElse mandatoryOnSubmit.languageOfDescription,
+        titles = parsed.titles orElse mandatoryOnSubmit.titles,
+        alternativeTitles = parsed.alternativeTitles orElse mandatoryOnSubmit.alternativeTitles,
+        descriptions = parsed.descriptions orElse mandatoryOnSubmit.descriptions,
+        creators = parsed.creators orElse mandatoryOnSubmit.creators,
+        contributors = parsed.contributors orElse mandatoryOnSubmit.contributors,
+        audiences = parsed.audiences orElse mandatoryOnSubmit.audiences,
+        subjects = parsed.subjects orElse mandatoryOnSubmit.subjects,
+        relations = parsed.relations orElse mandatoryOnSubmit.relations,
+        languagesOfFiles = parsed.languagesOfFiles orElse mandatoryOnSubmit.languagesOfFiles,
+        sources = parsed.sources orElse mandatoryOnSubmit.sources,
+        instructionsForReuse = parsed.instructionsForReuse orElse mandatoryOnSubmit.instructionsForReuse,
+        publishers = parsed.publishers orElse mandatoryOnSubmit.publishers,
+        accessRights = parsed.accessRights orElse mandatoryOnSubmit.accessRights,
+        license = parsed.license orElse mandatoryOnSubmit.license,
+        formats = parsed.formats orElse mandatoryOnSubmit.formats,
+        temporalCoverages = parsed.temporalCoverages orElse mandatoryOnSubmit.temporalCoverages,
+        spatialPoints = parsed.spatialPoints orElse mandatoryOnSubmit.spatialPoints,
+        spatialBoxes = parsed.spatialBoxes orElse mandatoryOnSubmit.spatialBoxes,
+        spatialCoverages = parsed.spatialCoverages orElse mandatoryOnSubmit.spatialCoverages,
+        messageForDataManager = parsed.messageForDataManager orElse mandatoryOnSubmit.messageForDataManager,
+        // privacySensitiveDataPresent and acceptDepositAgreement are not options and thus not injected
+      )
+    }
   }
 
-  /** Tests inject parsed input into this object to check and document error reporting. */
+  case class PrivateDatasetMetadataValues(identifiers: Option[Seq[SchemedValue]] = None,
+                                          alternativeIdentifiers: Option[Seq[SchemedValue]] = None,
+                                          dates: Option[Seq[Date]] = None,
+                                          typesDcmi: Option[Seq[String]] = None,
+                                          types: Option[Seq[PossiblySchemedValue]] = None,
+                                         )
+
   private val mandatoryOnSubmit = DatasetMetadata(
     """{
       |  "titles": ["blabla"],
