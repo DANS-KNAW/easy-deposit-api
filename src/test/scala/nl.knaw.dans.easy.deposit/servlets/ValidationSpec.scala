@@ -131,6 +131,24 @@ class ValidationSpec extends DepositServletFixture {
     }
   }
 
+  it should "fail for a role with an invalid key" in {
+    // TODO what about invalid schema's?
+    DDM(parseIntoValidForSubmit(
+      """{ "creators": [
+        |  { "role": {
+        |      "scheme": "datacite:contributorType",
+        |      "key": "rabarbera"
+        |      "value": "Rights Holder"
+        |    },
+        |    "organization": "KNAW"
+        |  }
+        |]}""")
+    ) should matchPattern {
+      case Failure(InvalidDocumentException("DatasetMetadata", cause: SAXParseException))
+        if cause.getMessage.contains("Value 'rabarbera' is not facet-valid with respect to enumeration") =>
+    }
+  }
+
   it should "fail for a role without a value" in pendingUntilFixed {
     DDM(parseIntoValidForSubmit(
       """{ "creators": [
