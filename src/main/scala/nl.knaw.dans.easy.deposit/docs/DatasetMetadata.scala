@@ -67,11 +67,11 @@ case class DatasetMetadata(private val identifiers: Option[Seq[SchemedValue]] = 
                                                  else Failure(missingValue("AcceptDepositAgreement"))
 
   //// dates
-  private val specialDateQualifiers = Seq(DateQualifier.created, DateQualifier.available)
+  private val specialDateQualifiers = Seq(DateQualifier.created, DateQualifier.available).map(Some(_))
   private val (specialDates, plainDates) = dates.toSeq.flatten
     .partition(date => specialDateQualifiers.contains(date.qualifier))
   val (datesCreated, datesAvailable) = specialDates
-    .partition(_.qualifier == DateQualifier.created)
+    .partition(_.qualifier.contains(DateQualifier.created))
   val otherDates: Seq[Date] = plainDates :+ dateSubmitted()
   // N.B: with lazy values JsonUtil.deserialize would not throw exceptions
   notAllowed(DateQualifier.dateSubmitted, plainDates)

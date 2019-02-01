@@ -69,7 +69,7 @@ object DDM extends SchemedXml with DebugEnhancedLogging {
         { dm.subjects.getNonEmpty.map(details(_, "subject", lang)) }
         { dm.temporalCoverages.getNonEmpty.map(details(_, "temporal", lang)) }
         { dm.spatialCoverages.getNonEmpty.map(details(_, "spatial", lang)) }
-        { dm.otherDates.map(date => <label xsi:type={ date.schemeAsString }>{ date.value.getOrElse("") }</label>.withLabel(date.qualifier.toString)) }
+        { dm.otherDates.map(date => <label xsi:type={ date.schemeAsString }>{ date.value.getOrElse("") }</label>.withLabel(date.qualifier)) }
         { dm.spatialPoints.getNonEmpty.map(point => <dcx-gml:spatial srsName={ point.srsName }>{ details(point) }</dcx-gml:spatial>) }
         { dm.spatialBoxes.getNonEmpty.map(point => <dcx-gml:spatial>{ details(point) }</dcx-gml:spatial>) }
         { dm.license.getNonEmpty.map(str => <dcterms:license>{ str }</dcterms:license>) /* xsi:type="dcterms:URI" not supported by json */ }
@@ -165,8 +165,18 @@ object DDM extends SchemedXml with DebugEnhancedLogging {
       str.split(":") match {
         case Array(label) => elem.copy(label = label)
         case Array(prefix, label) => elem.copy(prefix = prefix, label = label)
-        case a => throw invalidDatasetMetadataException(new Exception(
+        case a => throw invalidDatasetMetadataException(new IllegalArgumentException(
           s"expecting (label) or (prefix:label); got [${ a.mkString(":") }] to adjust the <${ elem.label }> of ${ trim(elem) }"
+        ))
+      }
+    }
+
+    def withLabel[T](someEnum: Option[T]): Elem = {
+      someEnum.map(_.toString.split(":")) match {
+        case Some(Array(label)) => elem.copy(label = label)
+        case Some(Array(prefix, label)) => elem.copy(prefix = prefix, label = label)
+        case a => throw invalidDatasetMetadataException(new IllegalArgumentException(
+          s"expecting Some(label) or Some(prefix:label); got [$a] to adjust the <${ elem.label }> of ${ trim(elem) }"
         ))
       }
     }

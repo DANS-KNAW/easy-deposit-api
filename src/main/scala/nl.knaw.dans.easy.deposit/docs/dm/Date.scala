@@ -42,17 +42,15 @@ object DateScheme extends Enumeration {
 case class Date(
                  override val scheme: Option[String],
                  value: Option[String],
-                 qualifier: DateQualifier,
+                 qualifier: Option[DateQualifier],
                ) extends PossiblySchemed with Requirements {
-  requireNonEmptyString(value)
-  requireNonEmptyString(value)
 }
 
 object Date {
   def dateSubmitted(): Date = Date(
     Some(DateScheme.W3CDTF.toString),
     Some(DateTime.now().toString(ISODateTimeFormat.date())),
-    DateQualifier.dateSubmitted
+    Some(DateQualifier.dateSubmitted)
   )
 
   def atMostOne(dates: Seq[Date]): Unit = {
@@ -60,6 +58,6 @@ object Date {
   }
 
   def notAllowed(qualifier: DateQualifier, dates: Seq[Date]): Unit = {
-    require(!dates.exists(_.qualifier == qualifier), s"No $qualifier allowed; got ${ toJson(dates) }")
+    require(!dates.exists(_.qualifier.contains(qualifier)), s"No $qualifier allowed; got ${ toJson(dates) }")
   }
 }
