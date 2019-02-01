@@ -226,6 +226,20 @@ class ValidationSpec extends DepositServletFixture {
     }
   }
 
+  it should "fail with a date without value" in {
+    DDM(parseIntoValidForSubmit(
+      """{
+        |  "dates": [
+        |    { "scheme": "dcterms:W3CDTF", "qualifier": "dcterms:available" },
+        |    { "scheme": "dcterms:W3CDTF", "value": "2018-05-31", "qualifier": "dcterms:created" },
+        |  ],
+        |}""".stripMargin)
+    ) should matchPattern {
+      case Failure(InvalidDocumentException("DatasetMetadata", cause: SAXParseException))
+        if cause.getMessage.contains("""'' is not a valid value of union type '#AnonType_W3CDTF'""") =>
+    }
+  }
+
   "PUT(metadata)" should "fail with a date submitted" in {
     DatasetMetadata(
       """{"dates": [{ "scheme": "dcterms:W3CDTF", "value": "2018-05-31", "qualifier": "dcterms:dateSubmitted" }]}"""
@@ -263,22 +277,25 @@ class ValidationSpec extends DepositServletFixture {
   it should "fail with an invalid enum value" in {
     // assuming this behaviour for all fields with one of JsonUtil.enumerations
     DatasetMetadata(
-      """{"dates": [{ "scheme": "dcterms:W3CDTF", "value": "2018-05-31", "qualifier": "dcterms:submitted" }]}"""
+      """{"dates": [
+        |  { "scheme": "dcterms:W3CDTF", "value": "2018-05-31", "qualifier": "dcterms:submitted" },
+        |  { "scheme": "dcterms:W3CDTF", "value": "2018-05-31", "qualifier": "dcterms:created" },
+        |]}""".stripMargin
     ) should matchPattern {
       case Failure(InvalidDocumentException("DatasetMetadata", cause: IllegalArgumentException))
-        if cause.getMessage.contains("""don't recognize {"dates":[""") =>
+        if cause.getMessage.startsWith("""don't recognize {"dates":[""") &&
+          cause.getMessage.contains("created") &&
+          cause.getMessage.contains("submitted") =>
       // too bad JsonUtil.rejectNotExpectedContent doesn't specify which date is not recognized
     }
   }
 
   it should "fail with an unknown field" in {
-    // assuming this behaviour for all fields with one of JsonUtil.enumerations
     DatasetMetadata(
-      """{"foo": "bar"}"""
+      """{"foo": "bar", "dates": []}"""
     ) should matchPattern {
       case Failure(InvalidDocumentException("DatasetMetadata", cause: IllegalArgumentException))
-        if cause.getMessage.contains("""don't recognize {"foo":"bar"}""") =>
-      // too bad JsonUtil.rejectNotExpectedContent doesn't specify which date is not recognized
+        if cause.getMessage == """don't recognize {"foo":"bar"}""" =>
     }
   }
 

@@ -44,8 +44,8 @@ class MinimalDatasetMetadata(
                               relations: Option[Seq[RelationType]] = None,
                               languagesOfFiles: Option[Seq[PossiblySchemedKeyValue]] = None,
                               dates: Option[Seq[Date]] = Some(Seq(
-                                Date(scheme = Some(W3CDTF.toString), value = "2018", DateQualifier.created),
-                                Date(scheme = Some(W3CDTF.toString), value = "2018", DateQualifier.available)
+                                Date(scheme = Some(W3CDTF.toString), value = Some("2018"), DateQualifier.created),
+                                Date(scheme = Some(W3CDTF.toString), value = Some("2018"), DateQualifier.available)
                               )),
                               sources: Option[Seq[String]] = None,
                               instructionsForReuse: Option[Seq[String]] = None,

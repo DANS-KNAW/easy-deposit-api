@@ -41,7 +41,7 @@ object DateScheme extends Enumeration {
 
 case class Date(
                  override val scheme: Option[String],
-                 value: String,
+                 value: Option[String],
                  qualifier: DateQualifier,
                ) extends PossiblySchemed with Requirements {
   requireNonEmptyString(value)
@@ -51,7 +51,7 @@ case class Date(
 object Date {
   def dateSubmitted(): Date = Date(
     Some(DateScheme.W3CDTF.toString),
-    DateTime.now().toString(ISODateTimeFormat.date()),
+    Some(DateTime.now().toString(ISODateTimeFormat.date())),
     DateQualifier.dateSubmitted
   )
 
