@@ -337,49 +337,47 @@ class ValidationSpec extends DepositServletFixture {
   /**
    * @param input json object with metadata fragment under test
    * @return option fields of parsed input injected into a valid-for-submission instance.
-   *         Either the provided private option fields are injected or
-   *         the provided public option fields are injected.
    * @throws TestFailedException when the input can't be parsed at all
    *                             and thus would be rejected by PUT(metadata).
    */
   private def parseIntoValidForSubmit(input: String): DatasetMetadata = {
+    val allParsedValues = DatasetMetadata(input.stripMargin)
+      .getOrRecover(e => fail(s"loading test data failed: ${ e.getMessage }; $input", e))
     new JsonUtil.RichJsonInput(input)
-      .deserialize[PrivateDatasetMetadataValues].map { parsed =>
-      mandatoryOnSubmit.copy(
-        identifiers = parsed.identifiers,
-        alternativeIdentifiers = parsed.alternativeIdentifiers,
-        dates = parsed.dates,
-        typesDcmi = parsed.typesDcmi,
-        types = parsed.types,
-      )
-    }.getOrElse {
-      val parsed = DatasetMetadata(input.stripMargin)
-        .getOrRecover(e => fail(s"loading test data failed: ${ e.getMessage }; $input", e))
-      mandatoryOnSubmit.copy(
-        languageOfDescription = parsed.languageOfDescription orElse mandatoryOnSubmit.languageOfDescription,
-        titles = parsed.titles orElse mandatoryOnSubmit.titles,
-        alternativeTitles = parsed.alternativeTitles orElse mandatoryOnSubmit.alternativeTitles,
-        descriptions = parsed.descriptions orElse mandatoryOnSubmit.descriptions,
-        creators = parsed.creators orElse mandatoryOnSubmit.creators,
-        contributors = parsed.contributors orElse mandatoryOnSubmit.contributors,
-        audiences = parsed.audiences orElse mandatoryOnSubmit.audiences,
-        subjects = parsed.subjects orElse mandatoryOnSubmit.subjects,
-        relations = parsed.relations orElse mandatoryOnSubmit.relations,
-        languagesOfFiles = parsed.languagesOfFiles orElse mandatoryOnSubmit.languagesOfFiles,
-        sources = parsed.sources orElse mandatoryOnSubmit.sources,
-        instructionsForReuse = parsed.instructionsForReuse orElse mandatoryOnSubmit.instructionsForReuse,
-        publishers = parsed.publishers orElse mandatoryOnSubmit.publishers,
-        accessRights = parsed.accessRights orElse mandatoryOnSubmit.accessRights,
-        license = parsed.license orElse mandatoryOnSubmit.license,
-        formats = parsed.formats orElse mandatoryOnSubmit.formats,
-        temporalCoverages = parsed.temporalCoverages orElse mandatoryOnSubmit.temporalCoverages,
-        spatialPoints = parsed.spatialPoints orElse mandatoryOnSubmit.spatialPoints,
-        spatialBoxes = parsed.spatialBoxes orElse mandatoryOnSubmit.spatialBoxes,
-        spatialCoverages = parsed.spatialCoverages orElse mandatoryOnSubmit.spatialCoverages,
-        messageForDataManager = parsed.messageForDataManager orElse mandatoryOnSubmit.messageForDataManager,
+      .deserialize[PrivateDatasetMetadataValues]
+      .map { privateValues =>
+        mandatoryOnSubmit.copy(
+          identifiers = privateValues.identifiers,
+          alternativeIdentifiers = privateValues.alternativeIdentifiers,
+          dates = privateValues.dates,
+          typesDcmi = privateValues.typesDcmi,
+          types = privateValues.types,
+        )
+      }.getOrElse(mandatoryOnSubmit)
+      .copy(
+        languageOfDescription = allParsedValues.languageOfDescription orElse mandatoryOnSubmit.languageOfDescription,
+        titles = allParsedValues.titles orElse mandatoryOnSubmit.titles,
+        alternativeTitles = allParsedValues.alternativeTitles orElse mandatoryOnSubmit.alternativeTitles,
+        descriptions = allParsedValues.descriptions orElse mandatoryOnSubmit.descriptions,
+        creators = allParsedValues.creators orElse mandatoryOnSubmit.creators,
+        contributors = allParsedValues.contributors orElse mandatoryOnSubmit.contributors,
+        audiences = allParsedValues.audiences orElse mandatoryOnSubmit.audiences,
+        subjects = allParsedValues.subjects orElse mandatoryOnSubmit.subjects,
+        relations = allParsedValues.relations orElse mandatoryOnSubmit.relations,
+        languagesOfFiles = allParsedValues.languagesOfFiles orElse mandatoryOnSubmit.languagesOfFiles,
+        sources = allParsedValues.sources orElse mandatoryOnSubmit.sources,
+        instructionsForReuse = allParsedValues.instructionsForReuse orElse mandatoryOnSubmit.instructionsForReuse,
+        publishers = allParsedValues.publishers orElse mandatoryOnSubmit.publishers,
+        accessRights = allParsedValues.accessRights orElse mandatoryOnSubmit.accessRights,
+        license = allParsedValues.license orElse mandatoryOnSubmit.license,
+        formats = allParsedValues.formats orElse mandatoryOnSubmit.formats,
+        temporalCoverages = allParsedValues.temporalCoverages orElse mandatoryOnSubmit.temporalCoverages,
+        spatialPoints = allParsedValues.spatialPoints orElse mandatoryOnSubmit.spatialPoints,
+        spatialBoxes = allParsedValues.spatialBoxes orElse mandatoryOnSubmit.spatialBoxes,
+        spatialCoverages = allParsedValues.spatialCoverages orElse mandatoryOnSubmit.spatialCoverages,
+        messageForDataManager = allParsedValues.messageForDataManager orElse mandatoryOnSubmit.messageForDataManager,
         // privacySensitiveDataPresent and acceptDepositAgreement are not options and thus not injected
       )
-    }
   }
 
   case class PrivateDatasetMetadataValues(identifiers: Option[Seq[SchemedValue]] = None,
