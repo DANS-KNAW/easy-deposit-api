@@ -93,7 +93,11 @@ case class DatasetMetadata(private val identifiers: Option[Seq[SchemedValue]] = 
 
   /** Validations as far as not covered by DDM schema validation. */
   private[docs] def validate(): Try[Unit] = {
-    Author.validate(authors)
+
+    for { // TODO collect errors
+      _ <- Author.validate(authors)
+      _ <- Spatial.validate((spatialPoints ++ spatialBoxes).toSeq.flatten)
+    } yield ()
   }
 }
 

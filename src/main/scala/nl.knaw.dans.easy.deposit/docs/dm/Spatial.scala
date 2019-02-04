@@ -15,12 +15,30 @@
  */
 package nl.knaw.dans.easy.deposit.docs.dm
 
+import nl.knaw.dans.easy.deposit.docs.JsonUtil
+
+import scala.util.{ Failure, Success, Try }
+
 object Spatial {
   /** coordinate order y, x = latitude (DCX_SPATIAL_Y), longitude (DCX_SPATIAL_X) */
   val DEGREES_SRS_NAME = "http://www.opengis.net/def/crs/EPSG/0/4326"
 
   /** coordinate order x, y = longitude (DCX_SPATIAL_X), latitude (DCX_SPATIAL_Y) */
   val RD_SRS_NAME = "http://www.opengis.net/def/crs/EPSG/0/28992"
+
+  private[docs] def validate[T <: SchemedSpatial](spatials: Seq[T]): Try[Unit] = {
+    val invalid = spatials
+      .withFilter(_.scheme.isEmpty)
+      .map(JsonUtil.toJson)
+      .mkString(", ")
+    if (invalid.isEmpty) Success(())
+    else {
+      Failure(new IllegalArgumentException(
+        // TODO use type name when we can  exclude SchemedSpatial itself at compile time
+        s"Spatial points and boxes should have schemes, got: $invalid"
+      ))
+    }
+  }
 }
 
 trait SchemedSpatial extends Requirements {
