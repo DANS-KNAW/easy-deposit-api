@@ -26,16 +26,15 @@ object Spatial {
   /** coordinate order x, y = longitude (DCX_SPATIAL_X), latitude (DCX_SPATIAL_Y) */
   val RD_SRS_NAME = "http://www.opengis.net/def/crs/EPSG/0/28992"
 
-  private[docs] def validate[T <: SchemedSpatial](spatials: Seq[T]): Try[Unit] = {
+  private[docs] def hasMandatory[T <: SchemedSpatial](spatials: Seq[T]): Try[Unit] = {
     val invalid = spatials
-      .withFilter(_.scheme.isEmpty)
+      .withFilter(!_.hasMandatory)
       .map(JsonUtil.toJson)
       .mkString(", ")
     if (invalid.isEmpty) Success(())
     else {
       Failure(new IllegalArgumentException(
-        // TODO use type name when we can  exclude SchemedSpatial itself at compile time
-        s"Spatial points and boxes should have schemes, got: $invalid"
+        s"Missing values for spatial points and/or boxes: $invalid"
       ))
     }
   }
@@ -52,49 +51,61 @@ trait SchemedSpatial {
       case _ => null // will suppress the XML attribute
     }
   }
+
+  private[docs] def hasMandatory: Boolean = scheme.isDefined
 }
 
 case class SpatialPoint(override val scheme: Option[String],
-                        x: String,
-                        y: String,
+                        x: Option[String],
+                        y: Option[String],
                        ) extends SchemedSpatial {
+  private val sx: String = x.getOrElse("")
+  private val sy: String = y.getOrElse("")
   lazy val pos: String = srsName match {
-    case Spatial.RD_SRS_NAME => s"$x $y"
-    case Spatial.DEGREES_SRS_NAME => s"$y $x"
-    case _ => s"$y $x"
+    case Spatial.RD_SRS_NAME => s"$sx $sy"
+    case Spatial.DEGREES_SRS_NAME => s"$sy $sx"
+    case _ => s"$sy $sx"
   }
+
+  private[docs] override def hasMandatory: Boolean = super.hasMandatory && x.isDefined && y.isDefined
 }
 
 case class SpatialBox(override val scheme: Option[String],
-                      north: String,
-                      east: String,
-                      south: String,
-                      west: String,
+                      north: Option[String],
+                      east: Option[String],
+                      south: Option[String],
+                      west: Option[String],
                      ) extends SchemedSpatial {
+  private lazy val sWest: String = west.getOrElse("")
+  private lazy val sSouth: String = south.getOrElse("")
+  private lazy val sNorth: String = north.getOrElse("")
+  private lazy val sEast: String = east.getOrElse("")
+  private lazy val xy = (s"$sWest $sSouth", s"$sEast $sNorth")
+  private lazy val yx = (s"$sSouth $sWest", s"$sNorth $sEast")
   /*
-   * Note that Y is along North - South and X is along East - West
-   * The lower corner is with the minimal coordinate values and upper corner with the maximal coordinate values
-   * If x was increasing from West to East and y was increasing from South to North we would have
-   * lower corner (x,y) = (West,South) and upper corner (x,y) = (East,North)
-   * as shown in the schematic drawing of the box below.
-   * This is the case for the WGS84 and RD coordinate systems, but not per se for any other system!
-   *
-   *                upper(x,y)=(E,N)
-   *       *---N---u
-   *       |       |
-   *       W       E
-   *  ^    |       |
-   *  |    l---S---*
-   *  |  lower(x,y)=(W,S)
-   *  y
-   *   x -->
-   *
-   */
-  private lazy val xy = (s"$west $south", s"$east $north")
-  private lazy val yx = (s"$south $west", s"$north $east")
+           * Note that Y is along North - South and X is along East - West
+           * The lower corner is with the minimal coordinate values and upper corner with the maximal coordinate values
+           * If x was increasing from West to East and y was increasing from South to North we would have
+           * lower corner (x,y) = (West,South) and upper corner (x,y) = (East,North)
+           * as shown in the schematic drawing of the box below.
+           * This is the case for the WGS84 and RD coordinate systems, but not per se for any other system!
+           *
+           *                upper(x,y)=(E,N)
+           *       *---N---u
+           *       |       |
+           *       W       E
+           *  ^    |       |
+           *  |    l---S---*
+           *  |  lower(x,y)=(W,S)
+           *  y
+           *   x -->
+           *
+           */
   lazy val (lower: String, upper: String) = srsName match {
     case Spatial.RD_SRS_NAME => xy
     case Spatial.DEGREES_SRS_NAME => yx
     case _ => yx
   }
+
+  private[docs] override def hasMandatory: Boolean = super.hasMandatory && north.isDefined && east.isDefined && south.isDefined && west.isDefined
 }

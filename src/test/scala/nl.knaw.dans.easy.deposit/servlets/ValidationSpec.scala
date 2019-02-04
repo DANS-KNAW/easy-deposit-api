@@ -371,11 +371,11 @@ class ValidationSpec extends DepositServletFixture {
     DDM(parseIntoValidForSubmit(
       """{
         |  "spatialBoxes": [{ "north": 1, "east": 2, "south": "3", "west": "4" }]
-        |  "spatialPoints": [{ "x": "5", "y": 6 }, { "scheme": "RD", "x": "7", "y": 8 }]
+        |  "spatialPoints": [{ "x": "5", "y": 6 }, { "scheme": "RD", "x": "7", "y": 8 }, { "scheme": "RD", "x": "9"}]
         |}""".stripMargin)
     ) should matchPattern {
       case Failure(InvalidDocumentException(_, cause: Throwable))
-        if cause.getMessage == """Spatial points and boxes should have schemes, got: {"x":"5","y":"6"}, {"north":"1","east":"2","south":"3","west":"4"}""" =>
+        if cause.getMessage == """Missing values for spatial points and/or boxes: {"x":"5","y":"6"}, {"scheme":"RD","x":"9"}, {"north":"1","east":"2","south":"3","west":"4"}""" =>
     }
   }
 

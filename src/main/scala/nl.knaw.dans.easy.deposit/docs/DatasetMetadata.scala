@@ -96,7 +96,7 @@ case class DatasetMetadata(private val identifiers: Option[Seq[SchemedValue]] = 
 
     for { // TODO collect errors
       _ <- Author.validate(authors)
-      _ <- Spatial.validate((spatialPoints ++ spatialBoxes).toSeq.flatten)
+      _ <- Spatial.hasMandatory((spatialPoints++ spatialBoxes).toSeq.flatten)
     } yield ()
   }
 }
