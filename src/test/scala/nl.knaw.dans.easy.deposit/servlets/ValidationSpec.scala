@@ -25,10 +25,22 @@ import org.scalatest.Assertion
 import org.scalatest.exceptions.TestFailedException
 import org.xml.sax.SAXParseException
 
-import scala.util.{ Failure, Success }
-import scala.xml.Elem
+import scala.util.Failure
 
 class ValidationSpec extends DepositServletFixture {
+
+  "PUT(metadata) and PUT(submitted)" should "succeed for the base object for each test" in {
+    // more valid data is tested in other test classes with src/test/resources/manual-test/*.json
+    def checkSubmitResponse = {
+      body shouldBe ""
+      status shouldBe NO_CONTENT_204
+      (testDir / "drafts").list.size shouldBe 1
+      (testDir / "easy-ingest-flow-inbox").list.size shouldBe 1
+      // more checks in other test classes
+    }
+
+    saveAndSubmit(checkSubmitResponse _, mandatoryOnSubmit)
+  }
 
   "PUT(metadata) should succeed with incomplete authors, PUT(submitted)" should "fail for an empty creator" in {
     def checkSubmitResponse = {
@@ -355,23 +367,16 @@ class ValidationSpec extends DepositServletFixture {
     }
   }
 
-  it should "succeed with a scheme in a point" in {
-    DDM(parseIntoValidForSubmit("""{"spatialPoints": [{ "scheme": "degrees", "x": "795.00", "y": "446750" }]}""")
+  it should "fail for a missing scheme in a point" in {
+    DDM(parseIntoValidForSubmit(
+      """{
+        |  "spatialBoxes": [{ "north": 1, "east": 2, "south": "3", "west": "4" }]
+        |  "spatialPoints": [{ "x": "5", "y": 6 }, { "scheme": "RD", "x": "7", "y": 8 }]
+        |}""".stripMargin)
     ) should matchPattern {
-      case Success(xml: Elem) => // TODO apply xPath to check the fragment?
+      case Failure(InvalidDocumentException(_, cause: Throwable))
+        if cause.getMessage == """Spatial points and boxes should have schemes, got: {"x":"5","y":"6"}, {"north":"1","east":"2","south":"3","west":"4"}""" =>
     }
-  }
-
-  it should "succeed for a missing scheme in a point" in { // TODO should it really succeed?
-    DDM(parseIntoValidForSubmit("""{"spatialPoints": [{ "x": "795.00", "y": "446750" }]}""")
-    ) should matchPattern {
-      case Success(xml: Elem) =>
-    }
-  }
-
-  "PUT(metadata) and PUT(submitted)" should "succeed for the base object for each test" in {
-    // more valid data is tested in other test classes with src/test/resources/manual-test/*.json
-    DDM(mandatoryOnSubmit) shouldBe a[Success[_]]
   }
 
   /**
