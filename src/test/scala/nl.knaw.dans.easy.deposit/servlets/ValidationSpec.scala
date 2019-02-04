@@ -335,23 +335,29 @@ class ValidationSpec extends DepositServletFixture {
   }
 
   /**
-   * @param input json object with metadata fragment under test
+   * @param input json object with metadata fragment(s) under test
    * @return option fields of parsed input injected into a valid-for-submission instance.
    * @throws TestFailedException when the input can't be parsed at all
-   *                             and thus would be rejected by PUT(metadata).
    */
   private def parseIntoValidForSubmit(input: String): DatasetMetadata = {
     val allParsedValues = DatasetMetadata(input.stripMargin)
-      .getOrRecover(e => fail(s"loading test data failed: ${ e.getMessage }; $input", e))
+      .getOrRecover(e => fail(s"Parsing test data failed (and would be rejected with a PUT(metadata) request): ${ e.getMessage }; $input", e))
     new JsonUtil.RichJsonInput(input)
-      .deserialize[PrivateDatasetMetadataValues]
-      .map { privateValues =>
-        mandatoryOnSubmit.copy(
-          identifiers = privateValues.identifiers,
-          alternativeIdentifiers = privateValues.alternativeIdentifiers,
-          dates = privateValues.dates,
-          typesDcmi = privateValues.typesDcmi,
-          types = privateValues.types,
+      .deserialize[PrivateDatasetMetadataFields]
+      .map {
+        case PrivateDatasetMetadataFields(ids, alts, Some(dates), typesDcmi, types) => mandatoryOnSubmit.copy(
+          dates = Some(dates), // override because something was found in the input
+          // other private fields have no value in mandatoryOnSubmit, so we can safely override them
+          identifiers = ids,
+          alternativeIdentifiers = alts,
+          typesDcmi = typesDcmi,
+          types = types,
+        )
+        case PrivateDatasetMetadataFields(ids, alts, None, dcmi, types) => mandatoryOnSubmit.copy(
+          identifiers = ids,
+          alternativeIdentifiers = alts,
+          typesDcmi = dcmi,
+          types = types,
         )
       }.getOrElse(mandatoryOnSubmit)
       .copy(
@@ -380,7 +386,7 @@ class ValidationSpec extends DepositServletFixture {
       )
   }
 
-  case class PrivateDatasetMetadataValues(identifiers: Option[Seq[SchemedValue]] = None,
+  case class PrivateDatasetMetadataFields(identifiers: Option[Seq[SchemedValue]] = None,
                                           alternativeIdentifiers: Option[Seq[SchemedValue]] = None,
                                           dates: Option[Seq[Date]] = None,
                                           typesDcmi: Option[Seq[String]] = None,
