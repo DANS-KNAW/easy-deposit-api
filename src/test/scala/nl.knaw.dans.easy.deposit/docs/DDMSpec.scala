@@ -156,7 +156,7 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
       ids = Some(Seq(SchemedValue("dcx-dai:ISNI", "ISNI:000000012281955X")))
     )
     new MinimalDatasetMetadata(contributors = Some(Seq(author))).causesInvalidDocumentException(
-      "expecting (label) or (prefix:label); got [dcx-dai:dcx-dai:ISNI] to adjust the <label> of <label>ISNI:000000012281955X</label>"
+      "expecting (label) or (prefix:label); got [Some(dcx-dai:dcx-dai:ISNI)] to adjust the <label> of <label>ISNI:000000012281955X</label>"
     )
   }
 
