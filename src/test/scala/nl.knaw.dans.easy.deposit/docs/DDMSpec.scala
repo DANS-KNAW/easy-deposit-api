@@ -214,13 +214,13 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
         // dateCreated and dateAvailable are documented with the pure minimal test
         <ddm:dcmiMetadata>
           <dcterms:identifier xsi:type="id-type:DOI">mocked-DOI</dcterms:identifier>
+          <dcterms:dateSubmitted xsi:type="dcterms:W3CDTF">2018-03-22</dcterms:dateSubmitted>
           <dc:date xsi:type="dcterms:W3CDTF">{ date }</dc:date>
           <dcterms:dateAccepted xsi:type="dcterms:W3CDTF">{ date }</dcterms:dateAccepted>
           <dcterms:dateCopyrighted xsi:type="dcterms:W3CDTF">{ date }</dcterms:dateCopyrighted>
           <dcterms:issued xsi:type="dcterms:W3CDTF">{ date }</dcterms:issued>
           <dcterms:modified xsi:type="dcterms:W3CDTF">{ date }</dcterms:modified>
           <dcterms:valid xsi:type="dcterms:W3CDTF">{ date }</dcterms:valid>
-          <dcterms:dateSubmitted xsi:type="dcterms:W3CDTF">2018-03-22</dcterms:dateSubmitted>
         </ddm:dcmiMetadata>
     )
   }
@@ -247,6 +247,7 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
       expectedDdmContent =
         <ddm:dcmiMetadata>
           <dcterms:identifier xsi:type="id-type:DOI">mocked-DOI</dcterms:identifier>
+          <dcterms:dateSubmitted xsi:type="dcterms:W3CDTF">{ nowYMD }</dcterms:dateSubmitted>
           <dcterms:dateAccepted>Groundhog day</dcterms:dateAccepted>
           <dcterms:dateCopyrighted>Groundhog day</dcterms:dateCopyrighted>
           <dcterms:issued>Groundhog day</dcterms:issued>
@@ -256,7 +257,6 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
           <dcterms:valid xsi:type="dcterms:W3CDTF">2018-12</dcterms:valid>
           <dcterms:valid xsi:type="dcterms:W3CDTF">2018-12-09T08:15:30-05:00</dcterms:valid>
           <dcterms:valid xsi:type="dcterms:W3CDTF">2018-12-09T13:15:30Z</dcterms:valid>
-          <dcterms:dateSubmitted xsi:type="dcterms:W3CDTF">{ nowYMD }</dcterms:dateSubmitted>
         </ddm:dcmiMetadata>
     )
   }
@@ -538,11 +538,11 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
         <dcterms:spatial xsi:type="dcterms:ISO3166">NLD</dcterms:spatial>
         <dcterms:spatial xml:lang="nld">Haringvliet</dcterms:spatial>
         <dcterms:spatial xml:lang="nld">Grevelingenmeer</dcterms:spatial>
+        <dcterms:dateSubmitted xsi:type="dcterms:W3CDTF">2018-03-22</dcterms:dateSubmitted>
         <dcterms:dateCopyrighted xsi:type="dcterms:W3CDTF">2018-03-18</dcterms:dateCopyrighted>
         <dcterms:valid xsi:type="dcterms:W3CDTF">2018-03-17</dcterms:valid>
         <dcterms:modified>2018-02-02</dcterms:modified>
         <dcterms:issued>Groundhog day</dcterms:issued>
-        <dcterms:dateSubmitted xsi:type="dcterms:W3CDTF">2018-03-22</dcterms:dateSubmitted>
         <dcx-gml:spatial srsName="http://www.opengis.net/def/crs/EPSG/0/28992">
           <Point xmlns="http://www.opengis.net/gml">
             <pos>12 34</pos>

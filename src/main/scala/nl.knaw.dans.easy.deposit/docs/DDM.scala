@@ -20,7 +20,6 @@ import java.net.UnknownHostException
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata._
 import nl.knaw.dans.easy.deposit.docs.JsonUtil.InvalidDocumentException
 import nl.knaw.dans.easy.deposit.docs.StringUtils._
-import nl.knaw.dans.easy.deposit.docs.dm.DateQualifier.DateQualifier
 import nl.knaw.dans.easy.deposit.docs.dm._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import nl.knaw.dans.lib.string._
@@ -49,11 +48,11 @@ object DDM extends SchemedXml with DebugEnhancedLogging {
       xsi:schemaLocation={s"$schemaNameSpace $schemaLocation"}
     >
       <ddm:profile>
-        { dm.titles.getNonEmpty.map(src => <dc:title xml:lang={ lang }>{ src }</dc:title>) }
-        { dm.descriptions.getNonEmpty.map(src => <dcterms:description xml:lang={ lang }>{ src }</dcterms:description>) }
+        { dm.titles.getNonEmpty.map(str => <dc:title xml:lang={ lang }>{ str }</dc:title>) }
+        { dm.descriptions.getNonEmpty.map(str => <dcterms:description xml:lang={ lang }>{ str }</dcterms:description>) }
         { dm.creators.getNonEmpty.map(author => <dcx-dai:creatorDetails>{ details(author, lang) }</dcx-dai:creatorDetails>) }
-        { dm.datesCreated.map(src => <ddm:created>{ src.value.getOrElse("") }</ddm:created>) }
-        { dm.datesAvailable.map(src => <ddm:available>{ src.value.getOrElse("") }</ddm:available>) }
+        { dm.datesCreated.toSeq.flatMap(_.value).map(str => <ddm:created>{ str }</ddm:created>) }
+        { dm.datesAvailable.toSeq.flatMap(_.value).map(str => <ddm:available>{ str }</ddm:available>) }
         { dm.audiences.getNonEmpty.map(src => <ddm:audience>{ src.key }</ddm:audience>) }
         { dm.accessRights.toSeq.map(src => <ddm:accessRights>{ src.category.toString }</ddm:accessRights>) }
       </ddm:profile>
@@ -170,7 +169,7 @@ object DDM extends SchemedXml with DebugEnhancedLogging {
         case Some(Array(label)) => elem.copy(label = label)
         case Some(Array(prefix, label)) => elem.copy(prefix = prefix, label = label)
         case a => throw invalidDatasetMetadataException(new IllegalArgumentException(
-          s"expecting (label) or (prefix:label); got [${a.map(_.mkString(":"))}] to adjust the <${ elem.label }> of ${ trim(elem) }"
+          s"expecting (label) or (prefix:label); got [${ a.map(_.mkString(":")) }] to adjust the <${ elem.label }> of ${ trim(elem) }"
         ))
       }
     }

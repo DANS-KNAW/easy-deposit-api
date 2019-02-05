@@ -17,7 +17,7 @@ package nl.knaw.dans.easy.deposit.docs
 
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata._
 import nl.knaw.dans.easy.deposit.docs.JsonUtil.{ InvalidDocumentException, RichJsonInput }
-import nl.knaw.dans.easy.deposit.docs.dm.Date.{ atMostOne, dateSubmitted, notAllowed }
+import nl.knaw.dans.easy.deposit.docs.dm.Date.{ dateSubmitted, _ }
 import nl.knaw.dans.easy.deposit.docs.dm.PrivacySensitiveDataPresent.PrivacySensitiveDataPresent
 import nl.knaw.dans.easy.deposit.docs.dm._
 import org.json4s.JsonInput
@@ -66,17 +66,8 @@ case class DatasetMetadata(private val identifiers: Option[Seq[SchemedValue]] = 
   lazy val depositAgreementAccepted: Try[Unit] = if (acceptDepositAgreement) Success(())
                                                  else Failure(missingValue("AcceptDepositAgreement"))
 
-  //// dates
-  private val specialDateQualifiers = Seq(DateQualifier.created, DateQualifier.available).map(Some(_))
-  private val (specialDates, plainDates) = dates.toSeq.flatten
-    .partition(date => specialDateQualifiers.contains(date.qualifier))
-  val (datesCreated, datesAvailable) = specialDates
-    .partition(_.qualifier.contains(DateQualifier.created))
-  val otherDates: Seq[Date] = plainDates :+ dateSubmitted()
-  // N.B: with lazy values JsonUtil.deserialize would not throw exceptions
-  notAllowed(DateQualifier.dateSubmitted, plainDates)
-  atMostOne(datesCreated)
-  atMostOne(datesAvailable)
+  // not lazy so not allowed duplicates throw exceptions when parsing json, like other unknown fields
+  val (datesCreated, datesAvailable, otherDates) = dates.separate
 
   private lazy val authors: Seq[Author] = (contributors.toSeq ++ creators.toSeq).flatten
   // duplicates for plain strings in dcterms (which has no place for IDs as contributors/creators do)
