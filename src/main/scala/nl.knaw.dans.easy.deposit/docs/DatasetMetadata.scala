@@ -17,7 +17,7 @@ package nl.knaw.dans.easy.deposit.docs
 
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata._
 import nl.knaw.dans.easy.deposit.docs.JsonUtil.{ InvalidDocumentException, RichJsonInput }
-import nl.knaw.dans.easy.deposit.docs.dm.Date.{ dateSubmitted, _ }
+import nl.knaw.dans.easy.deposit.docs.dm.Date._
 import nl.knaw.dans.easy.deposit.docs.dm.PrivacySensitiveDataPresent.PrivacySensitiveDataPresent
 import nl.knaw.dans.easy.deposit.docs.dm._
 import org.json4s.JsonInput
@@ -96,7 +96,7 @@ case class DatasetMetadata(private val identifiers: Option[Seq[SchemedValue]] = 
 
     for { // TODO collect errors
       _ <- Author.validate(authors)
-      _ <- Spatial.hasMandatory((spatialPoints++ spatialBoxes).toSeq.flatten)
+      _ <- Spatial.hasMandatory((spatialPoints ++ spatialBoxes).toSeq.flatten)
     } yield ()
   }
 }

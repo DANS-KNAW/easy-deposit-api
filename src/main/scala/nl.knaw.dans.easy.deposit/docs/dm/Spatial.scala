@@ -83,24 +83,24 @@ case class SpatialBox(override val scheme: Option[String],
   private lazy val xy = (s"$sWest $sSouth", s"$sEast $sNorth")
   private lazy val yx = (s"$sSouth $sWest", s"$sNorth $sEast")
   /*
-           * Note that Y is along North - South and X is along East - West
-           * The lower corner is with the minimal coordinate values and upper corner with the maximal coordinate values
-           * If x was increasing from West to East and y was increasing from South to North we would have
-           * lower corner (x,y) = (West,South) and upper corner (x,y) = (East,North)
-           * as shown in the schematic drawing of the box below.
-           * This is the case for the WGS84 and RD coordinate systems, but not per se for any other system!
-           *
-           *                upper(x,y)=(E,N)
-           *       *---N---u
-           *       |       |
-           *       W       E
-           *  ^    |       |
-           *  |    l---S---*
-           *  |  lower(x,y)=(W,S)
-           *  y
-           *   x -->
-           *
-           */
+   * Note that Y is along North - South and X is along East - West
+   * The lower corner is with the minimal coordinate values and upper corner with the maximal coordinate values
+   * If x was increasing from West to East and y was increasing from South to North we would have
+   * lower corner (x,y) = (West,South) and upper corner (x,y) = (East,North)
+   * as shown in the schematic drawing of the box below.
+   * This is the case for the WGS84 and RD coordinate systems, but not per se for any other system!
+   *
+   *                upper(x,y)=(E,N)
+   *       *---N---u
+   *       |       |
+   *       W       E
+   *  ^    |       |
+   *  |    l---S---*
+   *  |  lower(x,y)=(W,S)
+   *  y
+   *   x -->
+   *
+   */
   lazy val (lower: String, upper: String) = srsName match {
     case Spatial.RD_SRS_NAME => xy
     case Spatial.DEGREES_SRS_NAME => yx
