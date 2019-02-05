@@ -44,9 +44,8 @@ class ValidationSpec extends DepositServletFixture {
 
   "PUT(metadata) should succeed with incomplete authors, PUT(submitted)" should "fail for an empty creator" in {
     def checkSubmitResponse = {
-      body should include("'dcx-dai:creatorDetails' is not complete")
-      body shouldNot include("'dcx-dai:contributorDetails' is not complete")
-      // a client has no clue there is a second violation on contributorDetails
+      body shouldBe """Bad Request. invalid DatasetMetadata: Missing mandatory values in: Author{}, Author{}"""
+      // a client has no clue whether it are creators or contributors
       status shouldBe BAD_REQUEST_400
     }
 
@@ -58,7 +57,7 @@ class ValidationSpec extends DepositServletFixture {
 
   it should "fail for an empty contributor" in {
     def checkSubmitResponse = {
-      body should include("'dcx-dai:contributorDetails' is not complete")
+      body should include("Missing mandatory values in: Author{}")
       // a client has no clue which one in the list is violating the requirements
       status shouldBe BAD_REQUEST_400
     }

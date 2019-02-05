@@ -106,11 +106,7 @@ case class DatasetMetadata(private val identifiers: Option[Seq[SchemedValue]] = 
 
     for { // TODO collect errors over multiple types of validation errors
       _ <- Author.validate(authors)
-      _ <- missingMandatory(
-        // filterNot: stick to schema validation for now, error message of missingMandatory not clear
-        authors.filterNot(_ == Author()) ++
-          (dates ++ spatialPoints ++ spatialBoxes).toSeq.flatten
-      )
+      _ <- missingMandatory(authors ++ (dates ++ spatialPoints ++ spatialBoxes).toSeq.flatten)
     } yield ()
   }
 }
