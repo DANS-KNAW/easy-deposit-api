@@ -93,10 +93,25 @@ case class DatasetMetadata(private val identifiers: Option[Seq[SchemedValue]] = 
 
   /** Validations as far as not covered by DDM schema validation. */
   private[docs] def validate(): Try[Unit] = {
+    def missingMandatory[T <: Mandatory](msg: String, values: Seq[T]): Try[Unit] = {
+      val invalid = values
+        .withFilter(!_.hasMandatory)
+        .map(JsonUtil.toJson)
+        .mkString(", ")
+      if (invalid.isEmpty) Success(())
+      else {
+        Failure(new IllegalArgumentException(
+          s"Missing values for $msg: $invalid"
+        ))
+      }
+    }
 
-    for { // TODO collect errors
+    for { // TODO collect errors over multiple fields, not just within the list of a field
       _ <- Author.validate(authors)
-      _ <- Spatial.hasMandatory((spatialPoints ++ spatialBoxes).toSeq.flatten)
+      // filterNot: stick to schema validation for now, error message of missingMandatory not clear
+      _ <- missingMandatory("authors", authors.filterNot(_ == Author()))
+      _ <- missingMandatory("dates", dates.toSeq.flatten)
+      _ <- missingMandatory("spatial points and/or boxes", (spatialPoints ++ spatialBoxes).toSeq.flatten)
     } yield ()
   }
 }

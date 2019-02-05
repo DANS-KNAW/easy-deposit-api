@@ -15,32 +15,15 @@
  */
 package nl.knaw.dans.easy.deposit.docs.dm
 
-import nl.knaw.dans.easy.deposit.docs.JsonUtil
-
-import scala.util.{ Failure, Success, Try }
-
 object Spatial {
   /** coordinate order y, x = latitude (DCX_SPATIAL_Y), longitude (DCX_SPATIAL_X) */
   val DEGREES_SRS_NAME = "http://www.opengis.net/def/crs/EPSG/0/4326"
 
   /** coordinate order x, y = longitude (DCX_SPATIAL_X), latitude (DCX_SPATIAL_Y) */
   val RD_SRS_NAME = "http://www.opengis.net/def/crs/EPSG/0/28992"
-
-  private[docs] def hasMandatory[T <: SchemedSpatial](spatials: Seq[T]): Try[Unit] = {
-    val invalid = spatials
-      .withFilter(!_.hasMandatory)
-      .map(JsonUtil.toJson)
-      .mkString(", ")
-    if (invalid.isEmpty) Success(())
-    else {
-      Failure(new IllegalArgumentException(
-        s"Missing values for spatial points and/or boxes: $invalid"
-      ))
-    }
-  }
 }
 
-trait SchemedSpatial {
+trait SchemedSpatial extends Mandatory {
   val scheme: Option[String]
 
   lazy val srsName: String = {
@@ -52,7 +35,7 @@ trait SchemedSpatial {
     }
   }
 
-  private[docs] def hasMandatory: Boolean = scheme.isDefined
+  private[docs] override def hasMandatory: Boolean = scheme.isDefined
 }
 
 case class SpatialPoint(override val scheme: Option[String],

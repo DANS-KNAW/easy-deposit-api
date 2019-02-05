@@ -15,14 +15,11 @@
  */
 package nl.knaw.dans.easy.deposit.docs.dm
 
-import javax.xml.validation.Schema
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.PossiblySchemed
 import nl.knaw.dans.easy.deposit.docs.JsonUtil.toJson
 import nl.knaw.dans.easy.deposit.docs.dm.DateQualifier.DateQualifier
 import org.joda.time.DateTime
 import org.joda.time.format.ISODateTimeFormat
-
-import scala.util.Try
 
 object DateQualifier extends Enumeration {
   type DateQualifier = Value
@@ -46,7 +43,8 @@ case class Date(
                  override val scheme: Option[String],
                  value: Option[String],
                  qualifier: Option[DateQualifier],
-               ) extends PossiblySchemed with Requirements {
+               ) extends PossiblySchemed with Mandatory {
+  private[docs] override def hasMandatory: Boolean = qualifier.isDefined && value.isDefined
 }
 
 object Date {

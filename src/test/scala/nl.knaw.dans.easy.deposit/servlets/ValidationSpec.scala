@@ -205,8 +205,8 @@ class ValidationSpec extends DepositServletFixture {
         |  }
         |]}""")
     ) should matchPattern {
-      case Failure(InvalidDocumentException("DatasetMetadata", cause: SAXParseException))
-        if cause.getMessage.contains("'dcx-dai:creatorDetails' is not complete") =>
+      case Failure(InvalidDocumentException("DatasetMetadata", cause: IllegalArgumentException))
+        if cause.getMessage == """Missing values for authors: {"role":{"scheme":"datacite:contributorType","key":"RightsHolder","value":"Rights Holder"}}""" =>
     }
   }
 
@@ -222,8 +222,8 @@ class ValidationSpec extends DepositServletFixture {
         |  }
         |]}""")
     ) should matchPattern {
-      case Failure(InvalidDocumentException("DatasetMetadata", cause: SAXParseException))
-        if cause.getMessage.contains("'dcx-dai:contributorDetails' is not complete") =>
+      case Failure(InvalidDocumentException("DatasetMetadata", cause: IllegalArgumentException))
+        if cause.getMessage == """Missing values for authors: {"role":{"scheme":"datacite:contributorType","key":"RightsHolder","value":"Rights Holder"}}""" =>
     }
   }
 
@@ -280,9 +280,7 @@ class ValidationSpec extends DepositServletFixture {
         |]}""".stripMargin
     )) should matchPattern {
       case Failure(InvalidDocumentException("DatasetMetadata", cause: IllegalArgumentException))
-        // TODO this means a missing qualifier!
-        if cause.getMessage.contains("""got [] to adjust the <label> of <label """) &&
-          cause.getMessage.endsWith(""">2018-05-31</label>""") =>
+        if cause.getMessage == """Missing values for dates: {"scheme":"dcterms:W3CDTF","value":"2018-05-31"}""" =>
     }
   }
 
