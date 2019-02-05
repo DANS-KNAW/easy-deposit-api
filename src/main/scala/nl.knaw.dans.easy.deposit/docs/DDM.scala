@@ -161,17 +161,19 @@ object DDM extends SchemedXml with DebugEnhancedLogging {
   private implicit class RichElem(val elem: Elem) extends AnyVal {
     /** @param str the desired label, optionally with name space prefix */
     @throws[InvalidDocumentException]("when str is not a valid XML label (has more than one ':')")
-    def withLabel(str: String): Elem = withLabel(Some(str))
+    def withLabel(str: String): Elem = {
+      str.split(":") match {
+        case Array(label) if label.nonEmpty => elem.copy(label = label)
+        case Array(prefix, label) => elem.copy(prefix = prefix, label = label)
+        case a => throw invalidDatasetMetadataException(new IllegalArgumentException(
+          s"expecting (label) or (prefix:label); got [${ a.mkString(":") }] to adjust the <${ elem.label }> of ${ trim(elem) }"
+        ))
+      }
+    }
 
     @throws[InvalidDocumentException]("when maybeVal does not contain a valid XML label (its .toString has more than one ':')")
     def withLabel[T](maybeVal: Option[T]): Elem = {
-      maybeVal.map(_.toString.split(":")) match {
-        case Some(Array(label)) => elem.copy(label = label)
-        case Some(Array(prefix, label)) => elem.copy(prefix = prefix, label = label)
-        case a => throw invalidDatasetMetadataException(new IllegalArgumentException(
-          s"expecting (label) or (prefix:label); got [${ a.map(_.mkString(":")) }] to adjust the <${ elem.label }> of ${ trim(elem) }"
-        ))
-      }
+      withLabel(maybeVal.map(_.toString).getOrElse(""))
     }
   }
 

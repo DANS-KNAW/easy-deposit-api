@@ -50,7 +50,7 @@ case class Date(
 }
 
 object Date {
-  def dateSubmitted(): Date = Date(
+  private def dateSubmitted: Date = Date(
     Some(DateScheme.W3CDTF.toString),
     Some(DateTime.now().toString(ISODateTimeFormat.date())),
     Some(DateQualifier.dateSubmitted)
@@ -62,7 +62,7 @@ object Date {
      */
     private[docs] def separate = {
       dates.getOrElse(Seq.empty)
-        .foldLeft((Option.empty[Date], Option.empty[Date], Seq(dateSubmitted()))) {
+        .foldLeft((Option.empty[Date], Option.empty[Date], Seq(dateSubmitted))) {
           // @formatter:off
           case ((_,           _,             _     ),      Date(_, _, Some(q@DateQualifier.dateSubmitted))) => invalidQualifier(q)
           case ((None,        dateAvailable, others), date@Date(_, _, Some(  DateQualifier.created))      ) => (Some(date),  dateAvailable, others)

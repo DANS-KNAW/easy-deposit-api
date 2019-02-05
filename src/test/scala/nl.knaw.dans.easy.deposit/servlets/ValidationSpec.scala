@@ -267,7 +267,8 @@ class ValidationSpec extends DepositServletFixture {
         |]}""".stripMargin
     )) should matchPattern {
       case Failure(InvalidDocumentException("DatasetMetadata", cause: IllegalArgumentException))
-        if cause.getMessage.contains("""got [None] to adjust the <label> of <label """) &&
+        // TODO this means a missing qualifier!
+        if cause.getMessage.contains("""got [] to adjust the <label> of <label """) &&
           cause.getMessage.endsWith(""">2018-05-31</label>""") =>
     }
   }
