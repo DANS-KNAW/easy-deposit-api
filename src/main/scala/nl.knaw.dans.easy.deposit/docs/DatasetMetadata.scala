@@ -100,9 +100,7 @@ case class DatasetMetadata(private val identifiers: Option[Seq[SchemedValue]] = 
         .mkString(", ")
       if (invalid.isEmpty) Success(())
       else {
-        Failure(new IllegalArgumentException(
-          s"Missing values for $msg: $invalid"
-        ))
+        Failure(new IllegalArgumentException(s"Missing values for $msg: $invalid"))
       }
     }
 
