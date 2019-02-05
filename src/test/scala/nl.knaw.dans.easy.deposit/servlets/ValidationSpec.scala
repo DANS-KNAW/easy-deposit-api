@@ -206,7 +206,7 @@ class ValidationSpec extends DepositServletFixture {
         |]}""")
     ) should matchPattern {
       case Failure(InvalidDocumentException("DatasetMetadata", cause: IllegalArgumentException))
-        if cause.getMessage == """Missing values for authors: {"role":{"scheme":"datacite:contributorType","key":"RightsHolder","value":"Rights Holder"}}""" =>
+        if cause.getMessage == """Missing mandatory values in: Author{"role":{"scheme":"datacite:contributorType","key":"RightsHolder","value":"Rights Holder"}}""" =>
     }
   }
 
@@ -223,7 +223,7 @@ class ValidationSpec extends DepositServletFixture {
         |]}""")
     ) should matchPattern {
       case Failure(InvalidDocumentException("DatasetMetadata", cause: IllegalArgumentException))
-        if cause.getMessage == """Missing values for authors: {"role":{"scheme":"datacite:contributorType","key":"RightsHolder","value":"Rights Holder"}}""" =>
+        if cause.getMessage == """Missing mandatory values in: Author{"role":{"scheme":"datacite:contributorType","key":"RightsHolder","value":"Rights Holder"}}""" =>
     }
   }
 
@@ -280,7 +280,7 @@ class ValidationSpec extends DepositServletFixture {
         |]}""".stripMargin
     )) should matchPattern {
       case Failure(InvalidDocumentException("DatasetMetadata", cause: IllegalArgumentException))
-        if cause.getMessage == """Missing values for dates: {"scheme":"dcterms:W3CDTF","value":"2018-05-31"}""" =>
+        if cause.getMessage == """Missing mandatory values in: Date{"scheme":"dcterms:W3CDTF","value":"2018-05-31"}""" =>
     }
   }
 
@@ -373,7 +373,7 @@ class ValidationSpec extends DepositServletFixture {
         |}""".stripMargin)
     ) should matchPattern {
       case Failure(InvalidDocumentException(_, cause: Throwable))
-        if cause.getMessage == """Missing values for spatial points and/or boxes: {"x":"5","y":"6"}, {"scheme":"RD","x":"9"}, {"north":"1","east":"2","south":"3","west":"4"}""" =>
+        if cause.getMessage == """Missing mandatory values in: SpatialPoint{"x":"5","y":"6"}, SpatialPoint{"scheme":"RD","x":"9"}, SpatialBox{"north":"1","east":"2","south":"3","west":"4"}""" =>
     }
   }
 
