@@ -121,7 +121,7 @@ object JsonUtil {
     private def rejectNotExpectedContent[T](parsed: JValue, extracted: T): Try[Unit] = {
       decompose(extracted) diff parsed match {
         case Diff(_, JNothing, _) => Success(())
-        case Diff(_, ignored, _) => Failure(new Exception(s"don't recognize ${ write(ignored) }"))
+        case Diff(_, ignored, _) => Failure(new IllegalArgumentException(s"don't recognize ${ write(ignored) }"))
       }
     }
 

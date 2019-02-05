@@ -205,7 +205,7 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
     val date = "2018-06-14"
     val dates = DateQualifier.values.toSeq
       .withFilter(_ != DateQualifier.dateSubmitted)
-      .map { qualifier => Date(Some(W3CDTF.toString), date, qualifier) }
+      .map { qualifier => Date(Some(W3CDTF.toString), Some(date), Some(qualifier)) }
     validDatasetMetadata(
       input = Try(new MinimalDatasetMetadata(dates = Some(dates))),
       subset = actualDDM => dcmiMetadata(actualDDM),
@@ -214,32 +214,32 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
         // dateCreated and dateAvailable are documented with the pure minimal test
         <ddm:dcmiMetadata>
           <dcterms:identifier xsi:type="id-type:DOI">mocked-DOI</dcterms:identifier>
+          <dcterms:dateSubmitted xsi:type="dcterms:W3CDTF">2018-03-22</dcterms:dateSubmitted>
           <dc:date xsi:type="dcterms:W3CDTF">{ date }</dc:date>
           <dcterms:dateAccepted xsi:type="dcterms:W3CDTF">{ date }</dcterms:dateAccepted>
           <dcterms:dateCopyrighted xsi:type="dcterms:W3CDTF">{ date }</dcterms:dateCopyrighted>
           <dcterms:issued xsi:type="dcterms:W3CDTF">{ date }</dcterms:issued>
           <dcterms:modified xsi:type="dcterms:W3CDTF">{ date }</dcterms:modified>
           <dcterms:valid xsi:type="dcterms:W3CDTF">{ date }</dcterms:valid>
-          <dcterms:dateSubmitted xsi:type="dcterms:W3CDTF">2018-03-22</dcterms:dateSubmitted>
         </ddm:dcmiMetadata>
     )
   }
 
-  private val dateAvailable2018 = Date(scheme = None, value = "2018", DateQualifier.available)
+  private val dateAvailable2018 = Date(scheme = None, value = Some("2018"), Some(DateQualifier.available))
   "minimal with various types of dates" should behave like {
     // with and without qualifier, varying precision
     val dates = Some(Seq(
-      Date(scheme = None, value = "2018", DateQualifier.created),
+      Date(scheme = None, value = Some("2018"), Some(DateQualifier.created)),
       dateAvailable2018,
-      Date(scheme = None, value = "Groundhog day", DateQualifier.dateAccepted),
-      Date(scheme = None, value = "Groundhog day", DateQualifier.dateCopyrighted),
-      Date(scheme = None, value = "Groundhog day", DateQualifier.issued),
-      Date(scheme = None, value = "Groundhog day", DateQualifier.modified),
-      Date(scheme = None, value = "Groundhog day", DateQualifier.valid),
-      Date(scheme = Some(W3CDTF.toString), value = "2018", DateQualifier.valid),
-      Date(scheme = Some(W3CDTF.toString), value = "2018-12", DateQualifier.valid),
-      Date(scheme = Some(W3CDTF.toString), value = "2018-12-09T08:15:30-05:00", DateQualifier.valid),
-      Date(scheme = Some(W3CDTF.toString), value = "2018-12-09T13:15:30Z", DateQualifier.valid),
+      Date(scheme = None, value = Some("Groundhog day"), Some(DateQualifier.dateAccepted)),
+      Date(scheme = None, value = Some("Groundhog day"), Some(DateQualifier.dateCopyrighted)),
+      Date(scheme = None, value = Some("Groundhog day"), Some(DateQualifier.issued)),
+      Date(scheme = None, value = Some("Groundhog day"), Some(DateQualifier.modified)),
+      Date(scheme = None, value = Some("Groundhog day"), Some(DateQualifier.valid)),
+      Date(scheme = Some(W3CDTF.toString), value = Some("2018"), Some(DateQualifier.valid)),
+      Date(scheme = Some(W3CDTF.toString), value = Some("2018-12"), Some(DateQualifier.valid)),
+      Date(scheme = Some(W3CDTF.toString), value = Some("2018-12-09T08:15:30-05:00"), Some(DateQualifier.valid)),
+      Date(scheme = Some(W3CDTF.toString), value = Some("2018-12-09T13:15:30Z"), Some(DateQualifier.valid)),
     ))
     validDatasetMetadata(
       input = Try(new MinimalDatasetMetadata(dates = dates)),
@@ -247,6 +247,7 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
       expectedDdmContent =
         <ddm:dcmiMetadata>
           <dcterms:identifier xsi:type="id-type:DOI">mocked-DOI</dcterms:identifier>
+          <dcterms:dateSubmitted xsi:type="dcterms:W3CDTF">{ nowYMD }</dcterms:dateSubmitted>
           <dcterms:dateAccepted>Groundhog day</dcterms:dateAccepted>
           <dcterms:dateCopyrighted>Groundhog day</dcterms:dateCopyrighted>
           <dcterms:issued>Groundhog day</dcterms:issued>
@@ -256,14 +257,13 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
           <dcterms:valid xsi:type="dcterms:W3CDTF">2018-12</dcterms:valid>
           <dcterms:valid xsi:type="dcterms:W3CDTF">2018-12-09T08:15:30-05:00</dcterms:valid>
           <dcterms:valid xsi:type="dcterms:W3CDTF">2018-12-09T13:15:30Z</dcterms:valid>
-          <dcterms:dateSubmitted xsi:type="dcterms:W3CDTF">{ nowYMD }</dcterms:dateSubmitted>
         </ddm:dcmiMetadata>
     )
   }
 
   "MinimalDatasetMetadata" should "fail when given a dateTimeFormat with little z for zone" in {
     val invalidDates = Some(Seq(
-      Date(scheme = Some(W3CDTF.toString), value = "2018-12-09T13:15:30z", DateQualifier.created), // small z for zone is not valid
+      Date(scheme = Some(W3CDTF.toString), value = Some("2018-12-09T13:15:30z"), Some(DateQualifier.created)), // small z for zone is not valid
       dateAvailable2018,
     ))
     new MinimalDatasetMetadata(dates = invalidDates)
@@ -272,7 +272,7 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
 
   it should "fail when given a dateTimeFormat with zone, where zone part is without a semi colon" in {
     val invalidDates = Some(Seq(
-      Date(scheme = Some(W3CDTF.toString), value = "2018-12-09T13:15:30+1000", DateQualifier.created), // small z for zone is not valid
+      Date(scheme = Some(W3CDTF.toString), value = Some("2018-12-09T13:15:30+1000"), Some(DateQualifier.created)), // small z for zone is not valid
       dateAvailable2018,
     ))
     new MinimalDatasetMetadata(dates = invalidDates)
@@ -281,7 +281,7 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
 
   it should "fail when give a dateTimeFormat with zone, where zone part is without minutes" in {
     val invalidDates = Some(Seq(
-      Date(scheme = Some(W3CDTF.toString), value = "2018-12-09T13:15:30-05", DateQualifier.created), // small z for zone is not valid
+      Date(scheme = Some(W3CDTF.toString), value = Some("2018-12-09T13:15:30-05"), Some(DateQualifier.created)), // small z for zone is not valid
       dateAvailable2018,
     ))
     new MinimalDatasetMetadata(dates = invalidDates)
@@ -538,11 +538,11 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
         <dcterms:spatial xsi:type="dcterms:ISO3166">NLD</dcterms:spatial>
         <dcterms:spatial xml:lang="nld">Haringvliet</dcterms:spatial>
         <dcterms:spatial xml:lang="nld">Grevelingenmeer</dcterms:spatial>
+        <dcterms:dateSubmitted xsi:type="dcterms:W3CDTF">2018-03-22</dcterms:dateSubmitted>
         <dcterms:dateCopyrighted xsi:type="dcterms:W3CDTF">2018-03-18</dcterms:dateCopyrighted>
         <dcterms:valid xsi:type="dcterms:W3CDTF">2018-03-17</dcterms:valid>
         <dcterms:modified>2018-02-02</dcterms:modified>
         <dcterms:issued>Groundhog day</dcterms:issued>
-        <dcterms:dateSubmitted xsi:type="dcterms:W3CDTF">2018-03-22</dcterms:dateSubmitted>
         <dcx-gml:spatial srsName="http://www.opengis.net/def/crs/EPSG/0/28992">
           <Point xmlns="http://www.opengis.net/gml">
             <pos>12 34</pos>

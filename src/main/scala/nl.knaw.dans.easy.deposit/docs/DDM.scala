@@ -48,11 +48,11 @@ object DDM extends SchemedXml with DebugEnhancedLogging {
       xsi:schemaLocation={s"$schemaNameSpace $schemaLocation"}
     >
       <ddm:profile>
-        { dm.titles.getNonEmpty.map(src => <dc:title xml:lang={ lang }>{ src }</dc:title>) }
-        { dm.descriptions.getNonEmpty.map(src => <dcterms:description xml:lang={ lang }>{ src }</dcterms:description>) }
+        { dm.titles.getNonEmpty.map(str => <dc:title xml:lang={ lang }>{ str }</dc:title>) }
+        { dm.descriptions.getNonEmpty.map(str => <dcterms:description xml:lang={ lang }>{ str }</dcterms:description>) }
         { dm.creators.getNonEmpty.map(author => <dcx-dai:creatorDetails>{ details(author, lang) }</dcx-dai:creatorDetails>) }
-        { dm.datesCreated.map(src => <ddm:created>{ src.value }</ddm:created>) }
-        { dm.datesAvailable.map(src => <ddm:available>{ src.value }</ddm:available>) }
+        { dm.datesCreated.toSeq.flatMap(_.value).map(str => <ddm:created>{ str }</ddm:created>) }
+        { dm.datesAvailable.toSeq.flatMap(_.value).map(str => <ddm:available>{ str }</ddm:available>) }
         { dm.audiences.getNonEmpty.map(src => <ddm:audience>{ src.key }</ddm:audience>) }
         { dm.accessRights.toSeq.map(src => <ddm:accessRights>{ src.category.toString }</ddm:accessRights>) }
       </ddm:profile>
@@ -69,7 +69,7 @@ object DDM extends SchemedXml with DebugEnhancedLogging {
         { dm.subjects.getNonEmpty.map(details(_, "subject", lang)) }
         { dm.temporalCoverages.getNonEmpty.map(details(_, "temporal", lang)) }
         { dm.spatialCoverages.getNonEmpty.map(details(_, "spatial", lang)) }
-        { dm.otherDates.map(date => <label xsi:type={ date.schemeAsString }>{ date.value }</label>.withLabel(date.qualifier.toString)) }
+        { dm.otherDates.map(date => <label xsi:type={ date.schemeAsString }>{ date.value.getOrElse("") }</label>.withLabel(date.qualifier)) }
         { dm.spatialPoints.getNonEmpty.map(point => <dcx-gml:spatial srsName={ point.srsName }>{ details(point) }</dcx-gml:spatial>) }
         { dm.spatialBoxes.getNonEmpty.map(point => <dcx-gml:spatial>{ details(point) }</dcx-gml:spatial>) }
         { dm.license.getNonEmpty.map(str => <dcterms:license>{ str }</dcterms:license>) /* xsi:type="dcterms:URI" not supported by json */ }
@@ -163,12 +163,17 @@ object DDM extends SchemedXml with DebugEnhancedLogging {
     @throws[InvalidDocumentException]("when str is not a valid XML label (has more than one ':')")
     def withLabel(str: String): Elem = {
       str.split(":") match {
-        case Array(label) => elem.copy(label = label)
+        case Array(label) if label.nonEmpty => elem.copy(label = label)
         case Array(prefix, label) => elem.copy(prefix = prefix, label = label)
-        case a => throw invalidDatasetMetadataException(new Exception(
+        case a => throw invalidDatasetMetadataException(new IllegalArgumentException(
           s"expecting (label) or (prefix:label); got [${ a.mkString(":") }] to adjust the <${ elem.label }> of ${ trim(elem) }"
         ))
       }
+    }
+
+    @throws[InvalidDocumentException]("when maybeVal does not contain a valid XML label (its .toString has more than one ':')")
+    def withLabel[T](maybeVal: Option[T]): Elem = {
+      withLabel(maybeVal.map(_.toString).getOrElse(""))
     }
   }
 

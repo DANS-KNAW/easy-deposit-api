@@ -117,13 +117,12 @@ class DatasetMetadataSpec extends TestSupportFixture {
     )
   }
 
-  it should "reject multiple dates created" in {
-    """{ "dates": [
-      |   { "value": "2018", "qualifier": "dcterms:created" },
-      |   { "value": "2017", "qualifier": "dcterms:created" },
-      | ]
-      |}""".stripMargin
-      .causesInvalidDocumentException("""requirement failed: At most one allowed; got [{"value":"2018","qualifier":"dcterms:created"},{"value":"2017","qualifier":"dcterms:created"}]""")
+  "DatasetMetadata.dates" should "accept a date without a scheme" in {
+    val s: JsonInput =
+      """{"dates": [
+        |   { "value": "2018", "qualifier": "dcterms:created" },
+        |]}""".stripMargin
+    DatasetMetadata(s) shouldBe a[Success[_]]
   }
 
   "DatasetMetadata.relations" should "accept complete relations" in {
@@ -212,20 +211,6 @@ class DatasetMetadataSpec extends TestSupportFixture {
 
   it should "accept an organisation as author" in {
     DatasetMetadata("""{ "contributors": [ { "organization": "University of Zurich" } ] }""") shouldBe a[Success[_]]
-  }
-
-  "DatasetMetadata.dates" should "reject dcterms:dateSubmitted" in {
-    """{"dates": [{ "qualifier": "dcterms:dateSubmitted", "value": "2018-12", "scheme": "dcterms:W3CDTF" }]}"""
-      .causesInvalidDocumentException("""requirement failed: No dcterms:dateSubmitted allowed; got [{"scheme":"dcterms:W3CDTF","value":"2018-12","qualifier":"dcterms:dateSubmitted"}]""")
-  }
-
-  it should "reject multiple dcterms:available" in {
-    """{"dates": [
-      |  { "qualifier": "dcterms:available", "value": "2018", "scheme": "dcterms:W3CDTF" },
-      |  { "qualifier": "dcterms:available", "value": "2018-12", "scheme": "dcterms:W3CDTF" },
-      |  { "qualifier": "dcterms:created", "value": "2018-12", "scheme": "dcterms:W3CDTF" },
-      |]}""".stripMargin
-      .causesInvalidDocumentException("""requirement failed: At most one allowed; got [{"scheme":"dcterms:W3CDTF","value":"2018","qualifier":"dcterms:available"},{"scheme":"dcterms:W3CDTF","value":"2018-12","qualifier":"dcterms:available"}]""")
   }
 
   "DatasetMetadata.audience" should "reject an audience without a scheme" in {

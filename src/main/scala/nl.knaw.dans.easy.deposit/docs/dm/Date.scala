@@ -15,11 +15,14 @@
  */
 package nl.knaw.dans.easy.deposit.docs.dm
 
+import javax.xml.validation.Schema
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.PossiblySchemed
 import nl.knaw.dans.easy.deposit.docs.JsonUtil.toJson
 import nl.knaw.dans.easy.deposit.docs.dm.DateQualifier.DateQualifier
 import org.joda.time.DateTime
 import org.joda.time.format.ISODateTimeFormat
+
+import scala.util.Try
 
 object DateQualifier extends Enumeration {
   type DateQualifier = Value
@@ -41,25 +44,42 @@ object DateScheme extends Enumeration {
 
 case class Date(
                  override val scheme: Option[String],
-                 value: String,
-                 qualifier: DateQualifier,
+                 value: Option[String],
+                 qualifier: Option[DateQualifier],
                ) extends PossiblySchemed with Requirements {
-  requireNonEmptyString(value)
-  requireNonEmptyString(value)
 }
 
 object Date {
-  def dateSubmitted(): Date = Date(
+  private def dateSubmitted: Date = Date(
     Some(DateScheme.W3CDTF.toString),
-    DateTime.now().toString(ISODateTimeFormat.date()),
-    DateQualifier.dateSubmitted
+    Some(DateTime.now().toString(ISODateTimeFormat.date())),
+    Some(DateQualifier.dateSubmitted)
   )
 
-  def atMostOne(dates: Seq[Date]): Unit = {
-    require(dates.size <= 1, s"At most one allowed; got ${ toJson(dates) }")
-  }
+  implicit class DatesExtension(val dates: Option[Seq[Date]]) extends AnyVal {
+    /**
+     * @return (dateCreated, dateAvailable, plainDates)
+     */
+    private[docs] def separate = {
+      dates.getOrElse(Seq.empty)
+        .foldLeft((Option.empty[Date], Option.empty[Date], Seq(dateSubmitted))) {
+          // @formatter:off
+          case ((_,           _,             _     ),      Date(_, _, Some(q@DateQualifier.dateSubmitted))) => invalidQualifier(q)
+          case ((None,        dateAvailable, others), date@Date(_, _, Some(  DateQualifier.created))      ) => (Some(date),  dateAvailable, others)
+          case ((Some(dc),    _,             _     ), date@Date(_, _, Some(  DateQualifier.created))      ) => duplicateDates(Seq(dc, date))
+          case ((dateCreated, None,          others), date@Date(_, _, Some(  DateQualifier.available))    ) => (dateCreated, Some(date),    others)
+          case ((_,           Some(da),      _     ), date@Date(_, _, Some(  DateQualifier.available))    ) => duplicateDates(Seq(da, date))
+          case ((dateCreated, dateAvailable, others), date@Date(_, _, _)                                  ) => (dateCreated, dateAvailable, others :+ date)
+          // @formatter:on
+        }
+    }
 
-  def notAllowed(qualifier: DateQualifier, dates: Seq[Date]): Unit = {
-    require(!dates.exists(_.qualifier == qualifier), s"No $qualifier allowed; got ${ toJson(dates) }")
+    private def duplicateDates(dates: Seq[Date]) = {
+      throw new IllegalArgumentException(s"requirement failed: At most one allowed; got ${ toJson(dates) }")
+    }
+
+    private def invalidQualifier(q: DateQualifier) = {
+      throw new IllegalArgumentException(s"requirement failed: No $q allowed; got ${ toJson(dates) }")
+    }
   }
 }
