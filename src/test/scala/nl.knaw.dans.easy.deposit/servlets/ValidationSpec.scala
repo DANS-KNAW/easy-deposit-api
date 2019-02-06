@@ -78,9 +78,8 @@ class ValidationSpec extends DepositServletFixture {
   it should "fail for an author with just a last name" in {
     DDM(parseIntoValidForSubmit("""{ "creators": [ { "surname": "Einstein", "initials": "  " }]}""")
     ) should matchPattern {
-      case Failure(InvalidDocumentException("DatasetMetadata", cause: SAXParseException))
-        if cause.getMessage.contains("'dcx-dai:author' is not complete")
-          && cause.getLineNumber == 8 =>
+      case Failure(InvalidDocumentException("DatasetMetadata", cause: IllegalArgumentException))
+        if cause.getMessage == """Missing mandatory values in: Author{"initials":"  ","surname":"Einstein"}""" =>
       // TODO error handling should produce the XML line(s) to give the client a clue about the violating instance
     }
   }
@@ -88,8 +87,8 @@ class ValidationSpec extends DepositServletFixture {
   it should "fail for an author with just initials" in {
     DDM(parseIntoValidForSubmit("""{ "creators": [ { "surname": "  ", "initials": "A" }]}""")
     ) should matchPattern {
-      case Failure(InvalidDocumentException("DatasetMetadata", cause: SAXParseException))
-        if cause.getMessage.contains("'dcx-dai:creatorDetails' is not complete") =>
+      case Failure(InvalidDocumentException("DatasetMetadata", cause: IllegalArgumentException))
+        if cause.getMessage == """Missing mandatory values in: Author{"initials":"A","surname":"  "}""" =>
     }
   }
 
@@ -265,8 +264,8 @@ class ValidationSpec extends DepositServletFixture {
         |  ],
         |}""".stripMargin)
     ) should matchPattern {
-      case Failure(InvalidDocumentException("DatasetMetadata", cause: SAXParseException))
-        if cause.getMessage.contains("""' ' is not a valid value of union type '#AnonType_W3CDTF'""") =>
+      case Failure(InvalidDocumentException("DatasetMetadata", cause: IllegalArgumentException))
+        if cause.getMessage == """Missing mandatory values in: Date{"scheme":"dcterms:W3CDTF","value":"    ","qualifier":"dcterms:available"}""" =>
     }
   }
 
@@ -356,11 +355,11 @@ class ValidationSpec extends DepositServletFixture {
     }
   }
 
-  it should "fail for an empty x" in pendingUntilFixed {
-    DDM(parseIntoValidForSubmit("""{"spatialPoints": [{ "scheme": "RD", "x": "", "y": "446750" }]}""")
+  it should "fail for an empty x" in {
+    DDM(parseIntoValidForSubmit("""{"spatialPoints": [{ "scheme": "RD", "x": " ", "y": "446750" }]}""")
     ) should matchPattern {
-      case Failure(InvalidDocumentException(_, cause: Throwable))
-        if cause.getMessage.contains("xxx") =>
+      case Failure(InvalidDocumentException(_, cause: IllegalArgumentException))
+        if cause.getMessage == """Missing mandatory values in: SpatialPoint{"scheme":"RD","x":" ","y":"446750"}""" =>
     }
   }
 

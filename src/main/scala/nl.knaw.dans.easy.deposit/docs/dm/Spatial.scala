@@ -15,6 +15,8 @@
  */
 package nl.knaw.dans.easy.deposit.docs.dm
 
+import nl.knaw.dans.easy.deposit.docs.StringUtils._
+
 object Spatial {
   /** coordinate order y, x = latitude (DCX_SPATIAL_Y), longitude (DCX_SPATIAL_X) */
   val DEGREES_SRS_NAME = "http://www.opengis.net/def/crs/EPSG/0/4326"
@@ -35,7 +37,7 @@ trait SchemedSpatial extends Mandatory {
     }
   }
 
-  private[docs] override def hasMandatory: Boolean = scheme.isDefined
+  private[docs] override def hasMandatory: Boolean = scheme.isProvided
 }
 
 case class SpatialPoint(override val scheme: Option[String],
@@ -50,7 +52,7 @@ case class SpatialPoint(override val scheme: Option[String],
     case _ => s"$sy $sx"
   }
 
-  private[docs] override def hasMandatory: Boolean = super.hasMandatory && x.isDefined && y.isDefined
+  private[docs] override def hasMandatory: Boolean = super.hasMandatory && x.isProvided && y.isProvided
 }
 
 case class SpatialBox(override val scheme: Option[String],
@@ -90,5 +92,5 @@ case class SpatialBox(override val scheme: Option[String],
     case _ => yx
   }
 
-  private[docs] override def hasMandatory: Boolean = super.hasMandatory && north.isDefined && east.isDefined && south.isDefined && west.isDefined
+  private[docs] override def hasMandatory: Boolean = super.hasMandatory && north.isProvided && east.isProvided && south.isProvided && west.isProvided
 }

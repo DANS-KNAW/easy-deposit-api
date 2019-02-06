@@ -17,6 +17,7 @@ package nl.knaw.dans.easy.deposit.docs.dm
 
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.PossiblySchemed
 import nl.knaw.dans.easy.deposit.docs.JsonUtil.toJson
+import nl.knaw.dans.easy.deposit.docs.StringUtils._
 import nl.knaw.dans.easy.deposit.docs.dm.DateQualifier.DateQualifier
 import org.joda.time.DateTime
 import org.joda.time.format.ISODateTimeFormat
@@ -44,7 +45,7 @@ case class Date(
                  value: Option[String],
                  qualifier: Option[DateQualifier],
                ) extends PossiblySchemed with Mandatory {
-  private[docs] override def hasMandatory: Boolean = qualifier.isDefined && value.isDefined
+  private[docs] override def hasMandatory: Boolean = qualifier.isDefined && value.isProvided
 }
 
 object Date {

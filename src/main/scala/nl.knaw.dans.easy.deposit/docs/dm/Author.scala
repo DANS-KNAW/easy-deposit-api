@@ -47,8 +47,8 @@ case class Author(titles: Option[String] = None,
     }
   }
 
-  private[docs] override def hasMandatory: Boolean = organization.isDefined ||
-    (surname.isDefined && initials.isDefined)
+  private[docs] override def hasMandatory: Boolean = organization.isProvided ||
+    (surname.isProvided && initials.isProvided)
 }
 object Author {
   private[docs] def validate(authors: Seq[Author]): Try[Unit] = {
