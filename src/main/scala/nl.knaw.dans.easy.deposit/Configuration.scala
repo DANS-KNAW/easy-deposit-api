@@ -35,7 +35,7 @@ object Configuration extends DebugEnhancedLogging {
     logger.info(s"cfgPath: $cfgPath")
 
     new Configuration(
-      version = (home / "bin" / "version").contentAsString,
+      version = (home / "bin" / "version").contentAsString.stripLineEnd,
       properties = new PropertiesConfiguration() {
         setDelimiterParsingDisabled(true)
         load((cfgPath / "application.properties").toJava)

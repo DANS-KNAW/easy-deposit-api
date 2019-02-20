@@ -40,7 +40,7 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
   }
 
   private val app: EasyDepositApiApp = new EasyDepositApiApp(minimalAppConfig) {
-    override val pidRequester: PidRequester = mock[PidRequester]
+    override val pidRequester: PidRequester = mockPidRequester
   }
   mountServlets(app, authMocker.mockedAuthenticationProvider)
 

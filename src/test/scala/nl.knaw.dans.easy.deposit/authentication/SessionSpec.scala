@@ -30,7 +30,7 @@ import org.scalatra.test.scalatest.ScalatraSuite
 class SessionSpec extends TestSupportFixture with ServletFixture with ScalatraSuite {
 
   private val app: EasyDepositApiApp = new EasyDepositApiApp(minimalAppConfig) {
-    override val pidRequester: PidRequester = mock[PidRequester]
+    override val pidRequester: PidRequester = mockPidRequester
   }
   private val authMocker = new AuthenticationMocker() {
     override val mockedAuthenticationProvider: AuthenticationProvider = mock[AuthenticationProvider]
