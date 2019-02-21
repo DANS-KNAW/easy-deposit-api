@@ -15,6 +15,7 @@
  */
 package nl.knaw.dans.easy.deposit
 
+import java.nio.file.attribute.PosixFilePermission
 import java.nio.file.{ Path, Paths }
 
 import better.files.File
@@ -85,8 +86,14 @@ class Submitter(stagingBaseDir: File,
     // EASY-1464 3.3.7 checksums
     _ <- samePayloadManifestEntries(stageBag, draftBag)
     // EASY-1464 step 3.3.9 Move copy to submit-to area
+    _ = stageBag.baseDir.parent.list.foreach(setRights(_))
     _ = stageBag.baseDir.parent.moveTo(submitDir)
   } yield ()
+
+  private def setRights(file: File) = {
+    file.addPermission(PosixFilePermission.GROUP_WRITE)
+    file.setGroup("deposits")
+  }
 
   type ManifestItems = Map[File, String]
   type ManifestMap = Map[ChecksumAlgorithm, ManifestItems]
