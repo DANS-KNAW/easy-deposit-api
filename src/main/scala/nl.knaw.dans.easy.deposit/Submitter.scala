@@ -15,8 +15,9 @@
  */
 package nl.knaw.dans.easy.deposit
 
-import java.nio.file.attribute.PosixFilePermission
-import java.nio.file.{ Path, Paths }
+import java.io.IOException
+import java.nio.file._
+import java.nio.file.attribute.{ PosixFileAttributeView, PosixFilePermissions, UserPrincipalNotFoundException }
 
 import better.files.File
 import nl.knaw.dans.bag.ChecksumAlgorithm.ChecksumAlgorithm
@@ -25,6 +26,8 @@ import nl.knaw.dans.bag.v0.DansV0Bag
 import nl.knaw.dans.easy.deposit.docs.{ AgreementsXml, DDM, FilesXml, StateInfo }
 import org.joda.time.DateTime
 
+import scala.collection.JavaConverters._
+import scala.util.control.NonFatal
 import scala.util.{ Failure, Success, Try }
 
 /**
@@ -34,7 +37,12 @@ import scala.util.{ Failure, Success, Try }
  * @param submitToBaseDir the directory to which the staged copy must be moved.
  */
 class Submitter(stagingBaseDir: File,
-                submitToBaseDir: File) {
+                submitToBaseDir: File,
+                permissions: String,
+                group: String,
+               ) {
+  private val posixPermissions = PosixFilePermissions.fromString(permissions).asScala.toSet
+  private val groupPrincipal = stagingBaseDir.path.getFileSystem.getUserPrincipalLookupService.lookupPrincipalByGroupName(group)
 
   /**
    * Submits `depositDir` by writing the file metadata, updating the bag checksums, staging a copy
@@ -85,14 +93,32 @@ class Submitter(stagingBaseDir: File,
     _ <- isValid(stageBag)
     // EASY-1464 3.3.7 checksums
     _ <- samePayloadManifestEntries(stageBag, draftBag)
+    _ <- setRights(stageBag.baseDir.parent)
+    _ = stageBag.baseDir.parent.listRecursively.foreach(setRights) // TODO error handling
     // EASY-1464 step 3.3.9 Move copy to submit-to area
-    _ = stageBag.baseDir.parent.list.foreach(setRights(_))
     _ = stageBag.baseDir.parent.moveTo(submitDir)
   } yield ()
 
-  private def setRights(file: File) = {
-    file.addPermission(PosixFilePermission.GROUP_WRITE)
-    file.setGroup("deposits")
+  private def setRights(file: File): Try[Unit] = {
+    // EASY-1932, copied from https://github.com/DANS-KNAW/easy-split-multi-deposit/blob/73189001217c2bf31b487eb8356f76ea4e9ffc31/src/main/scala/nl.knaw.dans.easy.multideposit/actions/SetDepositPermissions.scala#L72-L90
+    val path = file.path
+    Try {
+      file.setPermissions(posixPermissions)
+      Files.getFileAttributeView(
+        path,
+        classOf[PosixFileAttributeView],
+        LinkOption.NOFOLLOW_LINKS,
+      ).setGroup(groupPrincipal)
+    }.recoverWith {
+      case upnf: UserPrincipalNotFoundException => throw new IOException(s"Group ${ group } could not be found", upnf)
+      case usoe: UnsupportedOperationException => throw new IOException("Not on a POSIX supported file system", usoe)
+      case cce: ClassCastException => throw new IOException("No file permission elements in set", cce)
+      case iae: IllegalArgumentException => throw new IOException(s"Invalid privileges (${ permissions })", iae)
+      case fse: FileSystemException => throw new IOException(s"Not able to set the group to ${ group }. Probably the current user (${ System.getProperty("user.name") }) is not part of this group.", fse)
+      case ioe: IOException => throw new IOException(s"Could not set file permissions or group on $path", ioe)
+      case se: SecurityException => throw new IOException(s"Not enough privileges to set file permissions or group on $path", se)
+      case NonFatal(e) => throw new IOException(s"unexpected error occured on $path", e)
+    }
   }
 
   type ManifestItems = Map[File, String]

@@ -57,7 +57,7 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
 
     assume(DDM.triedSchema.isAvailable)
     // the test
-    new Submitter(testDir / "staged", testDir / "submitted")
+    new Submitter(testDir / "staged", testDir / "submitted", "rwxrwx---","deposits")
       .submit(depositDir) should matchPattern { case Success(()) => }
 
     // post conditions
@@ -87,7 +87,7 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
     (testDir / "submitted").createDirectories()
 
     assume(DDM.triedSchema.isAvailable)
-    new Submitter(testDir / "staged", testDir / "submitted")
+    new Submitter(testDir / "staged", testDir / "submitted", "rwxrwx---","deposits")
       .submit(depositDir) should matchPattern { case Success(()) => }
 
     (testDir / "submitted" / depositDir.id.toString / "bag" / "metadata" / "message-from-depositor.txt")
@@ -106,7 +106,7 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
     (bag.baseDir / "manifest-sha1.txt").append("chk file")
 
     assume(DDM.triedSchema.isAvailable)
-    new Submitter(testDir / "staged", testDir / "submitted").submit(depositDir) should matchPattern {
+    new Submitter(testDir / "staged", testDir / "submitted", "rwxrwx---","deposits").submit(depositDir) should matchPattern {
       case Failure(e) if e.getMessage == s"invalid bag, missing [files, checksums]: [Set($testDir/drafts/user/${ depositDir.id }/bag/file), Set()]" =>
     }
   }
@@ -125,7 +125,7 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
 
     val checksum = "a57ec0c3239f30b29f1e9270581be50a70c74c04"
     assume(DDM.triedSchema.isAvailable)
-    new Submitter(testDir / "staged", testDir / "submitted").submit(depositDir) should matchPattern {
+    new Submitter(testDir / "staged", testDir / "submitted", "rwxrwx---","deposits").submit(depositDir) should matchPattern {
       case Failure(e)
         if e.getMessage == s"staged and draft bag [${ bag.baseDir.parent }] have different payload manifest elements: (Set((data/file.txt,$checksum)),Set((data/file.txt,${ checksum }xxx)))" =>
     }

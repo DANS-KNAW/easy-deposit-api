@@ -71,7 +71,9 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
   private val draftsDir = getConfiguredDirectory("deposits.drafts")
   private lazy val submitter = new Submitter(
     stagingBaseDir = getConfiguredDirectory("deposits.stage"),
-    submitToBaseDir = getConfiguredDirectory("deposits.submit-to")
+    submitToBaseDir = getConfiguredDirectory("deposits.submit-to"),
+    permissions = configuration.properties.getString("deposit.permissions.access"),
+    group = configuration.properties.getString("deposit.permissions.group"),
   )
 
   private def getConfiguredDirectory(key: String): File = {
