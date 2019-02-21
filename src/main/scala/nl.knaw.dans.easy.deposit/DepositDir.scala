@@ -257,6 +257,7 @@ object DepositDir {
     for {
       _ <- Try { depositDir.createDirectories }
       bag <- DansV0Bag.empty(depositDir / "bag")
+      _ = bag.withCreated()
       _ <- bag.addTagFile("{}".inputStream, Paths.get("metadata/dataset.json"))
       _ <- bag.save()
       _ <- createDepositProperties(user, depositInfo, deposit)
