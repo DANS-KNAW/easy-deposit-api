@@ -29,7 +29,7 @@ import scala.util.{ Success, Try }
 
 trait DepositServletFixture extends TestSupportFixture with ServletFixture with ScalatraSuite with MockFactory {
   private val app: EasyDepositApiApp = new EasyDepositApiApp(minimalAppConfig) {
-    override val pidRequester: PidRequester = mock[PidRequester]
+    override val pidRequester: PidRequester = mockPidRequester
   }
   private val depositServlet = new DepositServlet(app) {
     override def getAuthenticationProvider: AuthenticationProvider = {

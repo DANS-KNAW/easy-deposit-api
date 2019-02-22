@@ -17,7 +17,6 @@ package nl.knaw.dans.easy.deposit
 
 import java.nio.file.attribute.PosixFilePermission
 
-import nl.knaw.dans.easy.deposit.PidRequesterComponent.PidRequester
 import nl.knaw.dans.easy.deposit.PidRequesterComponent.PidType.PidType
 import nl.knaw.dans.easy.deposit.docs.StateInfo
 import nl.knaw.dans.easy.deposit.docs.StateInfo.State
@@ -158,7 +157,7 @@ class DepositDirSpec extends TestSupportFixture with MockFactory {
 
     // preconditions
     mdFile.contentAsString shouldBe "{}"
-    val pidMocker = mock[PidRequester]
+    val pidMocker = mockPidRequester
     (pidMocker.requestPid(_: PidType)) expects * once() returning Success(doi)
 
     // test
