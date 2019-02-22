@@ -20,6 +20,7 @@ import java.nio.file._
 import java.nio.file.attribute.{ PosixFileAttributeView, PosixFilePermissions, UserPrincipalNotFoundException }
 
 import better.files.File
+import better.files.File.VisitOptions
 import nl.knaw.dans.bag.ChecksumAlgorithm.ChecksumAlgorithm
 import nl.knaw.dans.bag.DansBag
 import nl.knaw.dans.bag.v0.DansV0Bag
@@ -99,10 +100,10 @@ class Submitter(stagingBaseDir: File,
   } yield ()
 
   private def setRightsRecursively(file: File): Try[Unit] = {
-    val stream = Files.walk(file.path, Int.MaxValue, better.files.File.VisitOptions.default: _*)
+    val javaStream = Files.walk(file.path, Int.MaxValue, VisitOptions.default: _*)
     // toStream makes sure setRights is no longer called once it fails
-    val result = stream.iterator().asScala.toStream.map(setRights).find(_.isFailure).getOrElse(Success(()))
-    stream.close() // in case the underlying java stream is not fully consumed by the iterator
+    val result = javaStream.iterator().asScala.toStream.map(setRights).find(_.isFailure).getOrElse(Success(()))
+    javaStream.close() // in case the underlying java stream is not fully consumed by the iterator
     result
   }
 
