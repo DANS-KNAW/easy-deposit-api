@@ -41,18 +41,9 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
   private val doi = datasetMetadata.doi
     .getOrElse(fail("could not get DOI from test input"))
 
-  "constructor" should "fail if invalid access permissions are configured" in {
+  "constructor" should "fail if the group does not exist" in {
     Try {
-      new Submitter(testDir / "staged", testDir / "submitted", "abcdefghi", userGroup)
-    } should matchPattern {
-      case Failure(e: IllegalArgumentException) if e.getMessage ==
-        "Invalid mode" =>
-    }
-  }
-
-  it should "fail if the group does not exist" in {
-    Try {
-      new Submitter(testDir / "staged", testDir / "submitted", "rwxrwx---", "non-existing-group-name")
+      new Submitter(testDir / "staged", testDir / "submitted", "non-existing-group-name")
     } should matchPattern {
       case Failure(e: UserPrincipalNotFoundException) =>
     }
@@ -63,7 +54,7 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
     val depositDir = createDeposit(datasetMetadata)
     addDoiToDepositProperties(getBag(depositDir))
 
-    new Submitter(testDir / "staged", testDir / "submitted", "rwxrwx---", unrelatedGroup)
+    new Submitter(testDir / "staged", testDir / "submitted", unrelatedGroup)
       .submit(depositDir) should matchPattern {
       case Failure(e: IOException) if e.getMessage matches
         ".*Probably the current user .* is not part of this group.*" =>
@@ -89,7 +80,7 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
 
     assume(DDM.triedSchema.isAvailable)
     // the test
-    new Submitter(testDir / "staged", testDir / "submitted", "rwxrwx---", userGroup)
+    new Submitter(testDir / "staged", testDir / "submitted", userGroup)
       .submit(depositDir) should matchPattern { case Success(()) => }
 
     // post conditions
@@ -117,7 +108,7 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
     addDoiToDepositProperties(getBag(depositDir))
 
     assume(DDM.triedSchema.isAvailable)
-    new Submitter(testDir / "staged", testDir / "submitted", "rwxrwx---", userGroup)
+    new Submitter(testDir / "staged", testDir / "submitted", userGroup)
       .submit(depositDir) should matchPattern { case Success(()) => }
 
     (testDir / "submitted" / depositDir.id.toString / "bag" / "metadata" / "message-from-depositor.txt")
@@ -135,7 +126,7 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
     (bag.baseDir / "manifest-sha1.txt").append("chk file")
 
     assume(DDM.triedSchema.isAvailable)
-    new Submitter(testDir / "staged", testDir / "submitted", "rwxrwx---", userGroup).submit(depositDir) should matchPattern {
+    new Submitter(testDir / "staged", testDir / "submitted", userGroup).submit(depositDir) should matchPattern {
       case Failure(e) if e.getMessage == s"invalid bag, missing [files, checksums]: [Set($testDir/drafts/user/${ depositDir.id }/bag/file), Set()]" =>
     }
   }
@@ -153,7 +144,7 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
 
     val checksum = "a57ec0c3239f30b29f1e9270581be50a70c74c04"
     assume(DDM.triedSchema.isAvailable)
-    new Submitter(testDir / "staged", testDir / "submitted", "rwxrwx---", userGroup).submit(depositDir) should matchPattern {
+    new Submitter(testDir / "staged", testDir / "submitted", userGroup).submit(depositDir) should matchPattern {
       case Failure(e)
         if e.getMessage == s"staged and draft bag [${ bag.baseDir.parent }] have different payload manifest elements: (Set((data/file.txt,$checksum)),Set((data/file.txt,${ checksum }xxx)))" =>
     }

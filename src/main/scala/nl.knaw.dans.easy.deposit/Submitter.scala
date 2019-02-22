@@ -17,7 +17,8 @@ package nl.knaw.dans.easy.deposit
 
 import java.io.IOException
 import java.nio.file._
-import java.nio.file.attribute.{ PosixFileAttributeView, PosixFilePermissions, UserPrincipalNotFoundException }
+import java.nio.file.attribute.PosixFilePermission.GROUP_WRITE
+import java.nio.file.attribute.{ PosixFileAttributeView, UserPrincipalNotFoundException }
 
 import better.files.File
 import better.files.File.VisitOptions
@@ -39,10 +40,8 @@ import scala.util.{ Failure, Success, Try }
  */
 class Submitter(stagingBaseDir: File,
                 submitToBaseDir: File,
-                permissions: String,
                 group: String,
                ) {
-  private val posixPermissions = PosixFilePermissions.fromString(permissions).asScala.toSet
   private val groupPrincipal = stagingBaseDir.path.getFileSystem.getUserPrincipalLookupService.lookupPrincipalByGroupName(group)
 
   /**
@@ -110,8 +109,8 @@ class Submitter(stagingBaseDir: File,
   private def setRights(path: Path): Try[Unit] = {
     // EASY-1932, copied from https://github.com/DANS-KNAW/easy-split-multi-deposit/blob/73189001217c2bf31b487eb8356f76ea4e9ffc31/src/main/scala/nl.knaw.dans.easy.multideposit/actions/SetDepositPermissions.scala#L72-L90
     Try {
-      File(path).setPermissions(posixPermissions)
-      // tried file.setGroup(groupPrincipal) but it causes java.io.IOException: 'owner' parameter can't be a group
+      File(path).addPermission(GROUP_WRITE)
+      // tried File(path).setGroup(groupPrincipal) but it causes java.io.IOException: 'owner' parameter can't be a group
       Files.getFileAttributeView(
         path,
         classOf[PosixFileAttributeView],
@@ -121,7 +120,6 @@ class Submitter(stagingBaseDir: File,
       case upnf: UserPrincipalNotFoundException => throw new IOException(s"Group ${ group } could not be found", upnf)
       case usoe: UnsupportedOperationException => throw new IOException("Not on a POSIX supported file system", usoe)
       case cce: ClassCastException => throw new IOException("No file permission elements in set", cce)
-      case iae: IllegalArgumentException => throw new IOException(s"Invalid privileges (${ permissions })", iae)
       case fse: FileSystemException => throw new IOException(s"Not able to set the group to ${ group }. Probably the current user (${ System.getProperty("user.name") }) is not part of this group.", fse)
       case ioe: IOException => throw new IOException(s"Could not set file permissions or group on $path", ioe)
       case se: SecurityException => throw new IOException(s"Not enough privileges to set file permissions or group on $path", se)
