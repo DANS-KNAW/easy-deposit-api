@@ -19,7 +19,7 @@ import java.io.IOException
 import java.nio.file.Paths
 import java.nio.file.attribute.UserPrincipalNotFoundException
 
-import better.files.StringOps
+import better.files.{ File, StringOps }
 import nl.knaw.dans.bag.DansBag
 import nl.knaw.dans.easy.deposit.docs.StateInfo.State
 import nl.knaw.dans.easy.deposit.docs._
@@ -160,7 +160,7 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
     }
   }
 
-  private def addDoiToDepositProperties(bag: DansBag) = {
+  private def addDoiToDepositProperties(bag: DansBag): File = {
     (bag.baseDir.parent / "deposit.properties").append(s"identifier.doi=$doi")
   }
 
