@@ -38,6 +38,7 @@ trait TestSupportFixture extends FlatSpec with Matchers with Inside with BeforeA
   lazy val testDir: File = currentWorkingDirectory / "target" / "test" / getClass.getSimpleName
   lazy val uuid: UUID = UUID.randomUUID()
 
+  // copied from https://github.com/DANS-KNAW/easy-split-multi-deposit/blob/ea7c2dc3d6/src/test/scala/nl.knaw.dans.easy.multideposit/actions/SetDepositPermissionsSpec.scala#L102
   lazy val (user, userGroup, unrelatedGroup) = {
     import scala.sys.process._
 
