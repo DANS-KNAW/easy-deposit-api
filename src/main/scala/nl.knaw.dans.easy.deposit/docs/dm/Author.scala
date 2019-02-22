@@ -29,7 +29,7 @@ case class Author(titles: Option[String] = None,
                   role: Option[SchemedKeyValue] = None,
                   ids: Option[Seq[SchemedValue]] = None,
                   organization: Option[String] = None,
-                 ) extends Requirements {
+                 ) extends Mandatory {
   private val hasRedundant: Boolean = !surname.isProvided && (titles.isProvided || insertions.isProvided)
 
   def isRightsHolder: Boolean = role.exists(_.key == "RightsHolder")
@@ -46,6 +46,9 @@ case class Author(titles: Option[String] = None,
       case (None, None) => "" // schema validation will fail for creator respectively contributor
     }
   }
+
+  private[docs] override def hasMandatory: Boolean = organization.isProvided ||
+    (surname.isProvided && initials.isProvided)
 }
 object Author {
   private[docs] def validate(authors: Seq[Author]): Try[Unit] = {

@@ -44,7 +44,7 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
   }
   mountServlets(app, authMocker.mockedAuthenticationProvider)
 
-  s"scenario: /deposit/:uuid/metadata life cycle" should "return default dataset metadata" in {
+  "scenario: /deposit/:uuid/metadata life cycle" should "return default dataset metadata" in {
 
     // create dataset
     authMocker.expectsUserFooBar
@@ -78,28 +78,7 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
     }
   }
 
-  s"POST /deposit/:uuid/metadata" should "return a user friendly message" in {
-    // more variants in DDMSpec and DatasetMetadataSpec, here we test the full chain of error handling
-
-    // create dataset
-    authMocker.expectsUserFooBar
-    val responseBody = post(uri = s"/deposit", headers = Seq(fooBarBasicAuthHeader)) { body }
-    val uuid = DepositInfo(responseBody).map(_.id.toString).getOrRecover(e => fail(e.toString, e))
-    val metadataURI = s"/deposit/$uuid/metadata"
-
-    // create dataset metadata
-    assume(DDM.triedSchema.isAvailable)
-    authMocker.expectsUserFooBar
-    put(
-      metadataURI, headers = Seq(fooBarBasicAuthHeader),
-      body = """{"spatialPoints": [{ "scheme": "RD", "x": "795,00", "y": "446750Z" }]}"""
-    ) {
-      body shouldBe """Bad Request. invalid DatasetMetadata: requirement failed: Invalid number [795,00]; got {"scheme":"RD","x":"795,00","y":"446750Z"} SpatialPoint"""
-      status shouldBe BAD_REQUEST_400
-    }
-  }
-
-  s"scenario: POST /deposit twice; GET /deposit" should "return a list of datasets" in {
+  "scenario: POST /deposit twice; GET /deposit" should "return a list of datasets" in {
 
     // create two deposits
     val responseBodies: Seq[String] = (0 until 2).map { _ =>
@@ -167,7 +146,7 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
     }
   }
 
-  s"scenario: POST /deposit; twice GET /deposit/:uuid/doi" should "return 200" in {
+  "scenario: POST /deposit; twice GET /deposit/:uuid/doi" should "return 200" in {
 
     // create dataset
     authMocker.expectsUserFooBar
@@ -195,7 +174,7 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
     }
   }
 
-  s"scenario: create - ... - sumbit" should "create submitted dataset copied from a draft" in {
+  "scenario: create - ... - sumbit" should "create submitted dataset copied from a draft" in {
 
     val datasetMetadata = getManualTestResource("datasetmetadata-from-ui-all.json")
     val doi = DatasetMetadata(datasetMetadata)
@@ -241,7 +220,7 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
     }
   }
 
-  s"scenario: create - sumbit" should "refuse a submit without DOI" in {
+  "scenario: create - sumbit" should "refuse a submit without DOI" in {
     (testDir / "stage").createDirectories()
     (testDir / "easy-ingest-flow-inbox").createDirectories()
     val metadataWithoutDOI = JsonUtil.toJson(
@@ -279,7 +258,7 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
     }
   }
 
-  s"scenario: POST /deposit; hack state to ARCHIVED; SUBMIT" should "reject state transition" in {
+  "scenario: POST /deposit; hack state to ARCHIVED; SUBMIT" should "reject state transition" in {
 
     // create dataset
     authMocker.expectsUserFooBar

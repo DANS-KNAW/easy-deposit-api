@@ -17,7 +17,7 @@ package nl.knaw.dans.easy.deposit.docs
 
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata._
 import nl.knaw.dans.easy.deposit.docs.JsonUtil.{ InvalidDocumentException, RichJsonInput }
-import nl.knaw.dans.easy.deposit.docs.dm.Date.{ dateSubmitted, _ }
+import nl.knaw.dans.easy.deposit.docs.dm.Date._
 import nl.knaw.dans.easy.deposit.docs.dm.PrivacySensitiveDataPresent.PrivacySensitiveDataPresent
 import nl.knaw.dans.easy.deposit.docs.dm._
 import org.json4s.JsonInput
@@ -93,7 +93,21 @@ case class DatasetMetadata(private val identifiers: Option[Seq[SchemedValue]] = 
 
   /** Validations as far as not covered by DDM schema validation. */
   private[docs] def validate(): Try[Unit] = {
-    Author.validate(authors)
+    def missingMandatory[T <: Mandatory](values: Seq[T]): Try[Unit] = {
+      val invalid = values
+        .withFilter(!_.hasMandatory)
+        .map(x => x.getClass.getSimpleName + JsonUtil.toJson(x))
+        .mkString(", ")
+      if (invalid.isEmpty) Success(())
+      else {
+        Failure(new IllegalArgumentException(s"Missing mandatory values in: $invalid"))
+      }
+    }
+
+    for { // TODO collect errors over multiple types of validation errors
+      _ <- Author.validate(authors)
+      _ <- missingMandatory(authors ++ (dates ++ spatialPoints ++ spatialBoxes).toSeq.flatten)
+    } yield ()
   }
 }
 

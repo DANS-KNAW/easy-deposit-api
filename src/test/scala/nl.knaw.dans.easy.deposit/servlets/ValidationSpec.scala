@@ -25,15 +25,27 @@ import org.scalatest.Assertion
 import org.scalatest.exceptions.TestFailedException
 import org.xml.sax.SAXParseException
 
-import scala.util.{ Failure, Success }
+import scala.util.Failure
 
 class ValidationSpec extends DepositServletFixture {
 
+  "PUT(metadata) and PUT(submitted)" should "succeed for the base object for each test" in {
+    // more valid data is tested in other test classes with src/test/resources/manual-test/*.json
+    def checkSubmitResponse = {
+      body shouldBe ""
+      status shouldBe NO_CONTENT_204
+      (testDir / "drafts").list.size shouldBe 1
+      (testDir / "easy-ingest-flow-inbox").list.size shouldBe 1
+      // more checks in other test classes
+    }
+
+    saveAndSubmit(checkSubmitResponse _, mandatoryOnSubmit)
+  }
+
   "PUT(metadata) should succeed with incomplete authors, PUT(submitted)" should "fail for an empty creator" in {
     def checkSubmitResponse = {
-      body should include("'dcx-dai:creatorDetails' is not complete")
-      body shouldNot include("'dcx-dai:contributorDetails' is not complete")
-      // a client has no clue there is a second violation on contributorDetails
+      body shouldBe """Bad Request. invalid DatasetMetadata: Missing mandatory values in: Author{}, Author{}"""
+      // a client has no clue whether it are creators or contributors
       status shouldBe BAD_REQUEST_400
     }
 
@@ -45,7 +57,7 @@ class ValidationSpec extends DepositServletFixture {
 
   it should "fail for an empty contributor" in {
     def checkSubmitResponse = {
-      body should include("'dcx-dai:contributorDetails' is not complete")
+      body should include("Missing mandatory values in: Author{}")
       // a client has no clue which one in the list is violating the requirements
       status shouldBe BAD_REQUEST_400
     }
@@ -66,9 +78,8 @@ class ValidationSpec extends DepositServletFixture {
   it should "fail for an author with just a last name" in {
     DDM(parseIntoValidForSubmit("""{ "creators": [ { "surname": "Einstein", "initials": "  " }]}""")
     ) should matchPattern {
-      case Failure(InvalidDocumentException("DatasetMetadata", cause: SAXParseException))
-        if cause.getMessage.contains("'dcx-dai:author' is not complete")
-          && cause.getLineNumber == 8 =>
+      case Failure(InvalidDocumentException("DatasetMetadata", cause: IllegalArgumentException))
+        if cause.getMessage == """Missing mandatory values in: Author{"initials":"  ","surname":"Einstein"}""" =>
       // TODO error handling should produce the XML line(s) to give the client a clue about the violating instance
     }
   }
@@ -76,8 +87,8 @@ class ValidationSpec extends DepositServletFixture {
   it should "fail for an author with just initials" in {
     DDM(parseIntoValidForSubmit("""{ "creators": [ { "surname": "  ", "initials": "A" }]}""")
     ) should matchPattern {
-      case Failure(InvalidDocumentException("DatasetMetadata", cause: SAXParseException))
-        if cause.getMessage.contains("'dcx-dai:creatorDetails' is not complete") =>
+      case Failure(InvalidDocumentException("DatasetMetadata", cause: IllegalArgumentException))
+        if cause.getMessage == """Missing mandatory values in: Author{"initials":"A","surname":"  "}""" =>
     }
   }
 
@@ -192,8 +203,8 @@ class ValidationSpec extends DepositServletFixture {
         |  }
         |]}""")
     ) should matchPattern {
-      case Failure(InvalidDocumentException("DatasetMetadata", cause: SAXParseException))
-        if cause.getMessage.contains("'dcx-dai:creatorDetails' is not complete") =>
+      case Failure(InvalidDocumentException("DatasetMetadata", cause: IllegalArgumentException))
+        if cause.getMessage == """Missing mandatory values in: Author{"role":{"scheme":"datacite:contributorType","key":"RightsHolder","value":"Rights Holder"}}""" =>
     }
   }
 
@@ -209,8 +220,8 @@ class ValidationSpec extends DepositServletFixture {
         |  }
         |]}""")
     ) should matchPattern {
-      case Failure(InvalidDocumentException("DatasetMetadata", cause: SAXParseException))
-        if cause.getMessage.contains("'dcx-dai:contributorDetails' is not complete") =>
+      case Failure(InvalidDocumentException("DatasetMetadata", cause: IllegalArgumentException))
+        if cause.getMessage == """Missing mandatory values in: Author{"role":{"scheme":"datacite:contributorType","key":"RightsHolder","value":"Rights Holder"}}""" =>
     }
   }
 
@@ -253,8 +264,8 @@ class ValidationSpec extends DepositServletFixture {
         |  ],
         |}""".stripMargin)
     ) should matchPattern {
-      case Failure(InvalidDocumentException("DatasetMetadata", cause: SAXParseException))
-        if cause.getMessage.contains("""' ' is not a valid value of union type '#AnonType_W3CDTF'""") =>
+      case Failure(InvalidDocumentException("DatasetMetadata", cause: IllegalArgumentException))
+        if cause.getMessage == """Missing mandatory values in: Date{"scheme":"dcterms:W3CDTF","value":"    ","qualifier":"dcterms:available"}""" =>
     }
   }
 
@@ -267,9 +278,7 @@ class ValidationSpec extends DepositServletFixture {
         |]}""".stripMargin
     )) should matchPattern {
       case Failure(InvalidDocumentException("DatasetMetadata", cause: IllegalArgumentException))
-        // TODO this means a missing qualifier!
-        if cause.getMessage.contains("""got [] to adjust the <label> of <label """) &&
-          cause.getMessage.endsWith(""">2018-05-31</label>""") =>
+        if cause.getMessage == """Missing mandatory values in: Date{"scheme":"dcterms:W3CDTF","value":"2018-05-31"}""" =>
     }
   }
 
@@ -330,9 +339,40 @@ class ValidationSpec extends DepositServletFixture {
     }
   }
 
-  "PUT(metadata) and PUT(submitted)" should "succeed for the base object for each test" in {
-    // more valid data is tested in other test classes with src/test/resources/manual-test/*.json
-    DDM(mandatoryOnSubmit) shouldBe a[Success[_]]
+  "PUT(metadata) should succeed with invalid spatial fields, PUT(submitted)" should "fail for an invalid decimal point for north" in {
+    DDM(parseIntoValidForSubmit("""{"spatialBoxes": [ { "scheme": "RD", "north": "486890,5", "east": 121811.88, "south": 436172.5,  "west": 91232.016 }]}""")
+    ) should matchPattern {
+      case Failure(InvalidDocumentException(_, cause: Throwable))
+        if cause.getMessage.contains("'486890,5' is not a valid value for 'double'") =>
+    }
+  }
+
+  it should "fail for an invalid decimal point for x" in {
+    DDM(parseIntoValidForSubmit("""{"spatialPoints": [{ "scheme": "RD", "x": "795,00", "y": "446750Z" }]}""")
+    ) should matchPattern {
+      case Failure(InvalidDocumentException(_, cause: Throwable))
+        if cause.getMessage.contains("'795,00' is not a valid value for 'double'") =>
+    }
+  }
+
+  it should "fail for an empty x" in {
+    DDM(parseIntoValidForSubmit("""{"spatialPoints": [{ "scheme": "RD", "x": " ", "y": "446750" }]}""")
+    ) should matchPattern {
+      case Failure(InvalidDocumentException(_, cause: IllegalArgumentException))
+        if cause.getMessage == """Missing mandatory values in: SpatialPoint{"scheme":"RD","x":" ","y":"446750"}""" =>
+    }
+  }
+
+  it should "fail for a missing scheme in a point" in {
+    DDM(parseIntoValidForSubmit(
+      """{
+        |  "spatialBoxes": [{ "north": 1, "east": 2, "south": "3", "west": "4" }]
+        |  "spatialPoints": [{ "x": "5", "y": 6 }, { "scheme": "RD", "x": "7", "y": 8 }, { "scheme": "RD", "x": "9"}]
+        |}""".stripMargin)
+    ) should matchPattern {
+      case Failure(InvalidDocumentException(_, cause: Throwable))
+        if cause.getMessage == """Missing mandatory values in: SpatialPoint{"x":"5","y":"6"}, SpatialPoint{"scheme":"RD","x":"9"}, SpatialBox{"north":"1","east":"2","south":"3","west":"4"}""" =>
+    }
   }
 
   /**

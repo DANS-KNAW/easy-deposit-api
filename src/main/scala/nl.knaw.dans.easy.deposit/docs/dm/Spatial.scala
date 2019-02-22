@@ -15,6 +15,8 @@
  */
 package nl.knaw.dans.easy.deposit.docs.dm
 
+import nl.knaw.dans.easy.deposit.docs.StringUtils._
+
 object Spatial {
   /** coordinate order y, x = latitude (DCX_SPATIAL_Y), longitude (DCX_SPATIAL_X) */
   val DEGREES_SRS_NAME = "http://www.opengis.net/def/crs/EPSG/0/4326"
@@ -23,45 +25,48 @@ object Spatial {
   val RD_SRS_NAME = "http://www.opengis.net/def/crs/EPSG/0/28992"
 }
 
-trait SchemedSpatial extends Requirements {
-  val scheme: String
-  requireNonEmptyString(scheme)
+trait SchemedSpatial extends Mandatory {
+  val scheme: Option[String]
 
   lazy val srsName: String = {
     scheme match {
-      case "degrees" => Spatial.DEGREES_SRS_NAME
-      case "RD" => Spatial.RD_SRS_NAME
-      case s if s.trim.isEmpty => null // will suppress the XML attribute
-      case _ => scheme
+      case Some("degrees") => Spatial.DEGREES_SRS_NAME
+      case Some("RD") => Spatial.RD_SRS_NAME
+      case Some(s) if s.trim.nonEmpty => s
+      case _ => null // will suppress the XML attribute
     }
   }
+
+  private[docs] override def hasMandatory: Boolean = scheme.isProvided
 }
 
-case class SpatialPoint(override val scheme: String,
-                        x: String,
-                        y: String,
-                       ) extends Requirements with SchemedSpatial {
-  requireDouble(x)
-  requireDouble(y)
-
+case class SpatialPoint(override val scheme: Option[String],
+                        x: Option[String],
+                        y: Option[String],
+                       ) extends SchemedSpatial {
+  private val sx: String = x.getOrElse("")
+  private val sy: String = y.getOrElse("")
   lazy val pos: String = srsName match {
-    case Spatial.RD_SRS_NAME => s"$x $y"
-    case Spatial.DEGREES_SRS_NAME => s"$y $x"
-    case _ => s"$y $x"
+    case Spatial.RD_SRS_NAME => s"$sx $sy"
+    case Spatial.DEGREES_SRS_NAME => s"$sy $sx"
+    case _ => s"$sy $sx"
   }
+
+  private[docs] override def hasMandatory: Boolean = super.hasMandatory && x.isProvided && y.isProvided
 }
 
-case class SpatialBox(override val scheme: String,
-                      north: String,
-                      east: String,
-                      south: String,
-                      west: String,
-                     ) extends Requirements with SchemedSpatial {
-  requireDouble(north)
-  requireDouble(east)
-  requireDouble(south)
-  requireDouble(west)
-
+case class SpatialBox(override val scheme: Option[String],
+                      north: Option[String],
+                      east: Option[String],
+                      south: Option[String],
+                      west: Option[String],
+                     ) extends SchemedSpatial {
+  private lazy val sWest: String = west.getOrElse("")
+  private lazy val sSouth: String = south.getOrElse("")
+  private lazy val sNorth: String = north.getOrElse("")
+  private lazy val sEast: String = east.getOrElse("")
+  private lazy val xy = (s"$sWest $sSouth", s"$sEast $sNorth")
+  private lazy val yx = (s"$sSouth $sWest", s"$sNorth $sEast")
   /*
    * Note that Y is along North - South and X is along East - West
    * The lower corner is with the minimal coordinate values and upper corner with the maximal coordinate values
@@ -81,11 +86,11 @@ case class SpatialBox(override val scheme: String,
    *   x -->
    *
    */
-  private lazy val xy = (s"$west $south", s"$east $north")
-  private lazy val yx = (s"$south $west", s"$north $east")
   lazy val (lower: String, upper: String) = srsName match {
     case Spatial.RD_SRS_NAME => xy
     case Spatial.DEGREES_SRS_NAME => yx
     case _ => yx
   }
+
+  private[docs] override def hasMandatory: Boolean = super.hasMandatory && north.isProvided && east.isProvided && south.isProvided && west.isProvided
 }

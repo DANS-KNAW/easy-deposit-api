@@ -233,11 +233,6 @@ class DatasetMetadataSpec extends TestSupportFixture {
       .causesInvalidDocumentException("""requirement failed: Empty string for a mandatory field; got {"scheme":"xxx","key":"yyy","value":""} SchemedKeyValue""")
   }
 
-  "DatasetMetadata.spatialBoxes" should "reject a non-numeric value" in {
-    """{"spatialBoxes": [ { "scheme": "RD", "north": "486890,5", "east": 121811.88, "south": 436172.5,  "west": 91232.016 }]}""".stripMargin
-      .causesInvalidDocumentException("""requirement failed: Invalid number [486890,5]; got {"scheme":"RD","north":"486890,5","east":"121811.88","south":"436172.5","west":"91232.016"} SpatialBox""")
-  }
-
   it should "accept both quoted and non quoted numbers" in {
     // the server will return all numbers quoted
     val s =
