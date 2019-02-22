@@ -93,17 +93,24 @@ class Submitter(stagingBaseDir: File,
     _ <- isValid(stageBag)
     // EASY-1464 3.3.7 checksums
     _ <- samePayloadManifestEntries(stageBag, draftBag)
-    _ <- stageBag.baseDir.parent.walk().toStream.map(setRights).find(_.isFailure).getOrElse(Success(()))
+    _ <- setRightsRecursively(stageBag.baseDir.parent)
     // EASY-1464 step 3.3.9 Move copy to submit-to area
     _ = stageBag.baseDir.parent.moveTo(submitDir)
   } yield ()
 
-  private def setRights(file: File): Try[Unit] = {
+  private def setRightsRecursively(file: File): Try[Unit] = {
+    val stream = Files.walk(file.path, Int.MaxValue, better.files.File.VisitOptions.default: _*)
+    // toStream makes sure setRights is no longer called once it fails
+    val result = stream.iterator().asScala.toStream.map(setRights).find(_.isFailure).getOrElse(Success(()))
+    stream.close() // in case the underlying java stream is not fully consumed by the iterator
+    result
+  }
+
+  private def setRights(path: Path): Try[Unit] = {
     // EASY-1932, copied from https://github.com/DANS-KNAW/easy-split-multi-deposit/blob/73189001217c2bf31b487eb8356f76ea4e9ffc31/src/main/scala/nl.knaw.dans.easy.multideposit/actions/SetDepositPermissions.scala#L72-L90
-    val path = file.path
     Try {
-      file.setPermissions(posixPermissions)
-      // the code called by file.setGroup causes java.io.IOException: 'owner' parameter can't be a group
+      File(path).setPermissions(posixPermissions)
+      // tried file.setGroup(groupPrincipal) but it causes java.io.IOException: 'owner' parameter can't be a group
       Files.getFileAttributeView(
         path,
         classOf[PosixFileAttributeView],
