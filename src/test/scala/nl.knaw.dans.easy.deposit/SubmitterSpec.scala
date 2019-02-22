@@ -54,8 +54,7 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
     Try {
       new Submitter(testDir / "staged", testDir / "submitted", "rwxrwx---", "non-existing-group-name")
     } should matchPattern {
-      case Failure(e: UserPrincipalNotFoundException) if e.getMessage ==
-        "Group non-existing-group-name could not be found" =>
+      case Failure(e: UserPrincipalNotFoundException) =>
     }
   }
 
