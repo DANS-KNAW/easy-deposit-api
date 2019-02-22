@@ -35,27 +35,27 @@ echo "$PHASE: DONE"
 if [[ ! -d ${DEPOSITS_STAGE_UPLOAD} ]]; then
   echo -n "Creating deposits stage/upload directory at ${DEPOSITS_STAGE_UPLOAD}..."
   mkdir -p ${DEPOSITS_STAGE_UPLOAD}
-  chmod 777 ${DEPOSITS_STAGE_UPLOAD}
+  chmod 755 ${DEPOSITS_STAGE_UPLOAD}
   echo "OK"
 fi
 
 if [[ ! -d ${DEPOSITS_DRAFTS} ]]; then
   echo -n "Creating deposits draft directory at ${DEPOSITS_STAGE}..."
   mkdir -p ${DEPOSITS_DRAFTS}
-  chmod 777 ${DEPOSITS_DRAFTS}
+  chmod 755 ${DEPOSITS_DRAFTS}
   echo "OK"
 fi
 
 if [[ ! -d ${DEPOSITS_STAGE} ]]; then
   echo -n "Creating deposits stage directory at ${DEPOSITS_STAGE}..."
   mkdir -p ${DEPOSITS_STAGE}
-  chmod 777 ${DEPOSITS_STAGE}
+  chmod 755 ${DEPOSITS_STAGE}
   echo "OK"
 fi
 
 if [[ ! -d ${DEPOSITS_SUBMIT_TO} ]]; then
   echo -n "Creating deposits submit directory at ${DEPOSITS_SUBMIT_TO}..."
   mkdir -p ${DEPOSITS_SUBMIT_TO}
-  chmod 777 ${DEPOSITS_SUBMIT_TO}
+  chmod 755 ${DEPOSITS_SUBMIT_TO}
   echo "OK"
 fi
