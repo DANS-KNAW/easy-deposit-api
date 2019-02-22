@@ -30,11 +30,28 @@ import org.scalamock.scalatest.MockFactory
 import org.scalatest._
 import org.scalatest.enablers.Existence
 
+import scala.util.Properties
+
 trait TestSupportFixture extends FlatSpec with Matchers with Inside with BeforeAndAfterEach with MockFactory {
   implicit def existenceOfFile[FILE <: better.files.File]: Existence[FILE] = _.exists
 
   lazy val testDir: File = currentWorkingDirectory / "target" / "test" / getClass.getSimpleName
   lazy val uuid: UUID = UUID.randomUUID()
+
+  lazy val (user, userGroup, unrelatedGroup) = {
+    import scala.sys.process._
+
+    // don't hardcode users and groups, since we don't know what we have on travis
+    val user = Properties.userName
+    val allGroups = "cut -d: -f1 /etc/group".!!.split("\n").filterNot(_ startsWith "#").toList
+    val userGroups = s"id -Gn $user".!!.split(" ").toList
+
+    (userGroups, allGroups.diff(userGroups)) match {
+      case (ug :: _, diff :: _) => (user, ug, diff)
+      case (Nil, _) => throw new AssertionError("no suitable user group found")
+      case (_, Nil) => throw new AssertionError("no suitable unrelated group found")
+    }
+  }
 
   def testResource(file: String): File = File(getClass.getResource(file))
 
@@ -60,6 +77,8 @@ trait TestSupportFixture extends FlatSpec with Matchers with Inside with BeforeA
       addProperty("deposits.stage", testSubDir("stage").toString())
       addProperty("deposits.drafts", testSubDir("drafts").toString())
       addProperty("deposits.submit-to", testSubDir("easy-ingest-flow-inbox").toString())
+      addProperty("deposit.permissions.access", "rwxrwx---")
+      addProperty("deposit.permissions.group", userGroup)
       addProperty("pids.generator-service", "http://pidHostDoesNotExist.dans.knaw.nl")
       addProperty("users.ldap-url", "http://ldapHostDoesNotExist.dans.knaw.nl")
       addProperty("users.ldap-parent-entry", "-")

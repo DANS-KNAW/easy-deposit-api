@@ -93,8 +93,7 @@ class Submitter(stagingBaseDir: File,
     _ <- isValid(stageBag)
     // EASY-1464 3.3.7 checksums
     _ <- samePayloadManifestEntries(stageBag, draftBag)
-    _ <- setRights(stageBag.baseDir.parent)
-    _ = stageBag.baseDir.parent.listRecursively.foreach(setRights) // TODO error handling
+    _ <- stageBag.baseDir.parent.walk().toStream.map(setRights).find(_.isFailure).getOrElse(Success(()))
     // EASY-1464 step 3.3.9 Move copy to submit-to area
     _ = stageBag.baseDir.parent.moveTo(submitDir)
   } yield ()
@@ -104,6 +103,7 @@ class Submitter(stagingBaseDir: File,
     val path = file.path
     Try {
       file.setPermissions(posixPermissions)
+      // the code called by file.setGroup causes java.io.IOException: 'owner' parameter can't be a group
       Files.getFileAttributeView(
         path,
         classOf[PosixFileAttributeView],
