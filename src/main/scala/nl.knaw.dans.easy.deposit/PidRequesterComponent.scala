@@ -20,7 +20,6 @@ import java.net.URI
 import nl.knaw.dans.easy.deposit.PidRequesterComponent.PidRequester
 import nl.knaw.dans.easy.deposit.PidRequesterComponent.PidType.PidType
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
-import scalaj.http.Http
 
 import scala.util.{ Failure, Success, Try }
 
@@ -31,6 +30,8 @@ trait PidRequesterComponent extends DebugEnhancedLogging {
 object PidRequesterComponent {
 
   trait PidRequester {
+    this: HttpContext =>
+
     val pidGeneratorService: URI
 
     def requestPid(pidType: PidType): Try[String] = Try {

@@ -21,6 +21,7 @@ import better.files.File
 import better.files.File._
 import nl.knaw.dans.bag.DansBag
 import nl.knaw.dans.bag.v0.DansV0Bag
+import nl.knaw.dans.easy.deposit.PidRequesterComponent.PidRequester
 import nl.knaw.dans.easy.deposit.authentication.TokenSupport.TokenConfig
 import nl.knaw.dans.easy.deposit.authentication.{ AuthConfig, AuthUser, AuthenticationProvider, TokenSupport }
 import nl.knaw.dans.easy.deposit.docs._
@@ -71,6 +72,9 @@ trait TestSupportFixture extends FlatSpec with Matchers with Inside with BeforeA
   /** Causes DateTime.now() to return a predefined value. */
   DateTimeUtils.setCurrentMillisFixed(new DateTime(nowUTC).getMillis)
   DateTimeZone.setDefault(DateTimeZone.forTimeZone(TimeZone.getTimeZone("Europe/Amsterdam")))
+
+  trait MockedPidRequester extends PidRequester with HttpContext
+  def mockPidRequester: PidRequester = mock[MockedPidRequester]
 
   def minimalAppConfig: Configuration = {
     new Configuration("", new PropertiesConfiguration() {

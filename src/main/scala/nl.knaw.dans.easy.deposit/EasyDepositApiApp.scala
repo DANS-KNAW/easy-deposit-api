@@ -38,8 +38,9 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
 
   val properties: PropertiesConfiguration = configuration.properties
 
-  override val pidRequester: PidRequester = new PidRequester {
+  override val pidRequester: PidRequester = new PidRequester with HttpContext {
     override val pidGeneratorService: URI = new URI(properties.getString("pids.generator-service"))
+    override val applicationVersion: String = configuration.version
     logger.info(s"pids.generator-service = $pidGeneratorService")
   }
   override val authentication: Authentication = new Authentication {
