@@ -99,11 +99,10 @@ class Submitter(stagingBaseDir: File,
   } yield ()
 
   private def setRightsRecursively(file: File): Try[Unit] = {
-    val javaStream = Files.walk(file.path, Int.MaxValue, VisitOptions.default: _*)
-    // toStream makes sure setRights is no longer called once it fails
-    val result = javaStream.iterator().asScala.toStream.map(setRights).find(_.isFailure).getOrElse(Success(()))
-    javaStream.close() // in case the underlying java stream is not fully consumed by the iterator
-    result
+    resource.managed(Files.walk(file.path, Int.MaxValue, VisitOptions.default: _*))
+      .map(_.iterator().asScala.map(setRights).find(_.isFailure).getOrElse(Success(())))
+      .tried
+      .flatten
   }
 
   private def setRights(path: Path): Try[Unit] = {
