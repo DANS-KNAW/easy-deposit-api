@@ -44,9 +44,7 @@ case class Date(
                  override val scheme: Option[String],
                  value: Option[String],
                  qualifier: Option[DateQualifier],
-               ) extends PossiblySchemed with Mandatory {
-  private[docs] override def hasMandatory: Boolean = qualifier.isDefined && value.isProvided
-}
+               ) extends PossiblySchemed
 
 object Date {
   private def dateSubmitted: Date = Date(

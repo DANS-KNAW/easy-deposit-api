@@ -29,9 +29,7 @@ case class Author(titles: Option[String] = None,
                   role: Option[SchemedKeyValue] = None,
                   ids: Option[Seq[SchemedValue]] = None,
                   organization: Option[String] = None,
-                 ) extends Mandatory {
-  private val hasRedundant: Boolean = !surname.isProvided && (titles.isProvided || insertions.isProvided)
-
+                 ) {
   def isRightsHolder: Boolean = role.exists(_.key == "RightsHolder")
 
   override def toString: String = { // for <dcterms:rightsHolder>
@@ -45,17 +43,5 @@ case class Author(titles: Option[String] = None,
       case (Some(_), None) => name
       case (None, None) => "" // schema validation will fail for creator respectively contributor
     }
-  }
-
-  private[docs] override def hasMandatory: Boolean = organization.isProvided ||
-    (surname.isProvided && initials.isProvided)
-}
-object Author {
-  private[docs] def validate(authors: Seq[Author]): Try[Unit] = {
-    val invalid = authors.filter(_.hasRedundant)
-    if (invalid.isEmpty) Success(())
-    else Failure(new IllegalArgumentException(
-      s"An author without surname should have neither titles nor insertions, got: ${ invalid.map(JsonUtil.toJson).mkString(", ") }"
-    ))
   }
 }

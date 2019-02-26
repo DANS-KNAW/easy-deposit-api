@@ -25,7 +25,7 @@ object Spatial {
   val RD_SRS_NAME = "http://www.opengis.net/def/crs/EPSG/0/28992"
 }
 
-trait SchemedSpatial extends Mandatory {
+trait SchemedSpatial {
   val scheme: Option[String]
 
   lazy val srsName: String = {
@@ -36,8 +36,6 @@ trait SchemedSpatial extends Mandatory {
       case _ => null // will suppress the XML attribute
     }
   }
-
-  private[docs] override def hasMandatory: Boolean = scheme.isProvided
 }
 
 case class SpatialPoint(override val scheme: Option[String],
@@ -51,8 +49,6 @@ case class SpatialPoint(override val scheme: Option[String],
     case Spatial.DEGREES_SRS_NAME => s"$sy $sx"
     case _ => s"$sy $sx"
   }
-
-  private[docs] override def hasMandatory: Boolean = super.hasMandatory && x.isProvided && y.isProvided
 }
 
 case class SpatialBox(override val scheme: Option[String],
@@ -91,6 +87,4 @@ case class SpatialBox(override val scheme: Option[String],
     case Spatial.DEGREES_SRS_NAME => yx
     case _ => yx
   }
-
-  private[docs] override def hasMandatory: Boolean = super.hasMandatory && north.isProvided && east.isProvided && south.isProvided && west.isProvided
 }
