@@ -31,7 +31,7 @@ trait DepositServletFixture extends TestSupportFixture with ServletFixture with 
   private val app: EasyDepositApiApp = new EasyDepositApiApp(minimalAppConfig) {
     override val pidRequester: PidRequester = mockPidRequester
   }
-  private val depositServlet = new DepositServlet(app) {
+  private val depositServlet = new DepositServlet(app) with UndoMasking {
     override def getAuthenticationProvider: AuthenticationProvider = {
       new AuthenticationMocker() {
         override val mockedAuthenticationProvider: AuthenticationProvider = mock[AuthenticationProvider]

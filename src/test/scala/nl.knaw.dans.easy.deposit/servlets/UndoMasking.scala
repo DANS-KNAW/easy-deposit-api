@@ -13,12 +13,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package nl.knaw.dans.easy.deposit.logging
+package nl.knaw.dans.easy.deposit.servlets
 
+import nl.knaw.dans.lib.logging.servlet.{ HeaderMapEntry, MaskedLogFormatter, MultiParamsEntry }
 import org.scalatra.ScalatraBase
 
-trait PlainAuthorizationHeader extends RequestLogFormatter {
+trait UndoMasking extends MaskedLogFormatter {
   this: ScalatraBase =>
 
-  override protected def formatValueOfAuthorizationHeader(value: String): String = value
+  // to trouble shoot unit tests set the log level to trace in test/resource/logback.xml
+  // move the change to another change list in git to prevent an accidental commit
+
+  override protected def formatRemoteAddress(remoteAddress: String): String = remoteAddress
+
+  override protected def formatHeader(header: HeaderMapEntry): HeaderMapEntry = header
+
+  override def formatParameter(param: MultiParamsEntry): MultiParamsEntry = param
+
+  override def formatResponseHeader(header: HeaderMapEntry): HeaderMapEntry = header
 }
