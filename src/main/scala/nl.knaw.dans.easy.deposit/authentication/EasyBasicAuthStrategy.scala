@@ -17,8 +17,8 @@ package nl.knaw.dans.easy.deposit.authentication
 
 import javax.servlet.http.{ HttpServletRequest, HttpServletResponse }
 import nl.knaw.dans.easy.deposit.authentication.AuthUser.UserState
-import nl.knaw.dans.lib.logging.servlet._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
+import nl.knaw.dans.lib.logging.servlet._
 import org.scalatra.auth.strategy.BasicAuthStrategy
 import org.scalatra.{ ScalatraBase, ServiceUnavailable, Unauthorized }
 

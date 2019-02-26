@@ -18,9 +18,8 @@ package nl.knaw.dans.easy.deposit.authentication
 import nl.knaw.dans.easy.deposit.PidRequesterComponent.PidRequester
 import nl.knaw.dans.easy.deposit._
 import nl.knaw.dans.easy.deposit.authentication.AuthUser.UserState
-import nl.knaw.dans.lib.logging.servlet._
 import nl.knaw.dans.easy.deposit.servlets.{ AuthServlet, ProtectedServlet, ServletFixture, UndoMasking }
-import nl.knaw.dans.lib.logging.DebugEnhancedLogging
+import nl.knaw.dans.lib.logging.servlet._
 import org.eclipse.jetty.http.HttpStatus._
 import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat

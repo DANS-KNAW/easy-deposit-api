@@ -22,10 +22,10 @@ import java.util.UUID
 import nl.knaw.dans.easy.deposit.docs.DDM.SchemaNotAvailableException
 import nl.knaw.dans.easy.deposit.docs.JsonUtil.{ InvalidDocumentException, toJson }
 import nl.knaw.dans.easy.deposit.docs.{ DatasetMetadata, StateInfo }
-import nl.knaw.dans.lib.logging.servlet._
 import nl.knaw.dans.easy.deposit.servlets.DepositServlet.{ BadRequestException, InvalidResourceException, ZipMustBeOnlyFileException }
 import nl.knaw.dans.easy.deposit.{ EasyDepositApiApp, _ }
 import nl.knaw.dans.lib.error._
+import nl.knaw.dans.lib.logging.servlet._
 import org.apache.commons.lang.NotImplementedException
 import org.scalatra._
 import org.scalatra.servlet.{ FileUploadSupport, MultipartConfig, SizeConstraintExceededException }
