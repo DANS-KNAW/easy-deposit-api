@@ -28,7 +28,5 @@ object StringUtils {
 
   implicit class RichOption(val str: Option[String]) extends AnyVal {
     def getNonEmpty: Seq[String] = str.filterNot(_.isBlank).toSeq
-
-    def isProvided: Boolean = str.exists(str => !str.isBlank)
   }
 }

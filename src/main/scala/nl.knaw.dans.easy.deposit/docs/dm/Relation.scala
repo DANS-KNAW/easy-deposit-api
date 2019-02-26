@@ -51,13 +51,7 @@ trait RelationType {
 case class Relation(override val qualifier: RelationQualifier,
                     url: Option[String],
                     title: Option[String],
-                   ) extends RelationType with Requirements {
-  // RelationTypeSerializer overrides the message when the parsed json object neither has a value
-  require(title.isProvided || url.isProvided, buildMsg(s"Need at least one of (title | url)"))
-
-  // might throw MalformedURLException, RelationTypeSerializer should properly re-wrap it
-  url.map(new URL(_))
-
+                   ) extends RelationType {
   override def withCleanOptions: RelationType = this.copy(
     url = url.flatMap(_.toOption),
     title = title.flatMap(_.toOption),
@@ -67,8 +61,6 @@ case class Relation(override val qualifier: RelationQualifier,
 case class RelatedIdentifier(override val scheme: Option[String],
                              value: String,
                              override val qualifier: RelationQualifier
-                            ) extends RelationType with PossiblySchemed with Requirements {
-  requireNonEmptyString(value)
-
+                            ) extends RelationType with PossiblySchemed {
   override def withCleanOptions: RelationType = this
 }
