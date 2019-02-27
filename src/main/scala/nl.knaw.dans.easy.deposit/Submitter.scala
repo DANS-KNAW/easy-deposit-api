@@ -26,6 +26,7 @@ import nl.knaw.dans.bag.ChecksumAlgorithm.ChecksumAlgorithm
 import nl.knaw.dans.bag.DansBag
 import nl.knaw.dans.bag.v0.DansV0Bag
 import nl.knaw.dans.easy.deposit.docs.{ AgreementsXml, DDM, FilesXml, StateInfo }
+import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.joda.time.DateTime
 
 import scala.collection.JavaConverters._
@@ -41,7 +42,7 @@ import scala.util.{ Failure, Success, Try }
 class Submitter(stagingBaseDir: File,
                 submitToBaseDir: File,
                 group: String,
-               ) {
+               ) extends DebugEnhancedLogging {
   private val groupPrincipal = stagingBaseDir.path.getFileSystem.getUserPrincipalLookupService.lookupPrincipalByGroupName(group)
 
   /**
@@ -105,25 +106,24 @@ class Submitter(stagingBaseDir: File,
       .flatten
   }
 
-  private def setRights(path: Path): Try[Unit] = {
-    // EASY-1932, copied from https://github.com/DANS-KNAW/easy-split-multi-deposit/blob/73189001217c2bf31b487eb8356f76ea4e9ffc31/src/main/scala/nl.knaw.dans.easy.multideposit/actions/SetDepositPermissions.scala#L72-L90
-    Try {
-      File(path).addPermission(GROUP_WRITE)
-      // tried File(path).setGroup(groupPrincipal) but it causes java.io.IOException: 'owner' parameter can't be a group
-      Files.getFileAttributeView(
-        path,
-        classOf[PosixFileAttributeView],
-        LinkOption.NOFOLLOW_LINKS,
-      ).setGroup(groupPrincipal)
-    }.recoverWith {
-      case upnf: UserPrincipalNotFoundException => throw new IOException(s"Group ${ group } could not be found", upnf)
-      case usoe: UnsupportedOperationException => throw new IOException("Not on a POSIX supported file system", usoe)
-      case cce: ClassCastException => throw new IOException("No file permission elements in set", cce)
-      case fse: FileSystemException => throw new IOException(s"Not able to set the group to ${ group }. Probably the current user (${ System.getProperty("user.name") }) is not part of this group.", fse)
-      case ioe: IOException => throw new IOException(s"Could not set file permissions or group on $path", ioe)
-      case se: SecurityException => throw new IOException(s"Not enough privileges to set file permissions or group on $path", se)
-      case NonFatal(e) => throw new IOException(s"unexpected error occured on $path", e)
-    }
+  private def setRights(path: Path): Try[Unit] = Try {
+    trace(path)
+    // EASY-1932, variant of https://github.com/DANS-KNAW/easy-split-multi-deposit/blob/73189001217c2bf31b487eb8356f76ea4e9ffc31/src/main/scala/nl.knaw.dans.easy.multideposit/actions/SetDepositPermissions.scala#L72-L90
+    File(path).addPermission(GROUP_WRITE)
+    // tried File(path).setGroup(groupPrincipal) but it causes "java.io.IOException: 'owner' parameter can't be a group"
+    Files.getFileAttributeView(
+      path,
+      classOf[PosixFileAttributeView],
+      LinkOption.NOFOLLOW_LINKS,
+    ).setGroup(groupPrincipal)
+  }.recoverWith {
+    case upnf: UserPrincipalNotFoundException => throw new IOException(s"Group ${ group } could not be found", upnf)
+    case usoe: UnsupportedOperationException => throw new IOException("Not on a POSIX supported file system", usoe)
+    case cce: ClassCastException => throw new IOException("No file permission elements in set", cce)
+    case fse: FileSystemException => throw new IOException(s"Not able to set the group to ${ group }. Probably the current user (${ System.getProperty("user.name") }) is not part of this group.", fse)
+    case ioe: IOException => throw new IOException(s"Could not set file permissions or group on $path", ioe)
+    case se: SecurityException => throw new IOException(s"Not enough privileges to set file permissions or group on $path", se)
+    case NonFatal(e) => throw new IOException(s"unexpected error occured on $path", e)
   }
 
   type ManifestItems = Map[File, String]
