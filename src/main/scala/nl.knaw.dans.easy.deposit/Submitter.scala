@@ -18,7 +18,7 @@ package nl.knaw.dans.easy.deposit
 import java.io.IOException
 import java.nio.file._
 import java.nio.file.attribute.PosixFilePermission.GROUP_WRITE
-import java.nio.file.attribute.{ PosixFileAttributeView, UserPrincipalNotFoundException }
+import java.nio.file.attribute.{ GroupPrincipal, PosixFileAttributeView }
 
 import better.files.File
 import better.files.File.VisitOptions
@@ -41,9 +41,8 @@ import scala.util.{ Failure, Success, Try }
  */
 class Submitter(stagingBaseDir: File,
                 submitToBaseDir: File,
-                group: String,
+                groupPrincipal: GroupPrincipal,
                ) extends DebugEnhancedLogging {
-  private val groupPrincipal = stagingBaseDir.path.getFileSystem.getUserPrincipalLookupService.lookupPrincipalByGroupName(group)
 
   /**
    * Submits `depositDir` by writing the file metadata, updating the bag checksums, staging a copy
@@ -117,12 +116,9 @@ class Submitter(stagingBaseDir: File,
       LinkOption.NOFOLLOW_LINKS,
     ).setGroup(groupPrincipal)
   }.recoverWith {
-    case upnf: UserPrincipalNotFoundException => throw new IOException(s"Group ${ group } could not be found", upnf)
-    case usoe: UnsupportedOperationException => throw new IOException("Not on a POSIX supported file system", usoe)
-    case cce: ClassCastException => throw new IOException("No file permission elements in set", cce)
-    case fse: FileSystemException => throw new IOException(s"Not able to set the group to ${ group }. Probably the current user (${ System.getProperty("user.name") }) is not part of this group.", fse)
-    case ioe: IOException => throw new IOException(s"Could not set file permissions or group on $path", ioe)
-    case se: SecurityException => throw new IOException(s"Not enough privileges to set file permissions or group on $path", se)
+    case e: FileSystemException => throw new IOException(s"Not able to set the group to ${ groupPrincipal.getName }. Probably the current user (${ System.getProperty("user.name") }) is not part of this group.", e)
+    case e: IOException => throw new IOException(s"Could not set file permissions or group on $path", e)
+    case e: SecurityException => throw new IOException(s"Not enough privileges to set file permissions or group on $path", e)
     case NonFatal(e) => throw new IOException(s"unexpected error occured on $path", e)
   }
 

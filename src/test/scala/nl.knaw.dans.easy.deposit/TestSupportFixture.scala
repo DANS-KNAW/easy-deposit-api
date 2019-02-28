@@ -39,17 +39,22 @@ trait TestSupportFixture extends FlatSpec with Matchers with Inside with BeforeA
   lazy val testDir: File = currentWorkingDirectory / "target" / "test" / getClass.getSimpleName
   lazy val uuid: UUID = UUID.randomUUID()
 
-  // copied from https://github.com/DANS-KNAW/easy-split-multi-deposit/blob/ea7c2dc3d6/src/test/scala/nl.knaw.dans.easy.multideposit/actions/SetDepositPermissionsSpec.scala#L102
+  // modification of https://github.com/DANS-KNAW/easy-split-multi-deposit/blob/ea7c2dc3d6/src/test/scala/nl.knaw.dans.easy.multideposit/actions/SetDepositPermissionsSpec.scala#L102
   lazy val (user, userGroup, unrelatedGroup) = {
     import scala.sys.process._
 
-    // don't hardcode users and groups, since we don't know what we have on travis
+    // don't hardcode users and groups, since we don't know what we have on travis or personal systems
     val user = Properties.userName
     val allGroups = "cut -d: -f1 /etc/group".!!.split("\n").filterNot(_ startsWith "#").toList
     val userGroups = s"id -Gn $user".!!.split(" ").toList
 
     (userGroups, allGroups.diff(userGroups)) match {
-      case (ug :: _, diff :: _) => (user, ug, diff)
+      case (ug :: _, diff :: _) =>
+        (
+          testDir.path.getFileSystem.getUserPrincipalLookupService.lookupPrincipalByName(user),
+          testDir.path.getFileSystem.getUserPrincipalLookupService.lookupPrincipalByGroupName(ug),
+          testDir.path.getFileSystem.getUserPrincipalLookupService.lookupPrincipalByGroupName(diff),
+        )
       case (Nil, _) => throw new AssertionError("no suitable user group found")
       case (_, Nil) => throw new AssertionError("no suitable unrelated group found")
     }
@@ -82,8 +87,7 @@ trait TestSupportFixture extends FlatSpec with Matchers with Inside with BeforeA
       addProperty("deposits.stage", testSubDir("stage").toString())
       addProperty("deposits.drafts", testSubDir("drafts").toString())
       addProperty("deposits.submit-to", testSubDir("easy-ingest-flow-inbox").toString())
-      addProperty("deposit.permissions.access", "rwxrwx---")
-      addProperty("deposit.permissions.group", userGroup)
+      addProperty("deposit.permissions.group", userGroup.getName)
       addProperty("pids.generator-service", "http://pidHostDoesNotExist.dans.knaw.nl")
       addProperty("users.ldap-url", "http://ldapHostDoesNotExist.dans.knaw.nl")
       addProperty("users.ldap-parent-entry", "-")

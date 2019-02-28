@@ -17,7 +17,6 @@ package nl.knaw.dans.easy.deposit
 
 import java.io.IOException
 import java.nio.file.Paths
-import java.nio.file.attribute.UserPrincipalNotFoundException
 
 import better.files.{ File, StringOps }
 import nl.knaw.dans.bag.DansBag
@@ -26,7 +25,7 @@ import nl.knaw.dans.easy.deposit.docs._
 import nl.knaw.dans.lib.error._
 import org.scalamock.scalatest.MockFactory
 
-import scala.util.{ Failure, Success, Try }
+import scala.util.{ Failure, Success }
 
 class SubmitterSpec extends TestSupportFixture with MockFactory {
   override def beforeEach(): Unit = {
@@ -40,14 +39,6 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
     .getOrRecover(e => fail("could not get test input", e))
   private val doi = datasetMetadata.doi
     .getOrElse(fail("could not get DOI from test input"))
-
-  "constructor" should "fail if the group does not exist" in {
-    Try {
-      new Submitter(testDir / "staged", testDir / "submitted", "non-existing-group-name")
-    } should matchPattern {
-      case Failure(e: UserPrincipalNotFoundException) =>
-    }
-  }
 
   "submit" should "fail if the user is not part of the given group" in {
     assume(DDM.triedSchema.isAvailable)
