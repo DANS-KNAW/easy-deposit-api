@@ -42,10 +42,10 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
 
   "lazy constructor" should "not be called by EasyDepositApiApp if the configured group does not exist" in {
     val props = minimalAppConfig.properties
-    props.setProperty("deposit.permissions.group", "nogroup")
+    props.setProperty("deposit.permissions.group", "not-existing-group")
 
     Try(new EasyDepositApiApp(new Configuration("", props))) should matchPattern {
-      case Failure(e: IOException) if e.getMessage == "Group nogroup could not be found" =>
+      case Failure(e: IOException) if e.getMessage == "Group not-existing-group could not be found" =>
     }
   }
 
