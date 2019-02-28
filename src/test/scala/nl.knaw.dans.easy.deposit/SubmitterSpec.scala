@@ -17,11 +17,9 @@ package nl.knaw.dans.easy.deposit
 
 import java.io.IOException
 import java.nio.file.Paths
-import java.nio.file.attribute.UserPrincipalNotFoundException
 
 import better.files.{ File, StringOps }
 import nl.knaw.dans.bag.DansBag
-import nl.knaw.dans.bag.v0.DansV0Bag
 import nl.knaw.dans.easy.deposit.docs.StateInfo.State
 import nl.knaw.dans.easy.deposit.docs._
 import nl.knaw.dans.lib.error._

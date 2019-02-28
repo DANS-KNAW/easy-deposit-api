@@ -19,12 +19,9 @@ import java.util.{ TimeZone, UUID }
 
 import better.files.File
 import better.files.File._
-import nl.knaw.dans.bag.DansBag
-import nl.knaw.dans.bag.v0.DansV0Bag
 import nl.knaw.dans.easy.deposit.PidRequesterComponent.PidRequester
 import nl.knaw.dans.easy.deposit.authentication.TokenSupport.TokenConfig
 import nl.knaw.dans.easy.deposit.authentication.{ AuthConfig, AuthUser, AuthenticationProvider, TokenSupport }
-import nl.knaw.dans.easy.deposit.docs._
 import org.apache.commons.configuration.PropertiesConfiguration
 import org.joda.time.{ DateTime, DateTimeUtils, DateTimeZone }
 import org.scalamock.scalatest.MockFactory
