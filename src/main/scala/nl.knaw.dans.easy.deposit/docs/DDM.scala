@@ -27,8 +27,8 @@ import scala.xml.Utility.trim
 import scala.xml._
 
 object DDM extends SchemedXml with DebugEnhancedLogging {
-  override protected val schemaNameSpace: String = "http://easy.dans.knaw.nl/schemas/md/ddm/"
-  override protected val schemaLocation: String = "https://easy.dans.knaw.nl/schemas/md/2018/05/ddm.xsd"
+  val schemaNameSpace: String = "http://easy.dans.knaw.nl/schemas/md/ddm/"
+  val schemaLocation: String = "https://easy.dans.knaw.nl/schemas/md/2018/05/ddm.xsd"
 
   def apply(dm: DatasetMetadata): Try[Elem] = Try {
     val lang: String = dm.languageOfDescription.map(_.key).orNull // null omits attribute rendering

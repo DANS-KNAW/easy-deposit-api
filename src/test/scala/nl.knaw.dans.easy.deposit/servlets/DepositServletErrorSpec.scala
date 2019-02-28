@@ -20,7 +20,6 @@ import java.util.UUID
 import nl.knaw.dans.easy.deposit._
 import nl.knaw.dans.easy.deposit.authentication.AuthUser.UserState
 import nl.knaw.dans.easy.deposit.authentication.{ AuthUser, AuthenticationMocker, AuthenticationProvider }
-import nl.knaw.dans.easy.deposit.docs._
 import org.eclipse.jetty.http.HttpStatus._
 import org.scalatra.auth.Scentry
 import org.scalatra.test.scalatest.ScalatraSuite
@@ -68,7 +67,6 @@ class DepositServletErrorSpec extends TestSupportFixture with ServletFixture wit
   }
 
   s"get /:uuid/metadata" should "report a corrupt dataset" in {
-    assume(DDM.triedSchema.isAvailable)
     (mockedApp.getDatasetMetadataForDeposit(_: String, _: UUID)) expects("foo", uuid) returning
       Failure(CorruptDepositException("foo", uuid.toString, new Exception("invalid json")))
 

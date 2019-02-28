@@ -55,7 +55,6 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
       case Success(StateInfo(State.draft, "Deposit is open for changes.")) =>
     }
 
-    assume(DDM.triedSchema.isAvailable)
     // the test
     new Submitter(testDir / "staged", testDir / "submitted")
       .submit(depositDir) should matchPattern { case Success(()) => }
@@ -86,7 +85,6 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
     (bagDir.parent / "deposit.properties").append(s"identifier.doi=$doi")
     (testDir / "submitted").createDirectories()
 
-    assume(DDM.triedSchema.isAvailable)
     new Submitter(testDir / "staged", testDir / "submitted")
       .submit(depositDir) should matchPattern { case Success(()) => }
 
@@ -105,7 +103,6 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
     // add file to manifest that does not exist
     (bag.baseDir / "manifest-sha1.txt").append("chk file")
 
-    assume(DDM.triedSchema.isAvailable)
     new Submitter(testDir / "staged", testDir / "submitted").submit(depositDir) should matchPattern {
       case Failure(e) if e.getMessage == s"invalid bag, missing [files, checksums]: [Set($testDir/drafts/user/${ depositDir.id }/bag/file), Set()]" =>
     }
@@ -124,7 +121,6 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
     manifest.write(manifest.contentAsString.replaceAll(" +", "xxx  "))
 
     val checksum = "a57ec0c3239f30b29f1e9270581be50a70c74c04"
-    assume(DDM.triedSchema.isAvailable)
     new Submitter(testDir / "staged", testDir / "submitted").submit(depositDir) should matchPattern {
       case Failure(e)
         if e.getMessage == s"staged and draft bag [${ bag.baseDir.parent }] have different payload manifest elements: (Set((data/file.txt,$checksum)),Set((data/file.txt,${ checksum }xxx)))" =>
