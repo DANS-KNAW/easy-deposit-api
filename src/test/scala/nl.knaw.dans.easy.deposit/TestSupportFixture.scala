@@ -97,13 +97,6 @@ trait TestSupportFixture extends FlatSpec with Matchers with Inside with BeforeA
     })
   }
 
-  def dansBag: DansBag = {
-    val depositInfo = DepositInfo()
-    val deposit = DepositDir(testDir, "foo", depositInfo.id)
-    val depositDir = deposit.baseDir / "foo" / depositInfo.id.toString
-    DansV0Bag.empty(depositDir / "bag").getOrElse(null)
-  }
-
   private def testSubDir(drafts: String) = {
     (testDir / drafts)
       .delete(true)

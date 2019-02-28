@@ -72,19 +72,18 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
     dir
   }
   private val draftsDir = getConfiguredDirectory("deposits.drafts")
-  private lazy val submitter = {
-    val stagingDir = getConfiguredDirectory("deposits.stage")
-    val group = configuration.properties.getString("deposit.permissions.group")
-    val submitToDir = getConfiguredDirectory("deposits.submit-to")
-    val principal = Try {
-      stagingDir.path.getFileSystem.getUserPrincipalLookupService.lookupPrincipalByGroupName(group)
-    }.getOrRecover {
-      case e: UserPrincipalNotFoundException => throw new IOException(s"Group $group could not be found", e)
-      case e: UnsupportedOperationException => throw new IOException("Not on a POSIX supported file system", e)
-      case NonFatal(e) => throw new IOException(s"unexpected error occured on $stagingDir", e)
-    }
-    new Submitter(stagingDir, submitToDir, principal)
+  private val stagingDir = getConfiguredDirectory("deposits.stage")
+  private val submitToDir = getConfiguredDirectory("deposits.submit-to")
+
+  private val group = configuration.properties.getString("deposit.permissions.group")
+  private val principal = Try {
+    stagingDir.path.getFileSystem.getUserPrincipalLookupService.lookupPrincipalByGroupName(group)
+  }.getOrRecover {
+    case e: UserPrincipalNotFoundException => throw new IOException(s"Group $group could not be found", e)
+    case e: UnsupportedOperationException => throw new IOException("Not on a POSIX supported file system", e)
+    case NonFatal(e) => throw new IOException(s"unexpected error occured on $stagingDir", e)
   }
+  private lazy val submitter = new Submitter(stagingDir, submitToDir, principal)
 
   private def getConfiguredDirectory(key: String): File = {
     val dir = File(configuration.properties.getString(key))

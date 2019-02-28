@@ -17,15 +17,17 @@ package nl.knaw.dans.easy.deposit
 
 import java.io.IOException
 import java.nio.file.Paths
+import java.nio.file.attribute.UserPrincipalNotFoundException
 
 import better.files.{ File, StringOps }
 import nl.knaw.dans.bag.DansBag
+import nl.knaw.dans.bag.v0.DansV0Bag
 import nl.knaw.dans.easy.deposit.docs.StateInfo.State
 import nl.knaw.dans.easy.deposit.docs._
 import nl.knaw.dans.lib.error._
 import org.scalamock.scalatest.MockFactory
 
-import scala.util.{ Failure, Success }
+import scala.util.{ Failure, Success, Try }
 
 class SubmitterSpec extends TestSupportFixture with MockFactory {
   override def beforeEach(): Unit = {
@@ -39,6 +41,15 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
     .getOrRecover(e => fail("could not get test input", e))
   private val doi = datasetMetadata.doi
     .getOrElse(fail("could not get DOI from test input"))
+
+  "lazy constructor" should "not be called by EasyDepositApiApp if the configured group does not exist" in {
+    val props = minimalAppConfig.properties
+    props.setProperty("deposit.permissions.group", "nogroup")
+
+    Try(new EasyDepositApiApp(new Configuration("", props))) should matchPattern {
+      case Failure(e: IOException) if e.getMessage == "Group nogroup could not be found" =>
+    }
+  }
 
   "submit" should "fail if the user is not part of the given group" in {
     assume(DDM.triedSchema.isAvailable)
