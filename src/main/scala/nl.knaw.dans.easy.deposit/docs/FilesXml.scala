@@ -23,8 +23,8 @@ import scala.xml.Elem
 
 object FilesXml extends SchemedXml {
 
-  override protected val schemaNameSpace = "http://easy.dans.knaw.nl/schemas/bag/metadata/files/"
-  override protected val schemaLocation = "https://easy.dans.knaw.nl/schemas/bag/metadata/files/2018/04/files.xsd"
+  val schemaNameSpace = "http://easy.dans.knaw.nl/schemas/bag/metadata/files/"
+  val schemaLocation = "https://easy.dans.knaw.nl/schemas/bag/metadata/files/2018/04/files.xsd"
 
   private val tika = new Tika
 

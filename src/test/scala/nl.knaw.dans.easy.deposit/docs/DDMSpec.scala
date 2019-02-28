@@ -15,6 +15,7 @@
  */
 package nl.knaw.dans.easy.deposit.docs
 
+import javax.xml.validation.Schema
 import nl.knaw.dans.easy.deposit.TestSupportFixture
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.{ SchemedKeyValue, SchemedValue }
 import nl.knaw.dans.easy.deposit.docs.JsonUtil.InvalidDocumentException
@@ -549,7 +550,6 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
 
   private implicit class RichDatasetMetadata(input: MinimalDatasetMetadata) {
     def causesInvalidDocumentException(expectedMessage: String): Assertion = {
-      assume(DDM.triedSchema.isAvailable)
       DDM(input) should matchPattern {
         case Failure(InvalidDocumentException("DatasetMetadata", t)) if t.getMessage == expectedMessage =>
       }
@@ -562,6 +562,7 @@ trait DdmBehavior {
   this: TestSupportFixture =>
 
   val emptyDDM: Elem
+  lazy val triedSchema: Try[Schema] = DDM.loadSchema
 
   /**
    * @param input              to be converted to DDM
@@ -577,14 +578,16 @@ trait DdmBehavior {
     lazy val triedDDM = DDM(datasetMetadata)
 
     if (expectedDdmContent.nonEmpty) it should "generate expected DDM" in {
-      assume(DDM.triedSchema.isAvailable)
       prettyPrinter.format(subset(triedDDM.getOrRecover(e => fail(e)))) shouldBe
         prettyPrinter.format(emptyDDM.copy(child = expectedDdmContent))
     }
 
     it should "generate valid DDM" in {
-      assume(DDM.triedSchema.isAvailable)
       triedDDM shouldBe a[Success[_]]
+      val ddm = triedDDM.getOrRecover(e => fail("should not get past the check above and fail here", e))
+
+      assume(triedSchema.isAvailable)
+      triedSchema.validate(ddm) shouldBe a[Success[_]]
     }
   }
 }
