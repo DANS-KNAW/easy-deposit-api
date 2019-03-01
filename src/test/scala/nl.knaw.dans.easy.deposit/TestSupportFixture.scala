@@ -46,12 +46,7 @@ trait TestSupportFixture extends FlatSpec with Matchers with Inside with BeforeA
     val userGroups = s"id -Gn $user".!!.split(" ").toList
 
     (userGroups, allGroups.diff(userGroups)) match {
-      case (ug :: _, diff :: _) =>
-        (
-          testDir.path.getFileSystem.getUserPrincipalLookupService.lookupPrincipalByName(user),
-          testDir.path.getFileSystem.getUserPrincipalLookupService.lookupPrincipalByGroupName(ug),
-          testDir.path.getFileSystem.getUserPrincipalLookupService.lookupPrincipalByGroupName(diff),
-        )
+      case (ug :: _, diff :: _) => (user, ug, diff)
       case (Nil, _) => throw new AssertionError("no suitable user group found")
       case (_, Nil) => throw new AssertionError("no suitable unrelated group found")
     }
@@ -84,7 +79,7 @@ trait TestSupportFixture extends FlatSpec with Matchers with Inside with BeforeA
       addProperty("deposits.stage", testSubDir("stage").toString())
       addProperty("deposits.drafts", testSubDir("drafts").toString())
       addProperty("deposits.submit-to", testSubDir("easy-ingest-flow-inbox").toString())
-      addProperty("deposit.permissions.group", userGroup.getName)
+      addProperty("deposit.permissions.group", userGroup)
       addProperty("pids.generator-service", "http://pidHostDoesNotExist.dans.knaw.nl")
       addProperty("users.ldap-url", "http://ldapHostDoesNotExist.dans.knaw.nl")
       addProperty("users.ldap-parent-entry", "-")

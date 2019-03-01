@@ -18,7 +18,7 @@ package nl.knaw.dans.easy.deposit
 import java.io.IOException
 import java.nio.file._
 import java.nio.file.attribute.PosixFilePermission.GROUP_WRITE
-import java.nio.file.attribute.{ GroupPrincipal, PosixFileAttributeView }
+import java.nio.file.attribute.{ GroupPrincipal, PosixFileAttributeView, UserPrincipalNotFoundException }
 
 import better.files.File
 import better.files.File.VisitOptions
@@ -32,6 +32,7 @@ import org.joda.time.DateTime
 import scala.collection.JavaConverters._
 import scala.util.control.NonFatal
 import scala.util.{ Failure, Success, Try }
+import nl.knaw.dans.lib.error._
 
 /**
  * Object that contains the logic for submitting a deposit.
@@ -41,8 +42,17 @@ import scala.util.{ Failure, Success, Try }
  */
 class Submitter(stagingBaseDir: File,
                 submitToBaseDir: File,
-                groupPrincipal: GroupPrincipal,
+                groupName: String,
                ) extends DebugEnhancedLogging {
+  private val groupPrincipal =  {
+    Try {
+      stagingBaseDir.path.getFileSystem.getUserPrincipalLookupService.lookupPrincipalByGroupName(groupName)
+    }.getOrRecover {
+      case e: UserPrincipalNotFoundException => throw new IOException(s"Group $groupName could not be found", e)
+      case e: UnsupportedOperationException => throw new IOException("Not on a POSIX supported file system", e)
+      case NonFatal(e) => throw new IOException(s"unexpected error occured on $stagingBaseDir", e)
+    }
+  }
 
   /**
    * Submits `depositDir` by writing the file metadata, updating the bag checksums, staging a copy
