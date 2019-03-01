@@ -15,9 +15,8 @@
  */
 package nl.knaw.dans.easy.deposit
 
-import java.io.{ IOException, InputStream }
+import java.io.InputStream
 import java.net.URI
-import java.nio.file.attribute.{ GroupPrincipal, UserPrincipalNotFoundException }
 import java.nio.file.{ FileAlreadyExistsException, Path }
 import java.util.UUID
 
@@ -31,7 +30,6 @@ import nl.knaw.dans.lib.error._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.apache.commons.configuration.PropertiesConfiguration
 
-import scala.util.control.NonFatal
 import scala.util.{ Failure, Success, Try }
 
 class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLogging

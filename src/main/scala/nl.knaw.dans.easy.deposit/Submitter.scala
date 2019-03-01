@@ -18,7 +18,7 @@ package nl.knaw.dans.easy.deposit
 import java.io.IOException
 import java.nio.file._
 import java.nio.file.attribute.PosixFilePermission.GROUP_WRITE
-import java.nio.file.attribute.{ GroupPrincipal, PosixFileAttributeView, UserPrincipalNotFoundException }
+import java.nio.file.attribute.{ PosixFileAttributeView, UserPrincipalNotFoundException }
 
 import better.files.File
 import better.files.File.VisitOptions
@@ -26,13 +26,13 @@ import nl.knaw.dans.bag.ChecksumAlgorithm.ChecksumAlgorithm
 import nl.knaw.dans.bag.DansBag
 import nl.knaw.dans.bag.v0.DansV0Bag
 import nl.knaw.dans.easy.deposit.docs.{ AgreementsXml, DDM, FilesXml, StateInfo }
+import nl.knaw.dans.lib.error._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.joda.time.DateTime
 
 import scala.collection.JavaConverters._
 import scala.util.control.NonFatal
 import scala.util.{ Failure, Success, Try }
-import nl.knaw.dans.lib.error._
 
 /**
  * Object that contains the logic for submitting a deposit.
@@ -44,7 +44,7 @@ class Submitter(stagingBaseDir: File,
                 submitToBaseDir: File,
                 groupName: String,
                ) extends DebugEnhancedLogging {
-  private val groupPrincipal =  {
+  private val groupPrincipal = {
     Try {
       stagingBaseDir.path.getFileSystem.getUserPrincipalLookupService.lookupPrincipalByGroupName(groupName)
     }.getOrRecover {
