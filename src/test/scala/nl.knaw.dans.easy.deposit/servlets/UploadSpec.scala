@@ -57,7 +57,7 @@ class UploadSpec extends DepositServletFixture {
         file.contentAsString shouldBe (testDir / "input" / file.name).contentAsString
       )
       (bagDir / "manifest-sha1.txt").lines.size shouldBe bodyParts.size
-      (testDir / "stage-upload").list.size shouldBe 0
+      (testDir / "stage-zips").list.size shouldBe 0
     }
   }
 
@@ -69,7 +69,7 @@ class UploadSpec extends DepositServletFixture {
       ("more", "4.txt", "Ut enim ad minim veniam"),
     ))
     val uuid = createDeposit
-    (testDir / s"stage-upload/foo-$uuid-XYZ").createDirectories() // mocks a concurrent post
+    (testDir / s"stage-zips/foo-$uuid-XYZ").createDirectories() // mocks a concurrent post
     post(
       uri = s"/deposit/$uuid/file/path/to/dir",
       params = Iterable(),
@@ -81,7 +81,7 @@ class UploadSpec extends DepositServletFixture {
       val bagDir = testDir / "drafts/foo" / uuid.toString / "bag"
       (bagDir / "data").list.size shouldBe 0
       (bagDir / "manifest-sha1.txt").lines.size shouldBe 0
-      (testDir / "stage-upload").list.size shouldBe 1
+      (testDir / "stage-zips").list.size shouldBe 1
     }
   }
 
