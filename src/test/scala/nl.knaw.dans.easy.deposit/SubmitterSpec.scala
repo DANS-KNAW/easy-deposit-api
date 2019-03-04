@@ -18,7 +18,7 @@ package nl.knaw.dans.easy.deposit
 import java.io.IOException
 import java.nio.file.Paths
 
-import better.files.{ File, StringOps }
+import better.files.StringOps
 import nl.knaw.dans.bag.DansBag
 import nl.knaw.dans.easy.deposit.docs.StateInfo.State
 import nl.knaw.dans.easy.deposit.docs._
@@ -44,9 +44,8 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
     val props = minimalAppConfig.properties
     props.setProperty("deposit.permissions.group", "not-existing-group")
 
-    Try(new EasyDepositApiApp(new Configuration("", props))) should matchPattern {
-      case Failure(e: IOException) if e.getMessage == "Group not-existing-group could not be found" =>
-    }
+    the [IOException] thrownBy new EasyDepositApiApp(new Configuration("", props)) should
+      have message "Group not-existing-group could not be found"
   }
 
   "submit" should "fail if the user is not part of the given group" in {
@@ -150,7 +149,7 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
     }
   }
 
-  private def addDoiToDepositProperties(bag: DansBag): File = {
+  private def addDoiToDepositProperties(bag: DansBag): Unit = {
     (bag.baseDir.parent / "deposit.properties").append(s"identifier.doi=$doi")
   }
 
