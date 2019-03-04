@@ -198,10 +198,10 @@ class UploadSpec extends DepositServletFixture {
       headers = Seq(fooBarBasicAuthHeader),
     ) {
       status shouldBe OK_200
-      body should include ("""{"filename":"readme.md","dirpath":"path/to/dir",""")
-      body should include ("""{"filename":"._login.html","dirpath":"path/to/dir/__MACOSX",""")
-      body should include ("""{"filename":"upload.html","dirpath":"path/to/dir",""")
-      body should include ("""{"filename":"login.html","dirpath":"path/to/dir",""")
+      body should include("""{"filename":"readme.md","dirpath":"path/to/dir",""")
+      body should include("""{"filename":"._login.html","dirpath":"path/to/dir/__MACOSX",""")
+      body should include("""{"filename":"upload.html","dirpath":"path/to/dir",""")
+      body should include("""{"filename":"login.html","dirpath":"path/to/dir",""")
     }
   }
 
@@ -235,10 +235,10 @@ class UploadSpec extends DepositServletFixture {
       headers = Seq(fooBarBasicAuthHeader),
     ) {
       status shouldBe OK_200
-      body should include ("""{"filename":"readme.md","dirpath":"",""")
-      body should include ("""{"filename":"._login.html","dirpath":"__MACOSX",""")
-      body should include ("""{"filename":"upload.html","dirpath":"",""")
-      body should include ("""{"filename":"login.html","dirpath":"",""")
+      body should include("""{"filename":"readme.md","dirpath":"",""")
+      body should include("""{"filename":"._login.html","dirpath":"__MACOSX",""")
+      body should include("""{"filename":"upload.html","dirpath":"",""")
+      body should include("""{"filename":"login.html","dirpath":"",""")
     }
   }
 

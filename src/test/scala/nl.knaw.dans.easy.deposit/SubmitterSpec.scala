@@ -25,7 +25,7 @@ import nl.knaw.dans.easy.deposit.docs._
 import nl.knaw.dans.lib.error._
 import org.scalamock.scalatest.MockFactory
 
-import scala.util.{ Failure, Success, Try }
+import scala.util.{ Failure, Success }
 
 class SubmitterSpec extends TestSupportFixture with MockFactory {
   override def beforeEach(): Unit = {
@@ -40,11 +40,12 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
   private val doi = datasetMetadata.doi
     .getOrElse(fail("could not get DOI from test input"))
 
-  "lazy constructor" should "not be called by EasyDepositApiApp if the configured group does not exist" in {
+  "constructor" should "fail if the configured group does not exist" in {
     val props = minimalAppConfig.properties
     props.setProperty("deposit.permissions.group", "not-existing-group")
 
-    the [IOException] thrownBy new EasyDepositApiApp(new Configuration("", props)) should
+    // the App creates the Submitter
+    the[IOException] thrownBy new EasyDepositApiApp(new Configuration("", props)) should
       have message "Group not-existing-group could not be found"
   }
 
