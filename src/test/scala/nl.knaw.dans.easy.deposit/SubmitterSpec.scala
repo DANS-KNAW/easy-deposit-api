@@ -15,9 +15,11 @@
  */
 package nl.knaw.dans.easy.deposit
 
+import java.io.IOException
 import java.nio.file.Paths
 
 import better.files.StringOps
+import nl.knaw.dans.bag.DansBag
 import nl.knaw.dans.easy.deposit.docs.StateInfo.State
 import nl.knaw.dans.easy.deposit.docs._
 import nl.knaw.dans.lib.error._
@@ -29,6 +31,7 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
   override def beforeEach(): Unit = {
     super.beforeEach()
     clearTestDir()
+    (testDir / "submitted").createDirectories()
   }
 
   private val customMessage = "Lorum ipsum"
@@ -37,17 +40,37 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
   private val doi = datasetMetadata.doi
     .getOrElse(fail("could not get DOI from test input"))
 
-  "submit" should "write all files" in {
+  "constructor" should "fail if the configured group does not exist" in {
+    val props = minimalAppConfig.properties
+    props.setProperty("deposit.permissions.group", "not-existing-group")
+
+    // the App creates the Submitter
+    the[IOException] thrownBy new EasyDepositApiApp(new Configuration("", props)) should
+      have message "Group not-existing-group could not be found"
+  }
+
+  "submit" should "fail if the user is not part of the given group" in {
+    assume(DDM.triedSchema.isAvailable)
+    val depositDir = createDeposit(datasetMetadata)
+    addDoiToDepositProperties(getBag(depositDir))
+
+    new Submitter(testDir / "stage-for-submit", testDir / "submitted", unrelatedGroup)
+      .submit(depositDir) should matchPattern {
+      case Failure(e: IOException) if e.getMessage matches
+        ".*Probably the current user .* is not part of this group.*" =>
+    }
+  }
+
+  it should "write all files" in {
 
     // preparations
     val depositDir = createDeposit(datasetMetadata.copy(messageForDataManager = Some(customMessage)))
     val bag = getBag(depositDir)
+    addDoiToDepositProperties(bag)
     val bagDir = bag.baseDir
-    (bagDir.parent / "deposit.properties").append(s"identifier.doi=$doi")
     bag.addPayloadFile("".inputStream, Paths.get("text.txt"))
     bag.addPayloadFile("Lorum ipsum".inputStream, Paths.get("folder/text.txt"))
     bag.save()
-    (testDir / "submitted").createDirectories()
 
     // preconditions
     val mdOldSize = (bagDir / "metadata" / "dataset.json").size // should not change
@@ -57,11 +80,11 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
 
     assume(DDM.triedSchema.isAvailable)
     // the test
-    new Submitter(testDir / "staged", testDir / "submitted")
+    new Submitter(testDir / "stage-for-submit", testDir / "submitted", userGroup)
       .submit(depositDir) should matchPattern { case Success(()) => }
 
     // post conditions
-    (testDir / "staged").children.size shouldBe 0
+    (testDir / "stage-for-submit").children.size shouldBe 0
     (bagDir / "metadata" / "dataset.json").size shouldBe mdOldSize // no DOI added
     val submittedBagDir = testDir / "submitted" / depositDir.id.toString / "bag"
     (submittedBagDir / "metadata" / "message-from-depositor.txt").contentAsString shouldBe customMessage
@@ -82,12 +105,10 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
   it should "write empty message-from-depositor file" in {
 
     val depositDir = createDeposit(datasetMetadata.copy(messageForDataManager = None))
-    val bagDir = getBagDir(depositDir)
-    (bagDir.parent / "deposit.properties").append(s"identifier.doi=$doi")
-    (testDir / "submitted").createDirectories()
+    addDoiToDepositProperties(getBag(depositDir))
 
     assume(DDM.triedSchema.isAvailable)
-    new Submitter(testDir / "staged", testDir / "submitted")
+    new Submitter(testDir / "stage-for-submit", testDir / "submitted", userGroup)
       .submit(depositDir) should matchPattern { case Success(()) => }
 
     (testDir / "submitted" / depositDir.id.toString / "bag" / "metadata" / "message-from-depositor.txt")
@@ -97,16 +118,15 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
   it should "report a file missing in the draft" in {
     val depositDir = createDeposit(datasetMetadata)
     val bag = getBag(depositDir)
-    (bag.baseDir.parent / "deposit.properties").append(s"identifier.doi=$doi")
+    addDoiToDepositProperties(bag)
     bag.addPayloadFile("lorum ipsum".inputStream, Paths.get("file.txt"))
     bag.save()
-    (testDir / "submitted").createDirectories()
 
     // add file to manifest that does not exist
     (bag.baseDir / "manifest-sha1.txt").append("chk file")
 
     assume(DDM.triedSchema.isAvailable)
-    new Submitter(testDir / "staged", testDir / "submitted").submit(depositDir) should matchPattern {
+    new Submitter(testDir / "stage-for-submit", testDir / "submitted", userGroup).submit(depositDir) should matchPattern {
       case Failure(e) if e.getMessage == s"invalid bag, missing [files, checksums]: [Set($testDir/drafts/user/${ depositDir.id }/bag/file), Set()]" =>
     }
   }
@@ -114,10 +134,9 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
   it should "report an invalid checksum" in {
     val depositDir = createDeposit(datasetMetadata)
     val bag = getBag(depositDir)
-    (bag.baseDir.parent / "deposit.properties").append(s"identifier.doi=$doi")
+    addDoiToDepositProperties(bag)
     bag.addPayloadFile("lorum ipsum".inputStream, Paths.get("file.txt"))
     bag.save()
-    (testDir / "submitted").createDirectories()
 
     // change a checksum in the manifest
     val manifest = bag.baseDir / "manifest-sha1.txt"
@@ -125,13 +144,15 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
 
     val checksum = "a57ec0c3239f30b29f1e9270581be50a70c74c04"
     assume(DDM.triedSchema.isAvailable)
-    new Submitter(testDir / "staged", testDir / "submitted").submit(depositDir) should matchPattern {
+    new Submitter(testDir / "stage-for-submit", testDir / "submitted", userGroup).submit(depositDir) should matchPattern {
       case Failure(e)
         if e.getMessage == s"staged and draft bag [${ bag.baseDir.parent }] have different payload manifest elements: (Set((data/file.txt,$checksum)),Set((data/file.txt,${ checksum }xxx)))" =>
     }
   }
 
-  private def getBagDir(depositDir: DepositDir) = getBag(depositDir).baseDir
+  private def addDoiToDepositProperties(bag: DansBag): Unit = {
+    (bag.baseDir.parent / "deposit.properties").append(s"identifier.doi=$doi")
+  }
 
   private def getBag(depositDir: DepositDir) = {
     depositDir

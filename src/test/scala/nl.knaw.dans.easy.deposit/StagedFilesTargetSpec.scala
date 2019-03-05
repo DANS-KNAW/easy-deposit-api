@@ -28,7 +28,7 @@ import scala.util.{ Failure, Success }
 class StagedFilesTargetSpec extends TestSupportFixture {
 
   private val draftDir = testDir / "draft"
-  private val stagedDir = testDir / "staged"
+  private val stagedDir = testDir / "stage-for-submit"
 
   override def beforeEach(): Unit = {
     super.beforeEach()

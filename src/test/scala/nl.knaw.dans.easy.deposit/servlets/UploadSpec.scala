@@ -57,7 +57,7 @@ class UploadSpec extends DepositServletFixture {
         file.contentAsString shouldBe (testDir / "input" / file.name).contentAsString
       )
       (bagDir / "manifest-sha1.txt").lines.size shouldBe bodyParts.size
-      (testDir / "stage-upload").list.size shouldBe 0
+      (testDir / "stage-zips").list.size shouldBe 0
     }
   }
 
@@ -69,7 +69,7 @@ class UploadSpec extends DepositServletFixture {
       ("more", "4.txt", "Ut enim ad minim veniam"),
     ))
     val uuid = createDeposit
-    (testDir / s"stage-upload/foo-$uuid-XYZ").createDirectories() // mocks a concurrent post
+    (testDir / s"stage-zips/foo-$uuid-XYZ").createDirectories() // mocks a concurrent post
     post(
       uri = s"/deposit/$uuid/file/path/to/dir",
       params = Iterable(),
@@ -81,7 +81,7 @@ class UploadSpec extends DepositServletFixture {
       val bagDir = testDir / "drafts/foo" / uuid.toString / "bag"
       (bagDir / "data").list.size shouldBe 0
       (bagDir / "manifest-sha1.txt").lines.size shouldBe 0
-      (testDir / "stage-upload").list.size shouldBe 1
+      (testDir / "stage-zips").list.size shouldBe 1
     }
   }
 
@@ -198,10 +198,10 @@ class UploadSpec extends DepositServletFixture {
       headers = Seq(fooBarBasicAuthHeader),
     ) {
       status shouldBe OK_200
-      body should include ("""{"filename":"readme.md","dirpath":"path/to/dir",""")
-      body should include ("""{"filename":"._login.html","dirpath":"path/to/dir/__MACOSX",""")
-      body should include ("""{"filename":"upload.html","dirpath":"path/to/dir",""")
-      body should include ("""{"filename":"login.html","dirpath":"path/to/dir",""")
+      body should include("""{"filename":"readme.md","dirpath":"path/to/dir",""")
+      body should include("""{"filename":"._login.html","dirpath":"path/to/dir/__MACOSX",""")
+      body should include("""{"filename":"upload.html","dirpath":"path/to/dir",""")
+      body should include("""{"filename":"login.html","dirpath":"path/to/dir",""")
     }
   }
 
@@ -235,10 +235,10 @@ class UploadSpec extends DepositServletFixture {
       headers = Seq(fooBarBasicAuthHeader),
     ) {
       status shouldBe OK_200
-      body should include ("""{"filename":"readme.md","dirpath":"",""")
-      body should include ("""{"filename":"._login.html","dirpath":"__MACOSX",""")
-      body should include ("""{"filename":"upload.html","dirpath":"",""")
-      body should include ("""{"filename":"login.html","dirpath":"",""")
+      body should include("""{"filename":"readme.md","dirpath":"",""")
+      body should include("""{"filename":"._login.html","dirpath":"__MACOSX",""")
+      body should include("""{"filename":"upload.html","dirpath":"",""")
+      body should include("""{"filename":"login.html","dirpath":"",""")
     }
   }
 

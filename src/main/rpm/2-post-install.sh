@@ -20,9 +20,9 @@
 NUMBER_OF_INSTALLATIONS=$1
 MODULE_NAME=easy-deposit-api
 INSTALL_DIR=/opt/dans.knaw.nl/$MODULE_NAME
-DEPOSITS_STAGE_UPLOAD=/var/opt/dans.knaw.nl/tmp/easy-deposit-api/stage-upload
+DEPOSITS_STAGE_ZIPS=/var/opt/dans.knaw.nl/tmp/easy-deposit-api/stage-zips
 DEPOSITS_DRAFTS=/var/opt/dans.knaw.nl/tmp/easy-deposit-api/drafts
-DEPOSITS_STAGE=/var/opt/dans.knaw.nl/tmp/easy-deposit-api/stage
+DEPOSITS_STAGE_FOR_SUBMIT=/var/opt/dans.knaw.nl/tmp/easy-deposit-api/stage-for-submit
 DEPOSITS_SUBMIT_TO=/var/opt/dans.knaw.nl/tmp/easy-ingest-flow-inbox
 PHASE="POST-INSTALL"
 
@@ -32,24 +32,24 @@ service_install_systemd_unit "$INSTALL_DIR/install/$MODULE_NAME.service" $MODULE
 service_create_log_directory $MODULE_NAME
 echo "$PHASE: DONE"
 
-if [[ ! -d ${DEPOSITS_STAGE_UPLOAD} ]]; then
-  echo -n "Creating deposits stage/upload directory at ${DEPOSITS_STAGE_UPLOAD}..."
-  mkdir -p ${DEPOSITS_STAGE_UPLOAD}
-  chmod 755 ${DEPOSITS_STAGE_UPLOAD}
+if [[ ! -d ${DEPOSITS_STAGE_ZIPS} ]]; then
+  echo -n "Creating deposits stage/upload directory at ${DEPOSITS_STAGE_ZIPS}..."
+  mkdir -p ${DEPOSITS_STAGE_ZIPS}
+  chmod 755 ${DEPOSITS_STAGE_ZIPS}
   echo "OK"
 fi
 
 if [[ ! -d ${DEPOSITS_DRAFTS} ]]; then
-  echo -n "Creating deposits draft directory at ${DEPOSITS_STAGE}..."
+  echo -n "Creating deposits draft directory at ${DEPOSITS_STAGE_FOR_SUBMIT}..."
   mkdir -p ${DEPOSITS_DRAFTS}
   chmod 755 ${DEPOSITS_DRAFTS}
   echo "OK"
 fi
 
-if [[ ! -d ${DEPOSITS_STAGE} ]]; then
-  echo -n "Creating deposits stage directory at ${DEPOSITS_STAGE}..."
-  mkdir -p ${DEPOSITS_STAGE}
-  chmod 755 ${DEPOSITS_STAGE}
+if [[ ! -d ${DEPOSITS_STAGE_FOR_SUBMIT} ]]; then
+  echo -n "Creating deposits stage directory at ${DEPOSITS_STAGE_FOR_SUBMIT}..."
+  mkdir -p ${DEPOSITS_STAGE_FOR_SUBMIT}
+  chmod 755 ${DEPOSITS_STAGE_FOR_SUBMIT}
   echo "OK"
 fi
 
