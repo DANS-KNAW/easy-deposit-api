@@ -35,6 +35,9 @@ package object docs extends DebugEnhancedLogging {
     def isAvailable: Boolean = {
       triedSchema match {
         case Failure(e: SAXParseException) if e.getCause.isInstanceOf[UnknownHostException] => false
+        case Failure(e: SAXParseException) if e.getMessage.contains("Cannot resolve") =>
+          println("Probably an offline third party schema: " + e.getMessage)
+          false
         case _ => true
       }
     }
