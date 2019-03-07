@@ -21,8 +21,8 @@ import scala.util.Try
 import scala.xml.Elem
 
 object AgreementsXml extends SchemedXml {
-  val schemaNameSpace = "http://easy.dans.knaw.nl/schemas/bag/metadata/agreements/"
-  val schemaLocation = "https://easy.dans.knaw.nl/schemas/bag/metadata/agreements/2018/12/agreements.xsd"
+  override val schemaNameSpace = "http://easy.dans.knaw.nl/schemas/bag/metadata/agreements/"
+  override val schemaLocation = "https://easy.dans.knaw.nl/schemas/bag/metadata/agreements/2018/12/agreements.xsd"
 
   def apply(userId: String, dateSubmitted: DateTime, dm: DatasetMetadata): Try[Elem] = {
     for {

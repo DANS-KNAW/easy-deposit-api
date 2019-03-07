@@ -17,7 +17,7 @@ package nl.knaw.dans.easy.deposit.docs
 
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 
-trait SchemedXml extends DebugEnhancedLogging {
+trait SchemedXml {
   val schemaLocation: String // TODO property per object?
   val schemaNameSpace: String
 }

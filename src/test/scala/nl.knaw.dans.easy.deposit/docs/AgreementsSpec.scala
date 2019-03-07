@@ -62,9 +62,7 @@ class AgreementsSpec extends TestSupportFixture {
         acceptDepositAgreement = true,
         privacySensitiveDataPresent = PrivacySensitiveDataPresent.no
       )
-    ).flatMap(triedSchema.validate) should matchPattern {
-      case Success(_) =>
-    }
+    ).flatMap(triedSchema.validate) shouldBe a[Success[_]]
   }
 
   it should "complain about missing user" in {
