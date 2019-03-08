@@ -17,11 +17,15 @@ package nl.knaw.dans.easy.deposit
 
 import java.net.UnknownHostException
 
-import javax.xml.validation.Schema
+import better.files.StringOps
+import javax.xml.XMLConstants
+import javax.xml.transform.Source
+import javax.xml.transform.stream.StreamSource
+import javax.xml.validation.{ Schema, SchemaFactory }
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 
 import scala.util.{ Failure, Try }
-import scala.xml.{ PrettyPrinter, SAXParseException }
+import scala.xml.{ Elem, PrettyPrinter, SAXParseException }
 
 package object docs extends DebugEnhancedLogging {
   // pretty provides friendly trouble shooting for complex XML's
@@ -31,8 +35,28 @@ package object docs extends DebugEnhancedLogging {
     def isAvailable: Boolean = {
       triedSchema match {
         case Failure(e: SAXParseException) if e.getCause.isInstanceOf[UnknownHostException] => false
+        case Failure(e: SAXParseException) if e.getMessage.contains("Cannot resolve") =>
+          println("Probably an offline third party schema: " + e.getMessage)
+          false
         case _ => true
       }
+    }
+
+    def validate(xml: Elem): Try[Unit] = {
+      triedSchema.map(
+        _.newValidator().validate(new StreamSource(
+          prettyPrinter.format(xml).inputStream
+        ))
+      )
+    }
+  }
+
+  implicit class SchemedXmlExtension(val schemdXml: SchemedXml) extends AnyVal {
+    def loadSchema: Try[Schema] = Try {
+      trace(schemdXml.schemaLocation)
+      SchemaFactory
+        .newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI)
+        .newSchema(Array(new StreamSource(schemdXml.schemaLocation)).toArray[Source])
     }
   }
 }

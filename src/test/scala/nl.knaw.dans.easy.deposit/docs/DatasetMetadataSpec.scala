@@ -170,26 +170,6 @@ class DatasetMetadataSpec extends TestSupportFixture {
     DatasetMetadata("""{ "relations": [ { "qualifier": "dcterms:hasFormat", "title": "string" } ] }""") shouldBe a[Success[_]]
   }
 
-  it should "reject a relation with just a qualifier" in {
-    """{ "relations": [ { "qualifier": "dcterms:hasFormat" } ] }"""
-      .causesInvalidDocumentException( """expected one of (Relation | RelatedIdentifier) got: {"qualifier":"dcterms:hasFormat"}""")
-  }
-
-  it should "reject a relation with an empty url and empty title" in {
-    """{ "relations": [ { "qualifier": "dcterms:hasFormat", "title": "", "url": "" } ] }"""
-      .causesInvalidDocumentException( """expected one of (Relation | RelatedIdentifier) got: {"qualifier":"dcterms:hasFormat","title":"","url":""}""")
-  }
-
-  it should "reject a relation with an invalid url" in {
-    """{ "relations": [ { "qualifier": "dcterms:hasFormat", "title": "abc", "url": "string" } ] }"""
-      .causesInvalidDocumentException( """invalid URL [no protocol: string] got: {"qualifier":"dcterms:hasFormat","title":"abc","url":"string"}""")
-  }
-
-  it should "reject a RelatedIdentifier with an empty value" in {
-    """{ "relations": [ { "scheme": "xyz", "value": "", "qualifier": "dcterms:hasFormat" } ] }"""
-      .causesInvalidDocumentException( """expected one of (Relation | RelatedIdentifier) got: {"scheme":"xyz","value":"","qualifier":"dcterms:hasFormat"}""")
-  }
-
   it should "reject a RelatedIdentifier with an empty scheme" in {
     val s = """{ "relations": [ { "scheme": "", "value": "abc", "qualifier": "dcterms:hasFormat" } ] }"""
     DatasetMetadata(s) shouldBe a[Success[_]]
@@ -216,21 +196,6 @@ class DatasetMetadataSpec extends TestSupportFixture {
   "DatasetMetadata.audience" should "reject an audience without a scheme" in {
     """{"audiences": [{ "key": "yyy", "value": "" }]}"""
       .causesInvalidDocumentException("""don't recognize {"audiences":[{"key":"yyy","value":""}]}""")
-  }
-
-  it should "reject an audience with an empty string for a schema" in {
-    """{"audiences": [{ "scheme": "", "key": "xxx", "value": "yyy" }]}"""
-      .causesInvalidDocumentException("""requirement failed: Empty string for a mandatory field; got {"scheme":"","key":"xxx","value":"yyy"} SchemedKeyValue""")
-  }
-
-  it should "reject an audience with an empty string for a key" in {
-    """{"audiences": [{ "scheme": "xxx", "key": "", "value": "yyy" }]}"""
-      .causesInvalidDocumentException("""requirement failed: Empty string for a mandatory field; got {"scheme":"xxx","key":"","value":"yyy"} SchemedKeyValue""")
-  }
-
-  it should "reject an audience with an empty string for a value" in {
-    """{"audiences": [{ "scheme": "xxx", "key": "yyy", "value": "" }]}"""
-      .causesInvalidDocumentException("""requirement failed: Empty string for a mandatory field; got {"scheme":"xxx","key":"yyy","value":""} SchemedKeyValue""")
   }
 
   it should "accept both quoted and non quoted numbers" in {

@@ -15,6 +15,7 @@
  */
 package nl.knaw.dans.easy.deposit.docs
 
+import javax.xml.validation.Schema
 import nl.knaw.dans.easy.deposit.TestSupportFixture
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.{ SchemedKeyValue, SchemedValue }
 import nl.knaw.dans.easy.deposit.docs.JsonUtil.InvalidDocumentException
@@ -261,33 +262,6 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
     )
   }
 
-  "MinimalDatasetMetadata" should "fail when given a dateTimeFormat with little z for zone" in {
-    val invalidDates = Some(Seq(
-      Date(scheme = Some(W3CDTF.toString), value = Some("2018-12-09T13:15:30z"), Some(DateQualifier.created)), // small z for zone is not valid
-      dateAvailable2018,
-    ))
-    new MinimalDatasetMetadata(dates = invalidDates)
-      .causesInvalidDocumentException("cvc-datatype-valid.1.2.3: '2018-12-09T13:15:30z' is not a valid value of union type '#AnonType_W3CDTF'.")
-  }
-
-  it should "fail when given a dateTimeFormat with zone, where zone part is without a semi colon" in {
-    val invalidDates = Some(Seq(
-      Date(scheme = Some(W3CDTF.toString), value = Some("2018-12-09T13:15:30+1000"), Some(DateQualifier.created)), // small z for zone is not valid
-      dateAvailable2018,
-    ))
-    new MinimalDatasetMetadata(dates = invalidDates)
-      .causesInvalidDocumentException("cvc-datatype-valid.1.2.3: '2018-12-09T13:15:30+1000' is not a valid value of union type '#AnonType_W3CDTF'.")
-  }
-
-  it should "fail when give a dateTimeFormat with zone, where zone part is without minutes" in {
-    val invalidDates = Some(Seq(
-      Date(scheme = Some(W3CDTF.toString), value = Some("2018-12-09T13:15:30-05"), Some(DateQualifier.created)), // small z for zone is not valid
-      dateAvailable2018,
-    ))
-    new MinimalDatasetMetadata(dates = invalidDates)
-      .causesInvalidDocumentException("cvc-datatype-valid.1.2.3: '2018-12-09T13:15:30-05' is not a valid value of union type '#AnonType_W3CDTF'.")
-  }
-
   "minimal with points and boxes of issue 1538" should behave like {
     val input =
       """{  "spatialPoints": [
@@ -411,18 +385,6 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
   // the vital clue is obscured by the rest of the message: "title}' is expected"
   val missingTitle =
     """cvc-complex-type.2.4.a: Invalid content was found starting with element 'dcterms:description'. One of '{"http://purl.org/dc/elements/1.1/":title}' is expected."""
-
-  "apply" should "report a missing title" in {
-    new MinimalDatasetMetadata(titles = None).causesInvalidDocumentException(missingTitle)
-  }
-
-  it should "report an empty list of titles" in {
-    new MinimalDatasetMetadata(titles = Some(Seq.empty)).causesInvalidDocumentException(missingTitle)
-  }
-
-  it should "report an empty string as title" in {
-    new MinimalDatasetMetadata(titles = Some(Seq("   \t"))).causesInvalidDocumentException(missingTitle)
-  }
 
   "issue-1538.json" should behave like validDatasetMetadata(
     input = parseTestResource("issue-1538.json").map(_.setDoi("mocked_DOI"))
@@ -588,7 +550,6 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
 
   private implicit class RichDatasetMetadata(input: MinimalDatasetMetadata) {
     def causesInvalidDocumentException(expectedMessage: String): Assertion = {
-      assume(DDM.triedSchema.isAvailable)
       DDM(input) should matchPattern {
         case Failure(InvalidDocumentException("DatasetMetadata", t)) if t.getMessage == expectedMessage =>
       }
@@ -601,6 +562,7 @@ trait DdmBehavior {
   this: TestSupportFixture =>
 
   val emptyDDM: Elem
+  lazy val triedSchema: Try[Schema] = DDM.loadSchema
 
   /**
    * @param input              to be converted to DDM
@@ -616,14 +578,16 @@ trait DdmBehavior {
     lazy val triedDDM = DDM(datasetMetadata)
 
     if (expectedDdmContent.nonEmpty) it should "generate expected DDM" in {
-      assume(DDM.triedSchema.isAvailable)
       prettyPrinter.format(subset(triedDDM.getOrRecover(e => fail(e)))) shouldBe
         prettyPrinter.format(emptyDDM.copy(child = expectedDdmContent))
     }
 
     it should "generate valid DDM" in {
-      assume(DDM.triedSchema.isAvailable)
       triedDDM shouldBe a[Success[_]]
+      val ddm = triedDDM.getOrRecover(e => fail("should not get past the check above and fail here", e))
+
+      assume(triedSchema.isAvailable)
+      triedSchema.validate(ddm) shouldBe a[Success[_]]
     }
   }
 }

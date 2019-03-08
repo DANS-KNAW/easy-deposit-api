@@ -15,8 +15,11 @@
  */
 package nl.knaw.dans.easy.deposit.docs
 
+import javax.xml.validation.Schema
 import nl.knaw.dans.easy.deposit.TestSupportFixture
 import nl.knaw.dans.lib.error._
+
+import scala.util.{ Success, Try }
 
 class FilesXmlSpec extends TestSupportFixture {
 
@@ -25,6 +28,8 @@ class FilesXmlSpec extends TestSupportFixture {
     clearTestDir()
     (testDir / "data").createIfNotExists(asDirectory = true)
   }
+
+  private lazy val triedSchema: Try[Schema] = FilesXml.loadSchema
 
   "apply" should "produce an empty xml" in {
     prettyPrinter.format(createFilesXml) shouldBe prettyPrinter.format(
@@ -43,7 +48,6 @@ class FilesXmlSpec extends TestSupportFixture {
     (testDir / "data" / "test.txt").touch()
     (testDir / "data" / "folder" / "test.xml").touch()
 
-    assume(FilesXml.triedSchema.isAvailable)
     val xml = createFilesXml
     (xml \ "file").toList.sortBy(_.attribute("filepath").toString) shouldBe
         <file filepath="data/folder/test.xml">
@@ -52,7 +56,10 @@ class FilesXmlSpec extends TestSupportFixture {
         <file filepath="data/test.txt">
           <dcterms:format>text/plain</dcterms:format>
         </file>
-    FilesXml.validate(xml)
+    assume(triedSchema.isAvailable)
+    triedSchema.validate(xml) should matchPattern {
+      case Success(_) =>
+    }
   }
 
   private def createFilesXml = {

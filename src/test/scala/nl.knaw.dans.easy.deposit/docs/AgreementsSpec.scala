@@ -15,13 +15,14 @@
  */
 package nl.knaw.dans.easy.deposit.docs
 
+import javax.xml.validation.Schema
 import nl.knaw.dans.easy.deposit.TestSupportFixture
 import nl.knaw.dans.easy.deposit.docs.JsonUtil.InvalidDocumentException
 import nl.knaw.dans.easy.deposit.docs.dm.PrivacySensitiveDataPresent
 import org.joda.time.DateTime
 import org.xml.sax.SAXParseException
 
-import scala.util.{ Failure, Success }
+import scala.util.{ Failure, Success, Try }
 
 class AgreementsSpec extends TestSupportFixture {
 
@@ -33,7 +34,9 @@ class AgreementsSpec extends TestSupportFixture {
         acceptDepositAgreement = false,
         privacySensitiveDataPresent = PrivacySensitiveDataPresent.no
       )
-    ) should matchPattern { case Failure(InvalidDocumentException(_, e)) if e.getMessage == "Please set AcceptDepositAgreement" => }
+    ) should matchPattern {
+      case Failure(InvalidDocumentException(_, e)) if e.getMessage == "Please set AcceptDepositAgreement" =>
+    }
   }
   it should "complain about not specifying the presence of privacy sensitive data" in {
     AgreementsXml(
@@ -43,10 +46,15 @@ class AgreementsSpec extends TestSupportFixture {
         acceptDepositAgreement = true,
         privacySensitiveDataPresent = PrivacySensitiveDataPresent.unspecified
       )
-    ) should matchPattern { case Failure(InvalidDocumentException(_, e)) if e.getMessage == "Please set PrivacySensitiveDataPresent" => }
+    ) should matchPattern {
+      case Failure(InvalidDocumentException(_, e)) if e.getMessage == "Please set PrivacySensitiveDataPresent" =>
+    }
   }
+
+  private lazy val triedSchema: Try[Schema] = AgreementsXml.loadSchema
+
   "schema validation" should "succeed" in {
-    assume(AgreementsXml.triedSchema.isAvailable)
+    assume(triedSchema.isAvailable)
     AgreementsXml(
       "user",
       DateTime.now,
@@ -54,10 +62,11 @@ class AgreementsSpec extends TestSupportFixture {
         acceptDepositAgreement = true,
         privacySensitiveDataPresent = PrivacySensitiveDataPresent.no
       )
-    ).flatMap(AgreementsXml.validate) should matchPattern { case Success(_) => }
+    ).flatMap(triedSchema.validate) shouldBe a[Success[_]]
   }
+
   it should "complain about missing user" in {
-    assume(AgreementsXml.triedSchema.isAvailable)
+    assume(triedSchema.isAvailable)
     AgreementsXml(
       null,
       DateTime.now,
@@ -65,7 +74,8 @@ class AgreementsSpec extends TestSupportFixture {
         acceptDepositAgreement = true,
         privacySensitiveDataPresent = PrivacySensitiveDataPresent.no
       )
-    ).flatMap(AgreementsXml.validate) should matchPattern { case Failure(e: SAXParseException) if e.getMessage.contains("is not a valid value for 'NCName'") => }
-    // not an InvalidDocumentException as a missing user-id would be a programming error
+    ).flatMap(triedSchema.validate) should matchPattern {
+      case Failure(e: SAXParseException) if e.getMessage.contains("is not a valid value for 'NCName'") =>
+    }
   }
 }

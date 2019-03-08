@@ -16,7 +16,6 @@
 package nl.knaw.dans.easy.deposit.servlets
 
 import better.files.File
-import nl.knaw.dans.easy.deposit.docs._
 import org.eclipse.jetty.http.HttpStatus._
 
 class DoiSpec extends DepositServletFixture {
@@ -106,7 +105,6 @@ class DoiSpec extends DepositServletFixture {
   }
 
   "PUT /deposit/{id}/state" should "succeed when DOI's are equal" in {
-    assume(DDM.triedSchema.isAvailable)
     val uuid = createDeposit
     propsFile(uuid).append(doiProperty)
     jsonFile(uuid).write(s"""{$doiForJson,$mandatoryOnSubmit}""")

@@ -90,25 +90,6 @@ case class DatasetMetadata(private val identifiers: Option[Seq[SchemedValue]] = 
     val ids = identifiers.getOrElse(Seq.empty).filterNot(_.scheme == doiScheme)
     this.copy(identifiers = Some(ids :+ SchemedValue(doiScheme, value)))
   }
-
-  /** Validations as far as not covered by DDM schema validation. */
-  private[docs] def validate(): Try[Unit] = {
-    def missingMandatory[T <: Mandatory](values: Seq[T]): Try[Unit] = {
-      val invalid = values
-        .withFilter(!_.hasMandatory)
-        .map(x => x.getClass.getSimpleName + JsonUtil.toJson(x))
-        .mkString(", ")
-      if (invalid.isEmpty) Success(())
-      else {
-        Failure(new IllegalArgumentException(s"Missing mandatory values in: $invalid"))
-      }
-    }
-
-    for { // TODO collect errors over multiple types of validation errors
-      _ <- Author.validate(authors)
-      _ <- missingMandatory(authors ++ (dates ++ spatialPoints ++ spatialBoxes).toSeq.flatten)
-    } yield ()
-  }
 }
 
 object DatasetMetadata {
@@ -140,31 +121,20 @@ object DatasetMetadata {
 
   case class SchemedValue(scheme: String,
                           value: String,
-                         ) extends Requirements {
-    requireNonEmptyString(scheme)
-    requireNonEmptyString(value)
-  }
+                         )
 
   case class PossiblySchemedValue(override val scheme: Option[String],
                                   value: String,
-                                 ) extends PossiblySchemed with Requirements {
-    requireNonEmptyString(value)
-  }
+                                 ) extends PossiblySchemed
 
   case class SchemedKeyValue(scheme: String,
                              key: String,
                              value: String,
-                            ) extends Requirements {
-    requireNonEmptyString(scheme)
-    requireNonEmptyString(value)
-    requireNonEmptyString(key)
-  }
+                            )
 
   case class PossiblySchemedKeyValue(override val scheme: Option[String],
                                      override val key: Option[String],
                                      value: String,
-                                    ) extends PossiblySchemed with PossiblyKeyed with Requirements {
-    requireNonEmptyString(value)
-  }
+                                    ) extends PossiblySchemed with PossiblyKeyed
 }
 
