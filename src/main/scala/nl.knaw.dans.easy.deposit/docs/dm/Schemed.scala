@@ -19,37 +19,19 @@ import nl.knaw.dans.lib.string._
 
 import scala.xml.Elem
 
-trait PossiblySchemed {
-  val scheme: Option[String]
-
-  def schemeAsString: String = scheme match {
-    case Some(s: String) if s.trim.nonEmpty => s.trim
-    case _ => null // will suppress the XML attribute
-  }
-}
-
-trait PossiblyKeyed {
-  val key: Option[String]
-
-  def keyAsString: String = key match {
-    case Some(s: String) if s.trim.nonEmpty => s.trim
-    case _ => null
-  }
-}
-
-case class SchemedValue(override val scheme: Option[String],
+case class SchemedValue(scheme: Option[String],
                         value: Option[String],
-                       ) extends PossiblySchemed
+                       )
 object SchemedValue {
   def apply(scheme: String, value: String): SchemedValue = {
     SchemedValue(Some(scheme), Some(value))
   }
 }
 
-case class SchemedKeyValue(override val scheme: Option[String],
-                           override val key: Option[String],
+case class SchemedKeyValue(scheme: Option[String],
+                           key: Option[String],
                            value: Option[String],
-                          ) extends PossiblySchemed with PossiblyKeyed
+                          )
 
 object SchemedKeyValue {
   def apply(scheme: String, key: String, value: String): SchemedKeyValue = {

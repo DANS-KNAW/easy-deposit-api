@@ -17,8 +17,6 @@ package nl.knaw.dans.easy.deposit.docs
 
 import nl.knaw.dans.lib.string._
 
-import scala.xml.Elem
-
 object StringUtils {
 
   implicit class OptionSeq[T](val sources: Option[Seq[T]]) extends AnyVal {
@@ -30,5 +28,9 @@ object StringUtils {
 
   implicit class RichOption(val str: Option[String]) extends AnyVal {
     def getNonEmpty: Seq[String] = str.filterNot(_.isBlank).toSeq
+
+    def collectOrNull: String = str.collect { case s if !s.isBlank => s.trim }.orNull
+
+    def collectOrEmpty: String = str.collect { case s if !s.isBlank => s.trim }.getOrElse("")
   }
 }

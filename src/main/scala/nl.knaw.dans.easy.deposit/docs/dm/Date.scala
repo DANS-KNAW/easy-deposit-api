@@ -39,10 +39,10 @@ object DateScheme extends Enumeration {
 }
 
 case class Date(
-                 override val scheme: Option[String],
+                 scheme: Option[String],
                  value: Option[String],
                  qualifier: Option[DateQualifier],
-               ) extends PossiblySchemed
+               )
 
 object Date {
   private def dateSubmitted: Date = Date(

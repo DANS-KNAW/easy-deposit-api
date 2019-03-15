@@ -15,10 +15,6 @@
  */
 package nl.knaw.dans.easy.deposit.docs.dm
 
-import java.net.URL
-
-import nl.knaw.dans.easy.deposit.docs.DatasetMetadata._
-import nl.knaw.dans.easy.deposit.docs.StringUtils._
 import nl.knaw.dans.easy.deposit.docs.dm.RelationQualifier.RelationQualifier
 import nl.knaw.dans.lib.string._
 
@@ -58,9 +54,9 @@ case class Relation(override val qualifier: RelationQualifier,
   )
 }
 
-case class RelatedIdentifier(override val scheme: Option[String],
+case class RelatedIdentifier(scheme: Option[String],
                              value: String,
                              override val qualifier: RelationQualifier
-                            ) extends RelationType with PossiblySchemed {
+                            ) extends RelationType {
   override def withCleanOptions: RelationType = this
 }
