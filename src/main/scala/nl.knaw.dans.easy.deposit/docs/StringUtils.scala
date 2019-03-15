@@ -29,6 +29,7 @@ object StringUtils {
   implicit class RichOption(val str: Option[String]) extends AnyVal {
     def getNonEmpty: Seq[String] = str.filterNot(_.isBlank).toSeq
 
+    // null omits attribute rendering
     def collectOrNull: String = str.collect { case s if !s.isBlank => s.trim }.orNull
 
     def collectOrEmpty: String = str.collect { case s if !s.isBlank => s.trim }.getOrElse("")

@@ -39,7 +39,7 @@ object SchemedKeyValue {
   }
 
   implicit class SchemedKeyValuesExtensions(val skv: Seq[SchemedKeyValue]) extends AnyVal {
-    def collectKey(f: String => Elem): Seq[Elem] = skv.collect {
+    def collectKey[T](f: String => T): Seq[T] = skv.collect {
       case SchemedKeyValue(_, Some(key), _) if !key.isBlank => f(key)
     }
   }

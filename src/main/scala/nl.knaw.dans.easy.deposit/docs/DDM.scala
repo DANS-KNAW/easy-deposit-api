@@ -30,8 +30,8 @@ object DDM extends SchemedXml with DebugEnhancedLogging {
   override val schemaLocation: String = "https://easy.dans.knaw.nl/schemas/md/2018/05/ddm.xsd"
 
   def apply(dm: DatasetMetadata): Try[Elem] = Try {
-    val lang: String = dm.languageOfDescription
-      .collect { case SchemedKeyValue(_, Some(str), _) if !str.isBlank => str }.orNull
+    val lang: String = dm.languageOfDescription.toSeq.collectKey(key => key)
+      .headOption.orNull // null omits attribute rendering
     <ddm:DDM
       xmlns:dc="http://purl.org/dc/elements/1.1/"
       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
