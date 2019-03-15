@@ -17,8 +17,6 @@ package nl.knaw.dans.easy.deposit.docs.dm
 
 import nl.knaw.dans.lib.string._
 
-import scala.xml.Elem
-
 case class SchemedValue(scheme: Option[String],
                         value: Option[String],
                        )

@@ -587,7 +587,7 @@ trait DdmBehavior {
 
       assume(triedSchema.isAvailable)
       val result = triedSchema.validate(ddm)
-      if(result.isFailure) // trouble shoot broken tests
+      if (result.isFailure) // trouble shoot broken tests
         println(prettyPrinter.format(subset(triedDDM.getOrRecover(e => fail(e)))))
       result shouldBe a[Success[_]]
     }
