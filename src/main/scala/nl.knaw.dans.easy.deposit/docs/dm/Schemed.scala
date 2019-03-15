@@ -15,6 +15,9 @@
  */
 package nl.knaw.dans.easy.deposit.docs.dm
 
+import nl.knaw.dans.lib.string._
+
+import scala.xml.Elem
 
 trait PossiblySchemed {
   val scheme: Option[String]
@@ -51,5 +54,11 @@ case class SchemedKeyValue(override val scheme: Option[String],
 object SchemedKeyValue {
   def apply(scheme: String, key: String, value: String): SchemedKeyValue = {
     SchemedKeyValue(Some(scheme), Some(key), Some(value))
+  }
+
+  implicit class SchemedKeyValuesExtensions(val skv: Seq[SchemedKeyValue]) extends AnyVal {
+    def collectKey(f: String => Elem): Seq[Elem] = skv.collect {
+      case SchemedKeyValue(_, Some(key), _) if !key.isBlank => f(key)
+    }
   }
 }

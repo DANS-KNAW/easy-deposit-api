@@ -17,6 +17,8 @@ package nl.knaw.dans.easy.deposit.docs
 
 import nl.knaw.dans.lib.string._
 
+import scala.xml.Elem
+
 object StringUtils {
 
   implicit class OptionSeq[T](val sources: Option[Seq[T]]) extends AnyVal {

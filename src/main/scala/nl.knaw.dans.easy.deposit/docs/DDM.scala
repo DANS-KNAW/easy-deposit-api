@@ -31,7 +31,7 @@ object DDM extends SchemedXml with DebugEnhancedLogging {
 
   def apply(dm: DatasetMetadata): Try[Elem] = Try {
     val lang: String = dm.languageOfDescription
-      .collect{ case SchemedKeyValue(_, Some(str), _) if !str.isBlank => str }.orNull
+      .collect { case SchemedKeyValue(_, Some(str), _) if !str.isBlank => str }.orNull
     <ddm:DDM
       xmlns:dc="http://purl.org/dc/elements/1.1/"
       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
@@ -50,7 +50,7 @@ object DDM extends SchemedXml with DebugEnhancedLogging {
         { dm.creators.getNonEmpty.map(author => <dcx-dai:creatorDetails>{ details(author, lang) }</dcx-dai:creatorDetails>) }
         { dm.datesCreated.toSeq.flatMap(_.value).map(str => <ddm:created>{ str }</ddm:created>) }
         { dm.datesAvailable.toSeq.flatMap(_.value).map(str => <ddm:available>{ str }</ddm:available>) }
-        { dm.audiences.getNonEmpty.flatMap(_.key).map(src => <ddm:audience>{ src }</ddm:audience>) }
+        { dm.audiences.toSeq.flatten.collectKey(key => <ddm:audience>{ key }</ddm:audience>) }
         { dm.accessRights.toSeq.map(src => <ddm:accessRights>{ src.category.toString }</ddm:accessRights>) }
       </ddm:profile>
       <ddm:dcmiMetadata>
@@ -131,14 +131,14 @@ object DDM extends SchemedXml with DebugEnhancedLogging {
         { author.insertions.getNonEmpty.map(str => <dcx-dai:insertions>{ str }</dcx-dai:insertions>) }
         { author.surname.getNonEmpty.map(str => <dcx-dai:surname>{ str }</dcx-dai:surname>) }
         { author.ids.getNonEmpty.map(src => <label>{ src.value.getOrElse("") }</label>.withLabel(s"dcx-dai:${ src.scheme.getOrElse("").replace("id-type:", "") }")) }
-        { author.role.toSeq.map(role => <dcx-dai:role>{ role.key.getOrElse("") }</dcx-dai:role>) }
+        { author.role.toSeq.collectKey(key =>  <dcx-dai:role>{ key }</dcx-dai:role> ) }
         { author.organization.getNonEmpty.map(orgDetails(_, lang, role = None)) }
       </dcx-dai:author>
   }
 
   private def orgDetails(organization: String, lang: String, role: Option[SchemedKeyValue]): Elem =
       <dcx-dai:organization>
-        { role.toSeq.map(role => <dcx-dai:role>{ role.key.getOrElse("") }</dcx-dai:role>) }
+        { role.toSeq.collectKey(key => <dcx-dai:role>{ key }</dcx-dai:role>) }
         { <dcx-dai:name xml:lang={ lang }>{ organization }</dcx-dai:name> }
       </dcx-dai:organization>
 
