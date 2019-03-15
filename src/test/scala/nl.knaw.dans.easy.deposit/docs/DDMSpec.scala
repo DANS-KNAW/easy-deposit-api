@@ -17,7 +17,6 @@ package nl.knaw.dans.easy.deposit.docs
 
 import javax.xml.validation.Schema
 import nl.knaw.dans.easy.deposit.TestSupportFixture
-import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.{ SchemedKeyValue, SchemedValue }
 import nl.knaw.dans.easy.deposit.docs.JsonUtil.InvalidDocumentException
 import nl.knaw.dans.easy.deposit.docs.dm.DateScheme.W3CDTF
 import nl.knaw.dans.easy.deposit.docs.dm._
@@ -587,7 +586,10 @@ trait DdmBehavior {
       val ddm = triedDDM.getOrRecover(e => fail("should not get past the check above and fail here", e))
 
       assume(triedSchema.isAvailable)
-      triedSchema.validate(ddm) shouldBe a[Success[_]]
+      val result = triedSchema.validate(ddm)
+      if(result.isFailure) // trouble shoot broken tests
+        println(prettyPrinter.format(subset(triedDDM.getOrRecover(e => fail(e)))))
+      result shouldBe a[Success[_]]
     }
   }
 }

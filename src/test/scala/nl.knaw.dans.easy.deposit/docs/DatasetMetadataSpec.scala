@@ -193,9 +193,8 @@ class DatasetMetadataSpec extends TestSupportFixture {
     DatasetMetadata("""{ "contributors": [ { "organization": "University of Zurich" } ] }""") shouldBe a[Success[_]]
   }
 
-  "DatasetMetadata.audience" should "reject an audience without a scheme" in {
-    """{"audiences": [{ "key": "yyy", "value": "" }]}"""
-      .causesInvalidDocumentException("""don't recognize {"audiences":[{"key":"yyy","value":""}]}""")
+  "DatasetMetadata.audience" should "accept an audience without a scheme" in {
+    DatasetMetadata("""{"audiences": [{ "key": "yyy", "value": "" }]}""") shouldBe a[Success[_]]
   }
 
   it should "accept both quoted and non quoted numbers" in {
