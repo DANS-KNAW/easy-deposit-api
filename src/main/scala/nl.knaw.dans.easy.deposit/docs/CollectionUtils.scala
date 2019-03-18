@@ -15,23 +15,30 @@
  */
 package nl.knaw.dans.easy.deposit.docs
 
+import nl.knaw.dans.easy.deposit.docs.dm.SchemedKeyValue
 import nl.knaw.dans.lib.string._
 
-object StringUtils {
+object CollectionUtils {
+
+  implicit class SchemedKeyValuesExtensions(val skv: Seq[SchemedKeyValue]) extends AnyVal {
+    def mapNonBlankKey[T](f: String => T): Seq[T] = skv.collect {
+      case SchemedKeyValue(_, Some(key), _) if !key.isBlank => f(key)
+    }
+  }
 
   implicit class OptionSeq[T](val sources: Option[Seq[T]]) extends AnyVal {
-    def getNonEmpty: Seq[T] = sources.map(_.filter {
+    def getNonEmpty: Seq[T] = sources.toSeq.flatten.filter {
       case source: String => !source.isBlank
       case _ => true
-    }).getOrElse(Seq.empty)
+    }
   }
 
   implicit class RichOption(val str: Option[String]) extends AnyVal {
     def getNonEmpty: Seq[String] = str.filterNot(_.isBlank).toSeq
 
     // null omits attribute rendering
-    def collectOrNull: String = str.collect { case s if !s.isBlank => s.trim }.orNull
+    def nonBlankOrNull: String = str.collect { case s if !s.isBlank => s.trim }.orNull
 
-    def collectOrEmpty: String = str.collect { case s if !s.isBlank => s.trim }.getOrElse("")
+    def nonBlankOrEmpty: String = str.collect { case s if !s.isBlank => s.trim }.getOrElse("")
   }
 }

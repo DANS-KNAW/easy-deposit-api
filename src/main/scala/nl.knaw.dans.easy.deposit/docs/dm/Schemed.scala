@@ -15,8 +15,6 @@
  */
 package nl.knaw.dans.easy.deposit.docs.dm
 
-import nl.knaw.dans.lib.string._
-
 case class SchemedValue(scheme: Option[String],
                         value: Option[String],
                        )
@@ -34,11 +32,5 @@ case class SchemedKeyValue(scheme: Option[String],
 object SchemedKeyValue {
   def apply(scheme: String, key: String, value: String): SchemedKeyValue = {
     SchemedKeyValue(Some(scheme), Some(key), Some(value))
-  }
-
-  implicit class SchemedKeyValuesExtensions(val skv: Seq[SchemedKeyValue]) extends AnyVal {
-    def collectKey[T](f: String => T): Seq[T] = skv.collect {
-      case SchemedKeyValue(_, Some(key), _) if !key.isBlank => f(key)
-    }
   }
 }
