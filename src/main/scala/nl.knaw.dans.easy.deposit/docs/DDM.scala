@@ -49,7 +49,7 @@ object DDM extends SchemedXml with DebugEnhancedLogging {
         { dm.creators.getNonEmpty.map(author => <dcx-dai:creatorDetails>{ details(author, lang) }</dcx-dai:creatorDetails>) }
         { dm.datesCreated.toSeq.flatMap(_.value).map(str => <ddm:created>{ str }</ddm:created>) }
         { dm.datesAvailable.toSeq.flatMap(_.value).map(str => <ddm:available>{ str }</ddm:available>) }
-        { dm.audiences.toSeq.flatten.collectKey(key => <ddm:audience>{ key }</ddm:audience>) }
+        { dm.audiences.getNonEmpty.collectKey(key => <ddm:audience>{ key }</ddm:audience>) }
         { dm.accessRights.toSeq.map(src => <ddm:accessRights>{ src.category.toString }</ddm:accessRights>) }
       </ddm:profile>
       <ddm:dcmiMetadata>

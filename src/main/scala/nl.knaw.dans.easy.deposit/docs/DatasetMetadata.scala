@@ -78,9 +78,10 @@ case class DatasetMetadata(private val identifiers: Option[Seq[SchemedValue]] = 
 
   lazy val allIdentifiers: Seq[SchemedValue] = identifiers.getOrElse(Seq()) ++ alternativeIdentifiers.getOrElse(Seq())
 
-  lazy val allTypes: Seq[SchemedValue] = types.getOrElse(Seq()) ++ typesDcmi.getOrElse(Seq()).map(
-    str => SchemedValue("dcterms:DCMIType", str)
-  )
+  lazy val allTypes: Seq[SchemedValue] = types.getOrElse(Seq()) ++
+    typesDcmi
+      .getOrElse(Seq())
+      .map(SchemedValue("dcterms:DCMIType", _))
 
   //// doi
   lazy val doi: Option[String] = identifiers.flatMap(_.collectFirst {
