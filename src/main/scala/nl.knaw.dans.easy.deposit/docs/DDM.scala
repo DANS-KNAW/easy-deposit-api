@@ -49,7 +49,7 @@ object DDM extends SchemedXml with DebugEnhancedLogging {
         { dm.creators.getNonEmpty.map(author => <dcx-dai:creatorDetails>{ details(author, lang) }</dcx-dai:creatorDetails>) }
         { dm.datesCreated.toSeq.flatMap(_.value).map(str => <ddm:created>{ str }</ddm:created>) }
         { dm.datesAvailable.toSeq.flatMap(_.value).map(str => <ddm:available>{ str }</ddm:available>) }
-        { dm.audiences.toSeq.flatten.mapNonBlankKey(key => <ddm:audience>{ key }</ddm:audience>) }
+        { dm.audiences.getNonEmpty.mapNonBlankKey(key => <ddm:audience>{ key }</ddm:audience>) }
         { dm.accessRights.toSeq.map(src => <ddm:accessRights>{ src.category.toString }</ddm:accessRights>) }
       </ddm:profile>
       <ddm:dcmiMetadata>
@@ -95,8 +95,8 @@ object DDM extends SchemedXml with DebugEnhancedLogging {
       case Relation(_, Some(url: String), Some(title: String)) => <label xml:lang={ lang } href={ url }>{ title }</label>
       case Relation(_, Some(url: String), None) => <label href={ url }>{ url }</label>
       case Relation(_, None, Some(title: String)) => <label xml:lang={ lang }>{ title }</label>
-      case RelatedIdentifier(scheme,Some(value),_) => <label  xsi:type={ scheme.nonBlankOrNull }>{ value }</label>
-      case RelatedIdentifier(scheme,None,_) => <label  xsi:type={ scheme.nonBlankOrNull }></label>
+      case RelatedIdentifier(scheme, Some(value), _) => <label xsi:type={ scheme.nonBlankOrNull }>{ value }</label>
+      case RelatedIdentifier(scheme, None, _) => <label xsi:type={ scheme.nonBlankOrNull }></label>
       case _ => throw new IllegalArgumentException("invalid relation "+JsonUtil.toJson(relation))
     }
   }.withLabel(relation match { // replace the name space in case of an href=URL attribute

@@ -55,7 +55,7 @@ class DatasetMetadataSpec extends TestSupportFixture {
     val example = getManualTestResource(value)
     val parsed = prepareDatasetMetadata(example)
     val serializedObject = JsonMethods.parse(toJson(parsed))
-    (JsonMethods.parse(example) diff serializedObject) should matchPattern{
+    (JsonMethods.parse(example) diff serializedObject) should matchPattern {
       case Diff(JNothing, JNothing, JNothing) =>
     }
   }
