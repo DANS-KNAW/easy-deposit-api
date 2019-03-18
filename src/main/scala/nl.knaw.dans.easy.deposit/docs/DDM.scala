@@ -30,8 +30,7 @@ object DDM extends SchemedXml with DebugEnhancedLogging {
   override val schemaLocation: String = "https://easy.dans.knaw.nl/schemas/md/2018/05/ddm.xsd"
 
   def apply(dm: DatasetMetadata): Try[Elem] = Try {
-    val lang: String = dm.languageOfDescription.toSeq.collectKey(key => key)
-      .headOption.orNull // null omits attribute rendering
+    val lang: String = dm.languageOfDescription.flatMap(_.key).collectOrNull
     <ddm:DDM
       xmlns:dc="http://purl.org/dc/elements/1.1/"
       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
@@ -131,7 +130,7 @@ object DDM extends SchemedXml with DebugEnhancedLogging {
         { author.insertions.getNonEmpty.map(str => <dcx-dai:insertions>{ str }</dcx-dai:insertions>) }
         { author.surname.getNonEmpty.map(str => <dcx-dai:surname>{ str }</dcx-dai:surname>) }
         { author.ids.getNonEmpty.map(src => <label>{ src.value.collectOrNull }</label>.withLabel(s"dcx-dai:${ src.scheme.collectOrEmpty.replace("id-type:", "") }")) }
-        { author.role.toSeq.collectKey(key =>  <dcx-dai:role>{ key }</dcx-dai:role>) }
+        { author.role.toSeq.collectKey(key => <dcx-dai:role>{ key }</dcx-dai:role>) }
         { author.organization.getNonEmpty.map(orgDetails(_, lang, role = None)) }
       </dcx-dai:author>
   }
