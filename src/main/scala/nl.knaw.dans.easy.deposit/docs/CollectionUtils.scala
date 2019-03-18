@@ -15,25 +15,27 @@
  */
 package nl.knaw.dans.easy.deposit.docs
 
-import nl.knaw.dans.easy.deposit.docs.dm.SchemedKeyValue
 import nl.knaw.dans.lib.string._
 
 object CollectionUtils {
 
-  implicit class SchemedKeyValuesExtensions(val skv: Seq[SchemedKeyValue]) extends AnyVal {
-    def mapNonBlankKey[T](f: String => T): Seq[T] = skv.collect {
-      case SchemedKeyValue(_, Some(key), _) if !key.isBlank => f(key)
-    }
-  }
-
   implicit class RichSeq[T](val sources: Seq[T]) extends AnyVal {
     def getNonEmpty: Seq[T] = sources.filter {
-      case source: String => !source.isBlank
+      case str: String => !str.isBlank
+      case Some(str: String) => !str.isBlank
       case _ => true
     }
   }
 
   implicit class RichOptionSeq[T](val sources: Option[Seq[T]]) extends AnyVal {
+    def getNonEmpty: Seq[T] = sources.toSeq.flatten.getNonEmpty
+  }
+
+  implicit class RichSeqOption[T](val sources: Seq[Option[T]]) extends AnyVal {
+    def getNonEmpty: Seq[T] = sources.flatMap(_.toSeq).getNonEmpty
+  }
+
+  implicit class RichOptionOption[T](val sources: Option[Option[T]]) extends AnyVal {
     def getNonEmpty: Seq[T] = sources.toSeq.flatten.getNonEmpty
   }
 

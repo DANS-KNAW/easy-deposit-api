@@ -47,9 +47,9 @@ object DDM extends SchemedXml with DebugEnhancedLogging {
         { dm.titles.getNonEmpty.map(str => <dc:title xml:lang={ lang }>{ str }</dc:title>) }
         { dm.descriptions.getNonEmpty.map(str => <dcterms:description xml:lang={ lang }>{ str }</dcterms:description>) }
         { dm.creators.getNonEmpty.map(author => <dcx-dai:creatorDetails>{ details(author, lang) }</dcx-dai:creatorDetails>) }
-        { dm.datesCreated.toSeq.flatMap(_.value).map(str => <ddm:created>{ str }</ddm:created>) }
-        { dm.datesAvailable.toSeq.flatMap(_.value).map(str => <ddm:available>{ str }</ddm:available>) }
-        { dm.audiences.getNonEmpty.mapNonBlankKey(key => <ddm:audience>{ key }</ddm:audience>) }
+        { dm.datesCreated.map(_.value).getNonEmpty.map(str => <ddm:created>{ str }</ddm:created>) }
+        { dm.datesAvailable.map(_.value).getNonEmpty.map(str => <ddm:available>{ str }</ddm:available>) }
+        { dm.audiences.toSeq.flatten.map(_.key).getNonEmpty.map(key => <ddm:audience>{ key }</ddm:audience>) }
         { dm.accessRights.toSeq.map(src => <ddm:accessRights>{ src.category.toString }</ddm:accessRights>) }
       </ddm:profile>
       <ddm:dcmiMetadata>
@@ -136,14 +136,14 @@ object DDM extends SchemedXml with DebugEnhancedLogging {
         { author.insertions.getNonEmpty.map(str => <dcx-dai:insertions>{ str }</dcx-dai:insertions>) }
         { author.surname.getNonEmpty.map(str => <dcx-dai:surname>{ str }</dcx-dai:surname>) }
         { author.ids.getNonEmpty.map(src => <label>{ src.value.nonBlankOrNull }</label>.withLabel(s"dcx-dai:${ src.scheme.nonBlankOrEmpty.replace("id-type:", "") }")) }
-        { author.role.toSeq.mapNonBlankKey(key => <dcx-dai:role>{ key }</dcx-dai:role>) }
+        { author.role.flatMap(_.key).getNonEmpty.map(key => <dcx-dai:role>{ key }</dcx-dai:role>) }
         { author.organization.getNonEmpty.map(orgDetails(_, lang, role = None)) }
       </dcx-dai:author>
   }
 
   private def orgDetails(organization: String, lang: String, role: Option[SchemedKeyValue]): Elem =
       <dcx-dai:organization>
-        { role.toSeq.mapNonBlankKey(key => <dcx-dai:role>{ key }</dcx-dai:role>) }
+        { role.flatMap(_.key).getNonEmpty.map(key => <dcx-dai:role>{ key }</dcx-dai:role>) }
         { <dcx-dai:name xml:lang={ lang }>{ organization }</dcx-dai:name> }
       </dcx-dai:organization>
 
