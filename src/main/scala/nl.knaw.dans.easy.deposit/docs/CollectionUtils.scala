@@ -26,19 +26,28 @@ object CollectionUtils {
     }
   }
 
-  implicit class OptionSeq[T](val sources: Option[Seq[T]]) extends AnyVal {
-    def getNonEmpty: Seq[T] = sources.toSeq.flatten.filter {
+  implicit class RichSeq[T](val sources: Seq[T]) extends AnyVal {
+    def getNonEmpty: Seq[T] = sources.filter {
       case source: String => !source.isBlank
       case _ => true
     }
   }
 
-  implicit class RichOption(val str: Option[String]) extends AnyVal {
-    def getNonEmpty: Seq[String] = str.filterNot(_.isBlank).toSeq
+  implicit class RichOptionSeq[T](val sources: Option[Seq[T]]) extends AnyVal {
+    def getNonEmpty: Seq[T] = sources.toSeq.flatten.getNonEmpty
+  }
+
+  implicit class RichOption[T](val sources: Option[T]) extends AnyVal {
+    def getNonEmpty: Seq[T] = sources.toSeq.getNonEmpty
+  }
+
+  implicit class RichOptionString(val optionalString: Option[String]) extends AnyVal {
 
     // null omits attribute rendering
-    def nonBlankOrNull: String = str.collect { case s if !s.isBlank => s.trim }.orNull
+    def nonBlankOrNull: String = optionalString
+      .collect { case s if !s.isBlank => s.trim }.orNull
 
-    def nonBlankOrEmpty: String = str.collect { case s if !s.isBlank => s.trim }.getOrElse("")
+    def nonBlankOrEmpty: String = optionalString.
+      collect { case s if !s.isBlank => s.trim }.getOrElse("")
   }
 }
