@@ -72,7 +72,7 @@ object DDM extends SchemedXml with DebugEnhancedLogging {
       </ddm:dcmiMetadata>
     </ddm:DDM>
   }.recoverWith {
-    case e: IllegalArgumentException => Failure(invalidDatasetMetadataException(e))
+    case e: IllegalArgumentException => Failure(InvalidDocumentException("DatasetMetadata", e))
   }
 
   private def details(point: SpatialPoint) = {
@@ -95,11 +95,17 @@ object DDM extends SchemedXml with DebugEnhancedLogging {
       case Relation(_, Some(url: String), Some(title: String)) => <label xml:lang={ lang } href={ url }>{ title }</label>
       case Relation(_, Some(url: String), None) => <label href={ url }>{ url }</label>
       case Relation(_, None, Some(title: String)) => <label xml:lang={ lang }>{ title }</label>
-      case relatedID: RelatedIdentifier => <label  xsi:type={ relatedID.scheme.collectOrNull }>{ relatedID.value }</label>
+      case RelatedIdentifier(scheme,Some(value),_) => <label  xsi:type={ scheme.collectOrNull }>{ value }</label>
+      case RelatedIdentifier(scheme,None,_) => <label  xsi:type={ scheme.collectOrNull }></label>
+      case _ => throw new IllegalArgumentException("invalid relation "+JsonUtil.toJson(relation))
     }
   }.withLabel(relation match { // replace the name space in case of an href=URL attribute
-    case Relation(qualifier, Some(_), _) => qualifier.toString.replace("dcterms", "ddm")
-    case _ => relation.qualifier.toString
+    case RelatedIdentifier(_, _, None) => throw new IllegalArgumentException("missing qualifier: RelatedIdentifier" + JsonUtil.toJson(relation))
+    case RelatedIdentifier(_, _, Some(qualifier)) => qualifier.toString
+    case Relation(None,_,_)  => throw new IllegalArgumentException("missing qualifier: Relation" + JsonUtil.toJson(relation))
+    case Relation(Some(qualifier), Some(_), _) => qualifier.toString.replace("dcterms", "ddm")
+    case Relation(Some(qualifier), _, _) => qualifier.toString
+    case _ => throw new IllegalArgumentException("invalid relation"+JsonUtil.toJson(relation))
   })
 
   private def details(source: SchemedKeyValue, label: String, lang: String): Elem = {
@@ -149,9 +155,9 @@ object DDM extends SchemedXml with DebugEnhancedLogging {
       str.split(":") match {
         case Array(label) if label.nonEmpty => elem.copy(label = label)
         case Array(prefix, label) => elem.copy(prefix = prefix, label = label)
-        case a => throw invalidDatasetMetadataException(new IllegalArgumentException(
+        case a => throw new IllegalArgumentException(
           s"expecting (label) or (prefix:label); got [${ a.mkString(":") }] to adjust the <${ elem.label }> of ${ trim(elem) }"
-        ))
+        )
       }
     }
 
@@ -159,9 +165,5 @@ object DDM extends SchemedXml with DebugEnhancedLogging {
     def withLabel[T](maybeVal: Option[T]): Elem = {
       withLabel(maybeVal.map(_.toString).collectOrEmpty)
     }
-  }
-
-  private def invalidDatasetMetadataException(exception: Exception) = {
-    InvalidDocumentException("DatasetMetadata", exception)
   }
 }

@@ -37,14 +37,11 @@ object RelationQualifier extends Enumeration {
 }
 
 trait RelationType {
-  /** At different positions in subclasses to provide different signatures for the json de-serializer. */
-  val qualifier: RelationQualifier
-
   /** @return this with Some-s of empty strings as None-s */
   def withCleanOptions: RelationType
 }
 
-case class Relation(override val qualifier: RelationQualifier,
+case class Relation(qualifier: Option[RelationQualifier],
                     url: Option[String],
                     title: Option[String],
                    ) extends RelationType {
@@ -55,8 +52,11 @@ case class Relation(override val qualifier: RelationQualifier,
 }
 
 case class RelatedIdentifier(scheme: Option[String],
-                             value: String,
-                             override val qualifier: RelationQualifier
+                             value: Option[String],
+                             qualifier: Option[RelationQualifier],
                             ) extends RelationType {
-  override def withCleanOptions: RelationType = this
+  override def withCleanOptions: RelationType = this.copy(
+    scheme = scheme.flatMap(_.toOption),
+    value = value.flatMap(_.toOption),
+  )
 }
