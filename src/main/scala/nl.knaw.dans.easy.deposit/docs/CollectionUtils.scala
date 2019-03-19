@@ -36,10 +36,6 @@ object CollectionUtils {
     def withNonEmpty: FilterMonadic[T, Seq[T]] = sources.flatMap(_.toSeq).withNonEmpty
   }
 
-  implicit class RichOptionOption[T](val sources: Option[Option[T]]) extends AnyVal {
-    def withNonEmpty: FilterMonadic[T, Seq[T]] = sources.toSeq.flatten.withNonEmpty
-  }
-
   implicit class RichOption[T](val sources: Option[T]) extends AnyVal {
     def withNonEmpty: FilterMonadic[T, Seq[T]] = sources.toSeq.withNonEmpty
   }
