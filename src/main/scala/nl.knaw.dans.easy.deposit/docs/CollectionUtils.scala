@@ -17,30 +17,31 @@ package nl.knaw.dans.easy.deposit.docs
 
 import nl.knaw.dans.lib.string._
 
+import scala.collection.generic.FilterMonadic
+
 object CollectionUtils {
 
   implicit class RichSeq[T](val sources: Seq[T]) extends AnyVal {
-    def getNonEmpty: Seq[T] = sources.filter {
+    def withNonEmpty: FilterMonadic[T, Seq[T]] = sources.withFilter {
       case str: String => !str.isBlank
-      case Some(str: String) => !str.isBlank
       case _ => true
     }
   }
 
   implicit class RichOptionSeq[T](val sources: Option[Seq[T]]) extends AnyVal {
-    def getNonEmpty: Seq[T] = sources.toSeq.flatten.getNonEmpty
+    def withNonEmpty: FilterMonadic[T, Seq[T]] = sources.toSeq.flatten.withNonEmpty
   }
 
   implicit class RichSeqOption[T](val sources: Seq[Option[T]]) extends AnyVal {
-    def getNonEmpty: Seq[T] = sources.flatMap(_.toSeq).getNonEmpty
+    def withNonEmpty: FilterMonadic[T, Seq[T]] = sources.flatMap(_.toSeq).withNonEmpty
   }
 
   implicit class RichOptionOption[T](val sources: Option[Option[T]]) extends AnyVal {
-    def getNonEmpty: Seq[T] = sources.toSeq.flatten.getNonEmpty
+    def withNonEmpty: FilterMonadic[T, Seq[T]] = sources.toSeq.flatten.withNonEmpty
   }
 
   implicit class RichOption[T](val sources: Option[T]) extends AnyVal {
-    def getNonEmpty: Seq[T] = sources.toSeq.getNonEmpty
+    def withNonEmpty: FilterMonadic[T, Seq[T]] = sources.toSeq.withNonEmpty
   }
 
   implicit class RichOptionString(val optionalString: Option[String]) extends AnyVal {
