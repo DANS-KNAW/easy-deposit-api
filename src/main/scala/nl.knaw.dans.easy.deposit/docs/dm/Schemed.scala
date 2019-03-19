@@ -13,20 +13,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package nl.knaw.dans.easy.deposit.docs
+package nl.knaw.dans.easy.deposit.docs.dm
 
-import nl.knaw.dans.lib.string._
-
-object StringUtils {
-
-  implicit class OptionSeq[T](val sources: Option[Seq[T]]) extends AnyVal {
-    def getNonEmpty: Seq[T] = sources.map(_.filter {
-      case source: String => !source.isBlank
-      case _ => true
-    }).getOrElse(Seq.empty)
+case class SchemedValue(scheme: Option[String],
+                        value: Option[String],
+                       )
+object SchemedValue {
+  def apply(scheme: String, value: String): SchemedValue = {
+    SchemedValue(Some(scheme), Some(value))
   }
+}
 
-  implicit class RichOption(val str: Option[String]) extends AnyVal {
-    def getNonEmpty: Seq[String] = str.filterNot(_.isBlank).toSeq
+case class SchemedKeyValue(scheme: Option[String],
+                           key: Option[String],
+                           value: Option[String],
+                          )
+
+object SchemedKeyValue {
+  def apply(scheme: String, key: String, value: String): SchemedKeyValue = {
+    SchemedKeyValue(Some(scheme), Some(key), Some(value))
   }
 }

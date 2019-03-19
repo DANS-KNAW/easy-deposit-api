@@ -19,7 +19,6 @@ import java.io.IOException
 import java.nio.file.{ FileAlreadyExistsException, NoSuchFileException, Path, Paths }
 import java.util.UUID
 
-import nl.knaw.dans.easy.deposit.docs.DDM.SchemaNotAvailableException
 import nl.knaw.dans.easy.deposit.docs.JsonUtil.{ InvalidDocumentException, toJson }
 import nl.knaw.dans.easy.deposit.docs.{ DatasetMetadata, StateInfo }
 import nl.knaw.dans.easy.deposit.servlets.DepositServlet.{ BadRequestException, InvalidResourceException, ZipMustBeOnlyFileException }
@@ -202,7 +201,6 @@ class DepositServlet(app: EasyDepositApiApp)
     case e: BadRequestException => BadRequest(e.getMessage, Map(contentTypePlainText))
     case e: ZipMustBeOnlyFileException => BadRequest(e.getMessage, Map(contentTypePlainText))
     case e: NotImplementedException => NotImplemented(e.getMessage, Map(contentTypePlainText))
-    case e: SchemaNotAvailableException => InternalServerError(e.getMessage, Map(contentTypePlainText))
     case _ => notExpectedExceptionResponse(t)
   }
 

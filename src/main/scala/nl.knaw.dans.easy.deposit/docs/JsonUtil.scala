@@ -16,12 +16,10 @@
 package nl.knaw.dans.easy.deposit.docs
 
 import java.lang.reflect.InvocationTargetException
-import java.net.MalformedURLException
 import java.nio.file.{ Path, Paths }
 
 import nl.knaw.dans.easy.deposit.docs.StateInfo.State
 import nl.knaw.dans.easy.deposit.docs.dm._
-import org.json4s
 import org.json4s.Extraction.decompose
 import org.json4s.JsonAST.{ JValue, _ }
 import org.json4s.JsonDSL._
@@ -52,33 +50,23 @@ object JsonUtil {
   class RelationTypeSerializer extends CustomSerializer[RelationType](_ =>
     ( {
       case JNull => null
-      case s: JValue => // the first class has a unique mandatory field, if that fails try the other
-        Try { Extraction.extract[RelatedIdentifier](s) }
-          .getOrElse(tryRelation(s))
+      case s: JValue =>
+        if (s.asInstanceOf[JObject].obj.values.keySet.subsetOf(Set("qualifier", "url", "title")))
+          Extraction.extract[Relation](s)
+        else Extraction.extract[RelatedIdentifier](s)
     }, {
       // case x: RelationType => JString(x.toString) // would break rejectNotExpectedContent
       case Relation(qualifier, url, title) =>
-        ("qualifier" -> qualifier.toString) ~
+        ("qualifier" -> qualifier.map(_.toString)) ~
           ("url" -> url) ~
           ("title" -> title)
       case RelatedIdentifier(scheme, value, qualifier) =>
-        ("scheme" -> scheme.map(_.toString)) ~
+        ("scheme" -> scheme) ~
           ("value" -> value) ~
-          ("qualifier" -> qualifier.toString)
+          ("qualifier" -> qualifier.map(_.toString))
     }
     )
   )
-
-  private def tryRelation(s: json4s.JValue): Relation = {
-    Try { Extraction.extract[Relation](s) } match {
-      case Failure(CausedBy(CausedBy(e: MalformedURLException))) =>
-        throw new IllegalArgumentException(s"invalid URL [${ e.getMessage }] got: ${ toJson(s) }")
-      case Failure(e) =>
-        // the last one in a chain of attempts
-        throw new IllegalArgumentException(s"expected one of (Relation | RelatedIdentifier) got: ${ toJson(s) }")
-      case Success(r) => r
-    }
-  }
 
   val enumerations = List(
     RelationQualifier,

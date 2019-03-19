@@ -15,10 +15,9 @@
  */
 package nl.knaw.dans.easy.deposit.docs
 
-import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.{ PossiblySchemedKeyValue, PossiblySchemedValue, SchemedKeyValue, SchemedValue }
 import nl.knaw.dans.easy.deposit.docs.dm.DateScheme.W3CDTF
 import nl.knaw.dans.easy.deposit.docs.dm.PrivacySensitiveDataPresent.PrivacySensitiveDataPresent
-import nl.knaw.dans.easy.deposit.docs.dm.{ Date, _ }
+import nl.knaw.dans.easy.deposit.docs.dm._
 
 class MinimalDatasetMetadata(
                               identifiers: Option[Seq[SchemedValue]] = Some(Seq(
@@ -39,10 +38,10 @@ class MinimalDatasetMetadata(
                               audiences: Option[Seq[SchemedKeyValue]] = Some(Seq(
                                 SchemedKeyValue(scheme = "blabla", key = "D35200", value = "some audience")
                               )),
-                              subjects: Option[Seq[PossiblySchemedKeyValue]] = None,
+                              subjects: Option[Seq[SchemedKeyValue]] = None,
                               alternativeIdentifiers: Option[Seq[SchemedValue]] = None,
                               relations: Option[Seq[RelationType]] = None,
-                              languagesOfFiles: Option[Seq[PossiblySchemedKeyValue]] = None,
+                              languagesOfFiles: Option[Seq[SchemedKeyValue]] = None,
                               dates: Option[Seq[Date]] = Some(Seq(
                                 Date(scheme = Some(W3CDTF.toString), value = Some("2018"), Some(DateQualifier.created)),
                                 Date(scheme = Some(W3CDTF.toString), value = Some("2018"), Some(DateQualifier.available))
@@ -55,12 +54,12 @@ class MinimalDatasetMetadata(
                               ),
                               license: Option[String] = None,
                               typesDcmi: Option[Seq[String]] = None,
-                              types: Option[Seq[PossiblySchemedValue]] = None,
-                              formats: Option[Seq[PossiblySchemedValue]] = None,
-                              temporalCoverages: Option[Seq[PossiblySchemedKeyValue]] = None,
+                              types: Option[Seq[SchemedValue]] = None,
+                              formats: Option[Seq[SchemedValue]] = None,
+                              temporalCoverages: Option[Seq[SchemedKeyValue]] = None,
                               spatialPoints: Option[Seq[SpatialPoint]] = None,
                               spatialBoxes: Option[Seq[SpatialBox]] = None,
-                              spatialCoverages: Option[Seq[PossiblySchemedKeyValue]] = None,
+                              spatialCoverages: Option[Seq[SchemedKeyValue]] = None,
                               messageForDataManager: Option[String] = None,
                               privacySensitiveDataPresent: PrivacySensitiveDataPresent = PrivacySensitiveDataPresent.unspecified,
                               acceptDepositAgreement: Boolean = false,

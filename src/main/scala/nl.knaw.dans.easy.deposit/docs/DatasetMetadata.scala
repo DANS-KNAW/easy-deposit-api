@@ -36,10 +36,10 @@ case class DatasetMetadata(private val identifiers: Option[Seq[SchemedValue]] = 
                            creators: Option[Seq[Author]] = None,
                            contributors: Option[Seq[Author]] = None,
                            audiences: Option[Seq[SchemedKeyValue]] = None,
-                           subjects: Option[Seq[PossiblySchemedKeyValue]] = None,
+                           subjects: Option[Seq[SchemedKeyValue]] = None,
                            private val alternativeIdentifiers: Option[Seq[SchemedValue]] = None,
                            relations: Option[Seq[RelationType]] = None,
-                           languagesOfFiles: Option[Seq[PossiblySchemedKeyValue]] = None,
+                           languagesOfFiles: Option[Seq[SchemedKeyValue]] = None,
                            private val dates: Option[Seq[Date]] = None,
                            sources: Option[Seq[String]] = None,
                            instructionsForReuse: Option[Seq[String]] = None,
@@ -47,16 +47,17 @@ case class DatasetMetadata(private val identifiers: Option[Seq[SchemedValue]] = 
                            accessRights: Option[AccessRights] = None,
                            license: Option[String] = None,
                            private val typesDcmi: Option[Seq[String]] = None,
-                           private val types: Option[Seq[PossiblySchemedValue]] = None,
-                           formats: Option[Seq[PossiblySchemedValue]] = None,
-                           temporalCoverages: Option[Seq[PossiblySchemedKeyValue]] = None,
+                           private val types: Option[Seq[SchemedValue]] = None,
+                           formats: Option[Seq[SchemedValue]] = None,
+                           temporalCoverages: Option[Seq[SchemedKeyValue]] = None,
                            spatialPoints: Option[Seq[SpatialPoint]] = None,
                            spatialBoxes: Option[Seq[SpatialBox]] = None,
-                           spatialCoverages: Option[Seq[PossiblySchemedKeyValue]] = None,
+                           spatialCoverages: Option[Seq[SchemedKeyValue]] = None,
                            messageForDataManager: Option[String] = None,
                            private val privacySensitiveDataPresent: PrivacySensitiveDataPresent = PrivacySensitiveDataPresent.unspecified,
                            acceptDepositAgreement: Boolean = false,
                           ) {
+  // lazy so missing values are only reported when converting to XML
   lazy val hasPrivacySensitiveData: Try[Boolean] = privacySensitiveDataPresent match {
     case PrivacySensitiveDataPresent.yes => Success(true)
     case PrivacySensitiveDataPresent.no => Success(false)
@@ -77,17 +78,18 @@ case class DatasetMetadata(private val identifiers: Option[Seq[SchemedValue]] = 
 
   lazy val allIdentifiers: Seq[SchemedValue] = identifiers.getOrElse(Seq()) ++ alternativeIdentifiers.getOrElse(Seq())
 
-  lazy val allTypes: Seq[PossiblySchemedValue] = types.getOrElse(Seq()) ++ typesDcmi.getOrElse(Seq()).map(
-    PossiblySchemedValue(Some("dcterms:DCMIType"), _)
-  )
+  lazy val allTypes: Seq[SchemedValue] = types.getOrElse(Seq()) ++
+    typesDcmi
+      .getOrElse(Seq())
+      .map(SchemedValue("dcterms:DCMIType", _))
 
   //// doi
   lazy val doi: Option[String] = identifiers.flatMap(_.collectFirst {
-    case SchemedValue(`doiScheme`, value) => value
+    case SchemedValue(Some(`doiScheme`), Some(value)) => value
   })
 
   def setDoi(value: String): DatasetMetadata = {
-    val ids = identifiers.getOrElse(Seq.empty).filterNot(_.scheme == doiScheme)
+    val ids = identifiers.getOrElse(Seq.empty).filterNot(_.scheme.contains(doiScheme))
     this.copy(identifiers = Some(ids :+ SchemedValue(doiScheme, value)))
   }
 }
@@ -100,41 +102,5 @@ object DatasetMetadata {
   def missingValue(label: String): InvalidDocumentException = {
     InvalidDocumentException("DatasetMetadata", new Exception(s"Please set $label"))
   }
-
-  trait PossiblySchemed {
-    val scheme: Option[String]
-
-    def schemeAsString: String = scheme match {
-      case Some(s: String) if s.trim.nonEmpty => s.trim
-      case _ => null // will suppress the XML attribute
-    }
-  }
-
-  trait PossiblyKeyed {
-    val key: Option[String]
-
-    def keyAsString: String = key match {
-      case Some(s: String) if s.trim.nonEmpty => s.trim
-      case _ => null
-    }
-  }
-
-  case class SchemedValue(scheme: String,
-                          value: String,
-                         )
-
-  case class PossiblySchemedValue(override val scheme: Option[String],
-                                  value: String,
-                                 ) extends PossiblySchemed
-
-  case class SchemedKeyValue(scheme: String,
-                             key: String,
-                             value: String,
-                            )
-
-  case class PossiblySchemedKeyValue(override val scheme: Option[String],
-                                     override val key: Option[String],
-                                     value: String,
-                                    ) extends PossiblySchemed with PossiblyKeyed
 }
 

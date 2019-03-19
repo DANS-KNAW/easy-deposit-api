@@ -55,9 +55,8 @@ class DatasetMetadataSpec extends TestSupportFixture {
     val example = getManualTestResource(value)
     val parsed = prepareDatasetMetadata(example)
     val serializedObject = JsonMethods.parse(toJson(parsed))
-    inside(JsonMethods.parse(example) diff serializedObject) {
+    (JsonMethods.parse(example) diff serializedObject) should matchPattern {
       case Diff(JNothing, JNothing, JNothing) =>
-      case Diff(changed, added, deleted) => reportFailure(parsed, changed, added, deleted)
     }
   }
 
@@ -193,9 +192,8 @@ class DatasetMetadataSpec extends TestSupportFixture {
     DatasetMetadata("""{ "contributors": [ { "organization": "University of Zurich" } ] }""") shouldBe a[Success[_]]
   }
 
-  "DatasetMetadata.audience" should "reject an audience without a scheme" in {
-    """{"audiences": [{ "key": "yyy", "value": "" }]}"""
-      .causesInvalidDocumentException("""don't recognize {"audiences":[{"key":"yyy","value":""}]}""")
+  "DatasetMetadata.audience" should "accept an audience without a scheme" in {
+    DatasetMetadata("""{"audiences": [{ "key": "yyy", "value": "" }]}""") shouldBe a[Success[_]]
   }
 
   it should "accept both quoted and non quoted numbers" in {

@@ -15,12 +15,7 @@
  */
 package nl.knaw.dans.easy.deposit.docs.dm
 
-import nl.knaw.dans.easy.deposit.docs.DatasetMetadata.{ SchemedKeyValue, SchemedValue }
-import nl.knaw.dans.easy.deposit.docs.JsonUtil
-import nl.knaw.dans.easy.deposit.docs.StringUtils._
 import nl.knaw.dans.lib.string._
-
-import scala.util.{ Failure, Success, Try }
 
 case class Author(titles: Option[String] = None,
                   initials: Option[String] = None,
@@ -30,7 +25,7 @@ case class Author(titles: Option[String] = None,
                   ids: Option[Seq[SchemedValue]] = None,
                   organization: Option[String] = None,
                  ) {
-  def isRightsHolder: Boolean = role.exists(_.key == "RightsHolder")
+  def isRightsHolder: Boolean = role.exists(_.key.contains("RightsHolder"))
 
   override def toString: String = { // for <dcterms:rightsHolder>
     def name = Seq(titles, initials, insertions, surname)
