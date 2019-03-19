@@ -15,8 +15,8 @@
  */
 package nl.knaw.dans.easy.deposit.docs
 
-import nl.knaw.dans.easy.deposit.docs.JsonUtil.InvalidDocumentException
 import nl.knaw.dans.easy.deposit.docs.CollectionUtils._
+import nl.knaw.dans.easy.deposit.docs.JsonUtil.InvalidDocumentException
 import nl.knaw.dans.easy.deposit.docs.dm._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import nl.knaw.dans.lib.string._
@@ -97,15 +97,15 @@ object DDM extends SchemedXml with DebugEnhancedLogging {
       case Relation(_, None, Some(title: String)) => <label xml:lang={ lang }>{ title }</label>
       case RelatedIdentifier(scheme, Some(value), _) => <label xsi:type={ scheme.nonBlankOrNull }>{ value }</label>
       case RelatedIdentifier(scheme, None, _) => <label xsi:type={ scheme.nonBlankOrNull }></label>
-      case _ => throw new IllegalArgumentException("invalid relation "+JsonUtil.toJson(relation))
+      case _ => throw new IllegalArgumentException("invalid relation " + JsonUtil.toJson(relation))
     }
   }.withLabel(relation match { // replace the name space in case of an href=URL attribute
     case RelatedIdentifier(_, _, None) => throw new IllegalArgumentException("missing qualifier: RelatedIdentifier" + JsonUtil.toJson(relation))
     case RelatedIdentifier(_, _, Some(qualifier)) => qualifier.toString
-    case Relation(None,_,_)  => throw new IllegalArgumentException("missing qualifier: Relation" + JsonUtil.toJson(relation))
+    case Relation(None, _, _) => throw new IllegalArgumentException("missing qualifier: Relation" + JsonUtil.toJson(relation))
     case Relation(Some(qualifier), Some(_), _) => qualifier.toString.replace("dcterms", "ddm")
     case Relation(Some(qualifier), _, _) => qualifier.toString
-    case _ => throw new IllegalArgumentException("invalid relation"+JsonUtil.toJson(relation))
+    case _ => throw new IllegalArgumentException("invalid relation" + JsonUtil.toJson(relation))
   })
 
   private def details(source: SchemedKeyValue, label: String, lang: String): Elem = {
