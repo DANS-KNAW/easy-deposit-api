@@ -79,43 +79,6 @@ class DatasetMetadataSpec extends TestSupportFixture {
     DatasetMetadata(example).getOrRecover(e => fail(e.toString, e))
   }
 
-  "deserialization" should "report additional json info" in {
-    """{"titles":["foo bar"],"x":[1]}""".stripMargin.causesInvalidDocumentException( """don't recognize {"x":[1]}""")
-  }
-
-  it should "extract just the last object" in {
-    val s =
-      """{"languageOfDescription": "string"}
-        |{  "identifiers": [
-        |    {
-        |      "scheme": "id-type:DOI",
-        |      "value": "10.17632/DANS.6wg5xccnjd.1"
-        |    }
-        |  ]
-        |}""".stripMargin
-    inside(DatasetMetadata(s)) {
-      case Success(dm: DatasetMetadata) =>
-        dm.doi shouldBe Some("10.17632/DANS.6wg5xccnjd.1")
-        dm.languageOfDescription shouldBe None
-    }
-  }
-
-  it should "be happy with empty objects" in {
-    // this is not desired behaviour but documents what actually happens
-    DatasetMetadata("""{}{}""") shouldBe a[Success[_]]
-  }
-
-  it should "fail on an empty array" in {
-    "[]".causesInvalidDocumentException("expected an object, got a class org.json4s.JsonAST$JArray")
-  }
-
-  it should "not accept a literal number" in {
-    "123".causesInvalidDocumentException(
-      """expected field or array
-        |Near: 12""".stripMargin
-    )
-  }
-
   "DatasetMetadata.dates" should "accept a date without a scheme" in {
     val s: JsonInput =
       """{"dates": [
