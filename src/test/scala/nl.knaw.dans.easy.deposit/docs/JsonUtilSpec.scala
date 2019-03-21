@@ -69,19 +69,19 @@ class JsonUtilSpec extends TestSupportFixture {
         |{"xs": [ "123abc" ]
         |}""".stripMargin
     ) should matchPattern {
-      case Success(AllOptions(None, Some(_))) =>
+      case Success(AllOptions(None, Some(Seq("123abc")))) =>
     }
   }
 
   it should "reject an empty array" in {
-    deserializeAllOptions("""[]""") should matchPattern {
+    deserializeAllOptions("[]") should matchPattern {
       case Failure(InvalidDocumentException("AllOptions", e))
-        if e.getMessage == """expected an object, got a class org.json4s.JsonAST$JArray""" =>
+        if e.getMessage == "expected an object, got a class org.json4s.JsonAST$JArray" =>
     }
   }
 
   it should "reject a literal number" in {
-    deserializeAllOptions("""123""") should matchPattern {
+    deserializeAllOptions("123") should matchPattern {
       case Failure(InvalidDocumentException("AllOptions", e)) if e.getMessage ==
         """expected field or array
           |Near: 12""".stripMargin =>
@@ -90,18 +90,18 @@ class JsonUtilSpec extends TestSupportFixture {
 
   it should "be happy with empty optional objects" in {
     // this is not desired behaviour but documents what actually happens
-    deserializeAllOptions("""{}{}""") shouldBe a[Success[_]]
+    deserializeAllOptions("{}{}") shouldBe a[Success[_]]
   }
 
   it should "reject empty input" in {
     deserializeAllOptions(" ") should matchPattern {
       case Failure(InvalidDocumentException("AllOptions", e))
-        if e.getMessage == """expected an object, got a class org.json4s.JsonAST$JNothing$""" =>
+        if e.getMessage == "expected an object, got a class org.json4s.JsonAST$JNothing$" =>
     }
   }
 
   it should "reject empty objects when mandatory fields are expected" in {
-    deserializeNoOptions("""{}{}""") should matchPattern {
+    deserializeNoOptions("{}{}") should matchPattern {
       case Failure(InvalidDocumentException("NoOptions", e)) if e.getMessage ==
         """No usable value for x
           |Did not find value which can be converted into java.lang.String""".stripMargin =>
