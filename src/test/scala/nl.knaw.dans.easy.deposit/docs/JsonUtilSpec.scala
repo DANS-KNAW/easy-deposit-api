@@ -82,15 +82,15 @@ class JsonUtilSpec extends TestSupportFixture {
 
   it should "reject a literal number" in {
     deserializeAllOptions("""123""") should matchPattern {
-      case Failure(InvalidDocumentException("AllOptions", e))
-        if e.getMessage == """expected field or array
-                             |Near: 12""".stripMargin =>
+      case Failure(InvalidDocumentException("AllOptions", e)) if e.getMessage ==
+        """expected field or array
+          |Near: 12""".stripMargin =>
     }
   }
 
   it should "be happy with empty optional objects" in {
     // this is not desired behaviour but documents what actually happens
-    deserializeAllOptions("""{}{}""")  shouldBe a[Success[_]]
+    deserializeAllOptions("""{}{}""") shouldBe a[Success[_]]
   }
 
   it should "reject empty input" in {
@@ -102,9 +102,9 @@ class JsonUtilSpec extends TestSupportFixture {
 
   it should "reject empty objects when mandatory fields are expected" in {
     deserializeNoOptions("""{}{}""") should matchPattern {
-      case Failure(InvalidDocumentException("NoOptions", e))
-        if e.getMessage == """No usable value for x
-                             |Did not find value which can be converted into java.lang.String""".stripMargin =>
+      case Failure(InvalidDocumentException("NoOptions", e)) if e.getMessage ==
+        """No usable value for x
+          |Did not find value which can be converted into java.lang.String""".stripMargin =>
     }
   }
 

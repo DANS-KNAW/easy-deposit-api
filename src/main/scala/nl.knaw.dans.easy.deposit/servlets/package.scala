@@ -20,7 +20,6 @@ import java.nio.file.Files
 import java.util.zip.{ ZipEntry, ZipException, ZipInputStream }
 
 import better.files.File
-import nl.knaw.dans.easy.deposit.docs.JsonUtil.InvalidDocumentException
 import nl.knaw.dans.easy.deposit.servlets.DepositServlet.{ BadRequestException, ZipMustBeOnlyFileException }
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.scalatra.servlet.FileItem
