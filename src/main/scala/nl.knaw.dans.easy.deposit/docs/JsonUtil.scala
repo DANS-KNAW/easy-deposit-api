@@ -50,10 +50,10 @@ object JsonUtil {
   class RelationTypeSerializer extends CustomSerializer[RelationType](_ =>
     ( {
       case JNull => null
-      case s: JValue =>
-        if (s.asInstanceOf[JObject].obj.values.keySet.subsetOf(Set("qualifier", "url", "title")))
-          Extraction.extract[Relation](s)
-        else Extraction.extract[RelatedIdentifier](s)
+      case obj: JObject =>
+        if (obj.values.keySet.subsetOf(Set("qualifier", "url", "title")))
+          Extraction.extract[Relation](obj)
+        else Extraction.extract[RelatedIdentifier](obj)
     }, {
       // case x: RelationType => JString(x.toString) // would break rejectNotExpectedContent
       case Relation(qualifier, url, title) =>
