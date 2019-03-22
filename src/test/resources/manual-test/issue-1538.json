@@ -142,9 +142,7 @@
   "sources": ["source 1"],
   "instructionsForReuse": ["how to use this data"],
   "publishers": ["publisher1"],
-  "accessRights": {
-    "category": "OPEN_ACCESS"
-  },
+  "accessRights": "OPEN_ACCESS",
   "license": "http://license/cc",
   "types": [
     {

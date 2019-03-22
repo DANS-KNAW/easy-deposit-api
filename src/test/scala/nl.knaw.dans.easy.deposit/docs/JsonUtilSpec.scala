@@ -19,8 +19,10 @@ import java.nio.file.Paths
 
 import nl.knaw.dans.easy.deposit.TestSupportFixture
 import nl.knaw.dans.easy.deposit.docs.JsonUtil._
+import org.json4s.JsonInput
 
 import scala.reflect.runtime.universe.typeOf
+import scala.util.{ Failure, Success }
 
 class JsonUtilSpec extends TestSupportFixture {
 
@@ -53,4 +55,66 @@ class JsonUtilSpec extends TestSupportFixture {
     val fileInfo = FileInfo("test.txt", Paths.get("a/b"), "abc123")
     toJson(fileInfo) shouldBe """{"filename":"test.txt","dirpath":"a/b","sha1sum":"abc123"}"""
   }
+
+  "deserialize" should "reject additional json info" in {
+    deserializeAllOptions("""{"x":"foo bar","extra":[1]}""") should matchPattern {
+      case Failure(InvalidDocumentException("AllOptions", e))
+        if e.getMessage == """don't recognize {"extra":[1]}""" =>
+    }
+  }
+
+  it should "extract just the last object" in {
+    deserializeAllOptions(
+      """{"x": "foo bar"}
+        |{"xs": [ "123abc" ]
+        |}""".stripMargin
+    ) should matchPattern {
+      case Success(AllOptions(None, Some(Seq("123abc")))) =>
+    }
+  }
+
+  it should "reject an empty array" in {
+    deserializeAllOptions("[]") should matchPattern {
+      case Failure(InvalidDocumentException("AllOptions", e))
+        if e.getMessage == "expected an object, got a class org.json4s.JsonAST$JArray" =>
+    }
+  }
+
+  it should "reject a literal number" in {
+    deserializeAllOptions("123") should matchPattern {
+      case Failure(InvalidDocumentException("AllOptions", e)) if e.getMessage ==
+        """expected field or array
+          |Near: 12""".stripMargin =>
+    }
+  }
+
+  it should "be happy with empty optional objects" in {
+    // this is not desired behaviour but documents what actually happens
+    deserializeAllOptions("{}{}") shouldBe a[Success[_]]
+  }
+
+  it should "reject empty input" in {
+    deserializeAllOptions(" ") should matchPattern {
+      case Failure(InvalidDocumentException("AllOptions", e))
+        if e.getMessage == "expected an object, got a class org.json4s.JsonAST$JNothing$" =>
+    }
+  }
+
+  it should "reject empty objects when mandatory fields are expected" in {
+    deserializeNoOptions("{}{}") should matchPattern {
+      case Failure(InvalidDocumentException("NoOptions", e)) if e.getMessage ==
+        """No usable value for x
+          |Did not find value which can be converted into java.lang.String""".stripMargin =>
+    }
+  }
+
+  private def deserializeAllOptions(input: JsonInput) = {
+    input.deserialize[AllOptions]
+  }
+
+  private def deserializeNoOptions(input: JsonInput) = {
+    input.deserialize[NoOptions]
+  }
 }
+case class AllOptions(x: Option[String], xs: Option[Seq[String]])
+case class NoOptions(x: String, xs: Seq[String])

@@ -15,6 +15,7 @@
  */
 package nl.knaw.dans.easy.deposit.docs
 
+import nl.knaw.dans.easy.deposit.docs.dm.AccessRights.AccessRights
 import nl.knaw.dans.easy.deposit.docs.dm.DateScheme.W3CDTF
 import nl.knaw.dans.easy.deposit.docs.dm.PrivacySensitiveDataPresent.PrivacySensitiveDataPresent
 import nl.knaw.dans.easy.deposit.docs.dm._
@@ -49,9 +50,7 @@ class MinimalDatasetMetadata(
                               sources: Option[Seq[String]] = None,
                               instructionsForReuse: Option[Seq[String]] = None,
                               publishers: Option[Seq[String]] = None,
-                              accessRights: Option[AccessRights] = Some(
-                                AccessRights(category = AccessCategory.open)
-                              ),
+                              accessRights: Option[AccessRights] = Some(AccessRights.open),
                               license: Option[String] = None,
                               typesDcmi: Option[Seq[String]] = None,
                               types: Option[Seq[SchemedValue]] = None,

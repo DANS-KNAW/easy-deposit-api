@@ -47,9 +47,7 @@
       "qualifier": "dcterms:available"
     }
   ],
-  "accessRights": {
-    "category": "REQUEST_PERMISSION"
-  },
+  "accessRights": "REQUEST_PERMISSION",
   "license": "http://creativecommons.org/publicdomain/zero/1.0",
   "privacySensitiveDataPresent": "yes",
   "acceptDepositAgreement": false
