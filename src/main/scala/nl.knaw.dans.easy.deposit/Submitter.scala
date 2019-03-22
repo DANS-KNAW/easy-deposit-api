@@ -91,6 +91,8 @@ class Submitter(stagingBaseDir: File,
       _ <- stageBag.addMetadataFile(agreementsXml, "agreements.xml")
       _ <- stageBag.addMetadataFile(datasetXml, "dataset.xml")
       _ <- stageBag.addMetadataFile(filesXml, "files.xml")
+      _ = stageBag.withCreated()
+      _ = stageBag.withoutEasyUserAccount()
       _ <- workerActions(draftBag, stageBag, submitToBaseDir / depositDir.id.toString)
     } yield ()
   }
@@ -105,6 +107,7 @@ class Submitter(stagingBaseDir: File,
     _ <- samePayloadManifestEntries(stageBag, draftBag)
     _ <- setRightsRecursively(stageBag.baseDir.parent)
     // EASY-1464 step 3.3.9 Move copy to submit-to area
+    _ = logger.info(s"moving ${stageBag.baseDir.parent} to $submitDir")
     _ = stageBag.baseDir.parent.moveTo(submitDir)
   } yield ()
 
