@@ -191,11 +191,11 @@ class DepositServlet(app: EasyDepositApiApp)
 
   private def respond(t: Throwable): ActionResult = t match {
     case e: IllegalStateTransitionException => Forbidden(e.getMessage, Map(contentTypePlainText))
+    case e: IllegalStateException => Forbidden(e.getMessage, Map(contentTypePlainText))
     case e: NoSuchDepositException => noSuchDepositResponse(e)
     case e: NoSuchFileException => NotFound(body = s"${ e.getMessage } not found", Map(contentTypePlainText))
     case e: InvalidResourceException => invalidResourceResponse(e)
     case e: InvalidDocumentException => badDocResponse(e)
-    case e: IllegalStateException => Conflict(e.getMessage, Map(contentTypePlainText))
     case e: ConcurrentUploadException => Conflict(e.getMessage, Map(contentTypePlainText))
     case e: FileAlreadyExistsException => Conflict("Conflict. The following file(s) already exist on the server: " + e.getMessage, Map(contentTypePlainText))
     case e: InvalidDoiException => BadRequest(e.getMessage, Map(contentTypePlainText))
