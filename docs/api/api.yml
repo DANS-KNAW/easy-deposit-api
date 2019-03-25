@@ -1059,12 +1059,15 @@ components:
       properties:
         scheme:
           type: string
+          description: "Possible values: degrees, RD."
         x:
           type: string
           format: "number"
+          description: "In case of degrees: latitude, range from -90 to 90."
         y:
           type: string
           format: "number"
+          description: "In case of degrees: longitude, range from -180 to 180."
 
     # Note: it is not possible to provide examples in combination with a reference to this
     # schema. If you need examples, you'll have to spell out the complete type.
