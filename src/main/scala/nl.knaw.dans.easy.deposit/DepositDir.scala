@@ -97,8 +97,15 @@ case class DepositDir private(baseDir: File, user: String, id: UUID) extends Deb
   /**
    * Deletes the deposit.
    */
-  def delete(): Try[Unit] = Try {
-    bagDir.parent.delete()
+  def delete(): Try[Unit] = {
+    val states = Seq(State.draft, State.archived, State.rejected)
+    for {
+      stateInfo <- getStateInfo
+      state = stateInfo.state
+      _ = if (!states.contains(state))
+            throw new IllegalStateException(s"Deposit has state $state, can only delete deposits with one of the states: ${ states.mkString(", ") }")
+      _ = bagDir.parent.delete()
+    } yield ()
   }
 
   /**
