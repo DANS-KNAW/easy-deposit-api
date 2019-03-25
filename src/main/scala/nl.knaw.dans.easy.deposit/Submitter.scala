@@ -58,10 +58,10 @@ class Submitter(stagingBaseDir: File,
    * Submits `depositDir` by writing the file metadata, updating the bag checksums, staging a copy
    * and moving that copy to the submit-to area.
    *
-   * @param depositDir the deposit directory to submit
+   * @param draftDeposit the deposit object to submit
    * @return
    */
-  def submit(depositDir: DepositDir): Try[Unit] = {
+  def submit(draftDeposit: DepositDir): Try[Unit] = {
     val propsFileName = "deposit.properties"
     for {
       // EASY-1464 step 3.3.4 validation
@@ -70,28 +70,28 @@ class Submitter(stagingBaseDir: File,
       //   [ ] URLs are valid
       //   [ ] ...
       // EASY-1464 3.3.5.a: generate (with some implicit validation) content for metadata files
-      draftBag <- depositDir.getDataFiles.map(_.bag)
-      datasetMetadata <- depositDir.getDatasetMetadata
-      agreementsXml <- AgreementsXml(depositDir.user, DateTime.now, datasetMetadata)
-      _ = datasetMetadata.doi.getOrElse(throw InvalidDoiException(depositDir.id))
-      _ <- depositDir.sameDOIs(datasetMetadata)
+      draftBag <- draftDeposit.getDataFiles.map(_.bag)
+      datasetMetadata <- draftDeposit.getDatasetMetadata
+      agreementsXml <- AgreementsXml(draftDeposit.user, DateTime.now, datasetMetadata)
+      _ = datasetMetadata.doi.getOrElse(throw InvalidDoiException(draftDeposit.id))
+      _ <- draftDeposit.sameDOIs(datasetMetadata)
       datasetXml <- DDM(datasetMetadata)
       msg = datasetMetadata.messageForDataManager.getOrElse("")
       filesXml <- FilesXml(draftBag.data)
       _ <- sameFiles(draftBag.payloadManifests, draftBag.baseDir / "data")
       // from now on no more user errors but internal errors
       // EASY-1464 3.3.8.a create empty staged bag to take a copy of the deposit
-      stageDir = (stagingBaseDir / depositDir.id.toString).createDirectories()
-      stageBag <- DansV0Bag.empty(stageDir / "bag").map(_.withEasyUserAccount(depositDir.user))
+      stageDir = (stagingBaseDir / draftDeposit.id.toString).createDirectories()
+      stageBag <- DansV0Bag.empty(stageDir / "bag").map(_.withCreated())
       // EASY-1464 3.3.6 change state and copy with the rest of the deposit properties to staged dir
-      _ <- depositDir.setStateInfo(StateInfo(StateInfo.State.submitted, "Deposit is ready for processing."))
+      _ <- draftDeposit.setStateInfo(StateInfo(StateInfo.State.submitted, "Deposit is ready for processing."))
       _ = (draftBag.baseDir.parent / propsFileName).copyTo(stageDir / propsFileName)
       // EASY-1464 3.3.5.b: write files to metadata
       _ = stageBag.addMetadataFile(msg, "message-from-depositor.txt")
       _ <- stageBag.addMetadataFile(agreementsXml, "agreements.xml")
       _ <- stageBag.addMetadataFile(datasetXml, "dataset.xml")
       _ <- stageBag.addMetadataFile(filesXml, "files.xml")
-      _ <- workerActions(draftBag, stageBag, submitToBaseDir / depositDir.id.toString)
+      _ <- workerActions(draftBag, stageBag, submitToBaseDir / draftDeposit.id.toString)
     } yield ()
   }
 
@@ -105,6 +105,7 @@ class Submitter(stagingBaseDir: File,
     _ <- samePayloadManifestEntries(stageBag, draftBag)
     _ <- setRightsRecursively(stageBag.baseDir.parent)
     // EASY-1464 step 3.3.9 Move copy to submit-to area
+    _ = logger.info(s"moving ${stageBag.baseDir.parent} to $submitDir")
     _ = stageBag.baseDir.parent.moveTo(submitDir)
   } yield ()
 
