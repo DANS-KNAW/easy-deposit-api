@@ -223,6 +223,15 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
       body shouldBe "Deposit has state SUBMITTED, can only delete deposits with one of the states: DRAFT, ARCHIVED, REJECTED"
       status shouldBe FORBIDDEN_403
     }
+    authMocker.expectsUserFooBar
+
+    // deposit still exists
+    get(
+      uri = s"/deposit/$uuid/state", headers = Seq(fooBarBasicAuthHeader),
+    ){
+      body shouldBe """{"state":"SUBMITTED","stateDescription":"Deposit is ready for processing."}"""
+      status shouldBe OK_200
+    }
   }
 
   "scenario: create - sumbit" should "refuse a submit without DOI" in {
@@ -266,6 +275,15 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
     delete (uri = s"/deposit/$uuid", headers = Seq(fooBarBasicAuthHeader)) {
       body shouldBe ""
       status shouldBe NO_CONTENT_204
+    }
+
+    // deposit no longer exist
+    authMocker.expectsUserFooBar
+    get(
+      uri = s"/deposit/$uuid/state", headers = Seq(fooBarBasicAuthHeader),
+    ){
+      body shouldBe s"Deposit $uuid not found"
+      status shouldBe NOT_FOUND_404
     }
   }
 
