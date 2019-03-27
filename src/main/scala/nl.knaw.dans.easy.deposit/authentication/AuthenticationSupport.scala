@@ -39,8 +39,8 @@ trait AuthenticationSupport extends ScentrySupport[AuthUser] {
   override protected def toSession: PartialFunction[AuthUser, String] = {
     case user: AuthUser =>
       user.state match {
-        case UserState.registered => halt(Unauthorized("Please confirm your email.").logResponse)
-        case UserState.blocked => halt(Unauthorized("invalid credentials").logResponse)
+        case UserState.registered => halt(Unauthorized("Please confirm your email."))
+        case UserState.blocked => halt(Unauthorized("invalid credentials"))
         case UserState.active => encodeJWT(user)
       }
   }
@@ -86,7 +86,7 @@ trait AuthenticationSupport extends ScentrySupport[AuthUser] {
   /** Halts request processing in case of trouble. */
   def login() {
     if (!isAuthenticated) {
-      halt(Unauthorized("invalid credentials").logResponse)
+      halt(Unauthorized("invalid credentials"))
     }
   }
 }

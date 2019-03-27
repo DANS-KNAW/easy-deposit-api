@@ -40,15 +40,15 @@ class EasyBasicAuthStrategy(protected override val app: ScalatraBase with Servle
                          response: HttpServletResponse
                         ): Option[AuthUser] = {
     def haltWithInvalidUser = {
-      app halt Unauthorized(body = "invalid username/password").logResponse
+      app halt Unauthorized(body = "invalid username/password")
     }
 
     def haltWithRegisteredUser = {
-      app halt Unauthorized(body = "please confirm your registration first").logResponse
+      app halt Unauthorized(body = "please confirm your registration first")
     }
 
     def haltWithFailure = {
-      app halt ServiceUnavailable(body = "login service temporarily not available").logResponse
+      app halt ServiceUnavailable(body = "login service temporarily not available")
     }
 
     authenticationProvider.authenticate(userName, password) match {

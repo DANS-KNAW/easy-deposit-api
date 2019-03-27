@@ -27,7 +27,7 @@ abstract class ProtectedServlet(app: EasyDepositApiApp) extends AbstractAuthServ
 
   before() {
     if (!isAuthenticated) {
-      halt(Unauthorized("missing, invalid or expired credentials").logResponse)
+      halt(Unauthorized("missing, invalid or expired credentials"))
     }
   }
 }
