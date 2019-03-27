@@ -191,6 +191,7 @@ class DepositServlet(app: EasyDepositApiApp)
 
   private def respond(t: Throwable): ActionResult = t match {
     case e: IllegalStateTransitionException => Forbidden(e.getMessage, Map(contentTypePlainText))
+    case e: IllegalStateException => Forbidden(e.getMessage, Map(contentTypePlainText))
     case e: NoSuchDepositException => noSuchDepositResponse(e)
     case e: NoSuchFileException => NotFound(body = s"${ e.getMessage } not found", Map(contentTypePlainText))
     case e: InvalidResourceException => invalidResourceResponse(e)

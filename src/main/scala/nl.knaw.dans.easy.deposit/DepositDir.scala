@@ -68,8 +68,7 @@ case class DepositDir private(baseDir: File, user: String, id: UUID) extends Deb
    */
   def setStateInfo(stateInfo: StateInfo): Try[Unit] = {
     for {
-      props <- getDepositProps
-      _ <- checkStateChange(stateInfo.state, props)
+      props <- checkStateTransition(stateInfo.state)
       _ = props.setProperty("state.label", stateInfo.state.toString)
       _ = props.setProperty("state.description", stateInfo.stateDescription.toString)
       _ = props.save()
@@ -79,27 +78,24 @@ case class DepositDir private(baseDir: File, user: String, id: UUID) extends Deb
   def checkStateTransition(newState: State): Try[PropertiesConfiguration] = {
     for {
       props <- getDepositProps
-      _ <- checkStateChange(newState, props)
+      currentState <- getState(props)
+      _ <- if (currentState.canChangeTo(newState)) Success(())
+           else Failure(IllegalStateTransitionException(user, id, currentState, newState))
     } yield props
   }
 
-  private def checkStateChange(newState: State, props: PropertiesConfiguration) = {
-    for {
-      currentState <- Try { State.withName(props.getString("state.label")) }
-      _ <- (currentState, newState) match {
-        case (State.draft, State.submitted) => Success(())
-        case (State.rejected, State.draft) => Success(())
-        case _ => Failure(IllegalStateTransitionException(user, id, currentState, newState))
-      }
-    } yield ()
+  private def getState(props: PropertiesConfiguration): Try[StateInfo.State.Value] = Try {
+    State.withName(props.getString("state.label"))
   }
 
   /**
    * Deletes the deposit.
    */
-  def delete(): Try[Unit] = Try {
-    bagDir.parent.delete()
-  }
+  def delete(): Try[Unit] = for {
+    stateInfo <- getStateInfo
+    _ <- stateInfo.isDeletable
+    _ = bagDir.parent.delete()
+  } yield ()
 
   /**
    * @return basic information about the deposit.
@@ -108,7 +104,7 @@ case class DepositDir private(baseDir: File, user: String, id: UUID) extends Deb
     for {
       title <- getDatasetTitle
       props <- getDepositProps
-      state = State.withName(props.getString("state.label"))
+      state <- getState(props)
       created = new DateTime(props.getString("creation.timestamp")).withZone(UTC)
     } yield DepositInfo(
       id,

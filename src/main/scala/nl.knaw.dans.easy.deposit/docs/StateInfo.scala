@@ -19,11 +19,18 @@ import nl.knaw.dans.easy.deposit.docs.JsonUtil.RichJsonInput
 import nl.knaw.dans.easy.deposit.docs.StateInfo.State.State
 import org.json4s.JsonInput
 
-import scala.util.Try
+import scala.collection.Seq
+import scala.util.{ Failure, Success, Try }
 
-case class StateInfo(state: State, stateDescription: String)
+case class StateInfo(state: State, stateDescription: String) {
+  def isDeletable: Try[Unit] = {
+    if (StateInfo.deletableStates.contains(state)) Success(())
+    else Failure(new IllegalStateException(s"Deposit has state $state, can only delete deposits with one of the states: ${ StateInfo.deletableStates.mkString(", ") }"))
+  }
+}
 
 object StateInfo {
+  val deletableStates: Seq[State] = Seq(State.draft, State.archived, State.rejected)
 
   object State extends Enumeration {
     type State = Value
@@ -32,6 +39,16 @@ object StateInfo {
     val inProgress: State = Value("IN_PROGRESS")
     val rejected: State = Value("REJECTED")
     val archived: State = Value("ARCHIVED")
+  }
+
+  implicit class StateExtensions(val state: State) extends AnyVal {
+    def canChangeTo(newValue: State): Boolean = {
+      (state, newValue) match {
+        case (State.draft, State.submitted) => true
+        case (State.rejected, State.draft) => true
+        case _ => false
+      }
+    }
   }
 
   def apply(input: JsonInput): Try[StateInfo] = input.deserialize[StateInfo]
