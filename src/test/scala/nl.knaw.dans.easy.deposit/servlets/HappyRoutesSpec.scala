@@ -164,7 +164,8 @@ class HappyRoutesSpec extends TestSupportFixture with ServletFixture with Scalat
 
   "put /deposit/:uuid/metadata" should "reject invalid datasetmetadata.json" in {
     authMocker.expectsUserFooBar
-
+    (mockedApp.getDepositState(_: String, _: UUID)) expects("foo", uuid) returning
+      Success(StateInfo(StateInfo.State.draft, "a draft"))
     put(
       uri = s"/deposit/$uuid/metadata",
       body = """{"title":"blabla"}""", // N.B: key should be plural

@@ -27,10 +27,16 @@ case class StateInfo(state: State, stateDescription: String) {
     if (StateInfo.deletableStates.contains(state)) Success(())
     else Failure(new IllegalStateException(s"Deposit has state $state, can only delete deposits with one of the states: ${ StateInfo.deletableStates.mkString(", ") }"))
   }
+
+  def canUpdate: Try[Unit] = {
+    if (StateInfo.updatableStates.contains(state)) Success(())
+    else Failure(new IllegalStateException(s"Deposit has state $state, can only update deposits with one of the states: ${ StateInfo.updatableStates.mkString(", ") }"))
+  }
 }
 
 object StateInfo {
   val deletableStates: Seq[State] = Seq(State.draft, State.archived, State.rejected)
+  val updatableStates: Seq[State] = Seq(State.draft, State.rejected)
 
   object State extends Enumeration {
     type State = Value

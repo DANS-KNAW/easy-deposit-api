@@ -19,6 +19,7 @@ import java.io.IOException
 import java.nio.file.{ FileAlreadyExistsException, NoSuchFileException, Path, Paths }
 import java.util.UUID
 
+import javax.servlet.ServletInputStream
 import nl.knaw.dans.easy.deposit.docs.JsonUtil.{ InvalidDocumentException, toJson }
 import nl.knaw.dans.easy.deposit.docs.{ DatasetMetadata, StateInfo }
 import nl.knaw.dans.easy.deposit.servlets.DepositServlet.{ BadRequestException, InvalidResourceException, ZipMustBeOnlyFileException }
@@ -29,7 +30,7 @@ import org.apache.commons.lang.NotImplementedException
 import org.scalatra._
 import org.scalatra.servlet.{ FileUploadSupport, MultipartConfig, SizeConstraintExceededException }
 import org.scalatra.util.RicherString._
-import resource.managed
+import resource.{ ManagedResource, managed }
 
 import scala.util.{ Failure, Success, Try }
 
@@ -98,12 +99,14 @@ class DepositServlet(app: EasyDepositApiApp)
     {
       for {
         uuid <- getUUID
+        _ <- canUpdate(uuid)
         managedIS <- getRequestBodyAsManagedInputStream
         datasetMetadata <- managedIS.apply(is => DatasetMetadata(is))
         _ <- app.checkDoi(user.id, uuid, datasetMetadata)
         _ <- app.writeDataMetadataToDeposit(datasetMetadata, user.id, uuid)
       } yield NoContent()
-    }.getOrRecover(respond)
+    }.doIfFailure{ case t: Throwable => println(t.getMessage)}
+      .getOrRecover(respond)
       .logResponse
   }
   get("/:uuid/state") {
@@ -151,6 +154,7 @@ class DepositServlet(app: EasyDepositApiApp)
         uuid <- getUUID
         path <- getPath
         _ <- isMultipart
+        _ <- canUpdate(uuid)
         fileItems = fileMultiParams.valuesIterator.flatten.buffered
         maybeZipInputStream <- fileItems.nextAsZipIfOnlyOne
         (managedStagingDir, stagedFilesTarget) <- app.stageFiles(user.id, uuid, path)
@@ -170,6 +174,7 @@ class DepositServlet(app: EasyDepositApiApp)
       for {
         uuid <- getUUID
         path <- getPath
+        _ <- canUpdate(uuid)
         managedIS <- getRequestBodyAsManagedInputStream
         newFileWasCreated <- managedIS.apply(app.writeDepositFile(_, user.id, uuid, path))
       } yield if (newFileWasCreated)
@@ -178,6 +183,7 @@ class DepositServlet(app: EasyDepositApiApp)
     }.getOrRecover(respond)
       .logResponse
   }
+
   delete("/:uuid/file/*") { //dir and file
     {
       for {
@@ -249,8 +255,15 @@ class DepositServlet(app: EasyDepositApiApp)
     }
   }
 
-  private def getRequestBodyAsManagedInputStream = {
-    Try { managed(request.getInputStream) }
+  private def getRequestBodyAsManagedInputStream: Try[ManagedResource[ServletInputStream]] = Try {
+    managed(request.getInputStream)
+  }
+
+  private def canUpdate(uuid: UUID): Try[Unit] = {
+    for {userId <- getUserId
+         deposit <- app.getDepositState(userId, uuid)
+         _ <- deposit.canUpdate
+    } yield ()
   }
 }
 
