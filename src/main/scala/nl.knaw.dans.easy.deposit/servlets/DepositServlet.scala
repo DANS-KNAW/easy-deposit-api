@@ -105,8 +105,7 @@ class DepositServlet(app: EasyDepositApiApp)
         _ <- app.checkDoi(user.id, uuid, datasetMetadata)
         _ <- app.writeDataMetadataToDeposit(datasetMetadata, user.id, uuid)
       } yield NoContent()
-    }.doIfFailure{ case t: Throwable => println(t.getMessage)}
-      .getOrRecover(respond)
+    }.getOrRecover(respond)
       .logResponse
   }
   get("/:uuid/state") {
