@@ -63,13 +63,14 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
     val dir = getConfiguredDirectory("deposits.stage-zips")
     logger.info(s"Uploads are staged in $dir")
     if (dir.nonEmpty) {
-      val msg = s"Pending uploads were probably interrupted. See logs lines with 'POST /deposit/{id}/file/{dir_path}'. Please remove their directories from the staging area: $dir"
+      val msg = s"Possibly pending or interrupted uploads the in staging area: $dir. See log lines with 'POST /deposit/{id}/file/{dir_path}'."
       logger.error(msg)
       throw new FileAlreadyExistsException(msg)
     }
     dir
   }
-  private val draftsDir = getConfiguredDirectory("deposits.drafts")
+  private val draftsDir: File = getConfiguredDirectory("deposits.drafts")
+  sameMounts(uploadStagingDir.fileSystem.provider(), uploadStagingDir, draftsDir)
 
   private val submitter = new Submitter(
     getConfiguredDirectory("deposits.stage-for-submit"),

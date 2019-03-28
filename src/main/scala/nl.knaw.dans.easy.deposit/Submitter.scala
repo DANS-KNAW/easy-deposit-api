@@ -19,6 +19,7 @@ import java.io.IOException
 import java.nio.file._
 import java.nio.file.attribute.PosixFilePermission.GROUP_WRITE
 import java.nio.file.attribute.{ PosixFileAttributeView, UserPrincipalNotFoundException }
+import java.nio.file.spi.FileSystemProvider
 
 import better.files.File
 import better.files.File.VisitOptions
@@ -53,6 +54,8 @@ class Submitter(stagingBaseDir: File,
       case NonFatal(e) => throw new IOException(s"unexpected error occured on $stagingBaseDir", e)
     }
   }
+  val srcProvider: FileSystemProvider = stagingBaseDir.fileSystem.provider()
+  sameMounts(srcProvider, stagingBaseDir, submitToBaseDir)
 
   /**
    * Submits `depositDir` by writing the file metadata, updating the bag checksums, staging a copy
@@ -103,10 +106,11 @@ class Submitter(stagingBaseDir: File,
     _ <- isValid(stageBag)
     // EASY-1464 3.3.7 checksums
     _ <- samePayloadManifestEntries(stageBag, draftBag)
-    _ <- setRightsRecursively(stageBag.baseDir.parent)
+    draftDepositDir = stageBag.baseDir.parent
+    _ <- setRightsRecursively(draftDepositDir)
     // EASY-1464 step 3.3.9 Move copy to submit-to area
-    _ = logger.info(s"moving ${stageBag.baseDir.parent} to $submitDir")
-    _ = stageBag.baseDir.parent.moveTo(submitDir)
+    _ = logger.info(s"moving $draftDepositDir to $submitDir")
+    _ = srcProvider.move(draftDepositDir.path, submitDir.path, StandardCopyOption.ATOMIC_MOVE)
   } yield ()
 
   private def setRightsRecursively(file: File): Try[Unit] = {

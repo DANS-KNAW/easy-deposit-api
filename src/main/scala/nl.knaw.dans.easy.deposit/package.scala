@@ -15,17 +15,20 @@
  */
 package nl.knaw.dans.easy
 
-import java.nio.file.{ FileAlreadyExistsException, Paths }
+import java.io.IOException
+import java.nio.file.spi.FileSystemProvider
+import java.nio.file.{ FileAlreadyExistsException, Paths, StandardCopyOption }
 import java.util.UUID
 
-import better.files.StringOps
+import better.files.{ File, StringOps }
 import nl.knaw.dans.bag.DansBag
 import nl.knaw.dans.easy.deposit.docs.StateInfo.State.State
+import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 
 import scala.util.{ Failure, Try }
 import scala.xml._
 
-package object deposit {
+package object deposit extends DebugEnhancedLogging {
 
   sealed abstract class DepositException(msg: String, cause: Throwable) extends Exception(msg, cause)
 
@@ -69,6 +72,23 @@ package object deposit {
       stream
         .collectFirst { case Failure(e) => Failure(e) }
         .getOrElse(onSuccess)
+    }
+  }
+
+  @throws[IOException]("when files can not be moved atomically from src to target")
+  def sameMounts(srcProvider: FileSystemProvider, src: File, target: File): Unit = {
+    val fileName = "same-mount-check"
+    val tempFile = src / fileName
+    val movedTempFile = target / fileName
+    Try {
+      if (tempFile.notExists) tempFile.createFile()
+      srcProvider.move(tempFile.path, movedTempFile.path, StandardCopyOption.ATOMIC_MOVE)
+      movedTempFile.delete()
+    }.recoverWith {
+      case e =>
+        logger.error(s"Can not move files from $src to $target: ${ e.getMessage }", e)
+        tempFile.delete()
+        throw e
     }
   }
 }
