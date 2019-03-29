@@ -164,8 +164,6 @@ class HappyRoutesSpec extends TestSupportFixture with ServletFixture with Scalat
 
   "put /deposit/:uuid/metadata" should "reject invalid datasetmetadata.json" in {
     authMocker.expectsUserFooBar
-    (mockedApp.getDepositState(_: String, _: UUID)) expects("foo", uuid) returning
-      Success(StateInfo(StateInfo.State.draft, "a draft"))
     put(
       uri = s"/deposit/$uuid/metadata",
       body = """{"title":"blabla"}""", // N.B: key should be plural
@@ -173,40 +171,6 @@ class HappyRoutesSpec extends TestSupportFixture with ServletFixture with Scalat
     ) {
       status shouldBe BAD_REQUEST_400
       body shouldBe """Bad Request. invalid DatasetMetadata: don't recognize {"title":"blabla"}"""
-    }
-  }
-
-  it should "reject the deposit if the deposit has archived as state" in {
-    val stateInfo = StateInfo(StateInfo.State.archived, "archived")
-    authMocker.expectsUserFooBar
-    (mockedApp.getDepositState(_: String, _: UUID)) expects("foo", uuid) returning
-      Success(stateInfo)
-    expectPutMetaDataToFail(stateInfo)
-  }
-
-  it should "reject the deposit if the deposit has submitted as state" in {
-    val stateInfo = StateInfo(StateInfo.State.submitted, "submitted")
-    authMocker.expectsUserFooBar
-    (mockedApp.getDepositState(_: String, _: UUID)) expects("foo", uuid) returning
-      Success(stateInfo)
-    expectPutMetaDataToFail(stateInfo)
-  }
-
-  it should "reject the deposit if the deposit has in progress as state" in {
-    val stateInfo = StateInfo(StateInfo.State.inProgress, "in progress")
-    authMocker.expectsUserFooBar
-    (mockedApp.getDepositState(_: String, _: UUID)) expects("foo", uuid) returning
-      Success(stateInfo)
-    expectPutMetaDataToFail(stateInfo)
-  }
-
-  private def expectPutMetaDataToFail(stateInfo: StateInfo): Unit = {
-    put(
-      uri = s"/deposit/$uuid/metadata",
-      headers = Seq(fooBarBasicAuthHeader)
-    ) {
-      status shouldBe FORBIDDEN_403
-      body shouldBe s"""Deposit has state ${ stateInfo.state }, can only update deposits with one of the states: DRAFT, REJECTED"""
     }
   }
 }

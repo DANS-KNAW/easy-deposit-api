@@ -133,6 +133,20 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
   }
 
   /**
+   * Determines if the deposit can be updated, based on its current state.
+   *
+   * @param user ID
+   * @param id   the deposit ID
+   * @return
+   */
+  def canUpdate(user: String, id: UUID): Try[Unit] = {
+    for {
+      state <- getDepositState(user, id)
+      _ <- state.canUpdate
+    } yield ()
+  }
+
+  /**
    * Sets the deposit state. The only legal transitions are:
    *
    * - from [[nl.knaw.dans.easy.deposit.docs.StateInfo.State.draft]] to [[nl.knaw.dans.easy.deposit.docs.StateInfo.State.submitted]]
@@ -218,8 +232,7 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
    */
   def writeDataMetadataToDeposit(dm: DatasetMetadata, user: String, id: UUID): Try[Unit] = for {
     deposit <- getDeposit(user, id)
-    depositState <- deposit.getStateInfo
-    _ <- depositState.canUpdate
+    _ <- canUpdate(user, id)
     _ <- deposit.writeDatasetMetadataJson(dm)
   } yield ()
 
@@ -266,8 +279,8 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
    */
   def writeDepositFile(is: => InputStream, user: String, id: UUID, path: Path): Try[Boolean] = {
     for {
-
       dataFiles <- getDataFiles(user, id)
+      _ <- canUpdate(user, id)
       _ = logger.info(s"uploading to [${ dataFiles.bag.baseDir }] of [$path]")
       created <- dataFiles.write(is, path)
       _ = logger.info(s"created=$created $user/$id/$path")
@@ -307,6 +320,7 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
    */
   def deleteDepositFile(user: String, id: UUID, path: Path): Try[Unit] = for {
     dataFiles <- getDataFiles(user, id)
+    _ <- canUpdate(user, id) //  deleting a file, is updating the deposit
     _ <- dataFiles.delete(path)
   } yield ()
 }
