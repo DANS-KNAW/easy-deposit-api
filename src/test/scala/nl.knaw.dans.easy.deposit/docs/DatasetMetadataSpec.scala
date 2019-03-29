@@ -87,6 +87,12 @@ class DatasetMetadataSpec extends TestSupportFixture {
     DatasetMetadata(s) shouldBe a[Success[_]]
   }
 
+  it should "accept a plain date" in {
+    val s: JsonInput =
+      """{"dates":[{"qualifier":"dcterms:date","scheme":"dcterms:W3CDTF","value":"2019-03-29T15:08:34+01:00"}]}""".stripMargin
+    DatasetMetadata(s) shouldBe a[Success[_]]
+  }
+
   "DatasetMetadata.relations" should "accept complete relations" in {
     val s: JsonInput =
       """{
