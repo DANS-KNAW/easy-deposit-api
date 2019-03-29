@@ -209,6 +209,4 @@ class HappyRoutesSpec extends TestSupportFixture with ServletFixture with Scalat
       body shouldBe s"""Deposit has state ${ stateInfo.state }, can only update deposits with one of the states: DRAFT, REJECTED"""
     }
   }
-
-
 }

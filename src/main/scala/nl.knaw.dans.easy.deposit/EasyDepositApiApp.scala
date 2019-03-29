@@ -218,6 +218,8 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
    */
   def writeDataMetadataToDeposit(dm: DatasetMetadata, user: String, id: UUID): Try[Unit] = for {
     deposit <- getDeposit(user, id)
+    depositState <- deposit.getStateInfo
+    _ <- depositState.canUpdate
     _ <- deposit.writeDatasetMetadataJson(dm)
   } yield ()
 
@@ -264,6 +266,7 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
    */
   def writeDepositFile(is: => InputStream, user: String, id: UUID, path: Path): Try[Boolean] = {
     for {
+
       dataFiles <- getDataFiles(user, id)
       _ = logger.info(s"uploading to [${ dataFiles.bag.baseDir }] of [$path]")
       created <- dataFiles.write(is, path)

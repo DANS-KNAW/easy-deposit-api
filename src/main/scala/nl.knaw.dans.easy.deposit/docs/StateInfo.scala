@@ -23,7 +23,7 @@ import scala.collection.Seq
 import scala.util.{ Failure, Success, Try }
 
 case class StateInfo(state: State, stateDescription: String) {
-  def isDeletable: Try[Unit] = {
+  def canDelete: Try[Unit] = {
     if (StateInfo.deletableStates.contains(state)) Success(())
     else Failure(new IllegalStateException(s"Deposit has state $state, can only delete deposits with one of the states: ${ StateInfo.deletableStates.mkString(", ") }"))
   }

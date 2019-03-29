@@ -99,8 +99,7 @@ class DepositServlet(app: EasyDepositApiApp)
     {
       for {
         uuid <- getUUID
-        _ <- canUpdate(uuid)
-        managedIS <- getRequestBodyAsManagedInputStream
+        managedIS = getRequestBodyAsManagedInputStream
         datasetMetadata <- managedIS.apply(is => DatasetMetadata(is))
         _ <- app.checkDoi(user.id, uuid, datasetMetadata)
         _ <- app.writeDataMetadataToDeposit(datasetMetadata, user.id, uuid)
@@ -121,7 +120,7 @@ class DepositServlet(app: EasyDepositApiApp)
     {
       for {
         uuid <- getUUID
-        managedIS <- getRequestBodyAsManagedInputStream
+        managedIS = getRequestBodyAsManagedInputStream
         stateInfo <- managedIS.apply(is => StateInfo(is))
         _ <- app.setDepositState(stateInfo, user.id, uuid)
       } yield NoContent()
@@ -153,7 +152,6 @@ class DepositServlet(app: EasyDepositApiApp)
         uuid <- getUUID
         path <- getPath
         _ <- isMultipart
-        _ <- canUpdate(uuid)
         fileItems = fileMultiParams.valuesIterator.flatten.buffered
         maybeZipInputStream <- fileItems.nextAsZipIfOnlyOne
         (managedStagingDir, stagedFilesTarget) <- app.stageFiles(user.id, uuid, path)
@@ -173,8 +171,7 @@ class DepositServlet(app: EasyDepositApiApp)
       for {
         uuid <- getUUID
         path <- getPath
-        _ <- canUpdate(uuid)
-        managedIS <- getRequestBodyAsManagedInputStream
+        managedIS = getRequestBodyAsManagedInputStream
         newFileWasCreated <- managedIS.apply(app.writeDepositFile(_, user.id, uuid, path))
       } yield if (newFileWasCreated)
                 Created(headers = Map("Location" -> request.uri.toASCIIString))
@@ -254,16 +251,7 @@ class DepositServlet(app: EasyDepositApiApp)
     }
   }
 
-  private def getRequestBodyAsManagedInputStream: Try[ManagedResource[ServletInputStream]] = Try {
-    managed(request.getInputStream)
-  }
-
-  private def canUpdate(uuid: UUID): Try[Unit] = {
-    for {userId <- getUserId
-         deposit <- app.getDepositState(userId, uuid)
-         _ <- deposit.canUpdate
-    } yield ()
-  }
+  private def getRequestBodyAsManagedInputStream: ManagedResource[ServletInputStream] = managed(request.getInputStream)
 }
 
 object DepositServlet {
