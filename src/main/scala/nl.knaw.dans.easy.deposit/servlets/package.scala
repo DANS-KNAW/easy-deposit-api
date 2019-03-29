@@ -37,8 +37,8 @@ import scala.util.{ Failure, Success, Try }
  * |                        on a valid session cookie
  * |___ AuthServlet         should not refresh session cookies
  * |___ ProtectedServlet    requires refreshed session cookies
- *      |___ UserServlet
- *      |___ DepositServlet
+ * |___ UserServlet
+ * |___ DepositServlet
  */
 package object servlets extends DebugEnhancedLogging {
 
@@ -68,18 +68,14 @@ package object servlets extends DebugEnhancedLogging {
 
   implicit class RichZipInputStream(val zipInputStream: ZipInputStream) extends AnyVal {
     def unzipPlainEntriesTo(dir: File): Try[Unit] = {
-      def extract(entry: ZipEntry) = {
+      def extract(entry: ZipEntry): Try[Any] = {
         if (entry.isDirectory)
           Try((dir / entry.getName).createDirectories())
         else {
-          if (entry.getName.matches(extensionZipPattern))
-            Failure(BadRequestException(s"ZIP file is malformed. It contains a Zip ${ entry.getName }."))
-          else {
-            logger.info(s"Extracting ${ entry.getName } size=${ entry.getSize } compressedSize=${ entry.getCompressedSize } CRC=${ entry.getCrc }")
-            Try(Files.copy(zipInputStream, (dir / entry.getName).path))
-          }.recoverWith {
-            case e if e.isInstanceOf[ZipException] => Failure(BadRequestException(s"ZIP file is malformed. $e"))
-          }
+          logger.info(s"Extracting ${ entry.getName } size=${ entry.getSize } compressedSize=${ entry.getCompressedSize } CRC=${ entry.getCrc }")
+          Try(Files.copy(zipInputStream, (dir / entry.getName).path))
+        }.recoverWith {
+          case e if e.isInstanceOf[ZipException] => Failure(BadRequestException(s"ZIP file is malformed. $e"))
         }
       }
 

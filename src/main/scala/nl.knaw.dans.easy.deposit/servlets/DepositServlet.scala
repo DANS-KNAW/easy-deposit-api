@@ -241,7 +241,7 @@ class DepositServlet(app: EasyDepositApiApp)
     Failure(InvalidResourceException(s"Invalid path."))
   }
 
-  private def isMultipart = {
+  private def isMultipart: Try[Unit] = {
     val multiPart = "multipart/"
     request.getHeader("Content-Type").blankOption match {
       case Some(s) if s.toLowerCase.startsWith(multiPart) => Success(())
