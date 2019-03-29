@@ -84,11 +84,9 @@ package object deposit extends DebugEnhancedLogging {
       if (tempFile.notExists) tempFile.createFile()
       srcProvider.move(tempFile.path, movedTempFile.path, StandardCopyOption.ATOMIC_MOVE)
       movedTempFile.delete()
-    }.recoverWith {
-      case e =>
-        logger.error(s"Can not move files from $src to $target: ${ e.getMessage }", e)
-        tempFile.delete()
-        throw e
+    }.recoverWith { case e =>
+      tempFile.delete()
+      throw e
     }
   }
 }
