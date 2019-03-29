@@ -47,7 +47,7 @@ class Submitter(stagingBaseDir: File,
                ) extends DebugEnhancedLogging {
   private val groupPrincipal = {
     Try {
-      stagingBaseDir.path.getFileSystem.getUserPrincipalLookupService.lookupPrincipalByGroupName(groupName)
+      stagingBaseDir.fileSystem.getUserPrincipalLookupService.lookupPrincipalByGroupName(groupName)
     }.getOrRecover {
       case e: UserPrincipalNotFoundException => throw new IOException(s"Group $groupName could not be found", e)
       case e: UnsupportedOperationException => throw new IOException("Not on a POSIX supported file system", e)
