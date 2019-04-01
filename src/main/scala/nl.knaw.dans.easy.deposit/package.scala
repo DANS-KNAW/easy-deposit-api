@@ -21,12 +21,11 @@ import java.util.UUID
 import better.files.StringOps
 import nl.knaw.dans.bag.DansBag
 import nl.knaw.dans.easy.deposit.docs.StateInfo.State.State
-import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 
 import scala.util.{ Failure, Try }
 import scala.xml._
 
-package object deposit extends DebugEnhancedLogging {
+package object deposit {
 
   sealed abstract class DepositException(msg: String, cause: Throwable) extends Exception(msg, cause)
 
