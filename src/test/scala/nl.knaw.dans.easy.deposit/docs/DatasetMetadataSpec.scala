@@ -61,7 +61,7 @@ class DatasetMetadataSpec extends TestSupportFixture {
   }
 
   it should "return defaults for omitted mandatory fields" in {
-    val example ="""{ "creators": [ ]}"""
+    val example = """{"creators": [ ]}"""
     val parsed = prepareDatasetMetadata(example)
     toJson(parsed) shouldBe
       """{"creators":[],"privacySensitiveDataPresent":"unspecified","acceptDepositAgreement":false}"""
