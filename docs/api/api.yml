@@ -1064,12 +1064,15 @@ components:
       properties:
         scheme:
           type: string
+          description: "Recommended values: 'http://www.opengis.net/def/crs/EPSG/0/4326' (degrees), 'http://www.opengis.net/def/crs/EPSG/0/28992' (RD)."
         x:
           type: string
           format: "number"
+          description: "In case of RD: range from -7000 to 300000. In case of degrees: latitude, range from -90 to 90."
         y:
           type: string
           format: "number"
+          description: "In case of RD: range from 289000 to 629000. In case of degrees: longitude, range from -180 to 180."
 
     # Note: it is not possible to provide examples in combination with a reference to this
     # schema. If you need examples, you'll have to spell out the complete type.
