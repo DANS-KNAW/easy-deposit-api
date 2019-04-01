@@ -15,7 +15,7 @@
  */
 package nl.knaw.dans.easy.deposit
 
-import java.io.{ IOException, InputStream }
+import java.io.InputStream
 import java.net.URI
 import java.nio.file.spi.FileSystemProvider
 import java.nio.file.{ FileAlreadyExistsException, Path }
@@ -82,9 +82,9 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
   )
 
   @throws[ConfigurationException]("when no existing readable directory is configured")
-  def getConfiguredDirectory(key: String): File = {
+  private def getConfiguredDirectory(key: String): File = {
     // TODO move to Validation?
-    val str = Try{configuration.properties.getString(key)}.recoverWith { case e =>
+    val str = Try { configuration.properties.getString(key) }.recoverWith { case e =>
       throw ConfigurationException(s"$e")
     }.unsafeGetOrThrow
     val dir = File(str)

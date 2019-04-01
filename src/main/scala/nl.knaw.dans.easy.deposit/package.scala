@@ -15,12 +15,10 @@
  */
 package nl.knaw.dans.easy
 
-import java.io.IOException
-import java.nio.file.spi.FileSystemProvider
-import java.nio.file.{ FileAlreadyExistsException, Paths, StandardCopyOption }
+import java.nio.file.{ FileAlreadyExistsException, Paths }
 import java.util.UUID
 
-import better.files.{ File, StringOps }
+import better.files.StringOps
 import nl.knaw.dans.bag.DansBag
 import nl.knaw.dans.easy.deposit.docs.StateInfo.State.State
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
