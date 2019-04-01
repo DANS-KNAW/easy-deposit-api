@@ -77,7 +77,7 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
     }
 
     // the test
-    createSubmitter(userGroup).submit(depositDir) should matchPattern { case Success(()) => }
+    createSubmitter(userGroup).submit(depositDir) shouldBe a[Success[_]]
 
     // post conditions
     (testDir / "stage-for-submit").children.size shouldBe 0
@@ -103,7 +103,7 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
     val depositDir = createDeposit(datasetMetadata.copy(messageForDataManager = None))
     addDoiToDepositProperties(getBag(depositDir))
 
-    createSubmitter(userGroup).submit(depositDir) should matchPattern { case Success(()) => }
+    createSubmitter(userGroup).submit(depositDir) shouldBe a[Success[_]]
 
     (testDir / "submitted" / depositDir.id.toString / "bag" / "metadata" / "message-from-depositor.txt")
       .contentAsString shouldBe ""
