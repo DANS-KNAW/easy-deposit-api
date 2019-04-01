@@ -26,6 +26,8 @@ import nl.knaw.dans.easy.deposit.PidRequesterComponent.PidRequester
 import nl.knaw.dans.easy.deposit.authentication.LdapAuthentication
 import nl.knaw.dans.easy.deposit.docs.StateInfo.State
 import nl.knaw.dans.easy.deposit.docs.{ DatasetMetadata, DepositInfo, StateInfo }
+import nl.knaw.dans.easy.deposit.servlets.DepositServlet.{ BadRequestException, ConflictException }
+import nl.knaw.dans.easy.deposit.servlets.contentTypeZipPattern
 import nl.knaw.dans.lib.error._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.apache.commons.configuration.PropertiesConfiguration
@@ -262,9 +264,13 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
    * @param is   the input stream to write from
    * @return `true` if a new file was created, `false` otherwise
    */
-  def writeDepositFile(is: => InputStream, user: String, id: UUID, path: Path): Try[Boolean] = {
+  def writeDepositFile(is: => InputStream, user: String, id: UUID, path: Path, contentType: String): Try[Boolean] = {
     for {
+      _ <- if (Option(contentType).toSeq.exists(!_.trim.matches(contentTypeZipPattern))) Success(())
+           else Failure(BadRequestException("Content-Type must not be application/zip."))
       dataFiles <- getDataFiles(user, id)
+      _ <- if (!(dataFiles.bag / "data" / path.toString).isDirectory) Success(())
+           else Failure(ConflictException("Attempt to overwrite a directory with a file."))
       _ = logger.info(s"uploading to [${ dataFiles.bag.baseDir }] of [$path]")
       created <- dataFiles.write(is, path)
       _ = logger.info(s"created=$created $user/$id/$path")

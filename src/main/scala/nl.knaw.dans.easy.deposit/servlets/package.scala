@@ -42,10 +42,10 @@ import scala.util.{ Failure, Success, Try }
  */
 package object servlets extends DebugEnhancedLogging {
 
-  private val extensionZipPattern = ".*.g?z(ip)?"
+  val extensionZipPattern = ".*.g?z(ip)?"
   private val pre = "(x-)?g?zip"
   private val post = "-compress(ed)?"
-  private val contentTypeZipPattern = s"application/(($pre($post)?)|(x$post))"
+  val contentTypeZipPattern = s"application/(($pre($post)?)|(x$post))"
 
   val contentTypeJson: (String, String) = "content-type" -> "application/json;charset=UTF-8"
   val contentTypePlainText: (String, String) = "content-type" -> "text/plain;charset=UTF-8"
