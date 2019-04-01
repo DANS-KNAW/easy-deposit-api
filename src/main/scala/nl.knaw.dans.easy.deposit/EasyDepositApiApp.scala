@@ -84,9 +84,8 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
   @throws[ConfigurationException]("when no existing readable directory is configured")
   private def getConfiguredDirectory(key: String): File = {
     // TODO move to Validation?
-    val str = Try { configuration.properties.getString(key) }.recoverWith { case e =>
-      throw ConfigurationException(s"$e")
-    }.unsafeGetOrThrow
+    val str = Option(configuration.properties.getString(key))
+      .getOrElse(throw ConfigurationException(s"No configuration value for $key"))
     val dir = File(str)
 
     if (!dir.exists) throw ConfigurationException(s"Configured directory '$key' does not exist: $dir")
