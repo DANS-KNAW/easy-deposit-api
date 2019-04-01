@@ -24,7 +24,7 @@ object DateQualifier extends Enumeration {
   type DateQualifier = Value
   val created: DateQualifier = Value("dcterms:created")
   val available: DateQualifier = Value("dcterms:available")
-  val date: DateQualifier = Value("dc:date")
+  val date: DateQualifier = Value("dcterms:date")
   val dateAccepted: DateQualifier = Value("dcterms:dateAccepted")
   val dateCopyrighted: DateQualifier = Value("dcterms:dateCopyrighted")
   val dateSubmitted: DateQualifier = Value("dcterms:dateSubmitted")
