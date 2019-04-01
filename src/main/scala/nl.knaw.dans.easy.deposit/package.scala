@@ -74,19 +74,4 @@ package object deposit extends DebugEnhancedLogging {
         .getOrElse(onSuccess)
     }
   }
-
-  @throws[IOException]("when files can not be moved atomically from src to target")
-  def sameMounts(srcProvider: FileSystemProvider, src: File, target: File): Unit = {
-    val fileName = "same-mount-check"
-    val tempFile = src / fileName
-    val movedTempFile = target / fileName
-    Try {
-      if (tempFile.notExists) tempFile.createFile()
-      srcProvider.move(tempFile.path, movedTempFile.path, StandardCopyOption.ATOMIC_MOVE)
-      movedTempFile.delete()
-    }.recoverWith { case e =>
-      tempFile.delete()
-      throw e
-    }
-  }
 }

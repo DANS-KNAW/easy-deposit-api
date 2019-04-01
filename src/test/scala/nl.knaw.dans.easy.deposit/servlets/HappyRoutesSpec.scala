@@ -15,9 +15,11 @@
  */
 package nl.knaw.dans.easy.deposit.servlets
 
+import java.nio.file.spi.FileSystemProvider
 import java.nio.file.{ Path, Paths }
 import java.util.UUID
 
+import better.files.File
 import nl.knaw.dans.easy.deposit._
 import nl.knaw.dans.easy.deposit.authentication.{ AuthenticationMocker, AuthenticationProvider }
 import nl.knaw.dans.easy.deposit.docs.StateInfo.State._
