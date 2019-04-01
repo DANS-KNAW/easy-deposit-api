@@ -24,7 +24,7 @@ import nl.knaw.dans.lib.error._
 
 import scala.util.Try
 
-object Validation {
+object StartupValidation {
 
   @throws[IOException]("when files can not be moved atomically from src to target")
   def sameMounts(srcProvider: FileSystemProvider, src: File, target: File): Unit = {

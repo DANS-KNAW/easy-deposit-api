@@ -55,7 +55,7 @@ class Submitter(stagingBaseDir: File,
     }
   }
   val srcProvider: FileSystemProvider = stagingBaseDir.fileSystem.provider()
-  Validation.sameMounts(srcProvider, stagingBaseDir, submitToBaseDir)
+  StartupValidation.sameMounts(srcProvider, stagingBaseDir, submitToBaseDir)
 
   /**
    * Submits `depositDir` by writing the file metadata, updating the bag checksums, staging a copy
