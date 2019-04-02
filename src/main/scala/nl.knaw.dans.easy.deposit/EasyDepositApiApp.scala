@@ -17,6 +17,7 @@ package nl.knaw.dans.easy.deposit
 
 import java.io.InputStream
 import java.net.URI
+import java.nio.file.spi.FileSystemProvider
 import java.nio.file.{ FileAlreadyExistsException, Path }
 import java.util.UUID
 
@@ -26,6 +27,8 @@ import nl.knaw.dans.easy.deposit.PidRequesterComponent.PidRequester
 import nl.knaw.dans.easy.deposit.authentication.LdapAuthentication
 import nl.knaw.dans.easy.deposit.docs.StateInfo.State
 import nl.knaw.dans.easy.deposit.docs.{ DatasetMetadata, DepositInfo, StateInfo }
+import nl.knaw.dans.easy.deposit.servlets.DepositServlet.{ BadRequestException, ConflictException }
+import nl.knaw.dans.easy.deposit.servlets.contentTypeZipPattern
 import nl.knaw.dans.lib.error._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.apache.commons.configuration.PropertiesConfiguration
@@ -63,13 +66,16 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
     val dir = getConfiguredDirectory("deposits.stage-zips")
     logger.info(s"Uploads are staged in $dir")
     if (dir.nonEmpty) {
-      val msg = s"Pending uploads were probably interrupted. See logs lines with 'POST /deposit/{id}/file/{dir_path}'. Please remove their directories from the staging area: $dir"
-      logger.error(msg)
-      throw new FileAlreadyExistsException(msg)
+      // TODO move to Validation and/or new Uploader class for DepositServlet post("/:uuid/file/*")
+      throw new FileAlreadyExistsException(
+        s"Upload staging area [$dir] should be empty unless force shutdown during an upload request. Check logging related to 'POST /deposit/{id}/file/{dir_path}'."
+      )
     }
     dir
   }
-  private val draftsDir = getConfiguredDirectory("deposits.drafts")
+  private val draftsDir: File = getConfiguredDirectory("deposits.drafts")
+  private val provider: FileSystemProvider = uploadStagingDir.fileSystem.provider()
+  StartupValidation.sameMounts(provider, uploadStagingDir, draftsDir)
 
   private val submitter = new Submitter(
     getConfiguredDirectory("deposits.stage-for-submit"),
@@ -77,8 +83,12 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
     configuration.properties.getString("deposit.permissions.group"),
   )
 
+  @throws[ConfigurationException]("when no existing readable directory is configured")
   private def getConfiguredDirectory(key: String): File = {
-    val dir = File(configuration.properties.getString(key))
+    // TODO move to Validation?
+    val str = Option(configuration.properties.getString(key))
+      .getOrElse(throw ConfigurationException(s"No configuration value for $key"))
+    val dir = File(str)
 
     if (!dir.exists) throw ConfigurationException(s"Configured directory '$key' does not exist: $dir")
     if (!dir.isDirectory) throw ConfigurationException(s"Configured directory '$key' is a regular file: $dir")
@@ -257,20 +267,36 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
    * If a new file is created the function returns `true`, otherwise an existing file was overwritten.
    * (We hope the reader will forgive us this minor violation of the Command-Query separation principle.)
    *
-   * @param user the user ID
-   * @param id   the deposit ID
-   * @param path the path of the file to (over)write, relative to the content base directory
-   * @param is   the input stream to write from
+   * @param user        the user ID
+   * @param id          the deposit ID
+   * @param path        the path of the file to (over)write, relative to the content base directory
+   * @param is          the input stream to write from
+   * @param contentType the contentType of the stream, mandatory in this context
+   *                    but optional by the nature of an HTTP request header
    * @return `true` if a new file was created, `false` otherwise
    */
-  def writeDepositFile(is: => InputStream, user: String, id: UUID, path: Path): Try[Boolean] = {
+  def writeDepositFile(is: => InputStream, user: String, id: UUID, path: Path, contentType: Option[String]): Try[Boolean] = {
     for {
+      _ <- contentTypeAnythingButZip(contentType)
       dataFiles <- getDataFiles(user, id)
       _ <- canUpdate(user, id)
+      _ <- pathNotADirectory(path, dataFiles)
       _ = logger.info(s"uploading to [${ dataFiles.bag.baseDir }] of [$path]")
       created <- dataFiles.write(is, path)
       _ = logger.info(s"created=$created $user/$id/$path")
     } yield created
+  }
+
+  private def pathNotADirectory(path: Path, dataFiles: DataFiles) = {
+    if ((dataFiles.bag / "data" / path.toString).isDirectory)
+      Failure(ConflictException("Attempt to overwrite a directory with a file."))
+    else Success(())
+  }
+
+  private def contentTypeAnythingButZip(contentType: Option[String]) = {
+    if (contentType.exists(str => str.trim.nonEmpty && !str.trim.matches(contentTypeZipPattern)))
+      Success(())
+    else Failure(BadRequestException("Content-Type must not be application/zip."))
   }
 
   def stageFiles(userId: String, id: UUID, destination: Path): Try[(Dispose[File], StagedFilesTarget)] = {

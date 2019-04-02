@@ -22,8 +22,8 @@ import java.util.UUID
 import javax.servlet.ServletInputStream
 import nl.knaw.dans.easy.deposit.docs.JsonUtil.{ InvalidDocumentException, toJson }
 import nl.knaw.dans.easy.deposit.docs.{ DatasetMetadata, StateInfo }
-import nl.knaw.dans.easy.deposit.servlets.DepositServlet.{ BadRequestException, InvalidResourceException, ZipMustBeOnlyFileException }
-import nl.knaw.dans.easy.deposit.{ EasyDepositApiApp, _ }
+import nl.knaw.dans.easy.deposit.servlets.DepositServlet._
+import nl.knaw.dans.easy.deposit._
 import nl.knaw.dans.lib.error._
 import nl.knaw.dans.lib.logging.servlet._
 import org.apache.commons.lang.NotImplementedException
@@ -171,8 +171,8 @@ class DepositServlet(app: EasyDepositApiApp)
       for {
         uuid <- getUUID
         path <- getPath
-        managedIS = getRequestBodyAsManagedInputStream
-        newFileWasCreated <- managedIS.apply(app.writeDepositFile(_, user.id, uuid, path))
+        managedIS <- getRequestBodyAsManagedInputStream
+        newFileWasCreated <- managedIS.apply(app.writeDepositFile(_, user.id, uuid, path, Option(request.getContentType)))
       } yield if (newFileWasCreated)
                 Created(headers = Map("Location" -> request.uri.toASCIIString))
               else NoContent()
@@ -198,6 +198,7 @@ class DepositServlet(app: EasyDepositApiApp)
     case e: NoSuchFileException => NotFound(body = s"${ e.getMessage } not found", Map(contentTypePlainText))
     case e: InvalidResourceException => invalidResourceResponse(e)
     case e: InvalidDocumentException => badDocResponse(e)
+    case e: ConflictException => Conflict(e.getMessage, Map(contentTypePlainText))
     case e: ConcurrentUploadException => Conflict(e.getMessage, Map(contentTypePlainText))
     case e: FileAlreadyExistsException => Conflict("Conflict. The following file(s) already exist on the server: " + e.getMessage, Map(contentTypePlainText))
     case e: InvalidDoiException => BadRequest(e.getMessage, Map(contentTypePlainText))
@@ -258,5 +259,6 @@ object DepositServlet {
 
   private case class InvalidResourceException(s: String) extends Exception(s)
   case class BadRequestException(s: String) extends Exception(s)
+  case class ConflictException(s: String) extends Exception(s)
   case class ZipMustBeOnlyFileException(s: String) extends Exception(s"A multipart/form-data message contained a ZIP [$s] part but also other parts.")
 }

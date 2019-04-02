@@ -60,16 +60,8 @@ class DatasetMetadataSpec extends TestSupportFixture {
     }
   }
 
-  private def reportFailure(parsed: DatasetMetadata, changed: JValue, added: JValue, deleted: JValue) = {
-    fail(s"serialized parsed object not equal to original json object: changed=[$changed] added=[$added] deleted=[$deleted]; re-serialized json=[${ toJson(parsed) }]")
-  }
-
   it should "return defaults for omitted mandatory fields" in {
-    val example =
-      """{
-        |  "creators": [
-        |  ]
-        |}""".stripMargin
+    val example = """{"creators": [ ]}"""
     val parsed = prepareDatasetMetadata(example)
     toJson(parsed) shouldBe
       """{"creators":[],"privacySensitiveDataPresent":"unspecified","acceptDepositAgreement":false}"""
@@ -81,9 +73,13 @@ class DatasetMetadataSpec extends TestSupportFixture {
 
   "DatasetMetadata.dates" should "accept a date without a scheme" in {
     val s: JsonInput =
-      """{"dates": [
-        |   { "value": "2018", "qualifier": "dcterms:created" },
-        |]}""".stripMargin
+      """{"dates": [{ "value": "2018", "qualifier": "dcterms:created" }]}"""
+    DatasetMetadata(s) shouldBe a[Success[_]]
+  }
+
+  it should "accept a plain date" in {
+    val s: JsonInput =
+      """{"dates":[{"qualifier":"dcterms:date","scheme":"dcterms:W3CDTF","value":"2019-03-29T15:08:34+01:00"}]}"""
     DatasetMetadata(s) shouldBe a[Success[_]]
   }
 
