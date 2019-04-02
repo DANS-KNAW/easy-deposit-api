@@ -287,13 +287,13 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
     } yield created
   }
 
-  private def pathNotADirectory(path: Path, dataFiles: DataFiles) = {
+  private def pathNotADirectory(path: Path, dataFiles: DataFiles): Try[Unit]  = {
     if ((dataFiles.bag / "data" / path.toString).isDirectory)
       Failure(ConflictException("Attempt to overwrite a directory with a file."))
     else Success(())
   }
 
-  private def contentTypeAnythingButZip(contentType: Option[String]) = {
+  private def contentTypeAnythingButZip(contentType: Option[String]): Try[Unit] = {
     if (contentType.exists(str => str.trim.nonEmpty && !str.trim.matches(contentTypeZipPattern)))
       Success(())
     else Failure(BadRequestException("Content-Type must not be application/zip."))

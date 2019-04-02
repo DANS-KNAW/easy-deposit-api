@@ -171,7 +171,7 @@ class DepositServlet(app: EasyDepositApiApp)
       for {
         uuid <- getUUID
         path <- getPath
-        managedIS <- getRequestBodyAsManagedInputStream
+        managedIS = getRequestBodyAsManagedInputStream
         newFileWasCreated <- managedIS.apply(app.writeDepositFile(_, user.id, uuid, path, Option(request.getContentType)))
       } yield if (newFileWasCreated)
                 Created(headers = Map("Location" -> request.uri.toASCIIString))
@@ -179,7 +179,6 @@ class DepositServlet(app: EasyDepositApiApp)
     }.getOrRecover(respond)
       .logResponse
   }
-
   delete("/:uuid/file/*") { //dir and file
     {
       for {

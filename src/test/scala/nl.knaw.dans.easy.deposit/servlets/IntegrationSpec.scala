@@ -166,10 +166,9 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
 
   "scenario: POST /deposit; PUT /deposit/:uuid/state; PUT /deposit/$uuid/file/..." should "return forbidden cannot update SUBMITTED deposit" in {
     val uuid: String = setupSubmittedDeposit
-
     authMocker.expectsUserFooBar
     put(
-      uri = s"/deposit/$uuid/file/path/to/test.txt", headers = Seq(fooBarBasicAuthHeader),
+      uri = s"/deposit/$uuid/file/path/to/test.txt", headers = Seq(fooBarBasicAuthHeader, ("Content-Type", "application/json")),
       body = "Lorum ipsum"
     ) {
       body shouldBe "Deposit has state SUBMITTED, can only update deposits with one of the states: DRAFT, REJECTED"
