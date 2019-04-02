@@ -20,6 +20,7 @@ import java.nio.file._
 import java.nio.file.attribute.PosixFilePermission.GROUP_WRITE
 import java.nio.file.attribute.{ PosixFileAttributeView, UserPrincipalNotFoundException }
 import java.nio.file.spi.FileSystemProvider
+import java.util.UUID
 
 import better.files.File
 import better.files.File.VisitOptions
@@ -27,6 +28,7 @@ import nl.knaw.dans.bag.ChecksumAlgorithm.ChecksumAlgorithm
 import nl.knaw.dans.bag.DansBag
 import nl.knaw.dans.bag.v0.DansV0Bag
 import nl.knaw.dans.easy.deposit.docs.{ AgreementsXml, DDM, FilesXml, StateInfo }
+import nl.knaw.dans.easy.deposit.servlets.DepositServlet.ConflictException
 import nl.knaw.dans.lib.error._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.joda.time.DateTime
@@ -58,6 +60,14 @@ class Submitter(stagingBaseDir: File,
   StartupValidation.sameMounts(srcProvider, stagingBaseDir, submitToBaseDir)
 
   /**
+   * Note 1: submit area == ingest-flow-inbox
+   * Note 2: Resubmit may follow a reject, be a concurrent submit request or ...
+   *         The end user can compare the UUID with the URL of a deposit.
+   *         The UUID can help communication with trouble shooters.
+   */
+  private def alreadySubmitted(id: UUID) = ConflictException(s"The deposit (UUID $id) already exists in the submit area. Possibly due to a resubmit.")
+
+  /**
    * Submits `depositDir` by writing the file metadata, updating the bag checksums, staging a copy
    * and moving that copy to the submit-to area.
    *
@@ -82,6 +92,8 @@ class Submitter(stagingBaseDir: File,
       msg = datasetMetadata.messageForDataManager.getOrElse("")
       filesXml <- FilesXml(draftBag.data)
       _ <- sameFiles(draftBag.payloadManifests, draftBag.baseDir / "data")
+      submitDir = submitToBaseDir / draftDeposit.id.toString
+      _ = if(submitDir.exists) throw alreadySubmitted(draftDeposit.id)
       // from now on no more user errors but internal errors
       // EASY-1464 3.3.8.a create empty staged bag to take a copy of the deposit
       stageDir = (stagingBaseDir / draftDeposit.id.toString).createDirectories()
@@ -94,12 +106,12 @@ class Submitter(stagingBaseDir: File,
       _ <- stageBag.addMetadataFile(agreementsXml, "agreements.xml")
       _ <- stageBag.addMetadataFile(datasetXml, "dataset.xml")
       _ <- stageBag.addMetadataFile(filesXml, "files.xml")
-      _ <- workerActions(draftBag, stageBag, submitToBaseDir / draftDeposit.id.toString)
+      _ <- workerActions(draftDeposit.id, draftBag, stageBag, submitDir)
     } yield ()
   }
 
   // TODO a worker thread allows submit to return fast for large deposits.
-  private def workerActions(draftBag: DansBag, stageBag: DansBag, submitDir: File) = for {
+  private def workerActions(id: UUID, draftBag: DansBag, stageBag: DansBag, submitDir: File) = for {
     // EASY-1464 3.3.8.b copy files
     _ <- stageBag.addPayloadFile(draftBag.data, Paths.get("."))
     _ <- stageBag.save()
@@ -110,7 +122,9 @@ class Submitter(stagingBaseDir: File,
     _ <- setRightsRecursively(draftDepositDir)
     // EASY-1464 step 3.3.9 Move copy to submit-to area
     _ = logger.info(s"moving $draftDepositDir to $submitDir")
-    _ = srcProvider.move(draftDepositDir.path, submitDir.path, StandardCopyOption.ATOMIC_MOVE)
+    _ <- Try(srcProvider.move(draftDepositDir.path, submitDir.path, StandardCopyOption.ATOMIC_MOVE)).recoverWith {
+      case e: FileAlreadyExistsException => Failure(alreadySubmitted(id))
+    }
   } yield ()
 
   private def setRightsRecursively(file: File): Try[Unit] = {

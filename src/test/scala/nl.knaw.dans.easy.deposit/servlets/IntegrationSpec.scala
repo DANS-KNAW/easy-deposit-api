@@ -239,6 +239,20 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
       (depositDir.walk().size + 3) shouldBe (testDir / "easy-ingest-flow-inbox" / uuid.toString).walk().size
     }
 
+    // resubmit fails
+    val props = testDir / s"drafts/foo/$uuid/deposit.properties"
+    props.write(props.contentAsString.replace("SUBMITTED","DRAFT"))
+    authMocker.expectsUserFooBar
+    put(
+      uri = s"/deposit/$uuid/state",
+      headers = Seq(fooBarBasicAuthHeader),
+      body = """{"state":"SUBMITTED","stateDescription":"blabla"}"""
+    ) {
+      status shouldBe CONFLICT_409
+      body shouldBe s"The deposit (UUID $uuid) already exists in the submit area. Possibly due to a resubmit."
+    }
+    props.write(props.contentAsString.replace("DRAFT","SUBMITTED"))
+
     // failing delete
     authMocker.expectsUserFooBar
     delete (uri = s"/deposit/$uuid", headers = Seq(fooBarBasicAuthHeader)) {

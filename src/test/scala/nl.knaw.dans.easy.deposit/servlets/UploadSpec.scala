@@ -262,7 +262,7 @@ class UploadSpec extends DepositServletFixture {
     ) {
       absoluteTarget.list.size shouldBe 2
       status shouldBe CONFLICT_409
-      body shouldBe s"Conflict. The following file(s) already exist on the server: some/3.txt, some/2.txt"
+      body shouldBe s"The following file(s) already exist on the server: some/3.txt, some/2.txt"
     }
   }
 

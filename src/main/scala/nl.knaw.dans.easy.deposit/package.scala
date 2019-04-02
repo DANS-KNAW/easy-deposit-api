@@ -15,7 +15,7 @@
  */
 package nl.knaw.dans.easy
 
-import java.nio.file.{ FileAlreadyExistsException, Paths }
+import java.nio.file.Paths
 import java.util.UUID
 
 import better.files.StringOps
@@ -34,9 +34,6 @@ package object deposit {
 
   case class CorruptDepositException(user: String, id: String, cause: Throwable)
     extends DepositException(s"Invalid deposit uuid $id for user $user: ${ cause.getMessage }", cause)
-
-  case class ConcurrentUploadException(tempPrefix: String)
-    extends DepositException(s"Another upload is pending. Please try again later.", new FileAlreadyExistsException(tempPrefix))
 
   case class IllegalStateTransitionException(user: String, id: UUID, oldState: State, newState: State)
     extends DepositException(s"Cannot transition from $oldState to $newState (deposit id: $id, user: $user)", null)

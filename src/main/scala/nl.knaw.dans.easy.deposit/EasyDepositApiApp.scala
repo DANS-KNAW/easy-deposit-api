@@ -315,7 +315,7 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
   // prevents concurrent uploads, requires explicit cleanup of interrupted uploads
   private def atMostOneTempDir(prefix: String): Try[Unit] = {
     if (uploadStagingDir.list.count(_.name.startsWith(prefix)) > 1)
-      Failure(ConcurrentUploadException(prefix))
+      Failure(ConflictException("Another upload is pending. Please try again later."))
     else Success(())
   }
 

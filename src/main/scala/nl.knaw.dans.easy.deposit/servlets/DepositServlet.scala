@@ -16,7 +16,7 @@
 package nl.knaw.dans.easy.deposit.servlets
 
 import java.io.IOException
-import java.nio.file.{ FileAlreadyExistsException, NoSuchFileException, Path, Paths }
+import java.nio.file.{ NoSuchFileException, Path, Paths }
 import java.util.UUID
 
 import nl.knaw.dans.easy.deposit.docs.JsonUtil.{ InvalidDocumentException, toJson }
@@ -197,8 +197,6 @@ class DepositServlet(app: EasyDepositApiApp)
     case e: InvalidResourceException => invalidResourceResponse(e)
     case e: InvalidDocumentException => badDocResponse(e)
     case e: ConflictException => Conflict(e.getMessage, Map(contentTypePlainText))
-    case e: ConcurrentUploadException => Conflict(e.getMessage, Map(contentTypePlainText))
-    case e: FileAlreadyExistsException => Conflict("Conflict. The following file(s) already exist on the server: " + e.getMessage, Map(contentTypePlainText))
     case e: InvalidDoiException => BadRequest(e.getMessage, Map(contentTypePlainText))
     case e: BadRequestException => BadRequest(e.getMessage, Map(contentTypePlainText))
     case e: ZipMustBeOnlyFileException => BadRequest(e.getMessage, Map(contentTypePlainText))
@@ -258,7 +256,13 @@ class DepositServlet(app: EasyDepositApiApp)
 object DepositServlet {
 
   private case class InvalidResourceException(s: String) extends Exception(s)
-  case class BadRequestException(s: String) extends Exception(s)
-  case class ConflictException(s: String) extends Exception(s)
-  case class ZipMustBeOnlyFileException(s: String) extends Exception(s"A multipart/form-data message contained a ZIP [$s] part but also other parts.")
+
+  /** @param msg message returned to the client, should not contain absolute file paths nor other internal data */
+  case class BadRequestException(msg: String) extends Exception(msg)
+
+  /** @param msg message returned to the client, should not contain absolute file paths nor other internal data */
+  case class ConflictException(msg: String) extends Exception(msg)
+
+  /** @param fileName a simple file name (without a path) from the multipart/form-data  */
+  case class ZipMustBeOnlyFileException(fileName: String) extends Exception(s"A multipart/form-data message contained a ZIP [$fileName] part but also other parts.")
 }
