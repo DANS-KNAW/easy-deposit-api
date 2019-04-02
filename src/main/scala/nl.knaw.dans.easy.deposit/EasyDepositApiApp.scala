@@ -133,20 +133,6 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
   }
 
   /**
-   * Determines if the deposit can be updated, based on its current state.
-   *
-   * @param user ID
-   * @param id   the deposit ID
-   * @return
-   */
-  def canUpdate(user: String, id: UUID): Try[Unit] = {
-    for {
-      state <- getDepositState(user, id)
-      _ <- state.canUpdate
-    } yield ()
-  }
-
-  /**
    * Sets the deposit state. The only legal transitions are:
    *
    * - from [[nl.knaw.dans.easy.deposit.docs.StateInfo.State.draft]] to [[nl.knaw.dans.easy.deposit.docs.StateInfo.State.submitted]]
@@ -323,4 +309,15 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
     _ <- canUpdate(user, id) //  deleting a file, is updating the deposit
     _ <- dataFiles.delete(path)
   } yield ()
+
+  /**
+   * Determines if the deposit can be updated, based on its current state.
+   *
+   * @param user ID
+   * @param id   the deposit ID
+   * @return
+   */
+  private def canUpdate(user: String, id: UUID): Try[Unit] = {
+    getDepositState(user, id).flatMap(_.canUpdate)
+  }
 }

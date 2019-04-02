@@ -23,14 +23,13 @@ import scala.collection.Seq
 import scala.util.{ Failure, Success, Try }
 
 case class StateInfo(state: State, stateDescription: String) {
-  def canDelete: Try[Unit] = {
-    if (StateInfo.deletableStates.contains(state)) Success(())
-    else Failure(new IllegalStateException(s"Deposit has state $state, can only delete deposits with one of the states: ${ StateInfo.deletableStates.mkString(", ") }"))
-  }
+  def canDelete: Try[Unit] = can("delete", StateInfo.deletableStates)
 
-  def canUpdate: Try[Unit] = {
-    if (StateInfo.updatableStates.contains(state)) Success(())
-    else Failure(new IllegalStateException(s"Deposit has state $state, can only update deposits with one of the states: ${ StateInfo.updatableStates.mkString(", ") }"))
+  def canUpdate: Try[Unit] = can("update", StateInfo.updatableStates)
+
+  private def can(action: String, states: Seq[State]): Try[Unit] = {
+    if (states.contains(state)) Success(())
+    else Failure(new IllegalStateException(s"Deposit has state $state, can only $action deposits with one of the states: ${ states.mkString(", ") }"))
   }
 }
 
