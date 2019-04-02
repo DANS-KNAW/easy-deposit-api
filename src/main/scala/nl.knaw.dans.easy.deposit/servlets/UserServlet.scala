@@ -40,7 +40,7 @@ class UserServlet(app: EasyDepositApiApp) extends ProtectedServlet(app) {
   }
 
   private def respond(t: Throwable): ActionResult = t match {
-    case e: InvalidDocumentException => badDocResponse(e)
+    case e: InvalidDocumentException => BadRequest(e.msg)
     case _ => notExpectedExceptionResponse(t)
   }
 }

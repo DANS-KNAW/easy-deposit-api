@@ -30,8 +30,8 @@ class DatasetMetadataSpec extends TestSupportFixture {
   implicit class RichString(str: String) {
     def causesInvalidDocumentException(expectedMessage: String): Assertion = {
       DatasetMetadata(str) should matchPattern {
-        case Failure(InvalidDocumentException("DatasetMetadata", t))
-          if t.getMessage == expectedMessage =>
+        case Failure(e: InvalidDocumentException)
+          if e.msg == expectedMessage =>
       }
     }
   }

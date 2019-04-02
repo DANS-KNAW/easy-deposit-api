@@ -101,7 +101,7 @@ object DatasetMetadata {
   val doiScheme = "id-type:DOI"
 
   def missingValue(label: String): InvalidDocumentException = {
-    InvalidDocumentException("DatasetMetadata", new Exception(s"Please set $label"))
+    new InvalidDocumentException("DatasetMetadata", new Exception(s"Please set $label"))
   }
 }
 

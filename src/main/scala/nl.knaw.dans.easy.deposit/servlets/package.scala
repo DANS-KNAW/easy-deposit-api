@@ -23,7 +23,7 @@ import better.files.File
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.scalatra.servlet.FileItem
 import org.scalatra.util.RicherString._
-import org.scalatra.{ ActionResult, BadRequest, InternalServerError }
+import org.scalatra.{ ActionResult, InternalServerError }
 import resource.{ ManagedResource, managed }
 
 import scala.util.{ Failure, Success, Try }
@@ -52,11 +52,6 @@ package object servlets extends DebugEnhancedLogging {
   def notExpectedExceptionResponse(t: Throwable): ActionResult = {
     logger.error(s"Not expected exception: ${ t.getMessage }", t)
     InternalServerError("Internal Server Error", Map(contentTypePlainText))
-  }
-
-  def badDocResponse(t: Throwable): ActionResult = {
-    logger.error(t.getMessage)
-    BadRequest(s"Bad Request. ${ t.getMessage }", Map(contentTypePlainText))
   }
 
   implicit class RichManagedZipInputStream(val zipInputStream: ManagedResource[ZipInputStream]) extends AnyVal {

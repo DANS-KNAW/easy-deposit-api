@@ -72,7 +72,7 @@ object DDM extends SchemedXml with DebugEnhancedLogging {
       </ddm:dcmiMetadata>
     </ddm:DDM>
   }.recoverWith {
-    case e: IllegalArgumentException => Failure(InvalidDocumentException("DatasetMetadata", e))
+    case e: IllegalArgumentException => Failure(new InvalidDocumentException("DatasetMetadata", e))
   }
 
   private def details(point: SpatialPoint) = {

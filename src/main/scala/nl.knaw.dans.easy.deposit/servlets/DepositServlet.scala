@@ -20,7 +20,7 @@ import java.nio.file.{ NoSuchFileException, Path, Paths }
 import java.util.UUID
 
 import nl.knaw.dans.easy.deposit._
-import nl.knaw.dans.easy.deposit.docs.JsonUtil.{ InvalidDocumentException, toJson }
+import nl.knaw.dans.easy.deposit.docs.JsonUtil.toJson
 import nl.knaw.dans.easy.deposit.docs.{ DatasetMetadata, StateInfo }
 import nl.knaw.dans.easy.deposit.servlets.DepositServlet._
 import nl.knaw.dans.lib.error._
@@ -195,7 +195,6 @@ class DepositServlet(app: EasyDepositApiApp)
     case e: NoSuchDepositException => noSuchDepositResponse(e)
     case e: NoSuchFileException => NotFound(body = s"${ e.getMessage } not found", Map(contentTypePlainText))
     case e: InvalidResourceException => invalidResourceResponse(e)
-    case e: InvalidDocumentException => badDocResponse(e)
     case e: ConflictException => Conflict(e.getMessage, Map(contentTypePlainText))
     case e: BadRequestException => BadRequest(e.getMessage, Map(contentTypePlainText))
     case e: NotImplementedException => NotImplemented(e.getMessage, Map(contentTypePlainText))

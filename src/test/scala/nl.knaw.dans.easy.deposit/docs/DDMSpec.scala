@@ -21,7 +21,6 @@ import nl.knaw.dans.easy.deposit.docs.JsonUtil.InvalidDocumentException
 import nl.knaw.dans.easy.deposit.docs.dm.DateScheme.W3CDTF
 import nl.knaw.dans.easy.deposit.docs.dm._
 import nl.knaw.dans.lib.error._
-import org.scalatest.Assertion
 
 import scala.util.{ Failure, Success, Try }
 import scala.xml._
@@ -155,9 +154,10 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
       surname = Some("Bar"),
       ids = Some(Seq(SchemedValue("dcx-dai:ISNI", "ISNI:000000012281955X")))
     )
-    new MinimalDatasetMetadata(contributors = Some(Seq(author))).causesInvalidDocumentException(
-      "expecting (label) or (prefix:label); got [dcx-dai:dcx-dai:ISNI] to adjust the <label> of <label>ISNI:000000012281955X</label>"
-    )
+    DDM(new MinimalDatasetMetadata(contributors = Some(Seq(author)))) should matchPattern {
+      case Failure(e: InvalidDocumentException) if e.getMessage ==
+        "invalid DatasetMetadata: expecting (label) or (prefix:label); got [dcx-dai:dcx-dai:ISNI] to adjust the <label> of <label>ISNI:000000012281955X</label>" =>
+    }
   }
 
   "minimal with missing scheme for a SpatialPoint" should behave like validDatasetMetadata(
@@ -553,14 +553,6 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
     getManualTestResource(file)
   }.flatMap(DatasetMetadata(_))
 
-  private implicit class RichDatasetMetadata(input: MinimalDatasetMetadata) {
-    def causesInvalidDocumentException(expectedMessage: String): Assertion = {
-      DDM(input) should matchPattern {
-        case Failure(InvalidDocumentException("DatasetMetadata", t)) if t.getMessage == expectedMessage =>
-      }
-    }
-
-  }
 }
 
 trait DdmBehavior {
