@@ -258,23 +258,35 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
    * If a new file is created the function returns `true`, otherwise an existing file was overwritten.
    * (We hope the reader will forgive us this minor violation of the Command-Query separation principle.)
    *
-   * @param user the user ID
-   * @param id   the deposit ID
-   * @param path the path of the file to (over)write, relative to the content base directory
-   * @param is   the input stream to write from
+   * @param user        the user ID
+   * @param id          the deposit ID
+   * @param path        the path of the file to (over)write, relative to the content base directory
+   * @param is          the input stream to write from
+   * @param contentType the contentType of the stream, it originates from an HTTP request header
+   *                    which is optional by nature but mandatory in this context
    * @return `true` if a new file was created, `false` otherwise
    */
-  def writeDepositFile(is: => InputStream, user: String, id: UUID, path: Path, contentType: String): Try[Boolean] = {
+  def writeDepositFile(is: => InputStream, user: String, id: UUID, path: Path, contentType: Option[String]): Try[Boolean] = {
     for {
-      _ <- if (Option(contentType).toSeq.exists(!_.trim.matches(contentTypeZipPattern))) Success(())
-           else Failure(BadRequestException("Content-Type must not be application/zip."))
+      _ <- contentTypeAnythingButZip(contentType)
       dataFiles <- getDataFiles(user, id)
-      _ <- if (!(dataFiles.bag / "data" / path.toString).isDirectory) Success(())
-           else Failure(ConflictException("Attempt to overwrite a directory with a file."))
+      _ <- pathNotADirectory(path, dataFiles)
       _ = logger.info(s"uploading to [${ dataFiles.bag.baseDir }] of [$path]")
       created <- dataFiles.write(is, path)
       _ = logger.info(s"created=$created $user/$id/$path")
     } yield created
+  }
+
+  private def pathNotADirectory(path: Path, dataFiles: DataFiles) = {
+    if ((dataFiles.bag / "data" / path.toString).isDirectory)
+      Failure(ConflictException("Attempt to overwrite a directory with a file."))
+    else Success(())
+  }
+
+  private def contentTypeAnythingButZip(contentType: Option[String]) = {
+    if (contentType.exists(!_.trim.matches(contentTypeZipPattern)))
+      Success(())
+    else Failure(BadRequestException("Content-Type must not be application/zip."))
   }
 
   def stageFiles(userId: String, id: UUID, destination: Path): Try[(Dispose[File], StagedFilesTarget)] = {

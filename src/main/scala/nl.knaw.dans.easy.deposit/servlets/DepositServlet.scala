@@ -171,7 +171,7 @@ class DepositServlet(app: EasyDepositApiApp)
         uuid <- getUUID
         path <- getPath
         managedIS <- getRequestBodyAsManagedInputStream
-        newFileWasCreated <- managedIS.apply(app.writeDepositFile(_, user.id, uuid, path, request.getContentType))
+        newFileWasCreated <- managedIS.apply(app.writeDepositFile(_, user.id, uuid, path, Option(request.getContentType)))
       } yield if (newFileWasCreated)
                 Created(headers = Map("Location" -> request.uri.toASCIIString))
               else NoContent()
