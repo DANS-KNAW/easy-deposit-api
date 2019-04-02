@@ -111,22 +111,44 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
     // upload files in a folder (more variations in UploadSpec)
     val dataFilesBase = DepositDir(testDir / "drafts", "foo", UUID.fromString(uuid)).getDataFiles.get.bag.data
 
+    // upload without content type
+    authMocker.expectsUserFooBar
+    put(
+      uri = s"/deposit/$uuid/file/text.txt",
+      headers = Seq(fooBarBasicAuthHeader),
+      body = "Lorum ipsum"
+    ) {
+      body shouldBe "Content-Type must not be application/zip."
+      status shouldBe BAD_REQUEST_400
+    }
+
     // upload a file in a folder
     authMocker.expectsUserFooBar
     put(
       uri = s"/deposit/$uuid/file/path/to/text.txt",
-      headers = Seq(fooBarBasicAuthHeader),
+      headers = Seq(fooBarBasicAuthHeader, contentTypePlainText),
       body = "Lorum ipsum"
     ) {
       status shouldBe CREATED_201
       (dataFilesBase / "path" / "to" / "text.txt").contentAsString shouldBe "Lorum ipsum"
     }
 
+    // attempt to overwrite dir
+    authMocker.expectsUserFooBar
+    put(
+      uri = s"/deposit/$uuid/file/path/to",
+      headers = Seq(fooBarBasicAuthHeader, contentTypePlainText),
+      body = "Lorum ipsum"
+    ) {
+      status shouldBe CONFLICT_409
+      body shouldBe "Attempt to overwrite a directory with a file."
+    }
+
     // get file
     authMocker.expectsUserFooBar
     get(
       uri = s"/deposit/$uuid/file/path/to/text.txt",
-      headers = Seq(fooBarBasicAuthHeader)
+      headers = Seq(fooBarBasicAuthHeader, contentTypePlainText)
     ) {
       status shouldBe OK_200
       // a single json object: {"..."}, more details are tested in DataFilesSpec.fileInfo
