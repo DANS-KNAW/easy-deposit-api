@@ -27,7 +27,6 @@ import nl.knaw.dans.easy.deposit.PidRequesterComponent.PidRequester
 import nl.knaw.dans.easy.deposit.authentication.LdapAuthentication
 import nl.knaw.dans.easy.deposit.docs.StateInfo.State
 import nl.knaw.dans.easy.deposit.docs.{ DatasetMetadata, DepositInfo, StateInfo }
-import nl.knaw.dans.easy.deposit.servlets.DepositServlet.{ BadRequestException, ConflictException }
 import nl.knaw.dans.easy.deposit.servlets.contentTypeZipPattern
 import nl.knaw.dans.lib.error._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging

@@ -20,8 +20,7 @@ import java.nio.charset.StandardCharsets
 import java.util.zip.ZipInputStream
 
 import better.files.File
-import nl.knaw.dans.easy.deposit.TestSupportFixture
-import nl.knaw.dans.easy.deposit.servlets.DepositServlet.BadRequestException
+import nl.knaw.dans.easy.deposit.{ BadRequestException, TestSupportFixture }
 import resource.managed
 
 import scala.util.{ Failure, Success }

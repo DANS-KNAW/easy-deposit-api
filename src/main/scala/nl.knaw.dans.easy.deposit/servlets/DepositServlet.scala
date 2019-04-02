@@ -19,10 +19,10 @@ import java.io.IOException
 import java.nio.file.{ NoSuchFileException, Path, Paths }
 import java.util.UUID
 
+import nl.knaw.dans.easy.deposit._
 import nl.knaw.dans.easy.deposit.docs.JsonUtil.{ InvalidDocumentException, toJson }
 import nl.knaw.dans.easy.deposit.docs.{ DatasetMetadata, StateInfo }
 import nl.knaw.dans.easy.deposit.servlets.DepositServlet._
-import nl.knaw.dans.easy.deposit._
 import nl.knaw.dans.lib.error._
 import nl.knaw.dans.lib.logging.servlet._
 import org.apache.commons.lang.NotImplementedException
@@ -256,13 +256,4 @@ class DepositServlet(app: EasyDepositApiApp)
 object DepositServlet {
 
   private case class InvalidResourceException(s: String) extends Exception(s)
-
-  /** @param msg message returned to the client, should not contain absolute file paths nor other internal data */
-  case class BadRequestException(msg: String) extends Exception(msg)
-
-  /** @param msg message returned to the client, should not contain absolute file paths nor other internal data */
-  case class ConflictException(msg: String) extends Exception(msg)
-
-  /** @param fileName a simple file name (without a path) from the multipart/form-data  */
-  case class ZipMustBeOnlyFileException(fileName: String) extends Exception(s"A multipart/form-data message contained a ZIP [$fileName] part but also other parts.")
 }

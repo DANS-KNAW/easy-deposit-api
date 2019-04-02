@@ -20,7 +20,6 @@ import java.nio.file.{ FileAlreadyExistsException, Path }
 import better.files.File
 import nl.knaw.dans.bag.DansBag
 import nl.knaw.dans.bag.ImportOption.ATOMIC_MOVE
-import nl.knaw.dans.easy.deposit.servlets.DepositServlet.ConflictException
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 
 import scala.util.{ Failure, Success, Try }
@@ -79,7 +78,7 @@ case class StagedFilesTarget(draftBag: DansBag, destination: Path) extends Debug
     val msg = duplicates
       .map(_.failed.getOrElse(new Exception("should not get here")).getMessage)
       .mkString(", ")
-        .replaceAll(" already exists","")
-    Failure(ConflictException("The following file(s) already exist on the server: "+msg))
+      .replaceAll(" already exists", "")
+    Failure(ConflictException("The following file(s) already exist on the server: " + msg))
   }
 }

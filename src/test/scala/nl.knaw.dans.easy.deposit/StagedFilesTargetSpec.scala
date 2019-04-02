@@ -20,7 +20,6 @@ import java.nio.file.Paths
 
 import better.files.StringOps
 import nl.knaw.dans.bag.v0.DansV0Bag
-import nl.knaw.dans.easy.deposit.servlets.DepositServlet.ConflictException
 import nl.knaw.dans.lib.error._
 
 import scala.util.{ Failure, Success }

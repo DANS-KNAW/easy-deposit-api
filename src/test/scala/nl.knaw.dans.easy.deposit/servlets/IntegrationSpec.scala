@@ -241,7 +241,7 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
 
     // resubmit fails
     val props = testDir / s"drafts/foo/$uuid/deposit.properties"
-    props.write(props.contentAsString.replace("SUBMITTED","DRAFT"))
+    props.write(props.contentAsString.replace("SUBMITTED", "DRAFT"))
     authMocker.expectsUserFooBar
     put(
       uri = s"/deposit/$uuid/state",
@@ -251,11 +251,11 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
       status shouldBe CONFLICT_409
       body shouldBe s"The deposit (UUID $uuid) already exists in the submit area. Possibly due to a resubmit."
     }
-    props.write(props.contentAsString.replace("DRAFT","SUBMITTED"))
+    props.write(props.contentAsString.replace("DRAFT", "SUBMITTED"))
 
     // failing delete
     authMocker.expectsUserFooBar
-    delete (uri = s"/deposit/$uuid", headers = Seq(fooBarBasicAuthHeader)) {
+    delete(uri = s"/deposit/$uuid", headers = Seq(fooBarBasicAuthHeader)) {
       body shouldBe "Deposit has state SUBMITTED, can only delete deposits with one of the states: DRAFT, ARCHIVED, REJECTED"
       status shouldBe FORBIDDEN_403
     }
@@ -264,7 +264,7 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
     // deposit still exists
     get(
       uri = s"/deposit/$uuid/state", headers = Seq(fooBarBasicAuthHeader),
-    ){
+    ) {
       body shouldBe """{"state":"SUBMITTED","stateDescription":"Deposit is ready for processing."}"""
       status shouldBe OK_200
     }
@@ -308,7 +308,7 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
 
     // delete
     authMocker.expectsUserFooBar
-    delete (uri = s"/deposit/$uuid", headers = Seq(fooBarBasicAuthHeader)) {
+    delete(uri = s"/deposit/$uuid", headers = Seq(fooBarBasicAuthHeader)) {
       body shouldBe ""
       status shouldBe NO_CONTENT_204
     }
@@ -317,7 +317,7 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
     authMocker.expectsUserFooBar
     get(
       uri = s"/deposit/$uuid/state", headers = Seq(fooBarBasicAuthHeader),
-    ){
+    ) {
       body shouldBe s"Deposit $uuid not found"
       status shouldBe NOT_FOUND_404
     }

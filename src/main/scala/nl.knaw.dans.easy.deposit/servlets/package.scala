@@ -20,7 +20,6 @@ import java.nio.file.Files
 import java.util.zip.{ ZipEntry, ZipException, ZipInputStream }
 
 import better.files.File
-import nl.knaw.dans.easy.deposit.servlets.DepositServlet.{ BadRequestException, ZipMustBeOnlyFileException }
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.scalatra.servlet.FileItem
 import org.scalatra.util.RicherString._
@@ -37,8 +36,8 @@ import scala.util.{ Failure, Success, Try }
  * |                        on a valid session cookie
  * |___ AuthServlet         should not refresh session cookies
  * |___ ProtectedServlet    requires refreshed session cookies
- *      |___ UserServlet
- *      |___ DepositServlet
+ * |___ UserServlet
+ * |___ DepositServlet
  */
 package object servlets extends DebugEnhancedLogging {
 

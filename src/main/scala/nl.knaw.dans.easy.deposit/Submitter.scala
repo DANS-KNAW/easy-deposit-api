@@ -28,7 +28,6 @@ import nl.knaw.dans.bag.ChecksumAlgorithm.ChecksumAlgorithm
 import nl.knaw.dans.bag.DansBag
 import nl.knaw.dans.bag.v0.DansV0Bag
 import nl.knaw.dans.easy.deposit.docs.{ AgreementsXml, DDM, FilesXml, StateInfo }
-import nl.knaw.dans.easy.deposit.servlets.DepositServlet.ConflictException
 import nl.knaw.dans.lib.error._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.joda.time.DateTime
@@ -62,8 +61,8 @@ class Submitter(stagingBaseDir: File,
   /**
    * Note 1: submit area == ingest-flow-inbox
    * Note 2: Resubmit may follow a reject, be a concurrent submit request or ...
-   *         The end user can compare the UUID with the URL of a deposit.
-   *         The UUID can help communication with trouble shooters.
+   * The end user can compare the UUID with the URL of a deposit.
+   * The UUID can help communication with trouble shooters.
    */
   private def alreadySubmitted(id: UUID) = ConflictException(s"The deposit (UUID $id) already exists in the submit area. Possibly due to a resubmit.")
 
@@ -93,7 +92,7 @@ class Submitter(stagingBaseDir: File,
       filesXml <- FilesXml(draftBag.data)
       _ <- sameFiles(draftBag.payloadManifests, draftBag.baseDir / "data")
       submitDir = submitToBaseDir / draftDeposit.id.toString
-      _ = if(submitDir.exists) throw alreadySubmitted(draftDeposit.id)
+      _ = if (submitDir.exists) throw alreadySubmitted(draftDeposit.id)
       // from now on no more user errors but internal errors
       // EASY-1464 3.3.8.a create empty staged bag to take a copy of the deposit
       stageDir = (stagingBaseDir / draftDeposit.id.toString).createDirectories()

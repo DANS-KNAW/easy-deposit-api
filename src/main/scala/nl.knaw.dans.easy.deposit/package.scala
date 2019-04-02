@@ -38,6 +38,15 @@ package object deposit {
   case class IllegalStateTransitionException(user: String, id: UUID, oldState: State, newState: State)
     extends DepositException(s"Cannot transition from $oldState to $newState (deposit id: $id, user: $user)", null)
 
+  /** @param msg message returned to the client, should not contain absolute file paths nor other internal data */
+  case class BadRequestException(msg: String) extends Exception(msg)
+
+  /** @param msg message returned to the client, should not contain absolute file paths nor other internal data */
+  case class ConflictException(msg: String) extends Exception(msg)
+
+  /** @param fileName a simple file name (without a path) from the multipart/form-data  */
+  case class ZipMustBeOnlyFileException(fileName: String) extends Exception(s"A multipart/form-data message contained a ZIP [$fileName] part but also other parts.")
+
   case class ConfigurationException(msg: String) extends IllegalArgumentException(s"Configuration error: $msg")
   case class InvalidDoiException(uuid: UUID) extends Exception(s"InvalidDoi: DOI must be obtained by calling GET /deposit/$uuid")
 
