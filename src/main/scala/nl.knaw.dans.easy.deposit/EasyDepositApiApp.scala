@@ -17,6 +17,7 @@ package nl.knaw.dans.easy.deposit
 
 import java.io.InputStream
 import java.net.URI
+import java.nio.file.spi.FileSystemProvider
 import java.nio.file.{ FileAlreadyExistsException, Path }
 import java.util.UUID
 
@@ -65,13 +66,16 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
     val dir = getConfiguredDirectory("deposits.stage-zips")
     logger.info(s"Uploads are staged in $dir")
     if (dir.nonEmpty) {
-      val msg = s"Pending uploads were probably interrupted. See logs lines with 'POST /deposit/{id}/file/{dir_path}'. Please remove their directories from the staging area: $dir"
-      logger.error(msg)
-      throw new FileAlreadyExistsException(msg)
+      // TODO move to Validation and/or new Uploader class for DepositServlet post("/:uuid/file/*")
+      throw new FileAlreadyExistsException(
+        s"Upload staging area [$dir] should be empty unless force shutdown during an upload request. Check logging related to 'POST /deposit/{id}/file/{dir_path}'."
+      )
     }
     dir
   }
-  private val draftsDir = getConfiguredDirectory("deposits.drafts")
+  private val draftsDir: File = getConfiguredDirectory("deposits.drafts")
+  private val provider: FileSystemProvider = uploadStagingDir.fileSystem.provider()
+  StartupValidation.sameMounts(provider, uploadStagingDir, draftsDir)
 
   private val submitter = new Submitter(
     getConfiguredDirectory("deposits.stage-for-submit"),
@@ -79,8 +83,12 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
     configuration.properties.getString("deposit.permissions.group"),
   )
 
+  @throws[ConfigurationException]("when no existing readable directory is configured")
   private def getConfiguredDirectory(key: String): File = {
-    val dir = File(configuration.properties.getString(key))
+    // TODO move to Validation?
+    val str = Option(configuration.properties.getString(key))
+      .getOrElse(throw ConfigurationException(s"No configuration value for $key"))
+    val dir = File(str)
 
     if (!dir.exists) throw ConfigurationException(s"Configured directory '$key' does not exist: $dir")
     if (!dir.isDirectory) throw ConfigurationException(s"Configured directory '$key' is a regular file: $dir")
