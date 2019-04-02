@@ -42,7 +42,7 @@ import scala.util.{ Failure, Success, Try }
  */
 package object servlets extends DebugEnhancedLogging {
 
-  val extensionZipPattern = ".*.g?z(ip)?"
+  val extensionZipPattern = ".+[.]g?z(ip)?"
   private val pre = "(x-)?g?zip"
   private val post = "-compress(ed)?"
   val contentTypeZipPattern = s"application/(($pre($post)?)|(x$post))"
