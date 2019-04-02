@@ -304,7 +304,7 @@ class UploadSpec extends DepositServletFixture {
     // first upload
     put(
       uri = s"/deposit/$uuid/file/path/to/text.txt",
-      headers = Seq(fooBarBasicAuthHeader),
+      headers = Seq(fooBarBasicAuthHeader, contentTypePlainText),
       body = longContent
     ) {
       status shouldBe CREATED_201
@@ -316,7 +316,7 @@ class UploadSpec extends DepositServletFixture {
     val sha = "c5b8de8cc3587aef4e118a481115391033621e06"
     put(
       uri = s"/deposit/$uuid/file/path/to/text.txt",
-      headers = Seq(fooBarBasicAuthHeader),
+      headers = Seq(fooBarBasicAuthHeader, contentTypePlainText),
       body = shortContent
     ) {
       status shouldBe NO_CONTENT_204
@@ -342,7 +342,7 @@ class UploadSpec extends DepositServletFixture {
     val sha = "c5b8de8cc3587aef4e118a481115391033621e06"
     put(
       uri = s"/deposit/$uuid/file/text.txt",
-      headers = Seq(fooBarBasicAuthHeader),
+      headers = Seq(fooBarBasicAuthHeader, contentTypePlainText),
       body = shortContent
     ) {
       status shouldBe CREATED_201

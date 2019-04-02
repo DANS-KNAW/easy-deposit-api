@@ -16,6 +16,7 @@
 package nl.knaw.dans.easy.deposit.servlets
 
 import better.files.File
+import nl.knaw.dans.easy.deposit.servlets
 import org.eclipse.jetty.http.HttpStatus._
 
 class NotFoundSpec extends DepositServletFixture {
@@ -78,7 +79,7 @@ class NotFoundSpec extends DepositServletFixture {
     get(s"/deposit/$uuid/file/path/to/file.txt", headers = Seq(fooBarBasicAuthHeader)) { shouldBeNoSuchDeposit }
   }
   it should "be returned by PUT /deposit/{id}/file/{file_path}" in {
-    put(s"/deposit/$uuid/file/path/to/file.txt", headers = Seq(fooBarBasicAuthHeader)) { shouldBeNoSuchDeposit }
+    put(s"/deposit/$uuid/file/path/to/file.txt", headers = Seq(fooBarBasicAuthHeader, contentTypePlainText)) { shouldBeNoSuchDeposit }
   }
   it should "be returned by DELETE /deposit/{id}/file/{file_path}" in {
     delete(s"/deposit/$uuid/file/path/to/file.txt", headers = Seq(fooBarBasicAuthHeader)) { shouldBeNoSuchDeposit }
