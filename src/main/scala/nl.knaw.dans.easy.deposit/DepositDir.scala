@@ -197,7 +197,7 @@ case class DepositDir private(baseDir: File, user: String, id: UUID) extends Deb
     if (doi == dm.doi) Success(())
     else {
       logger.error(s"DOI in datasetmetadata.json [${ dm.doi }] does not equal DOI in deposit.properties [$doi]")
-      Failure(InvalidDoiException(id))
+      Failure(new InvalidDoiException(id))
     }
   }
 }

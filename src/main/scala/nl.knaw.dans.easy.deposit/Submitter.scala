@@ -85,7 +85,7 @@ class Submitter(stagingBaseDir: File,
       draftBag <- draftDeposit.getDataFiles.map(_.bag)
       datasetMetadata <- draftDeposit.getDatasetMetadata
       agreementsXml <- AgreementsXml(draftDeposit.user, DateTime.now, datasetMetadata)
-      _ = datasetMetadata.doi.getOrElse(throw InvalidDoiException(draftDeposit.id))
+      _ = datasetMetadata.doi.getOrElse(throw new InvalidDoiException(draftDeposit.id))
       _ <- draftDeposit.sameDOIs(datasetMetadata)
       datasetXml <- DDM(datasetMetadata)
       msg = datasetMetadata.messageForDataManager.getOrElse("")
