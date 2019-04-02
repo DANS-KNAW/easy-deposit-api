@@ -284,7 +284,7 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
   }
 
   private def contentTypeAnythingButZip(contentType: Option[String]) = {
-    if (contentType.exists(!_.trim.matches(contentTypeZipPattern)))
+    if (contentType.exists(str => str.trim.nonEmpty && !str.trim.matches(contentTypeZipPattern)))
       Success(())
     else Failure(BadRequestException("Content-Type must not be application/zip."))
   }
