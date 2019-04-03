@@ -205,6 +205,44 @@ class UploadSpec extends DepositServletFixture {
     }
   }
 
+  it should "extract all files from a ZIP, with a nested zip" in {
+    File("src/test/resources/manual-test/nested.zip").copyTo(testDir / "input" / "2.zip")
+    val uuid = createDeposit
+    val relativeTarget = "path/to/dir"
+    val bagDir = testDir / "drafts" / "foo" / uuid.toString / "bag"
+    val absoluteTarget = (bagDir / "data" / relativeTarget).createDirectories()
+    absoluteTarget.list.size shouldBe 0 // precondition
+    post(
+      uri = s"/deposit/$uuid/file/$relativeTarget",
+      params = Iterable(),
+      headers = Seq(fooBarBasicAuthHeader),
+      files = Seq(("formFieldName", (testDir / "input/2.zip").toJava))
+    ) {
+      body shouldBe ""
+      status shouldBe CREATED_201
+      absoluteTarget.walk().map(_.name).toList should contain theSameElementsAs List(
+        "dir", "myCompress", ".DS_Store", "secondLayer", "test.txt",  "test_file.txt", "deeper.zip"
+      )
+      (bagDir / "manifest-sha1.txt")
+        .lines
+        .map(_.replaceAll(".* +", "")) should contain theSameElementsAs List(
+        "myCompress/test_file.txt", "myCompress/.DS_Store", "myCompress/secondLayer/test.txt", "myCompress/deeper.zip"
+      ).map("data/path/to/dir/" + _)
+
+    }
+    // get should show uploaded files
+    get(
+      uri = s"/deposit/$uuid/file/",
+      headers = Seq(fooBarBasicAuthHeader),
+    ) {
+      status shouldBe OK_200
+      body should include("""{"filename":"deeper.zip","dirpath":"path/to/dir/myCompress",""")
+      body should include("""{"filename":"test_file.txt","dirpath":"path/to/dir/myCompress",""")
+      body should include("""{"filename":".DS_Store","dirpath":"path/to/dir/myCompress",""")
+      body should include("""{"filename":"test.txt","dirpath":"path/to/dir/myCompress/secondLayer",""")
+    }
+  }
+
   it should "extract all ZIP to root of data dir in the bag" in {
     File("src/test/resources/manual-test/Archive.zip").copyTo(testDir / "input" / "1.zip")
     val uuid = createDeposit
