@@ -77,7 +77,7 @@ package object servlets extends DebugEnhancedLogging {
           logger.info(s"Extracting ${ entry.getName } size=${ entry.getSize } compressedSize=${ entry.getCompressedSize } CRC=${ entry.getCrc }")
           Try(Files.copy(zipInputStream, (dir / entry.getName).path))
         }.recoverWith {
-          case e if e.isInstanceOf[ZipException] => Failure(BadRequestException(s"ZIP file is malformed. $e"))
+          case e: ZipException => Failure(BadRequestException(s"ZIP file is malformed. $e"))
         }
       }
 
