@@ -241,6 +241,24 @@ class UploadSpec extends DepositServletFixture {
     }
   }
 
+  it should "not accept a tar" in {
+    File("src/test/resources/manual-test/Archive.tar.gz").copyTo(testDir / "input" / "1.tar.gz")
+    val uuid = createDeposit
+    val relativeTarget = "path/to/dir"
+    val bagDir = testDir / "drafts" / "foo" / uuid.toString / "bag"
+    val absoluteTarget = (bagDir / "data" / relativeTarget).createDirectories()
+    absoluteTarget.list.size shouldBe 0 // precondition
+    post(
+      uri = s"/deposit/$uuid/file/$relativeTarget",
+      params = Iterable(),
+      headers = Seq(fooBarBasicAuthHeader),
+      files = Seq(("formFieldName", (testDir / "input/1.tar.gz").toJava))
+    ) {
+      body shouldBe "ZIP file is malformed. No entries found."
+      status shouldBe BAD_REQUEST_400
+    }
+  }
+
   it should "extract all ZIP to root of data dir in the bag" in {
     File("src/test/resources/manual-test/Archive.zip").copyTo(testDir / "input" / "1.zip")
     val uuid = createDeposit
