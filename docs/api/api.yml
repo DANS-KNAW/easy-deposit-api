@@ -399,6 +399,7 @@ paths:
         If the body contains **only one part** and that part has `Content-Type: application/zip`, then the body
         is a file in ZIP format. This ZIP file can contain a directory hierarchy. The ZIP file will be
         unzipped in `dir_path`. For each file in the ZIP file, the path in the deposit will be `dir_path`/`path_in_zip`.
+        The ZIP file may contain `nested ZIP files`, which will **not** be extracted, but stored as ZIP file.
 
         In all other cases the files are all stored in the directory pointed to by `dir_path` and **it is not
         allowed** to include any files with `Content-Type: application/zip`. Note, that this means that only a flat
