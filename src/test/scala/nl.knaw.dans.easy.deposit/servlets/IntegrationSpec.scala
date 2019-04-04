@@ -308,7 +308,7 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
       body = """{"state":"SUBMITTED","stateDescription":"blabla"}"""
     ) {
       status shouldBe FORBIDDEN_403
-      body shouldBe s"Cannot transition from ARCHIVED to SUBMITTED (deposit id: $uuid, user: foo)"
+      body shouldBe s"Cannot transition from ARCHIVED to SUBMITTED"
     }
 
     // submit did not complain about missing metadata, so the state transition check indeed came first

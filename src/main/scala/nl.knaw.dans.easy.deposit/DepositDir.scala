@@ -80,7 +80,7 @@ case class DepositDir private(baseDir: File, user: String, id: UUID) extends Deb
       props <- getDepositProps
       currentState <- getState(props)
       _ <- if (currentState.canChangeTo(newState)) Success(())
-           else Failure(IllegalStateTransitionException(user, id, currentState, newState))
+           else Failure(IllegalStateTransitionException(currentState, newState))
     } yield props
   }
 

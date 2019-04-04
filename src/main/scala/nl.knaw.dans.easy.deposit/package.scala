@@ -38,8 +38,8 @@ package object deposit {
   case class CorruptDepositException(user: String, id: String, cause: Throwable)
     extends Exception(s"Invalid deposit uuid $id for user $user: ${ cause.getMessage }", cause)
 
-  case class IllegalStateTransitionException(user: String, id: UUID, oldState: State, newState: State)
-    extends ForbiddenException(s"Cannot transition from $oldState to $newState (deposit id: $id, user: $user)")
+  case class IllegalStateTransitionException(oldState: State, newState: State)
+    extends ForbiddenException(s"Cannot transition from $oldState to $newState")
 
   case class IllegalDepositStateException(action: String, actual: State, allowed: Seq[State])
     extends ForbiddenException(s"Deposit has state $actual, can only $action deposits with one of the states: ${ allowed.mkString(", ") }")
