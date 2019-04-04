@@ -190,7 +190,6 @@ class UploadSpec extends DepositServletFixture {
         .map(_.replaceAll(".* +", "")) should contain theSameElementsAs List(
         "login.html", "readme.md", "__MACOSX/._login.html", "upload.html"
       ).map("data/path/to/dir/" + _)
-
     }
     // get should show uploaded files
     get(
@@ -205,7 +204,7 @@ class UploadSpec extends DepositServletFixture {
     }
   }
 
-  it should "extract all files from a ZIP, with a nested zip" in {
+ it should "extract all files from a ZIP, with a nested zip" in {
     File("src/test/resources/manual-test/nested.zip").copyTo(testDir / "input" / "2.zip")
     val uuid = createDeposit
     val relativeTarget = "path/to/dir"
@@ -221,14 +220,13 @@ class UploadSpec extends DepositServletFixture {
       body shouldBe ""
       status shouldBe CREATED_201
       absoluteTarget.walk().map(_.name).toList should contain theSameElementsAs List(
-        "dir", "myCompress", ".DS_Store", "secondLayer", "test.txt",  "test_file.txt", "deeper.zip"
+        "dir", "myCompress", ".DS_Store", "secondLayer", "test.txt", "test_file.txt", "deeper.zip"
       )
       (bagDir / "manifest-sha1.txt")
         .lines
         .map(_.replaceAll(".* +", "")) should contain theSameElementsAs List(
         "myCompress/test_file.txt", "myCompress/.DS_Store", "myCompress/secondLayer/test.txt", "myCompress/deeper.zip"
       ).map("data/path/to/dir/" + _)
-
     }
     // get should show uploaded files
     get(
@@ -265,7 +263,6 @@ class UploadSpec extends DepositServletFixture {
         .map(_.replaceAll(".* +", "")) should contain theSameElementsAs List(
         "login.html", "readme.md", "__MACOSX/._login.html", "upload.html"
       ).map("data/" + _)
-
     }
     // get should show uploaded files
     get(
