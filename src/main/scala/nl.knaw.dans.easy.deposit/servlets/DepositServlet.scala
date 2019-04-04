@@ -16,7 +16,7 @@
 package nl.knaw.dans.easy.deposit.servlets
 
 import java.io.IOException
-import java.nio.file.{ InvalidPathException, NoSuchFileException, Path, Paths }
+import java.nio.file.{ InvalidPathException, Path, Paths }
 import java.util.UUID
 
 import javax.servlet.ServletInputStream

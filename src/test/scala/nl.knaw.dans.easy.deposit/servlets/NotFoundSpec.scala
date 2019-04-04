@@ -16,7 +16,6 @@
 package nl.knaw.dans.easy.deposit.servlets
 
 import better.files.File
-import nl.knaw.dans.easy.deposit.servlets
 import org.eclipse.jetty.http.HttpStatus._
 
 class NotFoundSpec extends DepositServletFixture {

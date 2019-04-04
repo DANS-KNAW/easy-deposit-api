@@ -47,6 +47,13 @@ package object deposit extends DebugEnhancedLogging {
   case class ZipMustBeOnlyFileException(item: FileItem)
     extends BadRequestException(s"A multipart/form-data message contained a ZIP part [${ item.name }] but also other parts.")
 
+  /**
+   * Note 1: submit area == ingest-flow-inbox
+   * Note 2: Resubmit may follow a reject, be a concurrent submit request or ...
+   * The end user can compare the UUID with the URL of a deposit.
+   * The UUID can help communication with trouble shooters.
+   */
+  case class AlreadySubmittedException(uuid: UUID) extends ConflictException(s"The deposit (UUID $uuid) already exists in the submit area. Possibly due to a resubmit.")
   case class InvalidDoiException(uuid: UUID) extends BadRequestException(s"InvalidDoi: DOI must be obtained by calling GET /deposit/$uuid")
   case class MalformedZipException(msgAboutEntry: String) extends BadRequestException(s"ZIP file is malformed. $msgAboutEntry")
   case class PendingUploadException() extends ConflictException("Another upload is pending. Please try again later.")
@@ -56,14 +63,6 @@ package object deposit extends DebugEnhancedLogging {
       case Some(s) => s"Content-Type $requirement Got: $s"
     }
   )
-
-  /**
-   * Note 1: submit area == ingest-flow-inbox
-   * Note 2: Resubmit may follow a reject, be a concurrent submit request or ...
-   * The end user can compare the UUID with the URL of a deposit.
-   * The UUID can help communication with trouble shooters.
-   */
-  case class AlreadySubmittedException(uuid: UUID) extends ConflictException(s"The deposit (UUID $uuid) already exists in the submit area. Possibly due to a resubmit.")
   case class NoSuchDepositException(user: String, id: UUID, cause: Throwable) extends NotFoundException(s"Deposit $id not found") {
     logger.info(s"Deposit [$user/$id] not found: ${ cause.getMessage }")
   }
