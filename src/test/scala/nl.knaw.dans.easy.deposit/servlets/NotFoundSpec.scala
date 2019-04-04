@@ -88,19 +88,19 @@ class NotFoundSpec extends DepositServletFixture {
 
   "404 other not found" should "be returned by GET /deposit/{id}/file/{dir_path}" in {
     val uuid = createDeposit
-    get(s"/deposit/$uuid/file/path/to/dir", headers = Seq(fooBarBasicAuthHeader)) { shouldBeNotFound("path/to/dir") }
+    get(s"/deposit/$uuid/file/path/to/dir", headers = Seq(fooBarBasicAuthHeader)) { shouldBeNotFound("path/to/dir not found in deposit") }
   }
   it should "be returned by DELETE /deposit/{id}/file/{dir_path}" in {
     val uuid = createDeposit
-    delete(s"/deposit/$uuid/file/path/to/dir", headers = Seq(fooBarBasicAuthHeader)) { shouldBeNotFound("path/to/dir") }
+    delete(s"/deposit/$uuid/file/path/to/dir", headers = Seq(fooBarBasicAuthHeader)) { shouldBeNotFound("path/to/dir not found in deposit") }
   }
   it should "be returned by GET /deposit/{id}/file/{file_path}" in {
     val uuid = createDeposit
-    get(s"/deposit/$uuid/file/path/to/file.txt", headers = Seq(fooBarBasicAuthHeader)) { shouldBeNotFound("path/to/file.txt") }
+    get(s"/deposit/$uuid/file/path/to/file.txt", headers = Seq(fooBarBasicAuthHeader)) { shouldBeNotFound("path/to/file.txt not found in deposit") }
   }
   it should "be returned by DELETE /deposit/{id}/file/{file_path}" in {
     val uuid = createDeposit
-    delete(s"/deposit/$uuid/file/path/to/file.txt", headers = Seq(fooBarBasicAuthHeader)) { shouldBeNotFound("path/to/file.txt") }
+    delete(s"/deposit/$uuid/file/path/to/file.txt", headers = Seq(fooBarBasicAuthHeader)) { shouldBeNotFound("path/to/file.txt not found in deposit") }
   }
   // TODO files/directories on the file system but not in files.xml and/or the other way around
 

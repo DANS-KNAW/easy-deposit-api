@@ -193,7 +193,6 @@ class DepositServlet(app: EasyDepositApiApp)
   private def respond(t: Throwable): ActionResult = t match {
     case e: ForbiddenException => Forbidden(e.getMessage, Map(contentTypePlainText))
     case e: NotFoundException => NotFound(e.getMessage, Map(contentTypePlainText))
-    case e: NoSuchFileException => NotFound(e.getMessage, Map(contentTypePlainText)) //TODO might reveal absolute paths
     case e: ConflictException => Conflict(e.getMessage, Map(contentTypePlainText))
     case e: BadRequestException => BadRequest(e.getMessage, Map(contentTypePlainText))
     case e: NotImplementedException => NotImplemented(e.getMessage, Map(contentTypePlainText))

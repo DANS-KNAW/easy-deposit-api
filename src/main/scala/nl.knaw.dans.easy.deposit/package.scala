@@ -15,10 +15,10 @@
  */
 package nl.knaw.dans.easy
 
-import java.nio.file.Paths
+import java.nio.file.{ Path, Paths }
 import java.util.UUID
 
-import better.files.StringOps
+import better.files.{ File, StringOps }
 import nl.knaw.dans.bag.DansBag
 import nl.knaw.dans.easy.deposit.docs.StateInfo.State.State
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
@@ -66,6 +66,9 @@ package object deposit extends DebugEnhancedLogging {
   case class AlreadySubmittedException(uuid: UUID) extends ConflictException(s"The deposit (UUID $uuid) already exists in the submit area. Possibly due to a resubmit.")
   case class NoSuchDepositException(user: String, id: UUID, cause: Throwable) extends NotFoundException(s"Deposit $id not found") {
     logger.info(s"Deposit [$user/$id] not found: ${ cause.getMessage }")
+  }
+  case class NoSuchFileInDepositException(absPath: File, relPath: Path) extends NotFoundException(s"$relPath not found in deposit") {
+    logger.info(s"$relPath not found")
   }
 
   case class ConfigurationException(msg: String) extends IllegalArgumentException(s"Configuration error: $msg")
