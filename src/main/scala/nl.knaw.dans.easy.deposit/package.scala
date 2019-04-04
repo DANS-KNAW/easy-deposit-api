@@ -21,20 +21,19 @@ import java.util.UUID
 import better.files.StringOps
 import nl.knaw.dans.bag.DansBag
 import nl.knaw.dans.easy.deposit.docs.StateInfo.State.State
+import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.scalatra.servlet.FileItem
 
 import scala.util.{ Failure, Try }
 import scala.xml._
 
-package object deposit {
+package object deposit extends DebugEnhancedLogging {
 
   class ForbiddenException(httpResponseBody: String) extends Exception(httpResponseBody)
   class BadRequestException(httpResponseBody: String) extends Exception(httpResponseBody)
   class ConflictException(httpResponseBody: String) extends Exception(httpResponseBody)
+  class NotFoundException(httpResponseBody: String) extends Exception(httpResponseBody)
   case class ExistsException(httpResponseBody: String) extends ConflictException(httpResponseBody)
-
-  case class NoSuchDepositException(user: String, id: UUID, cause: Throwable)
-    extends Exception(s"Deposit with id $id not found for user $user:  ${ cause.getMessage }", cause)
 
   case class CorruptDepositException(user: String, id: String, cause: Throwable)
     extends Exception(s"Invalid deposit uuid $id for user $user: ${ cause.getMessage }", cause)
@@ -65,6 +64,9 @@ package object deposit {
    * The UUID can help communication with trouble shooters.
    */
   case class AlreadySubmittedException(uuid: UUID) extends ConflictException(s"The deposit (UUID $uuid) already exists in the submit area. Possibly due to a resubmit.")
+  case class NoSuchDepositException(user: String, id: UUID, cause: Throwable) extends NotFoundException(s"Deposit $id not found") {
+    logger.info(s"Deposit [$user/$id] not found: ${ cause.getMessage }")
+  }
 
   case class ConfigurationException(msg: String) extends IllegalArgumentException(s"Configuration error: $msg")
 

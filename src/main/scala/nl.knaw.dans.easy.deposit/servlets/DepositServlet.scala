@@ -16,14 +16,14 @@
 package nl.knaw.dans.easy.deposit.servlets
 
 import java.io.IOException
-import java.nio.file.{ NoSuchFileException, Path, Paths }
+import java.nio.file.{ InvalidPathException, NoSuchFileException, Path, Paths }
 import java.util.UUID
 
 import javax.servlet.ServletInputStream
 import nl.knaw.dans.easy.deposit.docs.JsonUtil.toJson
 import nl.knaw.dans.easy.deposit.docs.{ DatasetMetadata, StateInfo }
-import nl.knaw.dans.easy.deposit.servlets.DepositServlet._
-import nl.knaw.dans.easy.deposit.{ BadRequestException, ConflictException, EasyDepositApiApp, ForbiddenException, InvalidContentTypeException, NoSuchDepositException }
+import nl.knaw.dans.easy.deposit.servlets.DepositServlet.InvalidResourceException
+import nl.knaw.dans.easy.deposit.{ BadRequestException, ConflictException, EasyDepositApiApp, ForbiddenException, InvalidContentTypeException, NotFoundException }
 import nl.knaw.dans.lib.error._
 import nl.knaw.dans.lib.logging.servlet._
 import org.apache.commons.lang.NotImplementedException
@@ -192,29 +192,12 @@ class DepositServlet(app: EasyDepositApiApp)
 
   private def respond(t: Throwable): ActionResult = t match {
     case e: ForbiddenException => Forbidden(e.getMessage, Map(contentTypePlainText))
-    case e: NoSuchDepositException => noSuchDepositResponse(e)
-    case e: NoSuchFileException => NotFound(body = s"${ e.getMessage } not found", Map(contentTypePlainText))
-    case e: InvalidResourceException => invalidResourceResponse(e)
+    case e: NotFoundException => NotFound(e.getMessage, Map(contentTypePlainText))
+    case e: NoSuchFileException => NotFound(e.getMessage, Map(contentTypePlainText)) //TODO might reveal absolute paths
     case e: ConflictException => Conflict(e.getMessage, Map(contentTypePlainText))
     case e: BadRequestException => BadRequest(e.getMessage, Map(contentTypePlainText))
     case e: NotImplementedException => NotImplemented(e.getMessage, Map(contentTypePlainText))
     case _ => notExpectedExceptionResponse(t)
-  }
-
-  private def noSuchDepositResponse(e: NoSuchDepositException): ActionResult = {
-    // returning the message to the client might reveal absolute paths on the server
-    logWhatIsHiddenForGetOrRecoverResponse(s"${ user.id } ${ request.uri } $e")
-    NotFound(body = s"Deposit ${ e.id } not found", Map(contentTypePlainText))
-  }
-
-  private def invalidResourceResponse(t: InvalidResourceException): ActionResult = {
-    // returning the message to the client might reveal absolute paths on the server
-    logWhatIsHiddenForGetOrRecoverResponse(t.getMessage)
-    NotFound()
-  }
-
-  private def logWhatIsHiddenForGetOrRecoverResponse(message: String): Unit = {
-    logger.info(s"user[$getUserId] ${ request.getMethod } ${ request.getRequestURL } : ${ message }")
   }
 
   private def getUserId: Try[String] = {
@@ -232,9 +215,8 @@ class DepositServlet(app: EasyDepositApiApp)
 
   private def getPath: Try[Path] = Try {
     Paths.get(multiParams("splat").find(!_.trim.isEmpty).getOrElse(""))
-  }.recoverWith { case t: Throwable =>
-    logWhatIsHiddenForGetOrRecoverResponse(s"bad path:$t")
-    Failure(InvalidResourceException(s"Invalid path."))
+  }.recoverWith { // invalid characters, or other file system specific reasons.
+    case t: InvalidPathException => Failure(InvalidResourceException(s"Invalid path: ${ t.getMessage }"))
   }
 
   private def isMultipart = {
@@ -250,5 +232,5 @@ class DepositServlet(app: EasyDepositApiApp)
 
 object DepositServlet {
 
-  private case class InvalidResourceException(s: String) extends Exception(s)
+  private case class InvalidResourceException(s: String) extends NotFoundException(s)
 }

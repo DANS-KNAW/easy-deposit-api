@@ -44,6 +44,7 @@ class NotFoundSpec extends DepositServletFixture {
   }
 
   private def shouldBeInternalServerError = {
+    // TODO replace these three with: should matchPattern
     status shouldBe INTERNAL_SERVER_ERROR_500
     body shouldBe "Internal Server Error"
   }
@@ -87,19 +88,19 @@ class NotFoundSpec extends DepositServletFixture {
 
   "404 other not found" should "be returned by GET /deposit/{id}/file/{dir_path}" in {
     val uuid = createDeposit
-    get(s"/deposit/$uuid/file/path/to/dir", headers = Seq(fooBarBasicAuthHeader)) { shouldBeNotFound("path/to/dir not found") }
+    get(s"/deposit/$uuid/file/path/to/dir", headers = Seq(fooBarBasicAuthHeader)) { shouldBeNotFound("path/to/dir") }
   }
   it should "be returned by DELETE /deposit/{id}/file/{dir_path}" in {
     val uuid = createDeposit
-    delete(s"/deposit/$uuid/file/path/to/dir", headers = Seq(fooBarBasicAuthHeader)) { shouldBeNotFound("path/to/dir not found") }
+    delete(s"/deposit/$uuid/file/path/to/dir", headers = Seq(fooBarBasicAuthHeader)) { shouldBeNotFound("path/to/dir") }
   }
   it should "be returned by GET /deposit/{id}/file/{file_path}" in {
     val uuid = createDeposit
-    get(s"/deposit/$uuid/file/path/to/file.txt", headers = Seq(fooBarBasicAuthHeader)) { shouldBeNotFound("path/to/file.txt not found") }
+    get(s"/deposit/$uuid/file/path/to/file.txt", headers = Seq(fooBarBasicAuthHeader)) { shouldBeNotFound("path/to/file.txt") }
   }
   it should "be returned by DELETE /deposit/{id}/file/{file_path}" in {
     val uuid = createDeposit
-    delete(s"/deposit/$uuid/file/path/to/file.txt", headers = Seq(fooBarBasicAuthHeader)) { shouldBeNotFound("path/to/file.txt not found") }
+    delete(s"/deposit/$uuid/file/path/to/file.txt", headers = Seq(fooBarBasicAuthHeader)) { shouldBeNotFound("path/to/file.txt") }
   }
   // TODO files/directories on the file system but not in files.xml and/or the other way around
 
