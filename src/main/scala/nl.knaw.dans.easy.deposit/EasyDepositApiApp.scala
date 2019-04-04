@@ -228,6 +228,7 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
    */
   def writeDataMetadataToDeposit(dm: DatasetMetadata, user: String, id: UUID): Try[Unit] = for {
     deposit <- getDeposit(user, id)
+    _ <- canUpdate(user, id)
     _ <- deposit.writeDatasetMetadataJson(dm)
   } yield ()
 
@@ -278,6 +279,7 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
     for {
       _ <- contentTypeAnythingButZip(contentType)
       dataFiles <- getDataFiles(user, id)
+      _ <- canUpdate(user, id)
       _ <- pathNotADirectory(path, dataFiles)
       _ = logger.info(s"uploading to [${ dataFiles.bag.baseDir }] of [$path]")
       created <- dataFiles.write(is, path)
@@ -285,13 +287,13 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
     } yield created
   }
 
-  private def pathNotADirectory(path: Path, dataFiles: DataFiles) = {
+  private def pathNotADirectory(path: Path, dataFiles: DataFiles): Try[Unit]  = {
     if ((dataFiles.bag / "data" / path.toString).isDirectory)
       Failure(ConflictException("Attempt to overwrite a directory with a file."))
     else Success(())
   }
 
-  private def contentTypeAnythingButZip(contentType: Option[String]) = {
+  private def contentTypeAnythingButZip(contentType: Option[String]): Try[Unit] = {
     if (contentType.exists(str => str.trim.nonEmpty && !str.trim.matches(contentTypeZipPattern)))
       Success(())
     else Failure(BadRequestException("Content-Type must not be application/zip."))
@@ -330,6 +332,18 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
    */
   def deleteDepositFile(user: String, id: UUID, path: Path): Try[Unit] = for {
     dataFiles <- getDataFiles(user, id)
+    _ <- canUpdate(user, id) //  deleting a file, is updating the deposit
     _ <- dataFiles.delete(path)
   } yield ()
+
+  /**
+   * Determines if the deposit can be updated, based on its current state.
+   *
+   * @param user ID
+   * @param id   the deposit ID
+   * @return
+   */
+  private def canUpdate(user: String, id: UUID): Try[Unit] = {
+    getDepositState(user, id).flatMap(_.canUpdate)
+  }
 }
