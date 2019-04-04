@@ -110,7 +110,7 @@ package object servlets extends DebugEnhancedLogging {
 
     def copyNonZipTo(dir: File): Try[Unit] = {
       if (fileItem.name.isBlank) Success(()) // skip form field without selected files
-      else if (fileItem.isZip) Failure(new ZipMustBeOnlyFileException(fileItem.name))
+      else if (fileItem.isZip) Failure(ZipMustBeOnlyFileException(fileItem))
       else
         managed(fileItem.getInputStream)
           .apply(inputStream => Try { Files.copy(inputStream, (dir / fileItem.name).path) })
@@ -132,7 +132,7 @@ package object servlets extends DebugEnhancedLogging {
         val leadingZipItem = fileItems.next()
         skipLeadingEmptyFormFields()
         if (fileItems.hasNext)
-          Failure(new ZipMustBeOnlyFileException(leadingZipItem.name))
+          Failure(ZipMustBeOnlyFileException(leadingZipItem))
         else leadingZipItem.getZipInputStream.map(Some(_))
       }
     }

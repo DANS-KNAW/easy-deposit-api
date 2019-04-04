@@ -21,6 +21,7 @@ import java.util.UUID
 import better.files.StringOps
 import nl.knaw.dans.bag.DansBag
 import nl.knaw.dans.easy.deposit.docs.StateInfo.State.State
+import org.scalatra.servlet.FileItem
 
 import scala.util.{ Failure, Try }
 import scala.xml._
@@ -44,9 +45,8 @@ package object deposit {
   case class IllegalDepositStateException(action: String, actual: State, allowed: Seq[State])
     extends ForbiddenException(s"Deposit has state $actual, can only $action deposits with one of the states: ${ allowed.mkString(", ") }")
 
-  /** @param fileName a simple file name (without a path) from the multipart/form-data  */
-  case class ZipMustBeOnlyFileException(fileName: String)
-    extends BadRequestException(s"A multipart/form-data message contained a ZIP [$fileName] part but also other parts.")
+  case class ZipMustBeOnlyFileException(item: FileItem)
+    extends BadRequestException(s"A multipart/form-data message contained a ZIP part [${ item.name }] but also other parts.")
 
   case class InvalidDoiException(uuid: UUID) extends BadRequestException(s"InvalidDoi: DOI must be obtained by calling GET /deposit/$uuid")
   case class MalformedZipException(msgAboutEntry: String) extends BadRequestException(s"ZIP file is malformed. $msgAboutEntry")

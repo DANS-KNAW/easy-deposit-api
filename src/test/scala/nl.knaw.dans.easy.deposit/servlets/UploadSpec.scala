@@ -124,7 +124,7 @@ class UploadSpec extends DepositServletFixture {
       headers = Seq(fooBarBasicAuthHeader),
       files = bodyParts
     ) {
-      body shouldBe "A multipart/form-data message contained a ZIP [2.zip] part but also other parts."
+      body shouldBe "A multipart/form-data message contained a ZIP part [2.zip] but also other parts."
       status shouldBe BAD_REQUEST_400
       absoluteTarget.list.size shouldBe 0 // preceding plain file not added to draft bag
     }
@@ -144,7 +144,7 @@ class UploadSpec extends DepositServletFixture {
       headers = Seq(fooBarBasicAuthHeader),
       files = bodyParts
     ) {
-      body shouldBe "A multipart/form-data message contained a ZIP [1.zip] part but also other parts."
+      body shouldBe "A multipart/form-data message contained a ZIP part [1.zip] but also other parts."
       status shouldBe BAD_REQUEST_400
       absoluteTarget.list.size shouldBe 0
     }
