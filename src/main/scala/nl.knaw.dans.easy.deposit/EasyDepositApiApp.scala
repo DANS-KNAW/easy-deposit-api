@@ -288,7 +288,7 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
 
   private def pathNotADirectory(path: Path, dataFiles: DataFiles): Try[Unit] = {
     if ((dataFiles.bag / "data" / path.toString).isDirectory)
-      Failure(ExistsException("Attempt to overwrite a directory with a file."))
+      Failure(OverwriteException("Attempt to overwrite a directory with a file."))
     else Success(())
   }
 

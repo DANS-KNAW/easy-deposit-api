@@ -33,7 +33,7 @@ package object deposit extends DebugEnhancedLogging {
   class BadRequestException(httpResponseBody: String) extends Exception(httpResponseBody)
   class ConflictException(httpResponseBody: String) extends Exception(httpResponseBody)
   class NotFoundException(httpResponseBody: String) extends Exception(httpResponseBody)
-  case class ExistsException(httpResponseBody: String) extends ConflictException(httpResponseBody)
+  case class OverwriteException(httpResponseBody: String) extends ConflictException(httpResponseBody)
 
   case class CorruptDepositException(user: String, id: String, cause: Throwable)
     extends Exception(s"Invalid deposit uuid $id for user $user: ${ cause.getMessage }", cause)
