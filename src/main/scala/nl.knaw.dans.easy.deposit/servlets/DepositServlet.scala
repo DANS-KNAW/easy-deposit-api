@@ -20,6 +20,7 @@ import java.nio.file.{ NoSuchFileException, Path, Paths }
 import java.util.UUID
 
 import javax.servlet.ServletInputStream
+import nl.knaw.dans.easy.deposit.{ BadRequestException, ConflictException, EasyDepositApiApp, IllegalStateTransitionException, NoSuchDepositException }
 import nl.knaw.dans.easy.deposit.docs.JsonUtil.{ InvalidDocumentException, toJson }
 import nl.knaw.dans.easy.deposit.docs.{ DatasetMetadata, StateInfo }
 import nl.knaw.dans.easy.deposit.servlets.DepositServlet._
