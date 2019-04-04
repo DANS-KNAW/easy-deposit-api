@@ -23,7 +23,7 @@ import javax.servlet.ServletInputStream
 import nl.knaw.dans.easy.deposit.docs.JsonUtil.toJson
 import nl.knaw.dans.easy.deposit.docs.{ DatasetMetadata, StateInfo }
 import nl.knaw.dans.easy.deposit.servlets.DepositServlet._
-import nl.knaw.dans.easy.deposit.{ BadRequestException, ConflictException, EasyDepositApiApp, IllegalStateTransitionException, InvalidContentTypeException, NoSuchDepositException }
+import nl.knaw.dans.easy.deposit.{ BadRequestException, ConflictException, EasyDepositApiApp, ForbiddenException, InvalidContentTypeException, NoSuchDepositException }
 import nl.knaw.dans.lib.error._
 import nl.knaw.dans.lib.logging.servlet._
 import org.apache.commons.lang.NotImplementedException
@@ -191,8 +191,7 @@ class DepositServlet(app: EasyDepositApiApp)
   }
 
   private def respond(t: Throwable): ActionResult = t match {
-    case e: IllegalStateTransitionException => Forbidden(e.getMessage, Map(contentTypePlainText))
-    case e: IllegalStateException => Forbidden(e.getMessage, Map(contentTypePlainText))
+    case e: ForbiddenException => Forbidden(e.getMessage, Map(contentTypePlainText))
     case e: NoSuchDepositException => noSuchDepositResponse(e)
     case e: NoSuchFileException => NotFound(body = s"${ e.getMessage } not found", Map(contentTypePlainText))
     case e: InvalidResourceException => invalidResourceResponse(e)

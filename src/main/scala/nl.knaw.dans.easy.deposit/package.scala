@@ -27,33 +27,30 @@ import scala.xml._
 
 package object deposit {
 
-  sealed abstract class DepositException(msg: String, cause: Throwable) extends Exception(msg, cause)
+  class ForbiddenException(httpResponseBody: String) extends Exception(httpResponseBody)
+  class BadRequestException(httpResponseBody: String) extends Exception(httpResponseBody)
+  class ConflictException(httpResponseBody: String) extends Exception(httpResponseBody)
+  case class ExistsException(httpResponseBody: String) extends ConflictException(httpResponseBody)
 
   case class NoSuchDepositException(user: String, id: UUID, cause: Throwable)
-    extends DepositException(s"Deposit with id $id not found for user $user:  ${ cause.getMessage }", cause)
+    extends Exception(s"Deposit with id $id not found for user $user:  ${ cause.getMessage }", cause)
 
   case class CorruptDepositException(user: String, id: String, cause: Throwable)
-    extends DepositException(s"Invalid deposit uuid $id for user $user: ${ cause.getMessage }", cause)
+    extends Exception(s"Invalid deposit uuid $id for user $user: ${ cause.getMessage }", cause)
 
   case class IllegalStateTransitionException(user: String, id: UUID, oldState: State, newState: State)
-    extends DepositException(s"Cannot transition from $oldState to $newState (deposit id: $id, user: $user)", null)
+    extends ForbiddenException(s"Cannot transition from $oldState to $newState (deposit id: $id, user: $user)")
 
-  /** @param msg message returned to the client, should not contain absolute file paths nor other internal data */
-  class BadRequestException(msg: String) extends Exception(msg)
-
-  /** @param msg message returned to the client, should not contain absolute file paths nor other internal data */
-  class ConflictException(msg: String) extends Exception(msg)
+  case class IllegalDepositStateException(action: String, actual: State, allowed: Seq[State])
+    extends ForbiddenException(s"Deposit has state $actual, can only $action deposits with one of the states: ${ allowed.mkString(", ") }")
 
   /** @param fileName a simple file name (without a path) from the multipart/form-data  */
-  case class ZipMustBeOnlyFileException(fileName: String) extends BadRequestException(s"A multipart/form-data message contained a ZIP [$fileName] part but also other parts.")
+  case class ZipMustBeOnlyFileException(fileName: String)
+    extends BadRequestException(s"A multipart/form-data message contained a ZIP [$fileName] part but also other parts.")
 
   case class InvalidDoiException(uuid: UUID) extends BadRequestException(s"InvalidDoi: DOI must be obtained by calling GET /deposit/$uuid")
   case class MalformedZipException(msgAboutEntry: String) extends BadRequestException(s"ZIP file is malformed. $msgAboutEntry")
   case class PendingUploadException() extends ConflictException("Another upload is pending. Please try again later.")
-
-  /** @param msg should not specify absolute file paths  */
-  case class ExistsException(msg: String) extends ConflictException(msg)
-
   case class InvalidContentTypeException(contentType: Option[String], requirement: String) extends BadRequestException(
     contentType match {
       case None => s"Content-Type is a mandatory request header and $requirement"
