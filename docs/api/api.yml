@@ -238,6 +238,8 @@ paths:
           $ref: "#/components/responses/MalformedMetadata"
         401:
           $ref: "#/components/responses/Unauthorized"
+        403:
+          $ref: "#/components/responses/ForbiddenUpdate"
         404:
           $ref: "#/components/responses/NotFound"
         500:
@@ -321,8 +323,10 @@ paths:
           $ref: "#/components/responses/MalformedMetadata"
         401:
           $ref: "#/components/responses/Unauthorized"
-        403:
+        403.1:
           $ref: "#/components/responses/ForbiddenStateTransition"
+        403.2:
+          $ref: "#/components/responses/ForbiddenUpdate"
         404:
           $ref: "#/components/responses/NotFound"
         409:
@@ -456,6 +460,8 @@ paths:
           $ref: "#/components/responses/DeleteOk"
         401:
           $ref: "#/components/responses/Unauthorized"
+        403:
+          $ref: "#/components/responses/ForbiddenUpdate"
         404:
           $ref: "#/components/responses/NotFound"
         500:
@@ -526,6 +532,8 @@ paths:
           $ref: "#/components/responses/ZipFileNotAllowed"
         401:
           $ref: "#/components/responses/Unauthorized"
+        403:
+          $ref: "#/components/responses/ForbiddenUpdate"
         404:
           $ref: "#/components/responses/NotFound"
         409:
@@ -624,6 +632,10 @@ components:
 
     Unauthorized:
       description: Unauthorized.
+
+    ForbiddenUpdate:
+      description: |
+        Forbidden. The resource cannot be updated at this point. (Updating is only permitted when the deposit is in one of states: DRAFT, REJECTED.)
 
     ForbiddenDelete:
       description: |

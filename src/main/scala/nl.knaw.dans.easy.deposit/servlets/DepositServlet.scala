@@ -19,8 +19,8 @@ import java.io.IOException
 import java.nio.file.{ NoSuchFileException, Path, Paths }
 import java.util.UUID
 
-import nl.knaw.dans.easy.deposit._
-import nl.knaw.dans.easy.deposit.docs.JsonUtil.toJson
+import javax.servlet.ServletInputStream
+import nl.knaw.dans.easy.deposit.docs.JsonUtil.{ InvalidDocumentException, toJson }
 import nl.knaw.dans.easy.deposit.docs.{ DatasetMetadata, StateInfo }
 import nl.knaw.dans.easy.deposit.servlets.DepositServlet._
 import nl.knaw.dans.lib.error._
@@ -29,7 +29,7 @@ import org.apache.commons.lang.NotImplementedException
 import org.scalatra._
 import org.scalatra.servlet.{ FileUploadSupport, MultipartConfig, SizeConstraintExceededException }
 import org.scalatra.util.RicherString._
-import resource.managed
+import resource.{ ManagedResource, managed }
 
 import scala.util.{ Failure, Success, Try }
 
@@ -98,7 +98,7 @@ class DepositServlet(app: EasyDepositApiApp)
     {
       for {
         uuid <- getUUID
-        managedIS <- getRequestBodyAsManagedInputStream
+        managedIS = getRequestBodyAsManagedInputStream
         datasetMetadata <- managedIS.apply(is => DatasetMetadata(is))
         _ <- app.checkDoi(user.id, uuid, datasetMetadata)
         _ <- app.writeDataMetadataToDeposit(datasetMetadata, user.id, uuid)
@@ -119,7 +119,7 @@ class DepositServlet(app: EasyDepositApiApp)
     {
       for {
         uuid <- getUUID
-        managedIS <- getRequestBodyAsManagedInputStream
+        managedIS = getRequestBodyAsManagedInputStream
         stateInfo <- managedIS.apply(is => StateInfo(is))
         _ <- app.setDepositState(stateInfo, user.id, uuid)
       } yield NoContent()
@@ -170,7 +170,7 @@ class DepositServlet(app: EasyDepositApiApp)
       for {
         uuid <- getUUID
         path <- getPath
-        managedIS <- getRequestBodyAsManagedInputStream
+        managedIS = getRequestBodyAsManagedInputStream
         newFileWasCreated <- managedIS.apply(app.writeDepositFile(_, user.id, uuid, path, Option(request.getContentType)))
       } yield if (newFileWasCreated)
                 Created(headers = Map("Location" -> request.uri.toASCIIString))
@@ -245,9 +245,7 @@ class DepositServlet(app: EasyDepositApiApp)
     }
   }
 
-  private def getRequestBodyAsManagedInputStream = {
-    Try { managed(request.getInputStream) }
-  }
+  private def getRequestBodyAsManagedInputStream: ManagedResource[ServletInputStream] = managed(request.getInputStream)
 }
 
 object DepositServlet {

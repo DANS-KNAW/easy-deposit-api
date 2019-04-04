@@ -45,7 +45,6 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
   mountServlets(app, authMocker.mockedAuthenticationProvider)
 
   "scenario: /deposit/:uuid/metadata life cycle" should "return default dataset metadata" in {
-
     // create dataset
     authMocker.expectsUserFooBar
     val responseBody = post(uri = s"/deposit", headers = Seq(fooBarBasicAuthHeader)) { body }
@@ -78,7 +77,6 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
   }
 
   "scenario: POST /deposit twice; GET /deposit" should "return a list of datasets" in {
-
     // create two deposits
     val responseBodies: Seq[String] = (0 until 2).map { _ =>
       authMocker.expectsUserFooBar
@@ -102,7 +100,6 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
   }
 
   "scenario: POST /deposit; PUT /deposit/:uuid/file/...; GET /deposit/$uuid/file/..." should "return single FileInfo object respective an array of objects" in {
-
     // create dataset
     authMocker.expectsUserFooBar
     val responseBody = post(uri = s"/deposit", headers = Seq(fooBarBasicAuthHeader)) { body }
@@ -167,8 +164,19 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
     }
   }
 
-  "scenario: POST /deposit; twice GET /deposit/:uuid/doi" should "return 200" in {
+  "scenario: POST /deposit; PUT /deposit/:uuid/state; PUT /deposit/$uuid/file/..." should "return forbidden cannot update SUBMITTED deposit" in {
+    val uuid: String = setupSubmittedDeposit
+    authMocker.expectsUserFooBar
+    put(
+      uri = s"/deposit/$uuid/file/path/to/test.txt", headers = Seq(fooBarBasicAuthHeader, ("Content-Type", "application/json")),
+      body = "Lorum ipsum"
+    ) {
+      body shouldBe "Deposit has state SUBMITTED, can only update deposits with one of the states: DRAFT, REJECTED"
+      status shouldBe FORBIDDEN_403
+    }
+  }
 
+  "scenario: POST /deposit; twice GET /deposit/:uuid/doi" should "return 200" in {
     // create dataset
     authMocker.expectsUserFooBar
     val responseBody = post(uri = s"/deposit", headers = Seq(fooBarBasicAuthHeader)) { body }
@@ -196,48 +204,7 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
   }
 
   "scenario: create - ... - sumbit" should "create submitted dataset copied from a draft" in {
-
-    val datasetMetadata = getManualTestResource("datasetmetadata-from-ui-all.json")
-    val doi = DatasetMetadata(datasetMetadata)
-      .getOrRecover(fail(_))
-      .doi
-      .getOrElse(fail("could not get DOI from test input"))
-
-    (testDir / "easy-ingest-flow-inbox").createDirectories()
-    (testDir / "stage").createDirectories()
-
-    // create dataset
-    authMocker.expectsUserFooBar
-    val responseBody = post(uri = s"/deposit", headers = Seq(fooBarBasicAuthHeader)) { body }
-    val uuid = DepositInfo(responseBody).map(_.id.toString).getOrRecover(e => fail(e.toString, e))
-    val depositDir = testDir / "drafts" / "foo" / uuid.toString
-
-    // copy DOI from metadata into deposit.properties
-    (depositDir / "deposit.properties").append(s"identifier.doi=$doi")
-
-    // upload dataset metadata
-    authMocker.expectsUserFooBar
-    put(
-      uri = s"/deposit/$uuid/metadata",
-      headers = Seq(fooBarBasicAuthHeader),
-      body = datasetMetadata
-    ) {
-      body shouldBe ""
-      status shouldBe NO_CONTENT_204
-    }
-
-    // submit
-    authMocker.expectsUserFooBar
-    put(
-      uri = s"/deposit/$uuid/state", headers = Seq(fooBarBasicAuthHeader),
-      body = """{"state":"SUBMITTED","stateDescription":"blabla"}"""
-    ) {
-      body shouldBe ""
-      status shouldBe NO_CONTENT_204
-
-      // +3 is difference in number of files in metadata directory: json versus xml's
-      (depositDir.walk().size + 3) shouldBe (testDir / "easy-ingest-flow-inbox" / uuid.toString).walk().size
-    }
+    val uuid: String = setupSubmittedDeposit
 
     // resubmit fails
     val props = testDir / s"drafts/foo/$uuid/deposit.properties"
@@ -324,7 +291,6 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
   }
 
   "scenario: POST /deposit; hack state to ARCHIVED; SUBMIT" should "reject state transition" in {
-
     // create dataset
     authMocker.expectsUserFooBar
     val responseBody = post(uri = s"/deposit", headers = Seq(fooBarBasicAuthHeader)) { body }
@@ -347,5 +313,50 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
 
     // submit did not complain about missing metadata, so the state transition check indeed came first
     (testDir / "drafts" / "foo" / uuid.toString / "bag" / "metatada") shouldNot exist
+  }
+
+  private def setupSubmittedDeposit: String = {
+    val datasetMetadata = getManualTestResource("datasetmetadata-from-ui-all.json")
+    val doi = DatasetMetadata(datasetMetadata)
+      .getOrRecover(fail(_))
+      .doi
+      .getOrElse(fail("could not get DOI from test input"))
+
+    (testDir / "easy-ingest-flow-inbox").createDirectories()
+    (testDir / "stage").createDirectories()
+
+    // create dataset
+    authMocker.expectsUserFooBar
+    val responseBody = post(uri = s"/deposit", headers = Seq(fooBarBasicAuthHeader)) { body }
+    val uuid = DepositInfo(responseBody).map(_.id.toString).getOrRecover(e => fail(e.toString, e))
+    val depositDir = testDir / "drafts" / "foo" / uuid.toString
+
+    // copy DOI from metadata into deposit.properties
+    (depositDir / "deposit.properties").append(s"identifier.doi=$doi")
+
+    // upload dataset metadata
+    authMocker.expectsUserFooBar
+    put(
+      uri = s"/deposit/$uuid/metadata",
+      headers = Seq(fooBarBasicAuthHeader),
+      body = datasetMetadata
+    ) {
+      body shouldBe ""
+      status shouldBe NO_CONTENT_204
+    }
+
+    // submit
+    authMocker.expectsUserFooBar
+    put(
+      uri = s"/deposit/$uuid/state", headers = Seq(fooBarBasicAuthHeader),
+      body = """{"state":"SUBMITTED","stateDescription":"blabla"}"""
+    ) {
+      body shouldBe ""
+      status shouldBe NO_CONTENT_204
+
+      // +3 is difference in number of files in metadata directory: json versus xml's
+      (depositDir.walk().size + 3) shouldBe (testDir / "easy-ingest-flow-inbox" / uuid.toString).walk().size
+    }
+    uuid
   }
 }
