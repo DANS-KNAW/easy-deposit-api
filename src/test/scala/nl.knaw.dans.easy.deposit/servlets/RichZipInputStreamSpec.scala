@@ -20,7 +20,7 @@ import java.nio.charset.StandardCharsets
 import java.util.zip.ZipInputStream
 
 import better.files.File
-import nl.knaw.dans.easy.deposit.{ BadRequestException, TestSupportFixture }
+import nl.knaw.dans.easy.deposit.{ MalformedZipException, TestSupportFixture }
 import resource.managed
 
 import scala.util.{ Failure, Success }
@@ -35,7 +35,7 @@ class RichZipInputStreamSpec extends TestSupportFixture {
   "unzipPlainEntriesTo" should "report invalid content" in {
     managed(new ZipInputStream(new ByteArrayInputStream("Lorem ipsum est".getBytes(StandardCharsets.UTF_8)))).apply(
       _.unzipPlainEntriesTo(testDir / "dummy") should matchPattern {
-        case Failure(BadRequestException(s)) if s == "ZIP file is malformed. No entries found." =>
+        case Failure(MalformedZipException(s)) if s == "No entries found." =>
       })
   }
 

@@ -15,9 +15,9 @@
  */
 package nl.knaw.dans.easy.deposit.servlets
 
-import nl.knaw.dans.easy.deposit.EasyDepositApiApp
 import nl.knaw.dans.easy.deposit.docs.JsonUtil._
 import nl.knaw.dans.easy.deposit.docs.UserInfo
+import nl.knaw.dans.easy.deposit.{ BadRequestException, EasyDepositApiApp }
 import nl.knaw.dans.lib.error._
 import nl.knaw.dans.lib.logging.servlet._
 import org.scalatra._
@@ -40,7 +40,7 @@ class UserServlet(app: EasyDepositApiApp) extends ProtectedServlet(app) {
   }
 
   private def respond(t: Throwable): ActionResult = t match {
-    case e: InvalidDocumentException => BadRequest(e.msg)
+    case e: BadRequestException => BadRequest(e.getMessage)
     case _ => notExpectedExceptionResponse(t)
   }
 }

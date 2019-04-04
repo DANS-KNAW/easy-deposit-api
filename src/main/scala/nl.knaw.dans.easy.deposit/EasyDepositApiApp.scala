@@ -286,16 +286,16 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
     } yield created
   }
 
-  private def pathNotADirectory(path: Path, dataFiles: DataFiles): Try[Unit]  = {
+  private def pathNotADirectory(path: Path, dataFiles: DataFiles): Try[Unit] = {
     if ((dataFiles.bag / "data" / path.toString).isDirectory)
-      Failure(ConflictException("Attempt to overwrite a directory with a file."))
+      Failure(ExistsException("Attempt to overwrite a directory with a file."))
     else Success(())
   }
 
   private def contentTypeAnythingButZip(contentType: Option[String]): Try[Unit] = {
     if (contentType.exists(str => str.trim.nonEmpty && !str.trim.matches(contentTypeZipPattern)))
       Success(())
-    else Failure(BadRequestException("Content-Type must not be application/zip."))
+    else Failure(InvalidContentTypeException(contentType, "must not be a zip."))
   }
 
   def stageFiles(userId: String, id: UUID, destination: Path): Try[(Dispose[File], StagedFilesTarget)] = {
@@ -316,7 +316,7 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
   // prevents concurrent uploads, requires explicit cleanup of interrupted uploads
   private def atMostOneTempDir(prefix: String): Try[Unit] = {
     if (uploadStagingDir.list.count(_.name.startsWith(prefix)) > 1)
-      Failure(ConflictException("Another upload is pending. Please try again later."))
+      Failure(PendingUploadException())
     else Success(())
   }
 

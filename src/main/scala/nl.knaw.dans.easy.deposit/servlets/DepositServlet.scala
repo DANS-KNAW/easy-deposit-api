@@ -20,10 +20,10 @@ import java.nio.file.{ NoSuchFileException, Path, Paths }
 import java.util.UUID
 
 import javax.servlet.ServletInputStream
-import nl.knaw.dans.easy.deposit.{ BadRequestException, ConflictException, EasyDepositApiApp, IllegalStateTransitionException, NoSuchDepositException }
-import nl.knaw.dans.easy.deposit.docs.JsonUtil.{ InvalidDocumentException, toJson }
+import nl.knaw.dans.easy.deposit.docs.JsonUtil.toJson
 import nl.knaw.dans.easy.deposit.docs.{ DatasetMetadata, StateInfo }
 import nl.knaw.dans.easy.deposit.servlets.DepositServlet._
+import nl.knaw.dans.easy.deposit.{ BadRequestException, ConflictException, EasyDepositApiApp, IllegalStateTransitionException, InvalidContentTypeException, NoSuchDepositException }
 import nl.knaw.dans.lib.error._
 import nl.knaw.dans.lib.logging.servlet._
 import org.apache.commons.lang.NotImplementedException
@@ -242,7 +242,7 @@ class DepositServlet(app: EasyDepositApiApp)
     val multiPart = "multipart/"
     request.getHeader("Content-Type").blankOption match {
       case Some(s) if s.toLowerCase.startsWith(multiPart) => Success(())
-      case x => Failure(BadRequestException(s"""Must have a Content-Type starting with "$multiPart", got $x."""))
+      case x => Failure(InvalidContentTypeException(x, s"""must start with "$multiPart"."""))
     }
   }
 

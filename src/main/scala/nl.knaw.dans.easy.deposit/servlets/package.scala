@@ -67,18 +67,20 @@ package object servlets extends DebugEnhancedLogging {
           Try((dir / entry.getName).createDirectories())
         else {
           if (entry.getName.matches(extensionZipPattern))
-            Failure(BadRequestException(s"ZIP file is malformed. It contains a Zip ${ entry.getName }."))
+            Failure(MalformedZipException(s"It contains a Zip ${ entry.getName }."))
           else {
             logger.info(s"Extracting ${ entry.getName } size=${ entry.getSize } compressedSize=${ entry.getCompressedSize } CRC=${ entry.getCrc }")
             Try(Files.copy(zipInputStream, (dir / entry.getName).path))
           }.recoverWith {
-            case e if e.isInstanceOf[ZipException] => Failure(BadRequestException(s"ZIP file is malformed. $e"))
+            case e if e.isInstanceOf[ZipException] =>
+              logger.error(e.getMessage, e)
+              Failure(MalformedZipException(s"Can't extract ${ entry.getName }"))
           }
         }
       }
 
       Option(zipInputStream.getNextEntry) match {
-        case None => Failure(BadRequestException(s"ZIP file is malformed. No entries found."))
+        case None => Failure(MalformedZipException(s"No entries found."))
         case Some(firstEntry: ZipEntry) => for {
           _ <- extract(firstEntry)
           _ <- Stream

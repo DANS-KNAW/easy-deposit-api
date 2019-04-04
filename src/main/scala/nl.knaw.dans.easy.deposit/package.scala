@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2018 DANS - Data Archiving and Networked Services (info@dans.knaw.nl)
+ * requirement(C) 2018 DANS - Data Archiving and Networked Services (info@dans.knaw.nl)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -39,15 +39,35 @@ package object deposit {
     extends DepositException(s"Cannot transition from $oldState to $newState (deposit id: $id, user: $user)", null)
 
   /** @param msg message returned to the client, should not contain absolute file paths nor other internal data */
-  case class BadRequestException(msg: String) extends Exception(msg)
+  class BadRequestException(msg: String) extends Exception(msg)
 
   /** @param msg message returned to the client, should not contain absolute file paths nor other internal data */
-  case class ConflictException(msg: String) extends Exception(msg)
+  class ConflictException(msg: String) extends Exception(msg)
 
   /** @param fileName a simple file name (without a path) from the multipart/form-data  */
-  class ZipMustBeOnlyFileException(fileName: String) extends BadRequestException(s"A multipart/form-data message contained a ZIP [$fileName] part but also other parts.")
+  case class ZipMustBeOnlyFileException(fileName: String) extends BadRequestException(s"A multipart/form-data message contained a ZIP [$fileName] part but also other parts.")
 
-  class InvalidDoiException(uuid: UUID) extends BadRequestException(s"InvalidDoi: DOI must be obtained by calling GET /deposit/$uuid")
+  case class InvalidDoiException(uuid: UUID) extends BadRequestException(s"InvalidDoi: DOI must be obtained by calling GET /deposit/$uuid")
+  case class MalformedZipException(msgAboutEntry: String) extends BadRequestException(s"ZIP file is malformed. $msgAboutEntry")
+  case class PendingUploadException() extends ConflictException("Another upload is pending. Please try again later.")
+
+  /** @param msg should not specify absolute file paths  */
+  case class ExistsException(msg: String) extends ConflictException(msg)
+
+  case class InvalidContentTypeException(contentType: Option[String], requirement: String) extends BadRequestException(
+    contentType match {
+      case None => s"Content-Type is a mandatory request header and $requirement"
+      case Some(s) => s"Content-Type $requirement Got: $s"
+    }
+  )
+
+  /**
+   * Note 1: submit area == ingest-flow-inbox
+   * Note 2: Resubmit may follow a reject, be a concurrent submit request or ...
+   * The end user can compare the UUID with the URL of a deposit.
+   * The UUID can help communication with trouble shooters.
+   */
+  case class AlreadySubmittedException(uuid: UUID) extends ConflictException(s"The deposit (UUID $uuid) already exists in the submit area. Possibly due to a resubmit.")
 
   case class ConfigurationException(msg: String) extends IllegalArgumentException(s"Configuration error: $msg")
 

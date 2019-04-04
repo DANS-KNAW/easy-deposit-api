@@ -276,7 +276,7 @@ class UploadSpec extends DepositServletFixture {
       body = "Lorem ipsum dolor sit amet"
     ) {
       status shouldBe BAD_REQUEST_400
-      body shouldBe """Must have a Content-Type starting with "multipart/", got None."""
+      body shouldBe """Content-Type is a mandatory request header and must start with "multipart/"."""
     }
   }
 
@@ -290,7 +290,7 @@ class UploadSpec extends DepositServletFixture {
       body = "Lorem ipsum dolor sit amet"
     ) {
       status shouldBe BAD_REQUEST_400
-      body shouldBe """Must have a Content-Type starting with "multipart/", got Some(text/plain)."""
+      body shouldBe """Content-Type must start with "multipart/". Got: text/plain"""
     }
   }
 

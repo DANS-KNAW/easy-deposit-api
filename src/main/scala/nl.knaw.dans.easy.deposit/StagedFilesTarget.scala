@@ -49,7 +49,7 @@ case class StagedFilesTarget(draftBag: DansBag, destination: Path) extends Debug
       if (logger.underlying.isDebugEnabled)
         logger.debug(s"Checking existence of $bagRelativePath isPayload=$isPayload isFetchItem=$isFetchItem")
       if (isPayload || isFetchItem)
-        Failure(ConflictException(s"$bagRelativePath already exists"))
+        Failure(ExistsException(s"$bagRelativePath already exists"))
       else Success(sourceFile -> bagRelativePath)
     }
 
@@ -79,6 +79,6 @@ case class StagedFilesTarget(draftBag: DansBag, destination: Path) extends Debug
       .map(_.failed.getOrElse(new Exception("should not get here")).getMessage)
       .mkString(", ")
       .replaceAll(" already exists", "")
-    Failure(ConflictException("The following file(s) already exist on the server: " + msg))
+    Failure(ExistsException("The following file(s) already exist on the server: " + msg))
   }
 }

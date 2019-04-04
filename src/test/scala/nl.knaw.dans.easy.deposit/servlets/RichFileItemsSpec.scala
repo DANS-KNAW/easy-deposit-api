@@ -84,7 +84,7 @@ class RichFileItemsSpec extends TestSupportFixture with MockFactory {
       mockFileItem(""),
     ).buffered
     fileItems.nextAsZipIfOnlyOne should matchPattern {
-      case Failure(e: ZipMustBeOnlyFileException) if e.msg ==
+      case Failure(e: ZipMustBeOnlyFileException) if e.getMessage ==
         "A multipart/form-data message contained a ZIP [some.zip] part but also other parts." =>
     }
   }
@@ -112,7 +112,7 @@ class RichFileItemsSpec extends TestSupportFixture with MockFactory {
     ).buffered
     fileItems.nextAsZipIfOnlyOne shouldBe Success(None)
     fileItems.copyPlainItemsTo(stagingDir) should matchPattern {
-      case Failure(e: ZipMustBeOnlyFileException) if e.msg ==
+      case Failure(e: ZipMustBeOnlyFileException) if e.getMessage ==
         "A multipart/form-data message contained a ZIP [other.zip] part but also other parts." =>
     }
     stagingDir.walk().map(_.name).toList should

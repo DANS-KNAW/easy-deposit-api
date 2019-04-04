@@ -31,7 +31,7 @@ class DatasetMetadataSpec extends TestSupportFixture {
     def causesInvalidDocumentException(expectedMessage: String): Assertion = {
       DatasetMetadata(str) should matchPattern {
         case Failure(e: InvalidDocumentException)
-          if e.msg == expectedMessage =>
+          if e.getMessage == expectedMessage =>
       }
     }
   }

@@ -59,14 +59,6 @@ class Submitter(stagingBaseDir: File,
   StartupValidation.sameMounts(srcProvider, stagingBaseDir, submitToBaseDir)
 
   /**
-   * Note 1: submit area == ingest-flow-inbox
-   * Note 2: Resubmit may follow a reject, be a concurrent submit request or ...
-   * The end user can compare the UUID with the URL of a deposit.
-   * The UUID can help communication with trouble shooters.
-   */
-  private def alreadySubmitted(id: UUID) = ConflictException(s"The deposit (UUID $id) already exists in the submit area. Possibly due to a resubmit.")
-
-  /**
    * Submits `depositDir` by writing the file metadata, updating the bag checksums, staging a copy
    * and moving that copy to the submit-to area.
    *
@@ -92,7 +84,7 @@ class Submitter(stagingBaseDir: File,
       filesXml <- FilesXml(draftBag.data)
       _ <- sameFiles(draftBag.payloadManifests, draftBag.baseDir / "data")
       submitDir = submitToBaseDir / draftDeposit.id.toString
-      _ = if (submitDir.exists) throw alreadySubmitted(draftDeposit.id)
+      _ = if (submitDir.exists) throw AlreadySubmittedException(draftDeposit.id)
       // from now on no more user errors but internal errors
       // EASY-1464 3.3.8.a create empty staged bag to take a copy of the deposit
       stageDir = (stagingBaseDir / draftDeposit.id.toString).createDirectories()
@@ -122,7 +114,7 @@ class Submitter(stagingBaseDir: File,
     // EASY-1464 step 3.3.9 Move copy to submit-to area
     _ = logger.info(s"moving $draftDepositDir to $submitDir")
     _ <- Try(srcProvider.move(draftDepositDir.path, submitDir.path, StandardCopyOption.ATOMIC_MOVE)).recoverWith {
-      case e: FileAlreadyExistsException => Failure(alreadySubmitted(id))
+      case e: FileAlreadyExistsException => Failure(AlreadySubmittedException(id))
     }
   } yield ()
 

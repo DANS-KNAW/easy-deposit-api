@@ -115,7 +115,7 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
       headers = Seq(fooBarBasicAuthHeader),
       body = "Lorum ipsum"
     ) {
-      body shouldBe "Content-Type must not be application/zip."
+      body shouldBe "Content-Type is a mandatory request header and must not be a zip."
       status shouldBe BAD_REQUEST_400
     }
 
