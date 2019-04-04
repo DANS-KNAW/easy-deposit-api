@@ -18,7 +18,7 @@ package nl.knaw.dans.easy.deposit
 import java.io.ByteArrayInputStream
 import java.nio.charset.StandardCharsets
 import java.nio.file.attribute.PosixFilePermission
-import java.nio.file.{ AccessDeniedException, NoSuchFileException, Paths }
+import java.nio.file.{ AccessDeniedException, Paths }
 import java.util.UUID
 
 import better.files.StringOps
