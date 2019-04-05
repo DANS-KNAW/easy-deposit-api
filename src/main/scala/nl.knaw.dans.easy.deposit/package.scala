@@ -48,7 +48,7 @@ package object deposit extends DebugEnhancedLogging {
     extends BadRequestException(s"A multipart/form-data message contained a ZIP part [${ item.name }] but also other parts.")
 
   /**
-   * Note 1: submit area == ingest-flow-inbox
+   * Note 1: submit area == easy-ingest-flow-inbox
    * Note 2: Resubmit may follow a reject, be a concurrent submit request or ...
    * The end user can compare the UUID with the URL of a deposit.
    * The UUID can help communication with trouble shooters.
