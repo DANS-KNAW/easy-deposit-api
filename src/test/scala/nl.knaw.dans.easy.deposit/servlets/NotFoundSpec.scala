@@ -43,7 +43,6 @@ class NotFoundSpec extends DepositServletFixture {
   }
 
   private def shouldBeInternalServerError = {
-    // TODO replace these three with: should matchPattern
     status shouldBe INTERNAL_SERVER_ERROR_500
     body shouldBe "Internal Server Error"
   }
