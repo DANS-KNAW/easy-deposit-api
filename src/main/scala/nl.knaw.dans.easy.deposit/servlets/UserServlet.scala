@@ -16,9 +16,9 @@
 package nl.knaw.dans.easy.deposit.servlets
 
 import nl.knaw.dans.easy.deposit.EasyDepositApiApp
+import nl.knaw.dans.easy.deposit.Errors._
 import nl.knaw.dans.easy.deposit.docs.JsonUtil._
 import nl.knaw.dans.easy.deposit.docs.UserInfo
-import nl.knaw.dans.lib.error._
 import nl.knaw.dans.lib.logging.servlet._
 import org.scalatra._
 
@@ -29,13 +29,16 @@ class UserServlet(app: EasyDepositApiApp) extends ProtectedServlet(app) {
   get("/") {
     Try(app.getUser(user.id)).flatten // no throw should slip through
       .map(properties => Ok(toJson(UserInfo(properties))))
-      .getOrRecover(notExpectedExceptionResponse).logResponse
+      .getOrRecoverWithActionResult
+      .logResponse
   }
   put("/") {
     Try(for {
       user <- UserInfo(request.body)
       _ <- Try(???)
-    } yield Ok(???)).flatten
-      .getOrRecover(notExpectedExceptionResponse).logResponse
+    } yield Ok(???))
+      .flatten
+      .getOrRecoverWithActionResult
+      .logResponse
   }
 }

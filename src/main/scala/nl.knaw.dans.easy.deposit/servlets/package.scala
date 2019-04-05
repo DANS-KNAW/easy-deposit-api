@@ -52,11 +52,6 @@ package object servlets extends DebugEnhancedLogging {
   val contentTypeJson: (String, String) = "content-type" -> "application/json;charset=UTF-8"
   val contentTypePlainText: (String, String) = "content-type" -> "text/plain;charset=UTF-8"
 
-  def notExpectedExceptionResponse(t: Throwable): ActionResult = {
-    logger.error(s"Not expected exception: ${ t.getMessage }", t)
-    InternalServerError("Internal Server Error", Map(contentTypePlainText))
-  }
-
   implicit class RichManagedZipInputStream(val zipInputStream: ManagedResource[ZipInputStream]) extends AnyVal {
     def unzipPlainEntriesTo(dir: File): Try[Unit] = {
       zipInputStream.apply(_.unzipPlainEntriesTo(dir))

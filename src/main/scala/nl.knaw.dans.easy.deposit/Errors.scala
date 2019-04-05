@@ -21,18 +21,30 @@ import java.util.UUID
 import better.files.File
 import nl.knaw.dans.easy.deposit.docs.StateInfo.State.State
 import nl.knaw.dans.easy.deposit.servlets.contentTypePlainText
+import nl.knaw.dans.lib.error._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.eclipse.jetty.http.HttpStatus._
-import org.scalatra.ActionResult
 import org.scalatra.servlet.FileItem
+import org.scalatra.{ ActionResult, InternalServerError }
 
-object Errors {
+import scala.util.Try
+
+object Errors extends DebugEnhancedLogging {
 
   case class ConfigurationException(msg: String) extends IllegalArgumentException(s"Configuration error: $msg")
 
   abstract sealed class ServletResponseException(status: Int, httpResponseBody: String)
     extends Exception(httpResponseBody) {
     def getActionResult: ActionResult = ActionResult(status, httpResponseBody, Map(contentTypePlainText))
+  }
+
+  implicit class TriedActionResult(val t: Try[ActionResult]) extends AnyVal {
+    def getOrRecoverWithActionResult: ActionResult = t.getOrRecover {
+      case e: ServletResponseException => e.getActionResult
+      case e =>
+        logger.error(s"Not expected exception: ${ e.getMessage }", e)
+        InternalServerError("Internal Server Error", Map(contentTypePlainText))
+    }
   }
 
   case class OverwriteException(httpResponseBody: String)
@@ -97,12 +109,12 @@ object Errors {
     )
 
   case class NoSuchDepositException(user: String, id: UUID, cause: Throwable)
-    extends ServletResponseException(NOT_FOUND_404, s"Deposit $id not found") with DebugEnhancedLogging {
+    extends ServletResponseException(NOT_FOUND_404, s"Deposit $id not found") {
     logger.info(s"Deposit [$user/$id] not found: ${ cause.getMessage }")
   }
 
   case class NoSuchFileInDepositException(absPath: File, relPath: Path)
-    extends ServletResponseException(NOT_FOUND_404, s"$relPath not found in deposit") with DebugEnhancedLogging {
+    extends ServletResponseException(NOT_FOUND_404, s"$relPath not found in deposit") {
     logger.info(s"$relPath not found")
   }
 }
