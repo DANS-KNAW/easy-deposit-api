@@ -215,9 +215,9 @@ class UploadSpec extends DepositServletFixture {
       uri = s"/deposit/$uuid/file/$relativeTarget",
       params = Iterable(),
       headers = Seq(fooBarBasicAuthHeader),
-      files = Seq(("formFieldName", (testDir / "input/2.zip").toJava))
+      files = Seq("formFieldName" -> (testDir / "input/2.zip").toJava)
     ) {
-      body shouldBe ""
+      body shouldBe empty
       status shouldBe CREATED_201
       absoluteTarget.walk().map(_.name).toList should contain theSameElementsAs List(
         "dir", "myCompress", ".DS_Store", "secondLayer", "test.txt", "test_file.txt", "deeper.zip"

@@ -70,14 +70,15 @@ package object servlets extends DebugEnhancedLogging {
 
   implicit class RichZipInputStream(val zipInputStream: ZipInputStream) extends AnyVal {
     def unzipPlainEntriesTo(dir: File): Try[Unit] = {
-      def extract(entry: ZipEntry): Try[Any] = {
+      def extract(entry: ZipEntry): Try[Unit] = {
         if (entry.isDirectory)
           Try((dir / entry.getName).createDirectories())
         else {
           logger.info(s"Extracting ${ entry.getName } size=${ entry.getSize } compressedSize=${ entry.getCompressedSize } CRC=${ entry.getCrc }")
-          Try(Files.copy(zipInputStream, (dir / entry.getName).path))
-        }.recoverWith {
-          case e: ZipException => Failure(BadRequestException(s"ZIP file is malformed. $e"))
+          Try { Files.copy(zipInputStream, (dir / entry.getName).path); () }
+            .recoverWith {
+              case e: ZipException => Failure(BadRequestException(s"ZIP file is malformed. $e"))
+            }
         }
       }
 
