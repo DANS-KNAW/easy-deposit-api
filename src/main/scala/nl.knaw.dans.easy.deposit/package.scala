@@ -19,7 +19,6 @@ import java.nio.file.Paths
 
 import better.files.StringOps
 import nl.knaw.dans.bag.DansBag
-import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 
 import scala.util.{ Failure, Try }
 import scala.xml._

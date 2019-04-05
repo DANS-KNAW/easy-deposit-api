@@ -19,18 +19,16 @@ import java.io.IOException
 import java.nio.file.{ InvalidPathException, Path, Paths }
 import java.util.UUID
 
-import javax.servlet.ServletInputStream
 import nl.knaw.dans.easy.deposit.EasyDepositApiApp
 import nl.knaw.dans.easy.deposit.Errors._
 import nl.knaw.dans.easy.deposit.docs.JsonUtil.toJson
 import nl.knaw.dans.easy.deposit.docs.{ DatasetMetadata, StateInfo }
 import nl.knaw.dans.lib.error._
 import nl.knaw.dans.lib.logging.servlet._
-import org.apache.commons.lang.NotImplementedException
 import org.scalatra._
 import org.scalatra.servlet.{ FileUploadSupport, MultipartConfig, SizeConstraintExceededException }
 import org.scalatra.util.RicherString._
-import resource.{ ManagedResource, managed }
+import resource.managed
 
 import scala.util.{ Failure, Success, Try }
 
@@ -99,7 +97,7 @@ class DepositServlet(app: EasyDepositApiApp)
     {
       for {
         uuid <- getUUID
-        managedIS = getRequestBodyAsManagedInputStream
+        managedIS = managed(request.getInputStream)
         datasetMetadata <- managedIS.apply(is => DatasetMetadata(is))
         _ <- app.checkDoi(user.id, uuid, datasetMetadata)
         _ <- app.writeDataMetadataToDeposit(datasetMetadata, user.id, uuid)
@@ -120,7 +118,7 @@ class DepositServlet(app: EasyDepositApiApp)
     {
       for {
         uuid <- getUUID
-        managedIS = getRequestBodyAsManagedInputStream
+        managedIS = managed(request.getInputStream)
         stateInfo <- managedIS.apply(is => StateInfo(is))
         _ <- app.setDepositState(stateInfo, user.id, uuid)
       } yield NoContent()
@@ -171,7 +169,7 @@ class DepositServlet(app: EasyDepositApiApp)
       for {
         uuid <- getUUID
         path <- getPath
-        managedIS = getRequestBodyAsManagedInputStream
+        managedIS = managed(request.getInputStream)
         newFileWasCreated <- managedIS.apply(app.writeDepositFile(_, user.id, uuid, path, Option(request.getContentType)))
       } yield if (newFileWasCreated)
                 Created(headers = Map("Location" -> request.uri.toASCIIString))
@@ -191,11 +189,7 @@ class DepositServlet(app: EasyDepositApiApp)
   }
 
   private def respond(t: Throwable): ActionResult = t match {
-    case e: ForbiddenException => Forbidden(e.getMessage, Map(contentTypePlainText))
-    case e: NotFoundException => NotFound(e.getMessage, Map(contentTypePlainText))
-    case e: ConflictException => Conflict(e.getMessage, Map(contentTypePlainText))
-    case e: BadRequestException => BadRequest(e.getMessage, Map(contentTypePlainText))
-    case e: NotImplementedException => NotImplemented(e.getMessage, Map(contentTypePlainText))
+    case e: ServletResponseException => e.getActionResult
     case _ => notExpectedExceptionResponse(t)
   }
 
@@ -225,6 +219,4 @@ class DepositServlet(app: EasyDepositApiApp)
       case x => Failure(InvalidContentTypeException(x, s"""must start with "$multiPart"."""))
     }
   }
-
-  private def getRequestBodyAsManagedInputStream: ManagedResource[ServletInputStream] = managed(request.getInputStream)
 }

@@ -204,7 +204,7 @@ class UploadSpec extends DepositServletFixture {
     }
   }
 
- it should "extract all files from a ZIP, with a nested zip" in {
+  it should "extract all files from a ZIP, with a nested zip" in {
     File("src/test/resources/manual-test/nested.zip").copyTo(testDir / "input" / "2.zip")
     val uuid = createDeposit
     val relativeTarget = "path/to/dir"
