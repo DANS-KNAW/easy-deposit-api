@@ -29,6 +29,7 @@ import resource.{ ManagedResource, managed }
 
 import scala.util.{ Failure, Success, Try }
 
+// @formatter:off
 /**
  * EasyDepositApiServlet    just I'm alive status, no authentication required
  * AbstractAuthServlet      supports basic authentication as wel as session cookies
@@ -40,6 +41,7 @@ import scala.util.{ Failure, Success, Try }
  *      |___ UserServlet
  *      |___ DepositServlet
  */
+// @formatter:on
 package object servlets extends DebugEnhancedLogging {
 
   val extensionZipPattern = ".+[.]g?z(ip)?"
@@ -68,18 +70,15 @@ package object servlets extends DebugEnhancedLogging {
 
   implicit class RichZipInputStream(val zipInputStream: ZipInputStream) extends AnyVal {
     def unzipPlainEntriesTo(dir: File): Try[Unit] = {
-      def extract(entry: ZipEntry) = {
+      def extract(entry: ZipEntry): Try[Unit] = {
         if (entry.isDirectory)
           Try((dir / entry.getName).createDirectories())
         else {
-          if (entry.getName.matches(extensionZipPattern))
-            Failure(BadRequestException(s"ZIP file is malformed. It contains a Zip ${ entry.getName }."))
-          else {
-            logger.info(s"Extracting ${ entry.getName } size=${ entry.getSize } compressedSize=${ entry.getCompressedSize } CRC=${ entry.getCrc }")
-            Try(Files.copy(zipInputStream, (dir / entry.getName).path))
-          }.recoverWith {
-            case e if e.isInstanceOf[ZipException] => Failure(BadRequestException(s"ZIP file is malformed. $e"))
-          }
+          logger.info(s"Extracting ${ entry.getName } size=${ entry.getSize } compressedSize=${ entry.getCompressedSize } CRC=${ entry.getCrc }")
+          Try { Files.copy(zipInputStream, (dir / entry.getName).path); () }
+            .recoverWith {
+              case e: ZipException => Failure(BadRequestException(s"ZIP file is malformed. $e"))
+            }
         }
       }
 
