@@ -15,32 +15,32 @@ info:
     name: Apache 2.0
     url: http://www.apache.org/licenses/LICENSE-2.0.html
 tags:
-  - name: service
-    description: Information about service status
-  - name: authentication
-    description: Authentication of a user
-  - name: deposit
-    description: Operations on a deposit
-  - name: directory
-    description: |
-      Operations on a directory.
+- name: service
+  description: Information about service status
+- name: authentication
+  description: Authentication of a user
+- name: deposit
+  description: Operations on a deposit
+- name: directory
+  description: |
+    Operations on a directory.
 
-      * **Note 1:** the form of the routes is the same as for regular files, but the allowed methods are
-      **not** the same.
+    * **Note 1:** the form of the routes is the same as for regular files, but the allowed methods are
+    **not** the same.
 
-      * **Note 2:** Swagger insists that `dir_path` cannot be optional. However, the directory operations
-      are also valid for the root directory of the deposit, i.e. with `dir_path` empty.
-  - name: file
-    description: |
-      Operations on a regular file. Note that the form of the routes is the same as
-      for directories, but the allowed methods are **not** the same.
+    * **Note 2:** Swagger insists that `dir_path` cannot be optional. However, the directory operations
+    are also valid for the root directory of the deposit, i.e. with `dir_path` empty.
+- name: file
+  description: |
+    Operations on a regular file. Note that the form of the routes is the same as
+    for directories, but the allowed methods are **not** the same.
 
 paths:
 
   /:
     get:
       tags:
-        - service
+      - service
       summary: Returns a description of the service.
       responses:
         200:
@@ -58,7 +58,7 @@ paths:
   /auth/login:
     post:
       tags:
-        - authentication
+      - authentication
       summary: Sets a JSON web token cookie for authenticating subsequent calls to the service.
       responses:
         204:
@@ -74,12 +74,12 @@ paths:
         500:
           $ref: "#/components/responses/InternalServerError"
       security:
-        - BasicAuth: []
+      - BasicAuth: []
 
   /auth/logout:
     post:
       tags:
-        - authentication
+      - authentication
       summary: Removes the JSON web token cookie from the client.
       responses:
         204:
@@ -90,12 +90,12 @@ paths:
               schema:
                 type: string
       security:
-        - BearerAuth: []
+      - BearerAuth: []
 
   /user:
     get:
       tags:
-        - user
+      - user
       summary: Retrieves user info object of the authenticated user.
       responses:
         200:
@@ -114,7 +114,7 @@ paths:
   /deposit:
     get:
       tags:
-        - deposit
+      - deposit
       summary: Lists all deposits of the authenticated user.
       operationId: listDeposits
       responses:
@@ -127,41 +127,41 @@ paths:
                 items:
                   $ref: "#/components/schemas/DepositInfo"
                 example:
-                  # Unfortunately, the example value also gets displayed in the
-                  # model in Swagger Editor. It is grayed-out, so I guess we can
-                  # live with that.
-                  - id: "93674123-1699-49c5-af91-ed31db19adc9"
-                    title: My draft deposit
-                    state: DRAFT
-                    stateDescription: Deposit is open for modification.
-                    date: "2018-01-20T10:40:52Z"
-                  - id: "a145a1be-5463-4b10-a621-a9e511ff7f20"
-                    title: "My submitted deposit 1"
-                    state: IN_PROGRESS
-                    stateDescription: Deposit is being processed.
-                    date: "2017-12-01T11:10:22Z"
-                  - id: "1d946f5b-e53b-4f71-b1f3-7481475d07db"
-                    title: "My submitted deposit 2"
-                    state: REJECTED
-                    stateDescription: Some files are missing
-                    date: "2018-01-12T10:40:52Z"
-                  - id: "5befec97-1e57-4210-b7b6-57a604aaef47"
-                    title: "My submitted deposit 2"
-                    state: ARCHIVED
-                    stateDescription: |
-                      Deposit was successfully archived at
-                      https://easy.dans.knaw.nl/datasets/id/easy-dataset:12345
-                    date: "2017-08-09T10:10:22Z"
+                # Unfortunately, the example value also gets displayed in the
+                # model in Swagger Editor. It is grayed-out, so I guess we can
+                # live with that.
+                - id: "93674123-1699-49c5-af91-ed31db19adc9"
+                  title: My draft deposit
+                  state: DRAFT
+                  stateDescription: Deposit is open for modification.
+                  date: "2018-01-20T10:40:52Z"
+                - id: "a145a1be-5463-4b10-a621-a9e511ff7f20"
+                  title: "My submitted deposit 1"
+                  state: IN_PROGRESS
+                  stateDescription: Deposit is being processed.
+                  date: "2017-12-01T11:10:22Z"
+                - id: "1d946f5b-e53b-4f71-b1f3-7481475d07db"
+                  title: "My submitted deposit 2"
+                  state: REJECTED
+                  stateDescription: Some files are missing
+                  date: "2018-01-12T10:40:52Z"
+                - id: "5befec97-1e57-4210-b7b6-57a604aaef47"
+                  title: "My submitted deposit 2"
+                  state: ARCHIVED
+                  stateDescription: |
+                    Deposit was successfully archived at
+                    https://easy.dans.knaw.nl/datasets/id/easy-dataset:12345
+                  date: "2017-08-09T10:10:22Z"
         401:
           $ref: "#/components/responses/Unauthorized"
         500:
           $ref: "#/components/responses/InternalServerError"
       security:
-        - BearerAuth: []
+      - BearerAuth: []
 
     post:
       tags:
-        - deposit
+      - deposit
       summary: Creates new, empty deposit.
       operationId: createDeposit
       responses:
@@ -183,17 +183,17 @@ paths:
         500:
           $ref: "#/components/responses/InternalServerError"
       security:
-        - BearerAuth: []
+      - BearerAuth: []
 
   /deposit/{id}/metadata:
     description: |
       The dataset metadata is the Dublin Core based metadata for the dataset that is being deposited.
     get:
       tags:
-        - deposit
+      - deposit
       summary: Returns the dataset metadata for this deposit.
       parameters:
-        - $ref: "#/components/parameters/DepositId"
+      - $ref: "#/components/parameters/DepositId"
       operationId: getDatasetMetadata
       responses:
         200:
@@ -211,16 +211,16 @@ paths:
         500:
           $ref: "#/components/responses/InternalServerError"
       security:
-        - BearerAuth: []
+      - BearerAuth: []
 
     put:
       tags:
-        - deposit
+      - deposit
       # Defining parameters for a whole route at once does not seem to be supported well
       # by Swagger Editor. After opening and closing some route/method blocks, the parameters
       # disappear. Defining them per route/method seems more robust, so far.
       parameters:
-        - $ref: "#/components/parameters/DepositId"
+      - $ref: "#/components/parameters/DepositId"
       summary: Writes the dataset metadata for this deposit.
       description: The operation overwrites the existing metadata.
       operationId: writeDatasetMetadata
@@ -245,16 +245,16 @@ paths:
         500:
           $ref: "#/components/responses/InternalServerError"
       security:
-        - BearerAuth: []
+      - BearerAuth: []
 
   /deposit/{id}/doi:
     description: |
       The reserved Digital Object Identifier for this deposit.
     get:
       tags:
-        - deposit
+      - deposit
       parameters:
-        - $ref: "#/components/parameters/DepositId"
+      - $ref: "#/components/parameters/DepositId"
       responses:
         200:
           description: valid DOI minted by DANS
@@ -274,9 +274,9 @@ paths:
   /deposit/{id}/state:
     get:
       tags:
-        - "deposit"
+      - "deposit"
       parameters:
-        - $ref: "#/components/parameters/DepositId"
+      - $ref: "#/components/parameters/DepositId"
       summary: Returns the current state of the deposit.
       operationId: getDepositState
       responses:
@@ -293,11 +293,11 @@ paths:
         500:
           $ref: "#/components/responses/InternalServerError"
       security:
-        - BearerAuth: []
+      - BearerAuth: []
 
     put:
       tags:
-        - deposit
+      - deposit
       summary: Updates the state of the deposit.
       description: |
         The client is only allowed to update the deposit from DRAFT to SUBMITTED or
@@ -305,7 +305,7 @@ paths:
         In order to submit, the deposit needs to be valid. In particular, the json metadata MUST be
         valid, with all mandatory fields specified, among which the Digital Object Identifier (DOI).
       parameters:
-        - $ref: "#/components/parameters/DepositId"
+      - $ref: "#/components/parameters/DepositId"
       operationId: updateDepositState
       requestBody:
         description: the state to set
@@ -334,14 +334,14 @@ paths:
         500:
           $ref: "#/components/responses/InternalServerError"
       security:
-        - BearerAuth: []
+      - BearerAuth: []
 
   /deposit/{id}:
     delete:
       tags:
-        - deposit
+      - deposit
       parameters:
-        - $ref: "#/components/parameters/DepositId"
+      - $ref: "#/components/parameters/DepositId"
       summary: Deletes the deposit.
       description: |
         This deletes the deposit (**not** any dataset that may have been created from this deposit).
@@ -358,16 +358,16 @@ paths:
         500:
           $ref: "#/components/responses/InternalServerError"
       security:
-        - BearerAuth: []
+      - BearerAuth: []
 
   /deposit/{id}/file/{dir_path}:
     get:
       tags:
-        - directory
+      - directory
       summary: Returns the file info list for this directory, recursively.
       parameters:
-        - $ref: "#/components/parameters/DepositId"
-        - $ref: "#/components/parameters/DirPath"
+      - $ref: "#/components/parameters/DepositId"
+      - $ref: "#/components/parameters/DirPath"
       responses:
         200:
           description: list of file infos for the directory and its subdirectories
@@ -392,10 +392,10 @@ paths:
         500:
           $ref: "#/components/responses/InternalServerError"
       security:
-        - BearerAuth: []
+      - BearerAuth: []
     post:
       tags:
-        - directory
+      - directory
       summary: Adds one or more files.
       description: |
         The `Content-Type` must always be `multipart/form-data`, which means the body is formatted using the
@@ -413,8 +413,8 @@ paths:
         Concurrent POST calls to the same deposit are not allowed. The result of concurrent PUT and POST calls is
         undefined.
       parameters:
-        - $ref: "#/components/parameters/DepositId"
-        - $ref: "#/components/parameters/DirPath"
+      - $ref: "#/components/parameters/DepositId"
+      - $ref: "#/components/parameters/DirPath"
       requestBody:
         required: true
         content:
@@ -447,14 +447,14 @@ paths:
         500:
           $ref: "#/components/responses/InternalServerError"
       security:
-        - BearerAuth: []
+      - BearerAuth: []
     delete:
       tags:
-        - directory
+      - directory
       summary: Removes the directory and all files in it, recursively.
       parameters:
-        - $ref: "#/components/parameters/DepositId"
-        - $ref: "#/components/parameters/DirPath"
+      - $ref: "#/components/parameters/DepositId"
+      - $ref: "#/components/parameters/DirPath"
       responses:
         204:
           $ref: "#/components/responses/DeleteOk"
@@ -467,16 +467,16 @@ paths:
         500:
           $ref: "#/components/responses/InternalServerError"
       security:
-        - BearerAuth: []
+      - BearerAuth: []
 
   /deposit/{id}/file/{file_path}:
     get:
       tags:
-        - file
+      - file
       summary: Returns information about one file in the deposit.
       parameters:
-        - $ref: "#/components/parameters/DepositId"
-        - $ref: "#/components/parameters/FilePath"
+      - $ref: "#/components/parameters/DepositId"
+      - $ref: "#/components/parameters/FilePath"
       responses:
         200:
           description: file info object
@@ -492,14 +492,14 @@ paths:
         500:
           $ref: "#/components/responses/InternalServerError"
       security:
-        - BearerAuth: []
+      - BearerAuth: []
     put:
       tags:
-        - file
+      - file
       summary: Adds or overwrites the specified file in the deposit.
       parameters:
-        - $ref: "#/components/parameters/DepositId"
-        - $ref: "#/components/parameters/FilePath"
+       - $ref: "#/components/parameters/DepositId"
+       - $ref: "#/components/parameters/FilePath"
       description: |
         If any of `file_path`'s parent do not yet exist, they are first created. The parameter `file_path` must not refer
         to an existing directory. The Content-Type may be anything except `application/zip`.
@@ -509,7 +509,7 @@ paths:
         required: true
         content:
           '*/*':
-            # any media type is accepted, functionally equivalent to `*/*`
+          # any media type is accepted, functionally equivalent to `*/*`
             schema:
               # a binary file of any type
               type: string
@@ -541,15 +541,15 @@ paths:
         500:
           $ref: "#/components/responses/InternalServerError"
       security:
-        - BearerAuth: []
+      - BearerAuth: []
 
     delete:
       tags:
-        - file
+      - file
       summary: Deletes a file from deposit.
       parameters:
-        - $ref: "#/components/parameters/DepositId"
-        - $ref: "#/components/parameters/FilePath"
+       - $ref: "#/components/parameters/DepositId"
+       - $ref: "#/components/parameters/FilePath"
       operationId: deleteFile
       responses:
         204:
@@ -563,7 +563,7 @@ paths:
         500:
           $ref: "#/components/responses/InternalServerError"
       security:
-        - BearerAuth: []
+      - BearerAuth: []
 
 components:
 
@@ -740,11 +740,11 @@ components:
           format: "date-time"
           description: "Deposit date"
       example:
-        id: "1d946f5b-e53b-4f71-b1f3-7481475d07db"
-        title: My draft deposit
-        state: DRAFT
-        stateDescription: Deposit is open for modification.
-        date: "2018-01-12T10:40:52Z"
+          id: "1d946f5b-e53b-4f71-b1f3-7481475d07db"
+          title: My draft deposit
+          state: DRAFT
+          stateDescription: Deposit is open for modification.
+          date: "2018-01-12T10:40:52Z"
 
     State:
       type: object
@@ -816,10 +816,10 @@ components:
         relations:
           type: array
           items:
-            oneOf: [
-            {$ref: "#/components/schemas/Relation"},
-            {$ref: "#/components/schemas/QualifiedSchemedValue"}
-            ]
+            oneOf : [
+              {$ref: "#/components/schemas/Relation"},
+              {$ref: "#/components/schemas/QualifiedSchemedValue"}
+              ]
 
         languagesOfFiles:
           type: array
@@ -877,9 +877,9 @@ components:
         privacySensitiveDataPresent:
           type: string
           enum:
-            - yes
-            - no
-            - unspecified
+          - yes
+          - no
+          - unspecified
 
         acceptDepositAgreement:
           type: boolean
@@ -889,8 +889,8 @@ components:
     AccessRights:
       type: string
       enum:
-        - OPEN_ACCESS
-        - REQUEST_PERMISSION
+      - OPEN_ACCESS
+      - REQUEST_PERMISSION
 
     Author:
       type: object
@@ -913,10 +913,10 @@ components:
           type: string
       oneOf:
         - required:
-            - surname
-            - initials
+          - surname
+          - initials
         - required:
-            - organization
+          - organization
       example:
         titles: Prof Dr
         initials: A
@@ -936,8 +936,8 @@ components:
     Date:
       type: object
       required:
-        - value
-        - qualifier
+      - value
+      - qualifier
       properties:
         scheme:
           type: string
@@ -946,53 +946,53 @@ components:
         qualifier:
           type: string
           enum:
-            - dcterms:created
-            - dcterms:available
-            - dcterms:date
-            - dcterms:dateAccepted
-            - dcterms:dateCopyrighted
-            - dcterms:dateSubmitted
-            - dcterms:issued
-            - dcterms:modified
-            - dcterms:valid
+          - dcterms:created
+          - dcterms:available
+          - dcterms:date
+          - dcterms:dateAccepted
+          - dcterms:dateCopyrighted
+          - dcterms:dateSubmitted
+          - dcterms:issued
+          - dcterms:modified
+          - dcterms:valid
 
     Relation:
       type: object
       required:
-        - qualifier
+      - qualifier
       properties:
         qualifier:
           type: string
           enum:
-            - dcterms:hasFormat
-            - dcterms:hasPart
-            - dcterms:hasVersion
-            - dcterms:isFormatOf
-            - dcterms:isPartOf
-            - dcterms:isReferencedBy
-            - dcterms:isReplacedBy
-            - dcterms:isRequiredBy
-            - dcterms:isVersionOf
-            - dcterms:references
-            - dcterms:relation
-            - dcterms:replaces
-            - dcterms:requires
-            - dcterms:conformsTo
+          - dcterms:hasFormat
+          - dcterms:hasPart
+          - dcterms:hasVersion
+          - dcterms:isFormatOf
+          - dcterms:isPartOf
+          - dcterms:isReferencedBy
+          - dcterms:isReplacedBy
+          - dcterms:isRequiredBy
+          - dcterms:isVersionOf
+          - dcterms:references
+          - dcterms:relation
+          - dcterms:replaces
+          - dcterms:requires
+          - dcterms:conformsTo
         url:
           type: string
         title:
           type: string
       oneOf:
         - required:
-            - title
+          - title
         - required:
-            - url
+          - url
 
     SchemedValue:
       type: object
       required:
-        - scheme
-        - value
+      - scheme
+      - value
       properties:
         scheme:
           type: string
@@ -1002,19 +1002,19 @@ components:
     PossiblySchemedValue:
       type: object
       required:
-        - value
+      - value
       properties:
         scheme:
-          type: string
+         type: string
         value:
-          type: string
+         type: string
 
     QualifiedSchemedValue:
       type: object
       required:
-        - scheme
-        - value
-        - qualifier
+      - scheme
+      - value
+      - qualifier
       properties:
         scheme:
           type: string
@@ -1026,9 +1026,9 @@ components:
     SchemedKeyValue:
       type: object
       required:
-        - scheme
-        - key
-        - value
+      - scheme
+      - key
+      - value
       properties:
         scheme:
           type: string
@@ -1040,7 +1040,7 @@ components:
     PossiblySchemedKeyValue:
       type: object
       required:
-        - value
+      - value
       properties:
         scheme:
           type: string
@@ -1052,11 +1052,11 @@ components:
     SpatialBox:
       type: object
       required:
-        - scheme
-        - north
-        - east
-        - south
-        - west
+      - scheme
+      - north
+      - east
+      - south
+      - west
       properties:
         scheme:
           type: string
@@ -1076,9 +1076,9 @@ components:
     SpatialPoint:
       type: object
       required:
-        - scheme
-        - x
-        - y
+      - scheme
+      - x
+      - y
       properties:
         scheme:
           type: string
