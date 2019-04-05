@@ -93,7 +93,7 @@ case class DepositDir private(baseDir: File, user: String, id: UUID) extends Deb
    */
   def delete(): Try[Unit] = for {
     stateInfo <- getStateInfo
-    _ <- stateInfo.isDeletable
+    _ <- stateInfo.canDelete
     _ = bagDir.parent.delete()
   } yield ()
 

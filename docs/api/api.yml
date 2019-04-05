@@ -238,6 +238,8 @@ paths:
           $ref: "#/components/responses/MalformedMetadata"
         401:
           $ref: "#/components/responses/Unauthorized"
+        403:
+          $ref: "#/components/responses/ForbiddenUpdate"
         404:
           $ref: "#/components/responses/NotFound"
         500:
@@ -321,8 +323,10 @@ paths:
           $ref: "#/components/responses/MalformedMetadata"
         401:
           $ref: "#/components/responses/Unauthorized"
-        403:
+        403.1:
           $ref: "#/components/responses/ForbiddenStateTransition"
+        403.2:
+          $ref: "#/components/responses/ForbiddenUpdate"
         404:
           $ref: "#/components/responses/NotFound"
         500:
@@ -399,6 +403,7 @@ paths:
         If the body contains **only one part** and that part has `Content-Type: application/zip`, then the body
         is a file in ZIP format. This ZIP file can contain a directory hierarchy. The ZIP file will be
         unzipped in `dir_path`. For each file in the ZIP file, the path in the deposit will be `dir_path`/`path_in_zip`.
+        The ZIP file may contain `nested ZIP files`, which will **not** be extracted, but stored as ZIP file.
 
         In all other cases the files are all stored in the directory pointed to by `dir_path` and **it is not
         allowed** to include any files with `Content-Type: application/zip`. Note, that this means that only a flat
@@ -454,6 +459,8 @@ paths:
           $ref: "#/components/responses/DeleteOk"
         401:
           $ref: "#/components/responses/Unauthorized"
+        403:
+          $ref: "#/components/responses/ForbiddenUpdate"
         404:
           $ref: "#/components/responses/NotFound"
         500:
@@ -493,8 +500,8 @@ paths:
        - $ref: "#/components/parameters/DepositId"
        - $ref: "#/components/parameters/FilePath"
       description: |
-        If any of `file_path`'s parent do not yet exist, they are first created. The Content-Type may
-        be anything except `application/zip`.
+        If any of `file_path`'s parent do not yet exist, they are first created. The parameter `file_path` must not refer
+        to an existing directory. The Content-Type may be anything except `application/zip`.
       operationId: writeFile
       requestBody:
         description: file data
@@ -524,8 +531,12 @@ paths:
           $ref: "#/components/responses/ZipFileNotAllowed"
         401:
           $ref: "#/components/responses/Unauthorized"
+        403:
+          $ref: "#/components/responses/ForbiddenUpdate"
         404:
           $ref: "#/components/responses/NotFound"
+        409:
+          $ref: "#components/responses/ConflictAttemptToOverwriteDirectoryWithFile"
         500:
           $ref: "#/components/responses/InternalServerError"
       security:
@@ -621,6 +632,10 @@ components:
     Unauthorized:
       description: Unauthorized.
 
+    ForbiddenUpdate:
+      description: |
+        Forbidden. The resource cannot be updated at this point. (Updating is only permitted when the deposit is in one of states: DRAFT, REJECTED.)
+
     ForbiddenDelete:
       description: |
         Forbidden. The resource cannot be deleted at this point. (Deletion is only permitted when the deposit is in one of states: DRAFT, ARCHIVED, REJECTED.)
@@ -640,6 +655,9 @@ components:
 
     ConflictConcurrentPostNotAllowed:
       description: Conflict. Concurrent POSTs to the same deposit are not allowed.
+
+    ConflictAttemptToOverwriteDirectoryWithFile:
+      description: Conflict. Attempt to overwrite a directory with a file.
 
     Gone:
       description: |
@@ -1059,12 +1077,15 @@ components:
       properties:
         scheme:
           type: string
+          description: "Recommended values: 'http://www.opengis.net/def/crs/EPSG/0/4326' (degrees), 'http://www.opengis.net/def/crs/EPSG/0/28992' (RD)."
         x:
           type: string
           format: "number"
+          description: "In case of RD: range from -7000 to 300000. In case of degrees: latitude, range from -90 to 90."
         y:
           type: string
           format: "number"
+          description: "In case of RD: range from 289000 to 629000. In case of degrees: longitude, range from -180 to 180."
 
     # Note: it is not possible to provide examples in combination with a reference to this
     # schema. If you need examples, you'll have to spell out the complete type.

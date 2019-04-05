@@ -19,17 +19,18 @@ import java.io.IOException
 import java.nio.file.{ FileAlreadyExistsException, NoSuchFileException, Path, Paths }
 import java.util.UUID
 
+import javax.servlet.ServletInputStream
 import nl.knaw.dans.easy.deposit.docs.JsonUtil.{ InvalidDocumentException, toJson }
 import nl.knaw.dans.easy.deposit.docs.{ DatasetMetadata, StateInfo }
-import nl.knaw.dans.easy.deposit.servlets.DepositServlet.{ BadRequestException, InvalidResourceException, ZipMustBeOnlyFileException }
-import nl.knaw.dans.easy.deposit.{ EasyDepositApiApp, _ }
+import nl.knaw.dans.easy.deposit.servlets.DepositServlet._
+import nl.knaw.dans.easy.deposit._
 import nl.knaw.dans.lib.error._
 import nl.knaw.dans.lib.logging.servlet._
 import org.apache.commons.lang.NotImplementedException
 import org.scalatra._
 import org.scalatra.servlet.{ FileUploadSupport, MultipartConfig, SizeConstraintExceededException }
 import org.scalatra.util.RicherString._
-import resource.managed
+import resource.{ ManagedResource, managed }
 
 import scala.util.{ Failure, Success, Try }
 
@@ -98,7 +99,7 @@ class DepositServlet(app: EasyDepositApiApp)
     {
       for {
         uuid <- getUUID
-        managedIS <- getRequestBodyAsManagedInputStream
+        managedIS = getRequestBodyAsManagedInputStream
         datasetMetadata <- managedIS.apply(is => DatasetMetadata(is))
         _ <- app.checkDoi(user.id, uuid, datasetMetadata)
         _ <- app.writeDataMetadataToDeposit(datasetMetadata, user.id, uuid)
@@ -119,7 +120,7 @@ class DepositServlet(app: EasyDepositApiApp)
     {
       for {
         uuid <- getUUID
-        managedIS <- getRequestBodyAsManagedInputStream
+        managedIS = getRequestBodyAsManagedInputStream
         stateInfo <- managedIS.apply(is => StateInfo(is))
         _ <- app.setDepositState(stateInfo, user.id, uuid)
       } yield NoContent()
@@ -170,8 +171,8 @@ class DepositServlet(app: EasyDepositApiApp)
       for {
         uuid <- getUUID
         path <- getPath
-        managedIS <- getRequestBodyAsManagedInputStream
-        newFileWasCreated <- managedIS.apply(app.writeDepositFile(_, user.id, uuid, path))
+        managedIS = getRequestBodyAsManagedInputStream
+        newFileWasCreated <- managedIS.apply(app.writeDepositFile(_, user.id, uuid, path, Option(request.getContentType)))
       } yield if (newFileWasCreated)
                 Created(headers = Map("Location" -> request.uri.toASCIIString))
               else NoContent()
@@ -196,6 +197,7 @@ class DepositServlet(app: EasyDepositApiApp)
     case e: NoSuchFileException => NotFound(body = s"${ e.getMessage } not found", Map(contentTypePlainText))
     case e: InvalidResourceException => invalidResourceResponse(e)
     case e: InvalidDocumentException => badDocResponse(e)
+    case e: ConflictException => Conflict(e.getMessage, Map(contentTypePlainText))
     case e: ConcurrentUploadException => Conflict(e.getMessage, Map(contentTypePlainText))
     case e: FileAlreadyExistsException => Conflict("Conflict. The following file(s) already exist on the server: " + e.getMessage, Map(contentTypePlainText))
     case e: InvalidDoiException => BadRequest(e.getMessage, Map(contentTypePlainText))
@@ -241,7 +243,7 @@ class DepositServlet(app: EasyDepositApiApp)
     Failure(InvalidResourceException(s"Invalid path."))
   }
 
-  private def isMultipart = {
+  private def isMultipart: Try[Unit] = {
     val multiPart = "multipart/"
     request.getHeader("Content-Type").blankOption match {
       case Some(s) if s.toLowerCase.startsWith(multiPart) => Success(())
@@ -249,14 +251,13 @@ class DepositServlet(app: EasyDepositApiApp)
     }
   }
 
-  private def getRequestBodyAsManagedInputStream = {
-    Try { managed(request.getInputStream) }
-  }
+  private def getRequestBodyAsManagedInputStream: ManagedResource[ServletInputStream] = managed(request.getInputStream)
 }
 
 object DepositServlet {
 
   private case class InvalidResourceException(s: String) extends Exception(s)
   case class BadRequestException(s: String) extends Exception(s)
+  case class ConflictException(s: String) extends Exception(s)
   case class ZipMustBeOnlyFileException(s: String) extends Exception(s"A multipart/form-data message contained a ZIP [$s] part but also other parts.")
 }

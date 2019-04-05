@@ -160,6 +160,12 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
     )
   }
 
+  "minimal with missing scheme for a SpatialPoint" should behave like validDatasetMetadata(
+    input = Try(new MinimalDatasetMetadata(spatialPoints = Some(Seq(
+      SpatialPoint(None, Some("1"), Some("2"))
+    ))))
+  )
+
   "minimal with rightsHolders" should behave like {
     val someCreators = Some(Seq(
       Author(
@@ -215,7 +221,7 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
         <ddm:dcmiMetadata>
           <dcterms:identifier xsi:type="id-type:DOI">mocked-DOI</dcterms:identifier>
           <dcterms:dateSubmitted xsi:type="dcterms:W3CDTF">2018-03-22</dcterms:dateSubmitted>
-          <dc:date xsi:type="dcterms:W3CDTF">{ date }</dc:date>
+          <dcterms:date xsi:type="dcterms:W3CDTF">{ date }</dcterms:date>
           <dcterms:dateAccepted xsi:type="dcterms:W3CDTF">{ date }</dcterms:dateAccepted>
           <dcterms:dateCopyrighted xsi:type="dcterms:W3CDTF">{ date }</dcterms:dateCopyrighted>
           <dcterms:issued xsi:type="dcterms:W3CDTF">{ date }</dcterms:issued>
