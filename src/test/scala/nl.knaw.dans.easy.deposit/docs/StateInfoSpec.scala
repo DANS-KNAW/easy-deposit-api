@@ -15,7 +15,8 @@
  */
 package nl.knaw.dans.easy.deposit.docs
 
-import nl.knaw.dans.easy.deposit.{ IllegalDepositStateException, TestSupportFixture }
+import nl.knaw.dans.easy.deposit.Errors.IllegalDepositStateException
+import nl.knaw.dans.easy.deposit.TestSupportFixture
 
 import scala.util.{ Failure, Success }
 

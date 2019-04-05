@@ -20,6 +20,7 @@ import java.nio.file.{ FileAlreadyExistsException, Path }
 import better.files.File
 import nl.knaw.dans.bag.DansBag
 import nl.knaw.dans.bag.ImportOption.ATOMIC_MOVE
+import nl.knaw.dans.easy.deposit.Errors.OverwriteException
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 
 import scala.util.{ Failure, Success, Try }

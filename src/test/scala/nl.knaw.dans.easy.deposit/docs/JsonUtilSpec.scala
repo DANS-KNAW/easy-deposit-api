@@ -17,6 +17,7 @@ package nl.knaw.dans.easy.deposit.docs
 
 import java.nio.file.Paths
 
+import nl.knaw.dans.easy.deposit.Errors.InvalidDocumentException
 import nl.knaw.dans.easy.deposit.TestSupportFixture
 import nl.knaw.dans.easy.deposit.docs.JsonUtil._
 import org.json4s.JsonInput

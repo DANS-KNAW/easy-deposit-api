@@ -27,6 +27,7 @@ import better.files.File.VisitOptions
 import nl.knaw.dans.bag.ChecksumAlgorithm.ChecksumAlgorithm
 import nl.knaw.dans.bag.DansBag
 import nl.knaw.dans.bag.v0.DansV0Bag
+import nl.knaw.dans.easy.deposit.Errors.{ AlreadySubmittedException, InvalidDoiException }
 import nl.knaw.dans.easy.deposit.docs.{ AgreementsXml, DDM, FilesXml, StateInfo }
 import nl.knaw.dans.lib.error._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
@@ -77,7 +78,7 @@ class Submitter(stagingBaseDir: File,
       draftBag <- draftDeposit.getDataFiles.map(_.bag)
       datasetMetadata <- draftDeposit.getDatasetMetadata
       agreementsXml <- AgreementsXml(draftDeposit.user, DateTime.now, datasetMetadata)
-      _ = datasetMetadata.doi.getOrElse(throw new InvalidDoiException(draftDeposit.id))
+      _ = datasetMetadata.doi.getOrElse(throw InvalidDoiException(draftDeposit.id))
       _ <- draftDeposit.sameDOIs(datasetMetadata)
       datasetXml <- DDM(datasetMetadata)
       msg = datasetMetadata.messageForDataManager.getOrElse("")

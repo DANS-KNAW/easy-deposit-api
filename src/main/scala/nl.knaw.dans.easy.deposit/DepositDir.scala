@@ -21,8 +21,9 @@ import java.util.UUID
 
 import better.files._
 import nl.knaw.dans.bag.v0.DansV0Bag
+import nl.knaw.dans.easy.deposit.Errors._
 import nl.knaw.dans.easy.deposit.PidRequesterComponent.{ PidRequester, PidType }
-import nl.knaw.dans.easy.deposit.docs.JsonUtil.{ InvalidDocumentException, toJson }
+import nl.knaw.dans.easy.deposit.docs.JsonUtil.toJson
 import nl.knaw.dans.easy.deposit.docs.StateInfo.State
 import nl.knaw.dans.easy.deposit.docs.StateInfo.State.State
 import nl.knaw.dans.easy.deposit.docs.{ StateInfo, _ }
@@ -61,7 +62,7 @@ case class DepositDir private(baseDir: File, user: String, id: UUID) extends Deb
 
   /**
    * Sets changes the state of the deposit. If the state transition is not allow a `Failure` containing
-   * an [[IllegalStateTransitionException]] is returned.
+   * an [[nl.knaw.dans.easy.deposit.Errors.IllegalStateTransitionException]] is returned.
    *
    * @param stateInfo the new state
    * @return success of failure
@@ -197,7 +198,7 @@ case class DepositDir private(baseDir: File, user: String, id: UUID) extends Deb
     if (doi == dm.doi) Success(())
     else {
       logger.error(s"DOI in datasetmetadata.json [${ dm.doi }] does not equal DOI in deposit.properties [$doi]")
-      Failure(new InvalidDoiException(id))
+      Failure(InvalidDoiException(id))
     }
   }
 }

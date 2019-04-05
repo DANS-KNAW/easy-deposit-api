@@ -20,7 +20,8 @@ import java.nio.charset.StandardCharsets
 import java.util.zip.ZipInputStream
 
 import better.files.File
-import nl.knaw.dans.easy.deposit.{ MalformedZipException, TestSupportFixture }
+import nl.knaw.dans.easy.deposit.Errors.MalformedZipException
+import nl.knaw.dans.easy.deposit.TestSupportFixture
 import resource.managed
 
 import scala.util.{ Failure, Success }

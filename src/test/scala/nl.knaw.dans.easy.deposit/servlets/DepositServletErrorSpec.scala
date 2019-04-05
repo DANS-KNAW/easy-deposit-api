@@ -17,6 +17,7 @@ package nl.knaw.dans.easy.deposit.servlets
 
 import java.util.UUID
 
+import nl.knaw.dans.easy.deposit.Errors.CorruptDepositException
 import nl.knaw.dans.easy.deposit._
 import nl.knaw.dans.easy.deposit.authentication.AuthUser.UserState
 import nl.knaw.dans.easy.deposit.authentication.{ AuthUser, AuthenticationMocker, AuthenticationProvider }

@@ -23,6 +23,7 @@ import java.util.UUID
 
 import better.files.File.temporaryDirectory
 import better.files.{ Dispose, File }
+import nl.knaw.dans.easy.deposit.Errors.{ ConfigurationException, InvalidContentTypeException, OverwriteException, PendingUploadException }
 import nl.knaw.dans.easy.deposit.PidRequesterComponent.PidRequester
 import nl.knaw.dans.easy.deposit.authentication.LdapAuthentication
 import nl.knaw.dans.easy.deposit.docs.StateInfo.State
@@ -147,7 +148,7 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
    * - from [[nl.knaw.dans.easy.deposit.docs.StateInfo.State.draft]] to [[nl.knaw.dans.easy.deposit.docs.StateInfo.State.submitted]]
    * - from [[nl.knaw.dans.easy.deposit.docs.StateInfo.State.rejected]] to [[nl.knaw.dans.easy.deposit.docs.StateInfo.State.draft]]
    *
-   * Any attempt at another transition will result in an [[nl.knaw.dans.easy.deposit.IllegalStateTransitionException]].
+   * Any attempt at another transition will result in an [[nl.knaw.dans.easy.deposit.Errors.IllegalStateTransitionException]].
    *
    * When transitioning to [[nl.knaw.dans.easy.deposit.docs.StateInfo.State.submitted]] the following steps will be executed:
    *

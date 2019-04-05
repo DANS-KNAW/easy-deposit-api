@@ -15,8 +15,9 @@
  */
 package nl.knaw.dans.easy.deposit.docs
 
+import nl.knaw.dans.easy.deposit.Errors.InvalidDocumentException
 import nl.knaw.dans.easy.deposit.TestSupportFixture
-import nl.knaw.dans.easy.deposit.docs.JsonUtil.{ InvalidDocumentException, toJson }
+import nl.knaw.dans.easy.deposit.docs.JsonUtil.toJson
 import nl.knaw.dans.lib.error._
 import org.json4s.JsonAST._
 import org.json4s.native.JsonMethods

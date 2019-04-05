@@ -15,8 +15,8 @@
  */
 package nl.knaw.dans.easy.deposit.docs
 
+import nl.knaw.dans.easy.deposit.Errors.InvalidDocumentException
 import nl.knaw.dans.easy.deposit.docs.CollectionUtils._
-import nl.knaw.dans.easy.deposit.docs.JsonUtil.InvalidDocumentException
 import nl.knaw.dans.easy.deposit.docs.dm._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import nl.knaw.dans.lib.string._
@@ -72,7 +72,7 @@ object DDM extends SchemedXml with DebugEnhancedLogging {
       </ddm:dcmiMetadata>
     </ddm:DDM>
   }.recoverWith {
-    case e: IllegalArgumentException => Failure(new InvalidDocumentException("DatasetMetadata", e))
+    case e: IllegalArgumentException => Failure(InvalidDocumentException("DatasetMetadata", e))
   }
 
   private def details(point: SpatialPoint) = {

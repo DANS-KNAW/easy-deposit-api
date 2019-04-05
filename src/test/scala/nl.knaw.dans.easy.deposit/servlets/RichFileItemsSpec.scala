@@ -19,7 +19,8 @@ import java.io.ByteArrayInputStream
 import java.nio.charset.StandardCharsets
 
 import javax.servlet.http.Part
-import nl.knaw.dans.easy.deposit.{ TestSupportFixture, ZipMustBeOnlyFileException }
+import nl.knaw.dans.easy.deposit.Errors.ZipMustBeOnlyFileException
+import nl.knaw.dans.easy.deposit.TestSupportFixture
 import org.scalamock.scalatest.MockFactory
 import org.scalatra.servlet.FileItem
 

@@ -20,10 +20,10 @@ import java.nio.file.{ InvalidPathException, Path, Paths }
 import java.util.UUID
 
 import javax.servlet.ServletInputStream
+import nl.knaw.dans.easy.deposit.EasyDepositApiApp
+import nl.knaw.dans.easy.deposit.Errors._
 import nl.knaw.dans.easy.deposit.docs.JsonUtil.toJson
 import nl.knaw.dans.easy.deposit.docs.{ DatasetMetadata, StateInfo }
-import nl.knaw.dans.easy.deposit.servlets.DepositServlet.InvalidResourceException
-import nl.knaw.dans.easy.deposit.{ BadRequestException, ConflictException, EasyDepositApiApp, ForbiddenException, InvalidContentTypeException, NotFoundException }
 import nl.knaw.dans.lib.error._
 import nl.knaw.dans.lib.logging.servlet._
 import org.apache.commons.lang.NotImplementedException
@@ -227,9 +227,4 @@ class DepositServlet(app: EasyDepositApiApp)
   }
 
   private def getRequestBodyAsManagedInputStream: ManagedResource[ServletInputStream] = managed(request.getInputStream)
-}
-
-object DepositServlet {
-
-  private case class InvalidResourceException(s: String) extends NotFoundException(s)
 }
