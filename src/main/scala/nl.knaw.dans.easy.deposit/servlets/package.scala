@@ -36,8 +36,8 @@ import scala.util.{ Failure, Success, Try }
  * |                        on a valid session cookie
  * |___ AuthServlet         should not refresh session cookies
  * |___ ProtectedServlet    requires refreshed session cookies
- * |___ UserServlet
- * |___ DepositServlet
+ *     |___ UserServlet
+ *     |___ DepositServlet
  */
 package object servlets extends DebugEnhancedLogging {
 
