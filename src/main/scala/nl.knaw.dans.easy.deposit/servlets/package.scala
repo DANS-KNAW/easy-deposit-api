@@ -28,6 +28,7 @@ import resource.{ ManagedResource, managed }
 
 import scala.util.{ Failure, Success, Try }
 
+// @formatter:off
 /**
  * EasyDepositApiServlet    just I'm alive status, no authentication required
  * AbstractAuthServlet      supports basic authentication as wel as session cookies
@@ -39,6 +40,7 @@ import scala.util.{ Failure, Success, Try }
  *     |___ UserServlet
  *     |___ DepositServlet
  */
+// @formatter:on
 package object servlets extends DebugEnhancedLogging {
 
   val extensionZipPattern = ".+[.]g?z(ip)?"
