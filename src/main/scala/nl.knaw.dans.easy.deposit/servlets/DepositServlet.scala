@@ -34,7 +34,7 @@ import scala.util.{ Failure, Success, Try }
 class DepositServlet(app: EasyDepositApiApp)
   extends ProtectedServlet(app)
     with FileUploadSupport {
-  configureMultipartHandling(MultipartConfig())
+  configureMultipartHandling(app.multipartConfig)
   error {
     case e: SizeConstraintExceededException => RequestEntityTooLarge(s"too much! ${ e.getMessage }")
     case e: IOException => s"MultipartHandling Exception: $e"
