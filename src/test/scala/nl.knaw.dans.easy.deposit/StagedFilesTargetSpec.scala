@@ -83,7 +83,7 @@ class StagedFilesTargetSpec extends TestSupportFixture {
 
     StagedFilesTarget(bag, Paths.get("path/to"))
       .moveAllFrom(stagedDir) should matchPattern {
-      case Failure(e: OverwriteException) if e.getMessage == "The following file(s) already exist on the server: path/to/some.thing" =>
+      case Failure(OverwriteException("The following file(s) already exist on the server: path/to/some.thing")) =>
     }
 
     val newBag = readDraftBag
@@ -99,7 +99,7 @@ class StagedFilesTargetSpec extends TestSupportFixture {
 
     StagedFilesTarget(bag, Paths.get("path/to"))
       .moveAllFrom(stagedDir) should matchPattern {
-      case Failure(e: OverwriteException) if e.getMessage == "The following file(s) already exist on the server: path/to/some.thing" =>
+      case Failure(OverwriteException("The following file(s) already exist on the server: path/to/some.thing")) =>
     }
 
     val newBag = readDraftBag

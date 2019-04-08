@@ -33,15 +33,20 @@ object Errors extends DebugEnhancedLogging {
 
   case class ConfigurationException(msg: String) extends IllegalArgumentException(s"Configuration error: $msg")
 
+  abstract sealed class NotExpectedException(msg: String, cause: Throwable)
+    extends Exception(msg, cause)
+
   abstract sealed class ServletResponseException(status: Int, httpResponseBody: String)
     extends Exception(httpResponseBody) {
+    val internalServerError: Boolean = status == INTERNAL_SERVER_ERROR_500
+
     def getActionResult: ActionResult = ActionResult(status, httpResponseBody, Map(contentTypePlainText))
   }
 
   implicit class TriedActionResult(val t: Try[ActionResult]) extends AnyVal {
     def getOrRecoverWithActionResult: ActionResult = t.getOrRecover {
-      case e: ServletResponseException => e.getActionResult
-      case e =>
+      case e: ServletResponseException if !e.internalServerError => e.getActionResult
+      case e => // this also handles implicitly not expected exceptions
         logger.error(s"Not expected exception: ${ e.getMessage }", e)
         InternalServerError("Internal Server Error", Map(contentTypePlainText))
     }
@@ -54,7 +59,7 @@ object Errors extends DebugEnhancedLogging {
     extends ServletResponseException(NOT_FOUND_404, httpResponseBody)
 
   case class CorruptDepositException(user: String, id: String, cause: Throwable)
-    extends Exception(s"Invalid deposit uuid $id for user $user: ${ cause.getMessage }", cause)
+    extends NotExpectedException(s"Invalid deposit uuid $id for user $user: ${ cause.getMessage }", cause)
 
   case class IllegalStateTransitionException(oldState: State, newState: State)
     extends ServletResponseException(FORBIDDEN_403, s"Cannot transition from $oldState to $newState")
@@ -100,12 +105,9 @@ object Errors extends DebugEnhancedLogging {
     extends ServletResponseException(CONFLICT_409, "Another upload is pending. Please try again later.")
 
   case class InvalidContentTypeException(contentType: Option[String], requirement: String)
-    extends ServletResponseException(
-      BAD_REQUEST_400,
-      contentType match {
-        case None => s"Content-Type is a mandatory request header and $requirement"
-        case Some(s) => s"Content-Type $requirement Got: $s"
-      }
+    extends ServletResponseException(BAD_REQUEST_400, contentType
+      .map(s => s"Content-Type $requirement Got: $s")
+      .getOrElse(s"Content-Type is a mandatory request header and $requirement")
     )
 
   case class NoSuchDepositException(user: String, id: UUID, cause: Throwable)
