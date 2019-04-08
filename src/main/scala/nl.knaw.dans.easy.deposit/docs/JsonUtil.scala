@@ -18,6 +18,7 @@ package nl.knaw.dans.easy.deposit.docs
 import java.lang.reflect.InvocationTargetException
 import java.nio.file.{ Path, Paths }
 
+import nl.knaw.dans.easy.deposit.Errors.InvalidDocumentException
 import nl.knaw.dans.easy.deposit.docs.StateInfo.State
 import nl.knaw.dans.easy.deposit.docs.dm._
 import org.json4s.Extraction.decompose
@@ -32,10 +33,6 @@ import scala.reflect.runtime.universe.typeOf
 import scala.util.{ Failure, Success, Try }
 
 object JsonUtil {
-
-  case class InvalidDocumentException(document: String, t: Throwable = null)
-    extends Exception(if (t == null) s"invalid $document"
-                      else s"invalid $document: ${ t.getMessage }", t)
 
   class PathSerializer extends CustomSerializer[Path](_ =>
     ( {

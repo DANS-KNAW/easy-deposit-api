@@ -124,7 +124,7 @@ class UploadSpec extends DepositServletFixture {
       headers = Seq(fooBarBasicAuthHeader),
       files = bodyParts
     ) {
-      body shouldBe "A multipart/form-data message contained a ZIP [2.zip] part but also other parts."
+      body shouldBe "A multipart/form-data message contained a ZIP part [2.zip] but also other parts."
       status shouldBe BAD_REQUEST_400
       absoluteTarget.list.size shouldBe 0 // preceding plain file not added to draft bag
     }
@@ -144,7 +144,7 @@ class UploadSpec extends DepositServletFixture {
       headers = Seq(fooBarBasicAuthHeader),
       files = bodyParts
     ) {
-      body shouldBe "A multipart/form-data message contained a ZIP [1.zip] part but also other parts."
+      body shouldBe "A multipart/form-data message contained a ZIP part [1.zip] but also other parts."
       status shouldBe BAD_REQUEST_400
       absoluteTarget.list.size shouldBe 0
     }
@@ -204,7 +204,7 @@ class UploadSpec extends DepositServletFixture {
     }
   }
 
- it should "extract all files from a ZIP, with a nested zip" in {
+  it should "extract all files from a ZIP, with a nested zip" in {
     File("src/test/resources/manual-test/nested.zip").copyTo(testDir / "input" / "2.zip")
     val uuid = createDeposit
     val relativeTarget = "path/to/dir"
@@ -315,7 +315,7 @@ class UploadSpec extends DepositServletFixture {
     ) {
       absoluteTarget.list.size shouldBe 2
       status shouldBe CONFLICT_409
-      body shouldBe s"Conflict. The following file(s) already exist on the server: some/3.txt, some/2.txt"
+      body shouldBe s"The following file(s) already exist on the server: some/3.txt, some/2.txt"
     }
   }
 
@@ -329,7 +329,7 @@ class UploadSpec extends DepositServletFixture {
       body = "Lorem ipsum dolor sit amet"
     ) {
       status shouldBe BAD_REQUEST_400
-      body shouldBe """Must have a Content-Type starting with "multipart/", got None."""
+      body shouldBe """Content-Type is a mandatory request header and must start with "multipart/"."""
     }
   }
 
@@ -343,7 +343,7 @@ class UploadSpec extends DepositServletFixture {
       body = "Lorem ipsum dolor sit amet"
     ) {
       status shouldBe BAD_REQUEST_400
-      body shouldBe """Must have a Content-Type starting with "multipart/", got Some(text/plain)."""
+      body shouldBe """Content-Type must start with "multipart/". Got: text/plain"""
     }
   }
 

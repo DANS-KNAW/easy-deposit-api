@@ -17,6 +17,7 @@ package nl.knaw.dans.easy.deposit
 
 import java.nio.file.attribute.PosixFilePermission
 
+import nl.knaw.dans.easy.deposit.Errors.{ CorruptDepositException, IllegalStateTransitionException }
 import nl.knaw.dans.easy.deposit.PidRequesterComponent.PidType.PidType
 import nl.knaw.dans.easy.deposit.docs.StateInfo
 import nl.knaw.dans.easy.deposit.docs.StateInfo.State
@@ -132,7 +133,7 @@ class DepositDirSpec extends TestSupportFixture with MockFactory {
   it should "result in IllegalStateTransitionException when transitioning from DRAFT to ARCHIVED" in {
     val deposit = createDepositAsPreparation("user001")
     deposit.setStateInfo(StateInfo(State.archived, "Completed archival process")) should matchPattern {
-      case Failure(IllegalStateTransitionException("user001", _, State.draft, State.archived)) =>
+      case Failure(IllegalStateTransitionException(State.draft, State.archived)) =>
     }
   }
 
@@ -142,7 +143,7 @@ class DepositDirSpec extends TestSupportFixture with MockFactory {
     val old = propsFile.contentAsString
     propsFile.write(old.replaceFirst("DRAFT", "REJECTED"))
     deposit.setStateInfo(StateInfo(State.archived, "Completed archival process")) should matchPattern {
-      case Failure(IllegalStateTransitionException("user001", _, State.`rejected`, State.archived)) =>
+      case Failure(IllegalStateTransitionException(State.`rejected`, State.archived)) =>
     }
   }
 

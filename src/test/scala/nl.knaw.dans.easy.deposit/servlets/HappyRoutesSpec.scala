@@ -170,7 +170,7 @@ class HappyRoutesSpec extends TestSupportFixture with ServletFixture with Scalat
       headers = Seq(fooBarBasicAuthHeader)
     ) {
       status shouldBe BAD_REQUEST_400
-      body shouldBe """Bad Request. invalid DatasetMetadata: don't recognize {"title":"blabla"}"""
+      body shouldBe """invalid DatasetMetadata: don't recognize {"title":"blabla"}"""
     }
   }
 }

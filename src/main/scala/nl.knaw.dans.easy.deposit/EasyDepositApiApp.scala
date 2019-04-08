@@ -23,11 +23,11 @@ import java.util.UUID
 
 import better.files.File.temporaryDirectory
 import better.files.{ Dispose, File }
+import nl.knaw.dans.easy.deposit.Errors.{ ConfigurationException, InvalidContentTypeException, OverwriteException, PendingUploadException }
 import nl.knaw.dans.easy.deposit.PidRequesterComponent.PidRequester
 import nl.knaw.dans.easy.deposit.authentication.LdapAuthentication
 import nl.knaw.dans.easy.deposit.docs.StateInfo.State
 import nl.knaw.dans.easy.deposit.docs.{ DatasetMetadata, DepositInfo, StateInfo }
-import nl.knaw.dans.easy.deposit.servlets.DepositServlet.{ BadRequestException, ConflictException }
 import nl.knaw.dans.easy.deposit.servlets.contentTypeZipPattern
 import nl.knaw.dans.lib.error._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
@@ -148,7 +148,7 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
    * - from [[nl.knaw.dans.easy.deposit.docs.StateInfo.State.draft]] to [[nl.knaw.dans.easy.deposit.docs.StateInfo.State.submitted]]
    * - from [[nl.knaw.dans.easy.deposit.docs.StateInfo.State.rejected]] to [[nl.knaw.dans.easy.deposit.docs.StateInfo.State.draft]]
    *
-   * Any attempt at another transition will result in an [[nl.knaw.dans.easy.deposit.IllegalStateTransitionException]].
+   * Any attempt at another transition will result in an [[nl.knaw.dans.easy.deposit.Errors.IllegalStateTransitionException]].
    *
    * When transitioning to [[nl.knaw.dans.easy.deposit.docs.StateInfo.State.submitted]] the following steps will be executed:
    *
@@ -287,16 +287,16 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
     } yield created
   }
 
-  private def pathNotADirectory(path: Path, dataFiles: DataFiles): Try[Unit]  = {
+  private def pathNotADirectory(path: Path, dataFiles: DataFiles): Try[Unit] = {
     if ((dataFiles.bag / "data" / path.toString).isDirectory)
-      Failure(ConflictException("Attempt to overwrite a directory with a file."))
+      Failure(OverwriteException("Attempt to overwrite a directory with a file."))
     else Success(())
   }
 
   private def contentTypeAnythingButZip(contentType: Option[String]): Try[Unit] = {
     if (contentType.exists(str => str.trim.nonEmpty && !str.trim.matches(contentTypeZipPattern)))
       Success(())
-    else Failure(BadRequestException("Content-Type must not be application/zip."))
+    else Failure(InvalidContentTypeException(contentType, "must not be a zip."))
   }
 
   def stageFiles(userId: String, id: UUID, destination: Path): Try[(Dispose[File], StagedFilesTarget)] = {
@@ -317,7 +317,7 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
   // prevents concurrent uploads, requires explicit cleanup of interrupted uploads
   private def atMostOneTempDir(prefix: String): Try[Unit] = {
     if (uploadStagingDir.list.count(_.name.startsWith(prefix)) > 1)
-      Failure(ConcurrentUploadException(prefix))
+      Failure(PendingUploadException())
     else Success(())
   }
 

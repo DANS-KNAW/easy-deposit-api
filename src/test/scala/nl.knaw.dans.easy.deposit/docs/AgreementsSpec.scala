@@ -16,8 +16,8 @@
 package nl.knaw.dans.easy.deposit.docs
 
 import javax.xml.validation.Schema
+import nl.knaw.dans.easy.deposit.Errors.InvalidDocumentException
 import nl.knaw.dans.easy.deposit.TestSupportFixture
-import nl.knaw.dans.easy.deposit.docs.JsonUtil.InvalidDocumentException
 import nl.knaw.dans.easy.deposit.docs.dm.PrivacySensitiveDataPresent
 import org.joda.time.DateTime
 import org.xml.sax.SAXParseException
@@ -35,7 +35,7 @@ class AgreementsSpec extends TestSupportFixture {
         privacySensitiveDataPresent = PrivacySensitiveDataPresent.no
       )
     ) should matchPattern {
-      case Failure(InvalidDocumentException(_, e)) if e.getMessage == "Please set AcceptDepositAgreement" =>
+      case Failure(e: InvalidDocumentException) if e.getMessage == "invalid DatasetMetadata: Please set AcceptDepositAgreement" =>
     }
   }
   it should "complain about not specifying the presence of privacy sensitive data" in {
@@ -47,7 +47,7 @@ class AgreementsSpec extends TestSupportFixture {
         privacySensitiveDataPresent = PrivacySensitiveDataPresent.unspecified
       )
     ) should matchPattern {
-      case Failure(InvalidDocumentException(_, e)) if e.getMessage == "Please set PrivacySensitiveDataPresent" =>
+      case Failure(e: InvalidDocumentException) if e.getMessage == "invalid DatasetMetadata: Please set PrivacySensitiveDataPresent" =>
     }
   }
 

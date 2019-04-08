@@ -16,10 +16,11 @@
 package nl.knaw.dans.easy.deposit
 
 import java.net.{ URL, UnknownHostException }
-import java.nio.file.{ FileAlreadyExistsException, Paths }
+import java.nio.file.Paths
 
 import better.files.StringOps
 import nl.knaw.dans.bag.v0.DansV0Bag
+import nl.knaw.dans.easy.deposit.Errors.OverwriteException
 import nl.knaw.dans.lib.error._
 
 import scala.util.{ Failure, Success }
@@ -82,7 +83,7 @@ class StagedFilesTargetSpec extends TestSupportFixture {
 
     StagedFilesTarget(bag, Paths.get("path/to"))
       .moveAllFrom(stagedDir) should matchPattern {
-      case Failure(e: FileAlreadyExistsException) if e.getMessage == "path/to/some.thing" =>
+      case Failure(OverwriteException("The following file(s) already exist on the server: path/to/some.thing")) =>
     }
 
     val newBag = readDraftBag
@@ -98,7 +99,7 @@ class StagedFilesTargetSpec extends TestSupportFixture {
 
     StagedFilesTarget(bag, Paths.get("path/to"))
       .moveAllFrom(stagedDir) should matchPattern {
-      case Failure(e: FileAlreadyExistsException) if e.getMessage == "path/to/some.thing" =>
+      case Failure(OverwriteException("The following file(s) already exist on the server: path/to/some.thing")) =>
     }
 
     val newBag = readDraftBag

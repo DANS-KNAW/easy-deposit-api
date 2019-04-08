@@ -115,7 +115,7 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
       headers = Seq(fooBarBasicAuthHeader),
       body = "Lorum ipsum"
     ) {
-      body shouldBe "Content-Type must not be application/zip."
+      body shouldBe "Content-Type is a mandatory request header and must not be a zip."
       status shouldBe BAD_REQUEST_400
     }
 
@@ -206,6 +206,20 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
   "scenario: create - ... - sumbit" should "create submitted dataset copied from a draft" in {
     val uuid: String = setupSubmittedDeposit
 
+    // resubmit fails
+    val props = testDir / s"drafts/foo/$uuid/deposit.properties"
+    props.write(props.contentAsString.replace("SUBMITTED", "DRAFT"))
+    authMocker.expectsUserFooBar
+    put(
+      uri = s"/deposit/$uuid/state",
+      headers = Seq(fooBarBasicAuthHeader),
+      body = """{"state":"SUBMITTED","stateDescription":"blabla"}"""
+    ) {
+      status shouldBe CONFLICT_409
+      body shouldBe s"The deposit (UUID $uuid) already exists in the submit area. Possibly due to a resubmit."
+    }
+    props.write(props.contentAsString.replace("DRAFT", "SUBMITTED"))
+
     // failing delete
     authMocker.expectsUserFooBar
     delete(uri = s"/deposit/$uuid", headers = Seq(fooBarBasicAuthHeader)) {
@@ -294,7 +308,7 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
       body = """{"state":"SUBMITTED","stateDescription":"blabla"}"""
     ) {
       status shouldBe FORBIDDEN_403
-      body shouldBe s"Cannot transition from ARCHIVED to SUBMITTED (deposit id: $uuid, user: foo)"
+      body shouldBe s"Cannot transition from ARCHIVED to SUBMITTED"
     }
 
     // submit did not complain about missing metadata, so the state transition check indeed came first

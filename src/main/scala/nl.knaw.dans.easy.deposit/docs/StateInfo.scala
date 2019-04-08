@@ -15,6 +15,7 @@
  */
 package nl.knaw.dans.easy.deposit.docs
 
+import nl.knaw.dans.easy.deposit.Errors.IllegalDepositStateException
 import nl.knaw.dans.easy.deposit.docs.JsonUtil.RichJsonInput
 import nl.knaw.dans.easy.deposit.docs.StateInfo.State.State
 import org.json4s.JsonInput
@@ -29,7 +30,7 @@ case class StateInfo(state: State, stateDescription: String) {
 
   private def can(action: String, states: Seq[State]): Try[Unit] = {
     if (states.contains(state)) Success(())
-    else Failure(new IllegalStateException(s"Deposit has state $state, can only $action deposits with one of the states: ${ states.mkString(", ") }"))
+    else Failure(IllegalDepositStateException(action, state, states))
   }
 }
 

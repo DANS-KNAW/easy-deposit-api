@@ -16,11 +16,12 @@
 package nl.knaw.dans.easy.deposit
 
 import java.io.InputStream
-import java.nio.file.{ NoSuchFileException, Path, Paths }
+import java.nio.file.{ Path, Paths }
 
 import better.files._
 import nl.knaw.dans.bag.ChecksumAlgorithm.SHA1
 import nl.knaw.dans.bag.DansBag
+import nl.knaw.dans.easy.deposit.Errors.NoSuchFileInDepositException
 import nl.knaw.dans.easy.deposit.docs.FileInfo
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 
@@ -93,7 +94,7 @@ case class DataFiles(bag: DansBag) extends DebugEnhancedLogging {
       Success(FileInfo(path.getFileName.toString, bag.data.relativize(absolutePath.parent), checksum))
     }
     else {
-      Failure(new NoSuchFileException(s"${ path.toString }"))
+      Failure(NoSuchFileInDepositException(absolutePath, path))
     }
   }
 
@@ -122,7 +123,7 @@ case class DataFiles(bag: DansBag) extends DebugEnhancedLogging {
    */
   def delete(path: Path): Try[Unit] = {
     val file = bag.data / path.toString
-    if (!file.exists) Failure(new NoSuchFileException(path.toString))
+    if (!file.exists) Failure(NoSuchFileInDepositException(file, path))
     else (if (file.isDirectory) removeDir(file.walk().toStream)
           else bag.removePayloadFile(path)
       ).flatMap(_.save)

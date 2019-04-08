@@ -17,6 +17,7 @@ package nl.knaw.dans.easy.deposit.docs
 
 import java.nio.file.Paths
 
+import nl.knaw.dans.easy.deposit.Errors.InvalidDocumentException
 import nl.knaw.dans.easy.deposit.TestSupportFixture
 import nl.knaw.dans.easy.deposit.docs.JsonUtil._
 import org.json4s.JsonInput
@@ -58,8 +59,8 @@ class JsonUtilSpec extends TestSupportFixture {
 
   "deserialize" should "reject additional json info" in {
     deserializeAllOptions("""{"x":"foo bar","extra":[1]}""") should matchPattern {
-      case Failure(InvalidDocumentException("AllOptions", e))
-        if e.getMessage == """don't recognize {"extra":[1]}""" =>
+      case Failure(e: InvalidDocumentException)
+        if e.getMessage == """invalid AllOptions: don't recognize {"extra":[1]}""" =>
     }
   }
 
@@ -75,15 +76,15 @@ class JsonUtilSpec extends TestSupportFixture {
 
   it should "reject an empty array" in {
     deserializeAllOptions("[]") should matchPattern {
-      case Failure(InvalidDocumentException("AllOptions", e))
-        if e.getMessage == "expected an object, got a class org.json4s.JsonAST$JArray" =>
+      case Failure(e: InvalidDocumentException)
+        if e.getMessage == "invalid AllOptions: expected an object, got a class org.json4s.JsonAST$JArray" =>
     }
   }
 
   it should "reject a literal number" in {
     deserializeAllOptions("123") should matchPattern {
-      case Failure(InvalidDocumentException("AllOptions", e)) if e.getMessage ==
-        """expected field or array
+      case Failure(e: InvalidDocumentException) if e.getMessage ==
+        """invalid AllOptions: expected field or array
           |Near: 12""".stripMargin =>
     }
   }
@@ -95,15 +96,15 @@ class JsonUtilSpec extends TestSupportFixture {
 
   it should "reject empty input" in {
     deserializeAllOptions(" ") should matchPattern {
-      case Failure(InvalidDocumentException("AllOptions", e))
-        if e.getMessage == "expected an object, got a class org.json4s.JsonAST$JNothing$" =>
+      case Failure(e: InvalidDocumentException)
+        if e.getMessage == "invalid AllOptions: expected an object, got a class org.json4s.JsonAST$JNothing$" =>
     }
   }
 
   it should "reject empty objects when mandatory fields are expected" in {
     deserializeNoOptions("{}{}") should matchPattern {
-      case Failure(InvalidDocumentException("NoOptions", e)) if e.getMessage ==
-        """No usable value for x
+      case Failure(e: InvalidDocumentException) if e.getMessage ==
+        """invalid NoOptions: No usable value for x
           |Did not find value which can be converted into java.lang.String""".stripMargin =>
     }
   }

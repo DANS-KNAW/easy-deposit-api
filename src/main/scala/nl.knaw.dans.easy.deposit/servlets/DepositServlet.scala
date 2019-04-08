@@ -16,21 +16,18 @@
 package nl.knaw.dans.easy.deposit.servlets
 
 import java.io.IOException
-import java.nio.file.{ FileAlreadyExistsException, NoSuchFileException, Path, Paths }
+import java.nio.file.{ InvalidPathException, Path, Paths }
 import java.util.UUID
 
-import javax.servlet.ServletInputStream
-import nl.knaw.dans.easy.deposit.docs.JsonUtil.{ InvalidDocumentException, toJson }
+import nl.knaw.dans.easy.deposit.EasyDepositApiApp
+import nl.knaw.dans.easy.deposit.Errors._
+import nl.knaw.dans.easy.deposit.docs.JsonUtil.toJson
 import nl.knaw.dans.easy.deposit.docs.{ DatasetMetadata, StateInfo }
-import nl.knaw.dans.easy.deposit.servlets.DepositServlet._
-import nl.knaw.dans.easy.deposit._
-import nl.knaw.dans.lib.error._
 import nl.knaw.dans.lib.logging.servlet._
-import org.apache.commons.lang.NotImplementedException
 import org.scalatra._
 import org.scalatra.servlet.{ FileUploadSupport, MultipartConfig, SizeConstraintExceededException }
 import org.scalatra.util.RicherString._
-import resource.{ ManagedResource, managed }
+import resource.managed
 
 import scala.util.{ Failure, Success, Try }
 
@@ -64,8 +61,7 @@ class DepositServlet(app: EasyDepositApiApp)
         userId <- getUserId
         deposits <- app.getDeposits(userId)
       } yield Ok(body = toJson(deposits), headers = Map(contentTypeJson))
-    }.getOrRecover(respond)
-      .logResponse
+    }.getOrRecoverWithActionResult.logResponse
   }
   post("/") {
     {
@@ -74,8 +70,7 @@ class DepositServlet(app: EasyDepositApiApp)
         depositInfo <- app.createDeposit(userId)
         locationHeader = "Location" -> s"${ request.getRequestURL }/${ depositInfo.id }"
       } yield Created(body = toJson(depositInfo), headers = Map(contentTypeJson, locationHeader))
-    }.getOrRecover(respond)
-      .logResponse
+    }.getOrRecoverWithActionResult.logResponse
   }
   get("/:uuid/metadata") {
     {
@@ -83,8 +78,7 @@ class DepositServlet(app: EasyDepositApiApp)
         uuid <- getUUID
         dmd <- app.getDatasetMetadataForDeposit(user.id, uuid)
       } yield Ok(body = toJson(dmd), headers = Map(contentTypeJson))
-    }.getOrRecover(respond)
-      .logResponse
+    }.getOrRecoverWithActionResult.logResponse
   }
   get("/:uuid/doi") {
     {
@@ -92,20 +86,18 @@ class DepositServlet(app: EasyDepositApiApp)
         uuid <- getUUID
         doi <- app.getDoi(user.id, uuid)
       } yield Ok(body = s"""{"doi":"$doi"}""", headers = Map(contentTypeJson))
-    }.getOrRecover(respond)
-      .logResponse
+    }.getOrRecoverWithActionResult.logResponse
   }
   put("/:uuid/metadata") {
     {
       for {
         uuid <- getUUID
-        managedIS = getRequestBodyAsManagedInputStream
+        managedIS = managed(request.getInputStream)
         datasetMetadata <- managedIS.apply(is => DatasetMetadata(is))
         _ <- app.checkDoi(user.id, uuid, datasetMetadata)
         _ <- app.writeDataMetadataToDeposit(datasetMetadata, user.id, uuid)
       } yield NoContent()
-    }.getOrRecover(respond)
-      .logResponse
+    }.getOrRecoverWithActionResult.logResponse
   }
   get("/:uuid/state") {
     {
@@ -113,19 +105,17 @@ class DepositServlet(app: EasyDepositApiApp)
         uuid <- getUUID
         depositState <- app.getDepositState(user.id, uuid)
       } yield Ok(body = toJson(depositState), headers = Map(contentTypeJson))
-    }.getOrRecover(respond)
-      .logResponse
+    }.getOrRecoverWithActionResult.logResponse
   }
   put("/:uuid/state") {
     {
       for {
         uuid <- getUUID
-        managedIS = getRequestBodyAsManagedInputStream
+        managedIS = managed(request.getInputStream)
         stateInfo <- managedIS.apply(is => StateInfo(is))
         _ <- app.setDepositState(stateInfo, user.id, uuid)
       } yield NoContent()
-    }.getOrRecover(respond)
-      .logResponse
+    }.getOrRecoverWithActionResult.logResponse
   }
   delete("/:uuid") {
     {
@@ -133,8 +123,7 @@ class DepositServlet(app: EasyDepositApiApp)
         uuid <- getUUID
         _ <- app.deleteDeposit(user.id, uuid)
       } yield NoContent()
-    }.getOrRecover(respond)
-      .logResponse
+    }.getOrRecoverWithActionResult.logResponse
   }
   get("/:uuid/file/*") { //dir and file
     {
@@ -143,8 +132,7 @@ class DepositServlet(app: EasyDepositApiApp)
         path <- getPath
         contents <- app.getFileInfo(user.id, uuid, path)
       } yield Ok(body = toJson(contents), headers = Map(contentTypeJson))
-    }.getOrRecover(respond)
-      .logResponse
+    }.getOrRecoverWithActionResult.logResponse
   }
   post("/:uuid/file/*") { //file(s)
     {
@@ -162,8 +150,7 @@ class DepositServlet(app: EasyDepositApiApp)
             .flatMap(_ => stagedFilesTarget.moveAllFrom(stagingDir))
         )
       } yield Created()
-    }.getOrRecover(respond)
-      .logResponse
+    }.getOrRecoverWithActionResult.logResponse
   }
 
   put("/:uuid/file/*") { //file
@@ -171,13 +158,12 @@ class DepositServlet(app: EasyDepositApiApp)
       for {
         uuid <- getUUID
         path <- getPath
-        managedIS = getRequestBodyAsManagedInputStream
+        managedIS = managed(request.getInputStream)
         newFileWasCreated <- managedIS.apply(app.writeDepositFile(_, user.id, uuid, path, Option(request.getContentType)))
       } yield if (newFileWasCreated)
                 Created(headers = Map("Location" -> request.uri.toASCIIString))
               else NoContent()
-    }.getOrRecover(respond)
-      .logResponse
+    }.getOrRecoverWithActionResult.logResponse
   }
   delete("/:uuid/file/*") { //dir and file
     {
@@ -186,41 +172,7 @@ class DepositServlet(app: EasyDepositApiApp)
         path <- getPath
         _ <- app.deleteDepositFile(user.id, uuid, path)
       } yield NoContent()
-    }.getOrRecover(respond)
-      .logResponse
-  }
-
-  private def respond(t: Throwable): ActionResult = t match {
-    case e: IllegalStateTransitionException => Forbidden(e.getMessage, Map(contentTypePlainText))
-    case e: IllegalStateException => Forbidden(e.getMessage, Map(contentTypePlainText))
-    case e: NoSuchDepositException => noSuchDepositResponse(e)
-    case e: NoSuchFileException => NotFound(body = s"${ e.getMessage } not found", Map(contentTypePlainText))
-    case e: InvalidResourceException => invalidResourceResponse(e)
-    case e: InvalidDocumentException => badDocResponse(e)
-    case e: ConflictException => Conflict(e.getMessage, Map(contentTypePlainText))
-    case e: ConcurrentUploadException => Conflict(e.getMessage, Map(contentTypePlainText))
-    case e: FileAlreadyExistsException => Conflict("Conflict. The following file(s) already exist on the server: " + e.getMessage, Map(contentTypePlainText))
-    case e: InvalidDoiException => BadRequest(e.getMessage, Map(contentTypePlainText))
-    case e: BadRequestException => BadRequest(e.getMessage, Map(contentTypePlainText))
-    case e: ZipMustBeOnlyFileException => BadRequest(e.getMessage, Map(contentTypePlainText))
-    case e: NotImplementedException => NotImplemented(e.getMessage, Map(contentTypePlainText))
-    case _ => notExpectedExceptionResponse(t)
-  }
-
-  private def noSuchDepositResponse(e: NoSuchDepositException): ActionResult = {
-    // returning the message to the client might reveal absolute paths on the server
-    logWhatIsHiddenForGetOrRecoverResponse(s"${ user.id } ${ request.uri } $e")
-    NotFound(body = s"Deposit ${ e.id } not found", Map(contentTypePlainText))
-  }
-
-  private def invalidResourceResponse(t: InvalidResourceException): ActionResult = {
-    // returning the message to the client might reveal absolute paths on the server
-    logWhatIsHiddenForGetOrRecoverResponse(t.getMessage)
-    NotFound()
-  }
-
-  private def logWhatIsHiddenForGetOrRecoverResponse(message: String): Unit = {
-    logger.info(s"user[$getUserId] ${ request.getMethod } ${ request.getRequestURL } : ${ message }")
+    }.getOrRecoverWithActionResult.logResponse
   }
 
   private def getUserId: Try[String] = {
@@ -238,26 +190,15 @@ class DepositServlet(app: EasyDepositApiApp)
 
   private def getPath: Try[Path] = Try {
     Paths.get(multiParams("splat").find(!_.trim.isEmpty).getOrElse(""))
-  }.recoverWith { case t: Throwable =>
-    logWhatIsHiddenForGetOrRecoverResponse(s"bad path:$t")
-    Failure(InvalidResourceException(s"Invalid path."))
+  }.recoverWith { // invalid characters, or other file system specific reasons.
+    case t: InvalidPathException => Failure(InvalidResourceException(s"Invalid path: ${ t.getMessage }"))
   }
 
   private def isMultipart: Try[Unit] = {
     val multiPart = "multipart/"
     request.getHeader("Content-Type").blankOption match {
       case Some(s) if s.toLowerCase.startsWith(multiPart) => Success(())
-      case x => Failure(BadRequestException(s"""Must have a Content-Type starting with "$multiPart", got $x."""))
+      case x => Failure(InvalidContentTypeException(x, s"""must start with "$multiPart"."""))
     }
   }
-
-  private def getRequestBodyAsManagedInputStream: ManagedResource[ServletInputStream] = managed(request.getInputStream)
-}
-
-object DepositServlet {
-
-  private case class InvalidResourceException(s: String) extends Exception(s)
-  case class BadRequestException(s: String) extends Exception(s)
-  case class ConflictException(s: String) extends Exception(s)
-  case class ZipMustBeOnlyFileException(s: String) extends Exception(s"A multipart/form-data message contained a ZIP [$s] part but also other parts.")
 }

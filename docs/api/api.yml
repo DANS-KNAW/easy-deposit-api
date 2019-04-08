@@ -329,6 +329,8 @@ paths:
           $ref: "#/components/responses/ForbiddenUpdate"
         404:
           $ref: "#/components/responses/NotFound"
+        409:
+          $ref: "#/components/responses/AlreadySubmitted"
         500:
           $ref: "#/components/responses/InternalServerError"
       security:
@@ -643,6 +645,10 @@ components:
     ForbiddenStateTransition:
       description: |
         Forbidden. Illegal state transition. (Only allowed to transition from DRAFT to SUBMITTED and from REJECTED to DRAFT.)
+
+    AlreadySubmitted:
+      description: |
+        Conflict. The deposit already exists in the submit area. Possibly due to a resubmit.
 
     NotFound:
       description: Not found. The body specifies if the deposit or something in the deposit is not found.
