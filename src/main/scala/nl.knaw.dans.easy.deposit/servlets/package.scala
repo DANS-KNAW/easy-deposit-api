@@ -15,6 +15,7 @@
  */
 package nl.knaw.dans.easy.deposit
 
+import java.io.EOFException
 import java.nio.charset.Charset
 import java.nio.file.Files
 import java.util.zip.{ ZipEntry, ZipException, ZipInputStream }
@@ -82,6 +83,7 @@ package object servlets extends DebugEnhancedLogging {
             .failFastOr(Success(()))
         } yield ()
         case Success(None) => Failure(MalformedZipException(s"No entries found."))
+        case Failure(_: EOFException) => Failure(MalformedZipException(s"No entries found."))
         case Failure(e) => Failure(e)
       }
     }
