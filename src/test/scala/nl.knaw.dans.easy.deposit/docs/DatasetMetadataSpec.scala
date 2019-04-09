@@ -38,6 +38,26 @@ class DatasetMetadataSpec extends TestSupportFixture {
     }
   }
 
+  private val creatorsPlaceHolder =
+    """"creators": \[
+      |    \{
+      |      "titles": "Prof Dr",
+      |      "initials": "A",
+      |      "surname": "Einstein",
+      |      "ids": \[
+      |        \{
+      |          "scheme": "DAI",
+      |          "value": "93313935x"
+      |        \},
+      |        \{
+      |          "scheme": "ISNI",
+      |          "value": "ISNI:000000012281955X"
+      |        \}
+      |      \],
+      |      "organization": "University of Zurich"
+      |    \}
+      |  \]""".stripMargin
+
   "deserialization/serialisation" should "produce the same json object structure" in {
     roundTripTest("datasetmetadata.json")
   }
@@ -212,35 +232,18 @@ class DatasetMetadataSpec extends TestSupportFixture {
   }
 
   "DatasetMetadata.Creators" should "only report the part of the contributors that are wrong" in {
-    val placeHolder =
-      """"creators": \[
-        |    \{
-        |      "titles": "Prof Dr",
-        |      "initials": "A",
-        |      "surname": "Einstein",
-        |      "ids": \[
-        |        \{
-        |          "scheme": "DAI",
-        |          "value": "93313935x"
-        |        \},
-        |        \{
-        |          "scheme": "ISNI",
-        |          "value": "ISNI:000000012281955X"
-        |        \}
-        |      \],
-        |      "organization": "University of Zurich"
-        |    \}
-        |  \]""".stripMargin
+
     val creatorValid = """{"titles": "Msc", "initials": "H.A.M.", "surname": "Boter", "ids": [ { "scheme": "DAI", "value":  "93313935x"}, {"scheme": "BSN", "value": "1234"} ], "organization" :"DANS"}"""
     val creatorInvalidIdElement = """{"titles": "Msc", "initials": "B.A.M.", "surname": "Hoter", "ids": [ { "scheme": "DAI", "value":  "93313935Z"}, {"scheme": "BSN", "value": "1235", "organization": "overheid"} ], "organization" :"DANS"}"""
     val creatorInvalidElementAtRootLevel = """{"titles": "Aartshertog", "FirstName": "jan-willem-hendrik", "surname": "Oranje", "ids": [ { "scheme": "DAI", "value":  "93313935y"}, {"scheme": "BSN", "value": "9999"} ], "organization" :"DANS"}"""
-    val creatorInvalidRole = """{"titles": "Dr", "initials": "S.", "surname": "Pieterzoon", "ids": [ { "scheme": "DAI", "value":  "93313935i"} ], "organization" :"DANS", "roles": [ { "scheme": "datacite:contributorType", "key": "ContactPerson", "waarde": "invalid"} ] }"""
+    //TODO moet hij hier niet struikelen over het veld role[0].waarde?
+    val creatorInvalidRole = """{"titles": "Dr", "initials": "S.", "surname": "Pieterzoon", "ids": [ { "scheme": "DAI", "value":  "93313935i"} ], "organization" :"DANS", "role": [ { "scheme": "datacite:contributorType", "key": "ContactPerson", "waarde": "invalid"} ] }"""
 
     val replaceWith = s""""creators": [$creatorValid, $creatorInvalidIdElement, $creatorInvalidElementAtRootLevel, $creatorInvalidRole]"""
-    val alteredData = createCorruptMetadataJsonString(placeHolder, replaceWith)
+    val alteredData = createCorruptMetadataJsonString(creatorsPlaceHolder, replaceWith)
 
     DatasetMetadata(alteredData) should matchPattern {
-      case Failure(ide: InvalidDocumentException) if ide.getMessage == "invalid DatasetMetadata: don't recognize {\"creators\":[{\"ids\":{\"organization\":\"overheid\"}},{\"FirstName\":\"jan-willem-hendrik\"},{\"roles\":[{\"scheme\":\"datacite:contributorType\",\"key\":\"ContactPerson\",\"waarde\":\"invalid\"}]}]}" =>
+      case Failure(ide: InvalidDocumentException) if ide.getMessage == "invalid DatasetMetadata: don't recognize {\"creators\":[{\"ids\":{\"organization\":\"overheid\"}},{\"FirstName\":\"jan-willem-hendrik\"}]}" =>
     }
   }
 
