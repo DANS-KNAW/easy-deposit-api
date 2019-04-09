@@ -39,8 +39,10 @@ class DepositServlet(app: EasyDepositApiApp)
   configureMultipartHandling(app.multipartConfig.copy(location = app.multipartConfig.location
       .filter(_.trim.nonEmpty)
       .map { s =>
-        val absolutePath = File(s).path.toAbsolutePath
-        if (!File(s).isDirectory) throw ConfigurationException(s"$absolutePath not found or not a directory")
+        val dir = File(s)
+        val absolutePath = dir.path.toAbsolutePath
+        if (!dir.isDirectory && !dir.isReadable && !dir.isWriteable)
+          throw ConfigurationException(s"$absolutePath not found/readable/writable or not a directory")
         absolutePath.toString
       }
   ))

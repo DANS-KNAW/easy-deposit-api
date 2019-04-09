@@ -45,7 +45,7 @@ class DepositServletErrorSpec extends TestSupportFixture with ServletFixture wit
     val props = minimalAppConfig.properties.clone().asInstanceOf[PropertiesConfiguration]
     props.addProperty("multipart.location", "notExistingLocation")
     the[ConfigurationException] thrownBy new DepositServlet(new EasyDepositApiApp(new Configuration("", props))) should
-      have message s"Configuration error: ${ File("notExistingLocation").path.toAbsolutePath } not found or not a directory"
+      have message s"Configuration error: ${ File("notExistingLocation").path.toAbsolutePath } not found/readable/writable or not a directory"
   }
 
   it should "fail with empty threshold value" in {
@@ -57,8 +57,8 @@ class DepositServletErrorSpec extends TestSupportFixture with ServletFixture wit
 
   it should "succeed without threshold property" in {
     val props = minimalAppConfig.properties
-    Option(props.getProperty("multipart.file-size-threshold")) shouldBe None
-    new DepositServlet(new EasyDepositApiApp(new Configuration("", props))) shouldBe a[Success[_]]
+    Option(props.getProperty("multipart.file-size-threshold")) shouldBe None // precondition
+    new DepositServlet(new EasyDepositApiApp(new Configuration("", props))) shouldBe a[DepositServlet]
   }
 
   "post /" should "return 500 (Internal Server Error) on a not expected exception and basic authentication" in {
