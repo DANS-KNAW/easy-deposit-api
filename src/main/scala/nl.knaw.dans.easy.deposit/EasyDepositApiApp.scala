@@ -59,10 +59,11 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
     logger.info(s"users.ldap-admin-principal = $ldapAdminPrincipal")
   }
   val multipartConfig: MultipartConfig = MultipartConfig(
-    location = Some(properties.getString("multipart.location","")),
-    maxFileSize = Some(properties.getLong("multipart.max-file-size", -1)),
-    maxRequestSize = Some(properties.getLong("multipart.max-request-size", -1)),
+    location = Option(properties.getString("multipart.location", null)),
+    maxFileSize = Option(properties.getLong("multipart.max-file-size", null)),
+    maxRequestSize = Option(properties.getLong("multipart.max-request-size", null)),
     fileSizeThreshold = Some(properties.getInt("multipart.file-size-threshold", 0)),
+    // getInt doesn't compile with null as default
   )
 
   def getVersion: String = {

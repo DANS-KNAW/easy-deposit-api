@@ -19,13 +19,14 @@ import java.io.IOException
 import java.nio.file.{ InvalidPathException, Path, Paths }
 import java.util.UUID
 
+import better.files.File
 import nl.knaw.dans.easy.deposit.EasyDepositApiApp
 import nl.knaw.dans.easy.deposit.Errors._
 import nl.knaw.dans.easy.deposit.docs.JsonUtil.toJson
 import nl.knaw.dans.easy.deposit.docs.{ DatasetMetadata, StateInfo }
 import nl.knaw.dans.lib.logging.servlet._
 import org.scalatra._
-import org.scalatra.servlet.{ FileUploadSupport, MultipartConfig, SizeConstraintExceededException }
+import org.scalatra.servlet.{ FileUploadSupport, SizeConstraintExceededException }
 import org.scalatra.util.RicherString._
 import resource.managed
 
@@ -34,7 +35,16 @@ import scala.util.{ Failure, Success, Try }
 class DepositServlet(app: EasyDepositApiApp)
   extends ProtectedServlet(app)
     with FileUploadSupport {
-  configureMultipartHandling(app.multipartConfig)
+
+  configureMultipartHandling(app.multipartConfig.copy(location = app.multipartConfig.location
+      .filter(_.trim.nonEmpty)
+      .map { s =>
+        val absolutePath = File(s).path.toAbsolutePath
+        if (!File(s).isDirectory) throw ConfigurationException(s"$absolutePath not found or not a directory")
+        absolutePath.toString
+      }
+  ))
+
   error {
     case e: SizeConstraintExceededException => RequestEntityTooLarge(s"too much! ${ e.getMessage }")
     case e: IOException => s"MultipartHandling Exception: $e"
@@ -42,7 +52,7 @@ class DepositServlet(app: EasyDepositApiApp)
   /*
    * Defensive programming convention at this top level, everything in a for-comprehension:
    *
-   *    (for {...} yield ...).getOrRecover(respond).logResponse
+   *    (for {...} yield ...).getOrRecoverWithActionResult.logResponse
    *
    * Thus programming errors of the type that throws an exception despite returning a try
    * won't cause a stack trace.

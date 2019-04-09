@@ -15,12 +15,15 @@
  */
 package nl.knaw.dans.easy.deposit.servlets
 
+import java.io.FileNotFoundException
 import java.util.UUID
 
-import nl.knaw.dans.easy.deposit.Errors.CorruptDepositException
-import nl.knaw.dans.easy.deposit._
+import better.files.File
+import nl.knaw.dans.easy.deposit.Errors.{ ConfigurationException, CorruptDepositException }
 import nl.knaw.dans.easy.deposit.authentication.AuthUser.UserState
 import nl.knaw.dans.easy.deposit.authentication.{ AuthUser, AuthenticationMocker, AuthenticationProvider }
+import nl.knaw.dans.easy.deposit.{ EasyDepositApiApp, _ }
+import org.apache.commons.configuration.PropertiesConfiguration
 import org.eclipse.jetty.http.HttpStatus._
 import org.scalatra.auth.Scentry
 import org.scalatra.test.scalatest.ScalatraSuite
@@ -38,6 +41,13 @@ class DepositServletErrorSpec extends TestSupportFixture with ServletFixture wit
     override def getAuthenticationProvider: AuthenticationProvider = authMocker.mockedAuthenticationProvider
   }
   addServlet(depositServlet, "/*")
+
+  "constructor" should "fail with not existing multipart location" in {
+    val props = minimalAppConfig.properties.clone().asInstanceOf[PropertiesConfiguration]
+    props.addProperty("multipart.location", "notExistingLocation")
+    the[ConfigurationException] thrownBy new DepositServlet(new EasyDepositApiApp(new Configuration("", props))) should
+      have message s"Configuration error: ${ File("notExistingLocation").path.toAbsolutePath } not found or not a directory"
+  }
 
   "post /" should "return 500 (Internal Server Error) on a not expected exception and basic authentication" in {
     (mockedApp.createDeposit(_: String)) expects "foo" returning Failure(new Exception("whoops"))
