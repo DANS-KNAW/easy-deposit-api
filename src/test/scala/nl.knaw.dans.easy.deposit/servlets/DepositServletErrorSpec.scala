@@ -15,7 +15,6 @@
  */
 package nl.knaw.dans.easy.deposit.servlets
 
-import java.io.FileNotFoundException
 import java.util.UUID
 
 import better.files.File
@@ -23,12 +22,12 @@ import nl.knaw.dans.easy.deposit.Errors.{ ConfigurationException, CorruptDeposit
 import nl.knaw.dans.easy.deposit.authentication.AuthUser.UserState
 import nl.knaw.dans.easy.deposit.authentication.{ AuthUser, AuthenticationMocker, AuthenticationProvider }
 import nl.knaw.dans.easy.deposit.{ EasyDepositApiApp, _ }
-import org.apache.commons.configuration.PropertiesConfiguration
+import org.apache.commons.configuration.{ ConversionException, PropertiesConfiguration }
 import org.eclipse.jetty.http.HttpStatus._
 import org.scalatra.auth.Scentry
 import org.scalatra.test.scalatest.ScalatraSuite
 
-import scala.util.Failure
+import scala.util.{ Failure, Success }
 
 class DepositServletErrorSpec extends TestSupportFixture with ServletFixture with ScalatraSuite {
 
@@ -47,6 +46,19 @@ class DepositServletErrorSpec extends TestSupportFixture with ServletFixture wit
     props.addProperty("multipart.location", "notExistingLocation")
     the[ConfigurationException] thrownBy new DepositServlet(new EasyDepositApiApp(new Configuration("", props))) should
       have message s"Configuration error: ${ File("notExistingLocation").path.toAbsolutePath } not found or not a directory"
+  }
+
+  it should "fail with empty threshold value" in {
+    val props = minimalAppConfig.properties.clone().asInstanceOf[PropertiesConfiguration]
+    props.addProperty("multipart.file-size-threshold", "")
+    the[ConversionException] thrownBy new DepositServlet(new EasyDepositApiApp(new Configuration("", props))) should
+      have message s"'multipart.file-size-threshold' doesn't map to an Integer object"
+  }
+
+  it should "succeed without threshold property" in {
+    val props = minimalAppConfig.properties
+    Option(props.getProperty("multipart.file-size-threshold")) shouldBe None
+    new DepositServlet(new EasyDepositApiApp(new Configuration("", props))) shouldBe a[Success[_]]
   }
 
   "post /" should "return 500 (Internal Server Error) on a not expected exception and basic authentication" in {
