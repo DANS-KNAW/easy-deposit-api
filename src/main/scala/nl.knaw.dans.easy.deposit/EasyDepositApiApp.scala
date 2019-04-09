@@ -277,7 +277,7 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
    */
   def writeDepositFile(is: => InputStream, user: String, id: UUID, path: Path, contentType: Option[String]): Try[Boolean] = {
     for {
-      _ <- contentTypeAnythingButZip(contentType)
+      _ <- contentTypeAnythingBut(contentType)
       dataFiles <- getDataFiles(user, id)
       _ <- canUpdate(user, id)
       _ <- pathNotADirectory(path, dataFiles)
@@ -293,10 +293,13 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
     else Success(())
   }
 
-  private def contentTypeAnythingButZip(contentType: Option[String]): Try[Unit] = {
-    if (contentType.exists(str => str.trim.nonEmpty && !str.trim.matches(contentTypeZipPattern)))
-      Success(())
-    else Failure(InvalidContentTypeException(contentType, "must not be a zip."))
+  private def contentTypeAnythingBut(contentType: Option[String]): Try[Unit] = {
+    if (contentType.map(_.trim.toLowerCase).exists(str =>
+      str.nonEmpty &&
+      !str.matches(contentTypeZipPattern) &&
+      !str.startsWith("multipart")
+    )) Success(())
+    else Failure(InvalidContentTypeException(contentType, "must not be application/zip nor start with multipart."))
   }
 
   def stageFiles(userId: String, id: UUID, destination: Path): Try[(Dispose[File], StagedFilesTarget)] = {
