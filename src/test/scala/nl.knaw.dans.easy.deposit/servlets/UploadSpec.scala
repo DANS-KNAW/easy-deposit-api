@@ -167,6 +167,23 @@ class UploadSpec extends DepositServletFixture {
     }
   }
 
+  it should "report a ZIP file with a few corrupted bytes" in {
+    val bodyParts = Seq(("some", new java.io.File("src/test/resources/manual-test/invalid.zip")))
+    val uuid = createDeposit
+    val relativeTarget = "path/to/dir"
+    val absoluteTarget = (testDir / "drafts" / "foo" / uuid.toString / "bag/data" / relativeTarget).createDirectories()
+    post(
+      uri = s"/deposit/$uuid/file/$relativeTarget",
+      params = Iterable(),
+      headers = Seq(fooBarBasicAuthHeader),
+      files = bodyParts
+    ) {
+      absoluteTarget.list.size shouldBe 0
+      status shouldBe 400
+      body shouldBe s"ZIP file is malformed. No entries found."
+    }
+  }
+
   it should "extract all files from a ZIP" in {
     File("src/test/resources/manual-test/Archive.zip").copyTo(testDir / "input" / "1.zip")
     val uuid = createDeposit

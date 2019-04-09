@@ -15,16 +15,17 @@
  */
 package nl.knaw.dans.easy.deposit
 
+import java.io.EOFException
 import java.nio.charset.Charset
 import java.nio.file.Files
 import java.util.zip.{ ZipEntry, ZipException, ZipInputStream }
 
 import better.files.File
+import com.sun.org.apache.xml.internal.utils.URI.MalformedURIException
 import nl.knaw.dans.easy.deposit.Errors.{ MalformedZipException, ZipMustBeOnlyFileException }
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.scalatra.servlet.FileItem
 import org.scalatra.util.RicherString._
-import org.scalatra.{ ActionResult, InternalServerError }
 import resource.{ ManagedResource, managed }
 
 import scala.util.{ Failure, Success, Try }
@@ -73,9 +74,8 @@ package object servlets extends DebugEnhancedLogging {
         }
       }
 
-      Option(zipInputStream.getNextEntry) match {
-        case None => Failure(MalformedZipException(s"No entries found."))
-        case Some(firstEntry: ZipEntry) => for {
+      Try(Option(zipInputStream.getNextEntry)) match {
+        case Success(Some(firstEntry: ZipEntry)) => for {
           _ <- extract(firstEntry)
           _ <- Stream
             .continually(zipInputStream.getNextEntry)
@@ -83,6 +83,7 @@ package object servlets extends DebugEnhancedLogging {
             .map(extract)
             .failFastOr(Success(()))
         } yield ()
+        case _ => Failure(MalformedZipException(s"No entries found."))
       }
     }
   }
