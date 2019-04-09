@@ -15,6 +15,7 @@
  */
 package nl.knaw.dans.easy.deposit.docs
 
+import better.files.File
 import nl.knaw.dans.easy.deposit.Errors.InvalidDocumentException
 import nl.knaw.dans.easy.deposit.TestSupportFixture
 import nl.knaw.dans.easy.deposit.docs.JsonUtil.toJson
@@ -161,5 +162,92 @@ class DatasetMetadataSpec extends TestSupportFixture {
     val s =
       """{"spatialBoxes": [ { "scheme": "RD", "north": "486890.5", "east": 121811.88, "south": 436172.5,  "west": 91232.016 }]}""".stripMargin
     DatasetMetadata(s) shouldBe a[Success[_]]
+  }
+
+  "DatasetMetadata.*" should "only report the item in the list that is troublesome" in {
+    val alteredData = createCorruptMetadataJsonString("\"scheme\": \"string\"", "\"invalid\": \"property\"")
+    DatasetMetadata(alteredData) should matchPattern {
+      case Failure(ide: InvalidDocumentException) if ide.getMessage.contains("{\"languageOfDescription\":{\"invalid\":\"property\"},\"audiences\":{\"invalid\":\"property\"},\"subjects\":{\"invalid\":\"property\"},\"languagesOfFiles\":{\"invalid\":\"property\"},\"temporalCoverages\":{\"invalid\":\"property\"}}") =>
+    }
+  }
+
+  "DatasetMetadata.spatialBoxes" should "only report spatial boxes if the box values are invalid" in {
+    val alteredData: String = createCorruptMetadataJsonString("  \"north\": \"0\",\n      \"east\": \"0\",\n      \"south\": \"0\",\n      \"west\": \"0\"", "\"north-west\": 2, \"south-east\": 3")
+    DatasetMetadata(alteredData) should matchPattern {
+      case Failure(ide: InvalidDocumentException) if ide.getMessage == "invalid DatasetMetadata: don't recognize {\"spatialBoxes\":{\"north-west\":2,\"south-east\":3}}" =>
+    }
+  }
+
+  "DatasetMetadata.spatialCoverages" should "only report someCoverage if is supplied instead of spatialCoverages" in {
+    val alteredData = createCorruptMetadataJsonString(" \"spatialCoverages\"", " \"someCoverage\"")
+    DatasetMetadata(alteredData) should matchPattern {
+      case Failure(ide: InvalidDocumentException) if ide.getMessage == "invalid DatasetMetadata: don't recognize {\"someCoverage\":[{\"scheme\":\"dcterms:ISO3166\",\"value\":\"string\",\"key\":\"string\"}]}" =>
+    }
+  }
+
+  "DatasetMetadata.Dates" should "only report the dates that are not correct" in {
+    val placeHolder =
+      """\{
+        |      "scheme": "dcterms:W3CDTF",
+        |      "value": "2018-05-31",
+        |      "qualifier": "dcterms:created"
+        |    \}""".stripMargin
+
+    val newListOfDates =
+      """{
+        |      "scheme": "dcterms:W3CDTF",
+        |      "value": "2018-05-31",
+        |      "qualifier": "dcterms:created"
+        |    },
+        |    {
+        |       "invalidOne": "invalid"
+        |       "invalidValue": "2018-05-31",
+        |      "invalidQualifier": "dcterms:created"
+        |    }
+        |    """.stripMargin
+    val alteredData = createCorruptMetadataJsonString(placeHolder, newListOfDates)
+    DatasetMetadata(alteredData) should matchPattern {
+      case Failure(ide: InvalidDocumentException) if ide.getMessage == "invalid DatasetMetadata: don't recognize {\"dates\":{\"invalidOne\":\"invalid\",\"invalidValue\":\"2018-05-31\",\"invalidQualifier\":\"dcterms:created\"}}" =>
+    }
+  }
+
+  "DatasetMetadata.Creators" should "only report the part of the contributors that are wrong" in {
+    val placeHolder =
+      """"creators": \[
+        |    \{
+        |      "titles": "Prof Dr",
+        |      "initials": "A",
+        |      "surname": "Einstein",
+        |      "ids": \[
+        |        \{
+        |          "scheme": "DAI",
+        |          "value": "93313935x"
+        |        \},
+        |        \{
+        |          "scheme": "ISNI",
+        |          "value": "ISNI:000000012281955X"
+        |        \}
+        |      \],
+        |      "organization": "University of Zurich"
+        |    \}
+        |  \]""".stripMargin
+    val creatorValid = """{"titles": "Msc", "initials": "H.A.M.", "surname": "Boter", "ids": [ { "scheme": "DAI", "value":  "93313935x"}, {"scheme": "BSN", "value": "1234"} ], "organization" :"DANS"}"""
+    val creatorInvalidIdElement = """{"titles": "Msc", "initials": "B.A.M.", "surname": "Hoter", "ids": [ { "scheme": "DAI", "value":  "93313935Z"}, {"scheme": "BSN", "value": "1235", "organization": "overheid"} ], "organization" :"DANS"}"""
+    val creatorInvalidElementAtRootLevel = """{"titles": "Aartshertog", "FirstName": "jan-willem-hendrik", "surname": "Oranje", "ids": [ { "scheme": "DAI", "value":  "93313935y"}, {"scheme": "BSN", "value": "9999"} ], "organization" :"DANS"}"""
+
+    val replaceWith = s""""creators": [$creatorValid, $creatorInvalidIdElement, $creatorInvalidElementAtRootLevel]"""
+    val alteredData = createCorruptMetadataJsonString(placeHolder, replaceWith)
+
+    DatasetMetadata(alteredData) should matchPattern {
+      case Failure(ide: InvalidDocumentException) if ide.getMessage == "invalid DatasetMetadata: don't recognize {\"creators\":[{\"ids\":{\"organization\":\"overheid\"}},{\"FirstName\":\"jan-willem-hendrik\"}]}" =>
+    }
+  }
+
+
+
+
+  private def createCorruptMetadataJsonString(pattern: String, replacement: String): String = {
+    val bigMetadata = File("src/test/resources/manual-test/datasetmetadata.json").contentAsString
+    bigMetadata.replaceAll(pattern, replacement)
   }
 }
