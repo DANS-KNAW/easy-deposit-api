@@ -234,17 +234,15 @@ class DatasetMetadataSpec extends TestSupportFixture {
     val creatorValid = """{"titles": "Msc", "initials": "H.A.M.", "surname": "Boter", "ids": [ { "scheme": "DAI", "value":  "93313935x"}, {"scheme": "BSN", "value": "1234"} ], "organization" :"DANS"}"""
     val creatorInvalidIdElement = """{"titles": "Msc", "initials": "B.A.M.", "surname": "Hoter", "ids": [ { "scheme": "DAI", "value":  "93313935Z"}, {"scheme": "BSN", "value": "1235", "organization": "overheid"} ], "organization" :"DANS"}"""
     val creatorInvalidElementAtRootLevel = """{"titles": "Aartshertog", "FirstName": "jan-willem-hendrik", "surname": "Oranje", "ids": [ { "scheme": "DAI", "value":  "93313935y"}, {"scheme": "BSN", "value": "9999"} ], "organization" :"DANS"}"""
+    val creatorInvalidRole = """{"titles": "Dr", "initials": "S.", "surname": "Pieterzoon", "ids": [ { "scheme": "DAI", "value":  "93313935i"} ], "organization" :"DANS", "roles": [ { "scheme": "datacite:contributorType", "key": "ContactPerson", "waarde": "invalid"} ] }"""
 
-    val replaceWith = s""""creators": [$creatorValid, $creatorInvalidIdElement, $creatorInvalidElementAtRootLevel]"""
+    val replaceWith = s""""creators": [$creatorValid, $creatorInvalidIdElement, $creatorInvalidElementAtRootLevel, $creatorInvalidRole]"""
     val alteredData = createCorruptMetadataJsonString(placeHolder, replaceWith)
 
     DatasetMetadata(alteredData) should matchPattern {
-      case Failure(ide: InvalidDocumentException) if ide.getMessage == "invalid DatasetMetadata: don't recognize {\"creators\":[{\"ids\":{\"organization\":\"overheid\"}},{\"FirstName\":\"jan-willem-hendrik\"}]}" =>
+      case Failure(ide: InvalidDocumentException) if ide.getMessage == "invalid DatasetMetadata: don't recognize {\"creators\":[{\"ids\":{\"organization\":\"overheid\"}},{\"FirstName\":\"jan-willem-hendrik\"},{\"roles\":[{\"scheme\":\"datacite:contributorType\",\"key\":\"ContactPerson\",\"waarde\":\"invalid\"}]}]}" =>
     }
   }
-
-
-
 
   private def createCorruptMetadataJsonString(pattern: String, replacement: String): String = {
     val bigMetadata = File("src/test/resources/manual-test/datasetmetadata.json").contentAsString
