@@ -15,13 +15,11 @@
  */
 package nl.knaw.dans.easy.deposit
 
-import java.io.EOFException
 import java.nio.charset.Charset
 import java.nio.file.Files
 import java.util.zip.{ ZipEntry, ZipException, ZipInputStream }
 
 import better.files.File
-import com.sun.org.apache.xml.internal.utils.URI.MalformedURIException
 import nl.knaw.dans.easy.deposit.Errors.{ MalformedZipException, ZipMustBeOnlyFileException }
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.scalatra.servlet.FileItem
