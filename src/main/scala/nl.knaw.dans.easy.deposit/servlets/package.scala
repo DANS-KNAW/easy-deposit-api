@@ -24,7 +24,6 @@ import nl.knaw.dans.easy.deposit.Errors.{ MalformedZipException, ZipMustBeOnlyFi
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.scalatra.servlet.FileItem
 import org.scalatra.util.RicherString._
-import org.scalatra.{ ActionResult, InternalServerError }
 import resource.{ ManagedResource, managed }
 
 import scala.util.{ Failure, Success, Try }
