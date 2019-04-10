@@ -195,7 +195,7 @@ class UploadSpec extends DepositServletFixture {
       headers = Seq(fooBarBasicAuthHeader),
       files = bodyParts
     ) {
-      body shouldBe s"ZIP file is malformed. No entries found."
+      body shouldBe "ZIP file is malformed. No entries found."
       status shouldBe BAD_REQUEST_400
       absoluteTarget.list.size shouldBe 0
     }
