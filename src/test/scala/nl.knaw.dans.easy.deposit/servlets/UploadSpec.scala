@@ -184,7 +184,7 @@ class UploadSpec extends DepositServletFixture {
     }
   }
 
-  it should "report a  empty ZIP archive" in {
+  it should "report an empty ZIP archive" in {
     val bodyParts = Seq(("some", new java.io.File("src/test/resources/manual-test/empty.zip")))
     val uuid = createDeposit
     val relativeTarget = "path/to/dir"
