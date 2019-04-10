@@ -130,7 +130,7 @@ class UploadSpec extends DepositServletFixture {
     }
   }
 
-  it should "report ZIP item found without uploading any of the others" in {
+  it should "report a ZIP item found without uploading any of the others" in {
     val bodyParts = createBodyParts(Seq(
       ("some", "1.zip", "content doesn't matter"),
       ("some", "2.txt", "Lorem ipsum dolor sit amet"),
@@ -181,6 +181,23 @@ class UploadSpec extends DepositServletFixture {
       absoluteTarget.list.size shouldBe 0
       status shouldBe 400
       body shouldBe s"ZIP file is malformed. No entries found."
+    }
+  }
+
+  it should "report a  empty ZIP archive" in {
+    val bodyParts = Seq(("some", new java.io.File("src/test/resources/manual-test/empty.zip")))
+    val uuid = createDeposit
+    val relativeTarget = "path/to/dir"
+    val absoluteTarget = (testDir / "drafts" / "foo" / uuid.toString / "bag/data" / relativeTarget).createDirectories()
+    post(
+      uri = s"/deposit/$uuid/file/$relativeTarget",
+      params = Iterable(),
+      headers = Seq(fooBarBasicAuthHeader),
+      files = bodyParts
+    ) {
+      body shouldBe s"ZIP file is malformed. No entries found."
+      status shouldBe BAD_REQUEST_400
+      absoluteTarget.list.size shouldBe 0
     }
   }
 
