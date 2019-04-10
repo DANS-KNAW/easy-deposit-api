@@ -38,29 +38,15 @@ class DatasetMetadataSpec extends TestSupportFixture {
     }
   }
 
-  private val creatorsPlaceHolder =
-    """"creators": \[
-      |    \{
-      |      "titles": "Prof Dr",
-      |      "initials": "A",
-      |      "surname": "Einstein",
-      |      "ids": \[
-      |        \{
-      |          "scheme": "DAI",
-      |          "value": "93313935x"
-      |        \},
-      |        \{
-      |          "scheme": "ISNI",
-      |          "value": "ISNI:000000012281955X"
-      |        \}
-      |      \],
-      |      "organization": "University of Zurich"
-      |    \}
-      |  \]""".stripMargin
-
   "deserialization/serialisation" should "produce the same json object structure" in {
     roundTripTest("datasetmetadata.json")
   }
+
+  private val creatorValid = """{"titles": "Msc", "initials": "H.A.M.", "surname": "Boter", "ids": [ { "scheme": "DAI", "value":  "93313935x"}, {"scheme": "BSN", "value": "1234"} ], "organization" :"DANS"}"""
+  private val creatorInvalidIdElement = """{"titles": "Msc", "initials": "B.A.M.", "surname": "Hoter", "ids": [ { "scheme": "DAI", "value":  "93313935Z"}, {"scheme": "BSN", "value": "1235", "organization": "overheid"} ], "organization" :"DANS"}"""
+  private val creatorInvalidElementAtRootLevel = """{"titles": "Aartshertog", "FirstName": "jan-willem-hendrik", "surname": "Oranje", "ids": [ { "scheme": "DAI", "value":  "93313935y"}, {"scheme": "BSN", "value": "9999"} ], "organization" :"DANS"}"""
+  //TODO moet hij hier niet struikelen over het veld role[0].waarde?
+  private val creatorInvalidRole = """{"titles": "Dr", "initials": "S.", "surname": "Pieterzoon", "ids": [ { "scheme": "DAI", "value":  "93313935i"} ], "organization" :"DANS", "role": [ { "scheme": "datacite:contributorType", "key": "ContactPerson", "waarde": "invalid", "andereWaarde": "invalid"} ] }"""
 
   it should "not fail for UI test data (all fields)" in {
     // https://github.com/DANS-KNAW/easy-deposit-ui/blob/81b21a08ce1a8a3d86ef74148c1e024188080e10/src/test/typescript/mockserver/metadata.ts#L255-L585
@@ -231,19 +217,62 @@ class DatasetMetadataSpec extends TestSupportFixture {
     }
   }
 
-  "DatasetMetadata.Creators" should "only report the part of the contributors that are wrong" in {
-
-    val creatorValid = """{"titles": "Msc", "initials": "H.A.M.", "surname": "Boter", "ids": [ { "scheme": "DAI", "value":  "93313935x"}, {"scheme": "BSN", "value": "1234"} ], "organization" :"DANS"}"""
-    val creatorInvalidIdElement = """{"titles": "Msc", "initials": "B.A.M.", "surname": "Hoter", "ids": [ { "scheme": "DAI", "value":  "93313935Z"}, {"scheme": "BSN", "value": "1235", "organization": "overheid"} ], "organization" :"DANS"}"""
-    val creatorInvalidElementAtRootLevel = """{"titles": "Aartshertog", "FirstName": "jan-willem-hendrik", "surname": "Oranje", "ids": [ { "scheme": "DAI", "value":  "93313935y"}, {"scheme": "BSN", "value": "9999"} ], "organization" :"DANS"}"""
-    //TODO moet hij hier niet struikelen over het veld role[0].waarde?
-    val creatorInvalidRole = """{"titles": "Dr", "initials": "S.", "surname": "Pieterzoon", "ids": [ { "scheme": "DAI", "value":  "93313935i"} ], "organization" :"DANS", "role": [ { "scheme": "datacite:contributorType", "key": "ContactPerson", "waarde": "invalid"} ] }"""
-
-    val replaceWith = s""""creators": [$creatorValid, $creatorInvalidIdElement, $creatorInvalidElementAtRootLevel, $creatorInvalidRole]"""
-    val alteredData = createCorruptMetadataJsonString(creatorsPlaceHolder, replaceWith)
-
-    DatasetMetadata(alteredData) should matchPattern {
+  "DatasetMetadata.creators" should "only report the part of the creators that are wrong" in {
+    val creators = s"""{ "creators": [$creatorValid, $creatorInvalidIdElement, $creatorInvalidElementAtRootLevel, $creatorInvalidRole] }"""
+    DatasetMetadata(creators) should matchPattern {
       case Failure(ide: InvalidDocumentException) if ide.getMessage == "invalid DatasetMetadata: don't recognize {\"creators\":[{\"ids\":{\"organization\":\"overheid\"}},{\"FirstName\":\"jan-willem-hendrik\"}]}" =>
+    }
+  }
+
+  "DatasetMetadata.[creators, contributors]" should "only report the part of the creators and contributors that are wrong" in {
+    val metaData = s"""{ "contributors": [
+    {
+      "titles": "Dr.",
+      "initials": "O.",
+      "insertions": "van",
+      "surname": "Belix",
+      "borganization": "their organization"
+    },
+    {
+      "organization": "my organization"
+    },
+    {
+      "organization": "rightsHolder1",
+      "role": {
+        "scheme": "datacite:contributorType",
+        "key": "RightsHolder",
+        "value": "rightsholder"
+      },
+      "ids": [
+      { "scheme": "aScheme",
+        "key": "aKey",
+        "value": "aValue",
+        "waarde": "invalidProperty"
+      }
+      ],
+    },
+    {
+      "titles": "Dr.",
+      "initials": "A.S.",
+      "insertions": "van",
+      "surname": "Terix",
+      "role": {
+        "scheme": "datacite:contributorType",
+        "key": "RightsHolder",
+        "value": "rightsholder",
+        "otherKey": "placeHolder",
+        "otherValue": "placeHolder"
+      }
+    }
+    ],
+     "creators": [$creatorValid, $creatorInvalidIdElement, $creatorInvalidElementAtRootLevel, $creatorInvalidRole]
+     }"""
+
+    //TODO it does not complain about the "waarde" in role in creators, but it does complain about "otherkey / value" in contributors
+    //TODO it also complains about the the field "key" in ids along with the invlaid field "waarde"
+    val expectedErrorMsg = "invalid DatasetMetadata: don't recognize {\"creators\":[{\"ids\":{\"organization\":\"overheid\"}},{\"FirstName\":\"jan-willem-hendrik\"}],\"contributors\":[{\"borganization\":\"their organization\"},{\"ids\":{\"key\":\"aKey\",\"waarde\":\"invalidProperty\"}},{\"role\":{\"otherKey\":\"placeHolder\",\"otherValue\":\"placeHolder\"}}]}"
+    DatasetMetadata(metaData) should matchPattern {
+      case Failure(e: InvalidDocumentException) if e.getMessage == expectedErrorMsg =>
     }
   }
 
