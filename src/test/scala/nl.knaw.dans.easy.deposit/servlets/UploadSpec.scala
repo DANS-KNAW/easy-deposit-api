@@ -163,7 +163,7 @@ class UploadSpec extends DepositServletFixture {
     ) {
       absoluteTarget.list.size shouldBe 0
       status shouldBe BAD_REQUEST_400
-      body shouldBe s"ZIP file is malformed. No entries found."
+      body shouldBe "ZIP file is malformed. No entries found."
     }
   }
 
@@ -180,7 +180,7 @@ class UploadSpec extends DepositServletFixture {
     ) {
       absoluteTarget.list.size shouldBe 0
       status shouldBe 400
-      body shouldBe s"ZIP file is malformed. No entries found."
+      body shouldBe "ZIP file is malformed. No entries found."
     }
   }
 
@@ -195,7 +195,7 @@ class UploadSpec extends DepositServletFixture {
       headers = Seq(fooBarBasicAuthHeader),
       files = bodyParts
     ) {
-      body shouldBe s"ZIP file is malformed. No entries found."
+      body shouldBe "ZIP file is malformed. No entries found."
       status shouldBe BAD_REQUEST_400
       absoluteTarget.list.size shouldBe 0
     }
@@ -381,7 +381,7 @@ class UploadSpec extends DepositServletFixture {
     }
   }
 
-  s"PUT" should "return 201 for a new respectively 204 for a replaced file" in {
+  "PUT" should "return 201 for a new respectively 204 for a replaced file" in {
     val uuid = createDeposit
 
     val bagBase = DepositDir(testDir / "drafts", "foo", UUID.fromString(uuid.toString)).getDataFiles.get.bag
@@ -453,7 +453,7 @@ class UploadSpec extends DepositServletFixture {
 
   private def createDataset: UUID = {
     val responseBody = post(
-      uri = s"/deposit",
+      uri = "/deposit",
       headers = Seq(fooBarBasicAuthHeader)
     ) {
       new String(bodyBytes)

@@ -82,8 +82,7 @@ package object servlets extends DebugEnhancedLogging {
             .map(extract)
             .failFastOr(Success(()))
         } yield ()
-        case Success(None) => Failure(MalformedZipException(s"No entries found."))
-        case Failure(_: EOFException) => Failure(MalformedZipException(s"No entries found."))
+        case Success(None) | Failure(_: EOFException) => Failure(MalformedZipException(s"No entries found."))
         case Failure(e) => Failure(e)
       }
     }
