@@ -27,7 +27,7 @@ import org.eclipse.jetty.http.HttpStatus._
 import org.scalatra.auth.Scentry
 import org.scalatra.test.scalatest.ScalatraSuite
 
-import scala.util.{ Failure, Success }
+import scala.util.Failure
 
 class DepositServletErrorSpec extends TestSupportFixture with ServletFixture with ScalatraSuite {
 
@@ -42,14 +42,14 @@ class DepositServletErrorSpec extends TestSupportFixture with ServletFixture wit
   addServlet(depositServlet, "/*")
 
   "constructor" should "fail with not existing multipart location" in {
-    val props = minimalAppConfig.properties.clone().asInstanceOf[PropertiesConfiguration]
+    val props = minimalAppConfig.properties
     props.addProperty("multipart.location", "notExistingLocation")
     the[ConfigurationException] thrownBy new DepositServlet(new EasyDepositApiApp(new Configuration("", props))) should
       have message s"Configuration error: ${ File("notExistingLocation").path.toAbsolutePath } not found/readable/writable or not a directory"
   }
 
   it should "fail with empty threshold value" in {
-    val props = minimalAppConfig.properties.clone().asInstanceOf[PropertiesConfiguration]
+    val props = minimalAppConfig.properties
     props.clearProperty("multipart.file-size-threshold")
     props.addProperty("multipart.file-size-threshold", "")
     the[ConversionException] thrownBy new DepositServlet(new EasyDepositApiApp(new Configuration("", props))) should
@@ -59,9 +59,9 @@ class DepositServletErrorSpec extends TestSupportFixture with ServletFixture wit
   it should "fail without threshold property" in {
     val props = minimalAppConfig.properties
     props.clearProperty("multipart.file-size-threshold")
-    Option(props.getInteger("multipart.file-size-threshold",null)) shouldBe None // precondition
+    Option(props.getInteger("multipart.file-size-threshold", null)) shouldBe None // precondition
 
-    the[NoSuchElementException] thrownBy new DepositServlet(new EasyDepositApiApp(Configuration("",props))) should
+    the[NoSuchElementException] thrownBy new DepositServlet(new EasyDepositApiApp(Configuration("", props))) should
       have message s"'multipart.file-size-threshold' doesn't map to an existing object"
   }
 

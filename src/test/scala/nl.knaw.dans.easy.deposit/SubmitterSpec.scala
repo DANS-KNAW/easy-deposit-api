@@ -42,7 +42,7 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
     .getOrElse(fail("could not get DOI from test input"))
 
   "constructor" should "fail if the configured group does not exist" in {
-    val props = minimalAppConfig.properties.clone().asInstanceOf[PropertiesConfiguration]
+    val props = minimalAppConfig.properties
     props.setProperty("deposit.permissions.group", "not-existing-group")
 
     // the App creates the Submitter

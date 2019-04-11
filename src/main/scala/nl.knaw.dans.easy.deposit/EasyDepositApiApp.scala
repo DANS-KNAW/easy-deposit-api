@@ -60,7 +60,7 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
   }
 
   val multipartConfig: MultipartConfig = MultipartConfig(
-    location = Option(properties.getString("multipart.location", null)),
+    location = Option(properties.getString("multipart.location")),
     maxFileSize = Option(properties.getLong("multipart.max-file-size", null)),
     maxRequestSize = Option(properties.getLong("multipart.max-request-size", null)),
     fileSizeThreshold = Some(properties.getInt("multipart.file-size-threshold")),//throws if not provided
