@@ -19,7 +19,6 @@ import java.net.URL
 
 import nl.knaw.dans.easy.deposit.authentication.AuthUser.UserState
 import nl.knaw.dans.lib.error._
-import nl.knaw.dans.lib.logging.servlet._
 import org.scalatra._
 import org.scalatra.auth.ScentryAuthStore.CookieAuthStore
 import org.scalatra.auth.{ ScentryConfig, ScentrySupport }
