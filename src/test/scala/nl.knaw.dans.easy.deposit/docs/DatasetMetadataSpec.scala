@@ -270,7 +270,6 @@ class DatasetMetadataSpec extends TestSupportFixture {
   }
 
   private def createCorruptMetadataJsonString(pattern: String, replacement: String): String = {
-    val bigMetadata = File("src/test/resources/manual-test/datasetmetadata.json").contentAsString
-    bigMetadata.replaceAll(pattern, replacement)
+    File("src/test/resources/manual-test/datasetmetadata.json").contentAsString.replaceAll(pattern, replacement)
   }
 }
