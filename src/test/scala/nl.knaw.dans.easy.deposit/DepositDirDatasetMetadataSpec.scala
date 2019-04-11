@@ -17,6 +17,7 @@ package nl.knaw.dans.easy.deposit
 
 import java.nio.file.NoSuchFileException
 
+import nl.knaw.dans.easy.deposit.Errors.CorruptDepositException
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata
 
 import scala.util.{ Failure, Success }

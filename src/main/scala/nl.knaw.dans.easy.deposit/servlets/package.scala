@@ -20,15 +20,16 @@ import java.nio.file.Files
 import java.util.zip.{ ZipEntry, ZipException, ZipInputStream }
 
 import better.files.File
-import nl.knaw.dans.easy.deposit.servlets.DepositServlet.{ BadRequestException, ZipMustBeOnlyFileException }
+import nl.knaw.dans.easy.deposit.Errors.{ MalformedZipException, ZipMustBeOnlyFileException }
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.scalatra.servlet.FileItem
 import org.scalatra.util.RicherString._
-import org.scalatra.{ ActionResult, BadRequest, InternalServerError }
+import org.scalatra.{ ActionResult, InternalServerError }
 import resource.{ ManagedResource, managed }
 
 import scala.util.{ Failure, Success, Try }
 
+// @formatter:off
 /**
  * EasyDepositApiServlet    just I'm alive status, no authentication required
  * AbstractAuthServlet      supports basic authentication as wel as session cookies
@@ -37,28 +38,19 @@ import scala.util.{ Failure, Success, Try }
  * |                        on a valid session cookie
  * |___ AuthServlet         should not refresh session cookies
  * |___ ProtectedServlet    requires refreshed session cookies
- *      |___ UserServlet
- *      |___ DepositServlet
+ *     |___ UserServlet
+ *     |___ DepositServlet
  */
+// @formatter:on
 package object servlets extends DebugEnhancedLogging {
 
-  private val extensionZipPattern = ".*.g?z(ip)?"
+  val extensionZipPattern = ".+[.]g?z(ip)?"
   private val pre = "(x-)?g?zip"
   private val post = "-compress(ed)?"
-  private val contentTypeZipPattern = s"application/(($pre($post)?)|(x$post))"
+  val contentTypeZipPattern = s"application/(($pre($post)?)|(x$post))"
 
   val contentTypeJson: (String, String) = "content-type" -> "application/json;charset=UTF-8"
   val contentTypePlainText: (String, String) = "content-type" -> "text/plain;charset=UTF-8"
-
-  def notExpectedExceptionResponse(t: Throwable): ActionResult = {
-    logger.error(s"Not expected exception: ${ t.getMessage }", t)
-    InternalServerError("Internal Server Error", Map(contentTypePlainText))
-  }
-
-  def badDocResponse(t: Throwable): ActionResult = {
-    logger.error(t.getMessage)
-    BadRequest(s"Bad Request. ${ t.getMessage }", Map(contentTypePlainText))
-  }
 
   implicit class RichManagedZipInputStream(val zipInputStream: ManagedResource[ZipInputStream]) extends AnyVal {
     def unzipPlainEntriesTo(dir: File): Try[Unit] = {
@@ -68,23 +60,21 @@ package object servlets extends DebugEnhancedLogging {
 
   implicit class RichZipInputStream(val zipInputStream: ZipInputStream) extends AnyVal {
     def unzipPlainEntriesTo(dir: File): Try[Unit] = {
-      def extract(entry: ZipEntry) = {
+      def extract(entry: ZipEntry): Try[Unit] = {
         if (entry.isDirectory)
           Try((dir / entry.getName).createDirectories())
         else {
-          if (entry.getName.matches(extensionZipPattern))
-            Failure(BadRequestException(s"ZIP file is malformed. It contains a Zip ${ entry.getName }."))
-          else {
-            logger.info(s"Extracting ${ entry.getName } size=${ entry.getSize } compressedSize=${ entry.getCompressedSize } CRC=${ entry.getCrc }")
-            Try(Files.copy(zipInputStream, (dir / entry.getName).path))
-          }.recoverWith {
-            case e if e.isInstanceOf[ZipException] => Failure(BadRequestException(s"ZIP file is malformed. $e"))
-          }
+          logger.info(s"Extracting ${ entry.getName } size=${ entry.getSize } compressedSize=${ entry.getCompressedSize } CRC=${ entry.getCrc }")
+          Try { Files.copy(zipInputStream, (dir / entry.getName).path); () }
+            .recoverWith { case e: ZipException =>
+              logger.error(e.getMessage, e)
+              Failure(MalformedZipException(s"Can't extract ${ entry.getName }"))
+            }
         }
       }
 
       Option(zipInputStream.getNextEntry) match {
-        case None => Failure(BadRequestException(s"ZIP file is malformed. No entries found."))
+        case None => Failure(MalformedZipException(s"No entries found."))
         case Some(firstEntry: ZipEntry) => for {
           _ <- extract(firstEntry)
           _ <- Stream
@@ -114,7 +104,7 @@ package object servlets extends DebugEnhancedLogging {
 
     def copyNonZipTo(dir: File): Try[Unit] = {
       if (fileItem.name.isBlank) Success(()) // skip form field without selected files
-      else if (fileItem.isZip) Failure(ZipMustBeOnlyFileException(fileItem.name))
+      else if (fileItem.isZip) Failure(ZipMustBeOnlyFileException(fileItem))
       else
         managed(fileItem.getInputStream)
           .apply(inputStream => Try { Files.copy(inputStream, (dir / fileItem.name).path) })
@@ -136,7 +126,7 @@ package object servlets extends DebugEnhancedLogging {
         val leadingZipItem = fileItems.next()
         skipLeadingEmptyFormFields()
         if (fileItems.hasNext)
-          Failure(ZipMustBeOnlyFileException(leadingZipItem.name))
+          Failure(ZipMustBeOnlyFileException(leadingZipItem))
         else leadingZipItem.getZipInputStream.map(Some(_))
       }
     }

@@ -45,7 +45,6 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
   mountServlets(app, authMocker.mockedAuthenticationProvider)
 
   "scenario: /deposit/:uuid/metadata life cycle" should "return default dataset metadata" in {
-
     // create dataset
     authMocker.expectsUserFooBar
     val responseBody = post(uri = s"/deposit", headers = Seq(fooBarBasicAuthHeader)) { body }
@@ -78,7 +77,6 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
   }
 
   "scenario: POST /deposit twice; GET /deposit" should "return a list of datasets" in {
-
     // create two deposits
     val responseBodies: Seq[String] = (0 until 2).map { _ =>
       authMocker.expectsUserFooBar
@@ -102,7 +100,6 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
   }
 
   "scenario: POST /deposit; PUT /deposit/:uuid/file/...; GET /deposit/$uuid/file/..." should "return single FileInfo object respective an array of objects" in {
-
     // create dataset
     authMocker.expectsUserFooBar
     val responseBody = post(uri = s"/deposit", headers = Seq(fooBarBasicAuthHeader)) { body }
@@ -111,22 +108,44 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
     // upload files in a folder (more variations in UploadSpec)
     val dataFilesBase = DepositDir(testDir / "drafts", "foo", UUID.fromString(uuid)).getDataFiles.get.bag.data
 
+    // upload without content type
+    authMocker.expectsUserFooBar
+    put(
+      uri = s"/deposit/$uuid/file/text.txt",
+      headers = Seq(fooBarBasicAuthHeader),
+      body = "Lorum ipsum"
+    ) {
+      body shouldBe "Content-Type is a mandatory request header and must not be a zip."
+      status shouldBe BAD_REQUEST_400
+    }
+
     // upload a file in a folder
     authMocker.expectsUserFooBar
     put(
       uri = s"/deposit/$uuid/file/path/to/text.txt",
-      headers = Seq(fooBarBasicAuthHeader),
+      headers = Seq(fooBarBasicAuthHeader, contentTypePlainText),
       body = "Lorum ipsum"
     ) {
       status shouldBe CREATED_201
       (dataFilesBase / "path" / "to" / "text.txt").contentAsString shouldBe "Lorum ipsum"
     }
 
+    // attempt to overwrite dir
+    authMocker.expectsUserFooBar
+    put(
+      uri = s"/deposit/$uuid/file/path/to",
+      headers = Seq(fooBarBasicAuthHeader, contentTypePlainText),
+      body = "Lorum ipsum"
+    ) {
+      status shouldBe CONFLICT_409
+      body shouldBe "Attempt to overwrite a directory with a file."
+    }
+
     // get file
     authMocker.expectsUserFooBar
     get(
       uri = s"/deposit/$uuid/file/path/to/text.txt",
-      headers = Seq(fooBarBasicAuthHeader)
+      headers = Seq(fooBarBasicAuthHeader, contentTypePlainText)
     ) {
       status shouldBe OK_200
       // a single json object: {"..."}, more details are tested in DataFilesSpec.fileInfo
@@ -145,8 +164,19 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
     }
   }
 
-  "scenario: POST /deposit; twice GET /deposit/:uuid/doi" should "return 200" in {
+  "scenario: POST /deposit; PUT /deposit/:uuid/state; PUT /deposit/$uuid/file/..." should "return forbidden cannot update SUBMITTED deposit" in {
+    val uuid: String = setupSubmittedDeposit
+    authMocker.expectsUserFooBar
+    put(
+      uri = s"/deposit/$uuid/file/path/to/test.txt", headers = Seq(fooBarBasicAuthHeader, ("Content-Type", "application/json")),
+      body = "Lorum ipsum"
+    ) {
+      body shouldBe "Deposit has state SUBMITTED, can only update deposits with one of the states: DRAFT, REJECTED"
+      status shouldBe FORBIDDEN_403
+    }
+  }
 
+  "scenario: POST /deposit; twice GET /deposit/:uuid/doi" should "return 200" in {
     // create dataset
     authMocker.expectsUserFooBar
     val responseBody = post(uri = s"/deposit", headers = Seq(fooBarBasicAuthHeader)) { body }
@@ -174,52 +204,25 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
   }
 
   "scenario: create - ... - sumbit" should "create submitted dataset copied from a draft" in {
+    val uuid: String = setupSubmittedDeposit
 
-    val datasetMetadata = getManualTestResource("datasetmetadata-from-ui-all.json")
-    val doi = DatasetMetadata(datasetMetadata)
-      .getOrRecover(fail(_))
-      .doi
-      .getOrElse(fail("could not get DOI from test input"))
-
-    (testDir / "easy-ingest-flow-inbox").createDirectories()
-    (testDir / "stage").createDirectories()
-
-    // create dataset
-    authMocker.expectsUserFooBar
-    val responseBody = post(uri = s"/deposit", headers = Seq(fooBarBasicAuthHeader)) { body }
-    val uuid = DepositInfo(responseBody).map(_.id.toString).getOrRecover(e => fail(e.toString, e))
-    val depositDir = testDir / "drafts" / "foo" / uuid.toString
-
-    // copy DOI from metadata into deposit.properties
-    (depositDir / "deposit.properties").append(s"identifier.doi=$doi")
-
-    // upload dataset metadata
+    // resubmit fails
+    val props = testDir / s"drafts/foo/$uuid/deposit.properties"
+    props.write(props.contentAsString.replace("SUBMITTED", "DRAFT"))
     authMocker.expectsUserFooBar
     put(
-      uri = s"/deposit/$uuid/metadata",
+      uri = s"/deposit/$uuid/state",
       headers = Seq(fooBarBasicAuthHeader),
-      body = datasetMetadata
-    ) {
-      body shouldBe ""
-      status shouldBe NO_CONTENT_204
-    }
-
-    // submit
-    authMocker.expectsUserFooBar
-    put(
-      uri = s"/deposit/$uuid/state", headers = Seq(fooBarBasicAuthHeader),
       body = """{"state":"SUBMITTED","stateDescription":"blabla"}"""
     ) {
-      body shouldBe ""
-      status shouldBe NO_CONTENT_204
-
-      // +3 is difference in number of files in metadata directory: json versus xml's
-      (depositDir.walk().size + 3) shouldBe (testDir / "easy-ingest-flow-inbox" / uuid.toString).walk().size
+      status shouldBe CONFLICT_409
+      body shouldBe s"The deposit (UUID $uuid) already exists in the submit area. Possibly due to a resubmit."
     }
+    props.write(props.contentAsString.replace("DRAFT", "SUBMITTED"))
 
     // failing delete
     authMocker.expectsUserFooBar
-    delete (uri = s"/deposit/$uuid", headers = Seq(fooBarBasicAuthHeader)) {
+    delete(uri = s"/deposit/$uuid", headers = Seq(fooBarBasicAuthHeader)) {
       body shouldBe "Deposit has state SUBMITTED, can only delete deposits with one of the states: DRAFT, ARCHIVED, REJECTED"
       status shouldBe FORBIDDEN_403
     }
@@ -228,7 +231,7 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
     // deposit still exists
     get(
       uri = s"/deposit/$uuid/state", headers = Seq(fooBarBasicAuthHeader),
-    ){
+    ) {
       body shouldBe """{"state":"SUBMITTED","stateDescription":"Deposit is ready for processing."}"""
       status shouldBe OK_200
     }
@@ -272,7 +275,7 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
 
     // delete
     authMocker.expectsUserFooBar
-    delete (uri = s"/deposit/$uuid", headers = Seq(fooBarBasicAuthHeader)) {
+    delete(uri = s"/deposit/$uuid", headers = Seq(fooBarBasicAuthHeader)) {
       body shouldBe ""
       status shouldBe NO_CONTENT_204
     }
@@ -281,14 +284,13 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
     authMocker.expectsUserFooBar
     get(
       uri = s"/deposit/$uuid/state", headers = Seq(fooBarBasicAuthHeader),
-    ){
+    ) {
       body shouldBe s"Deposit $uuid not found"
       status shouldBe NOT_FOUND_404
     }
   }
 
   "scenario: POST /deposit; hack state to ARCHIVED; SUBMIT" should "reject state transition" in {
-
     // create dataset
     authMocker.expectsUserFooBar
     val responseBody = post(uri = s"/deposit", headers = Seq(fooBarBasicAuthHeader)) { body }
@@ -306,10 +308,55 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
       body = """{"state":"SUBMITTED","stateDescription":"blabla"}"""
     ) {
       status shouldBe FORBIDDEN_403
-      body shouldBe s"Cannot transition from ARCHIVED to SUBMITTED (deposit id: $uuid, user: foo)"
+      body shouldBe s"Cannot transition from ARCHIVED to SUBMITTED"
     }
 
     // submit did not complain about missing metadata, so the state transition check indeed came first
     (testDir / "drafts" / "foo" / uuid.toString / "bag" / "metatada") shouldNot exist
+  }
+
+  private def setupSubmittedDeposit: String = {
+    val datasetMetadata = getManualTestResource("datasetmetadata-from-ui-all.json")
+    val doi = DatasetMetadata(datasetMetadata)
+      .getOrRecover(fail(_))
+      .doi
+      .getOrElse(fail("could not get DOI from test input"))
+
+    (testDir / "easy-ingest-flow-inbox").createDirectories()
+    (testDir / "stage").createDirectories()
+
+    // create dataset
+    authMocker.expectsUserFooBar
+    val responseBody = post(uri = s"/deposit", headers = Seq(fooBarBasicAuthHeader)) { body }
+    val uuid = DepositInfo(responseBody).map(_.id.toString).getOrRecover(e => fail(e.toString, e))
+    val depositDir = testDir / "drafts" / "foo" / uuid.toString
+
+    // copy DOI from metadata into deposit.properties
+    (depositDir / "deposit.properties").append(s"identifier.doi=$doi")
+
+    // upload dataset metadata
+    authMocker.expectsUserFooBar
+    put(
+      uri = s"/deposit/$uuid/metadata",
+      headers = Seq(fooBarBasicAuthHeader),
+      body = datasetMetadata
+    ) {
+      body shouldBe ""
+      status shouldBe NO_CONTENT_204
+    }
+
+    // submit
+    authMocker.expectsUserFooBar
+    put(
+      uri = s"/deposit/$uuid/state", headers = Seq(fooBarBasicAuthHeader),
+      body = """{"state":"SUBMITTED","stateDescription":"blabla"}"""
+    ) {
+      body shouldBe ""
+      status shouldBe NO_CONTENT_204
+
+      // +3 is difference in number of files in metadata directory: json versus xml's
+      (depositDir.walk().size + 3) shouldBe (testDir / "easy-ingest-flow-inbox" / uuid.toString).walk().size
+    }
+    uuid
   }
 }

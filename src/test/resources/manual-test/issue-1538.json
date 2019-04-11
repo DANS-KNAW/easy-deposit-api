@@ -119,7 +119,7 @@
       "value": "1995-11"
     },
     {
-      "qualifier": "dc:date",
+      "qualifier": "dcterms:date",
       "scheme": "",
       "value": "survey between 1991 and feb 1992"
     },

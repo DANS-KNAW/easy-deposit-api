@@ -15,34 +15,15 @@
  */
 package nl.knaw.dans.easy
 
-import java.nio.file.{ FileAlreadyExistsException, Paths }
-import java.util.UUID
+import java.nio.file.Paths
 
 import better.files.StringOps
 import nl.knaw.dans.bag.DansBag
-import nl.knaw.dans.easy.deposit.docs.StateInfo.State.State
 
 import scala.util.{ Failure, Try }
 import scala.xml._
 
 package object deposit {
-
-  sealed abstract class DepositException(msg: String, cause: Throwable) extends Exception(msg, cause)
-
-  case class NoSuchDepositException(user: String, id: UUID, cause: Throwable)
-    extends DepositException(s"Deposit with id $id not found for user $user:  ${ cause.getMessage }", cause)
-
-  case class CorruptDepositException(user: String, id: String, cause: Throwable)
-    extends DepositException(s"Invalid deposit uuid $id for user $user: ${ cause.getMessage }", cause)
-
-  case class ConcurrentUploadException(tempPrefix: String)
-    extends DepositException(s"Another upload is pending. Please try again later.", new FileAlreadyExistsException(tempPrefix))
-
-  case class IllegalStateTransitionException(user: String, id: UUID, oldState: State, newState: State)
-    extends DepositException(s"Cannot transition from $oldState to $newState (deposit id: $id, user: $user)", null)
-
-  case class ConfigurationException(msg: String) extends IllegalArgumentException(s"Configuration error: $msg")
-  case class InvalidDoiException(uuid: UUID) extends Exception(s"InvalidDoi: DOI must be obtained by calling GET /deposit/$uuid")
 
   val prologue = """<?xml version='1.0' encoding='UTF-8'?>"""
 

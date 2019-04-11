@@ -19,8 +19,8 @@ import java.io.ByteArrayInputStream
 import java.nio.charset.StandardCharsets
 
 import javax.servlet.http.Part
+import nl.knaw.dans.easy.deposit.Errors.ZipMustBeOnlyFileException
 import nl.knaw.dans.easy.deposit.TestSupportFixture
-import nl.knaw.dans.easy.deposit.servlets.DepositServlet.ZipMustBeOnlyFileException
 import org.scalamock.scalatest.MockFactory
 import org.scalatra.servlet.FileItem
 
@@ -85,7 +85,8 @@ class RichFileItemsSpec extends TestSupportFixture with MockFactory {
       mockFileItem(""),
     ).buffered
     fileItems.nextAsZipIfOnlyOne should matchPattern {
-      case Failure(ZipMustBeOnlyFileException("some.zip")) =>
+      case Failure(e: ZipMustBeOnlyFileException) if e.getMessage ==
+        "A multipart/form-data message contained a ZIP part [some.zip] but also other parts." =>
     }
   }
 
@@ -112,7 +113,8 @@ class RichFileItemsSpec extends TestSupportFixture with MockFactory {
     ).buffered
     fileItems.nextAsZipIfOnlyOne shouldBe Success(None)
     fileItems.copyPlainItemsTo(stagingDir) should matchPattern {
-      case Failure(ZipMustBeOnlyFileException("other.zip")) =>
+      case Failure(e: ZipMustBeOnlyFileException) if e.getMessage ==
+        "A multipart/form-data message contained a ZIP part [other.zip] but also other parts." =>
     }
     stagingDir.walk().map(_.name).toList should
       contain theSameElementsAs List("staging", "some.txt")

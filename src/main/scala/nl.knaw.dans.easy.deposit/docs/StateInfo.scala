@@ -15,6 +15,7 @@
  */
 package nl.knaw.dans.easy.deposit.docs
 
+import nl.knaw.dans.easy.deposit.Errors.IllegalDepositStateException
 import nl.knaw.dans.easy.deposit.docs.JsonUtil.RichJsonInput
 import nl.knaw.dans.easy.deposit.docs.StateInfo.State.State
 import org.json4s.JsonInput
@@ -23,14 +24,19 @@ import scala.collection.Seq
 import scala.util.{ Failure, Success, Try }
 
 case class StateInfo(state: State, stateDescription: String) {
-  def isDeletable: Try[Unit] = {
-    if (StateInfo.deletableStates.contains(state)) Success(())
-    else Failure(new IllegalStateException(s"Deposit has state $state, can only delete deposits with one of the states: ${ StateInfo.deletableStates.mkString(", ") }"))
+  def canDelete: Try[Unit] = can("delete", StateInfo.deletableStates)
+
+  def canUpdate: Try[Unit] = can("update", StateInfo.updatableStates)
+
+  private def can(action: String, states: Seq[State]): Try[Unit] = {
+    if (states.contains(state)) Success(())
+    else Failure(IllegalDepositStateException(action, state, states))
   }
 }
 
 object StateInfo {
   val deletableStates: Seq[State] = Seq(State.draft, State.archived, State.rejected)
+  val updatableStates: Seq[State] = Seq(State.draft, State.rejected)
 
   object State extends Enumeration {
     type State = Value

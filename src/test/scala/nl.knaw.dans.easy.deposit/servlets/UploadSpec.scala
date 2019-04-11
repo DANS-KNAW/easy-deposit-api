@@ -124,7 +124,7 @@ class UploadSpec extends DepositServletFixture {
       headers = Seq(fooBarBasicAuthHeader),
       files = bodyParts
     ) {
-      body shouldBe "A multipart/form-data message contained a ZIP [2.zip] part but also other parts."
+      body shouldBe "A multipart/form-data message contained a ZIP part [2.zip] but also other parts."
       status shouldBe BAD_REQUEST_400
       absoluteTarget.list.size shouldBe 0 // preceding plain file not added to draft bag
     }
@@ -144,7 +144,7 @@ class UploadSpec extends DepositServletFixture {
       headers = Seq(fooBarBasicAuthHeader),
       files = bodyParts
     ) {
-      body shouldBe "A multipart/form-data message contained a ZIP [1.zip] part but also other parts."
+      body shouldBe "A multipart/form-data message contained a ZIP part [1.zip] but also other parts."
       status shouldBe BAD_REQUEST_400
       absoluteTarget.list.size shouldBe 0
     }
@@ -190,7 +190,6 @@ class UploadSpec extends DepositServletFixture {
         .map(_.replaceAll(".* +", "")) should contain theSameElementsAs List(
         "login.html", "readme.md", "__MACOSX/._login.html", "upload.html"
       ).map("data/path/to/dir/" + _)
-
     }
     // get should show uploaded files
     get(
@@ -202,6 +201,61 @@ class UploadSpec extends DepositServletFixture {
       body should include("""{"filename":"._login.html","dirpath":"path/to/dir/__MACOSX",""")
       body should include("""{"filename":"upload.html","dirpath":"path/to/dir",""")
       body should include("""{"filename":"login.html","dirpath":"path/to/dir",""")
+    }
+  }
+
+  it should "extract all files from a ZIP, with a nested zip" in {
+    File("src/test/resources/manual-test/nested.zip").copyTo(testDir / "input" / "2.zip")
+    val uuid = createDeposit
+    val relativeTarget = "path/to/dir"
+    val bagDir = testDir / "drafts" / "foo" / uuid.toString / "bag"
+    val absoluteTarget = (bagDir / "data" / relativeTarget).createDirectories()
+    absoluteTarget.list.size shouldBe 0 // precondition
+    post(
+      uri = s"/deposit/$uuid/file/$relativeTarget",
+      params = Iterable(),
+      headers = Seq(fooBarBasicAuthHeader),
+      files = Seq("formFieldName" -> (testDir / "input/2.zip").toJava)
+    ) {
+      body shouldBe empty
+      status shouldBe CREATED_201
+      absoluteTarget.walk().map(_.name).toList should contain theSameElementsAs List(
+        "dir", "myCompress", ".DS_Store", "secondLayer", "test.txt", "test_file.txt", "deeper.zip"
+      )
+      (bagDir / "manifest-sha1.txt")
+        .lines
+        .map(_.replaceAll(".* +", "")) should contain theSameElementsAs List(
+        "myCompress/test_file.txt", "myCompress/.DS_Store", "myCompress/secondLayer/test.txt", "myCompress/deeper.zip"
+      ).map("data/path/to/dir/" + _)
+    }
+    // get should show uploaded files
+    get(
+      uri = s"/deposit/$uuid/file/",
+      headers = Seq(fooBarBasicAuthHeader),
+    ) {
+      status shouldBe OK_200
+      body should include("""{"filename":"deeper.zip","dirpath":"path/to/dir/myCompress",""")
+      body should include("""{"filename":"test_file.txt","dirpath":"path/to/dir/myCompress",""")
+      body should include("""{"filename":".DS_Store","dirpath":"path/to/dir/myCompress",""")
+      body should include("""{"filename":"test.txt","dirpath":"path/to/dir/myCompress/secondLayer",""")
+    }
+  }
+
+  it should "not accept a tar" in {
+    File("src/test/resources/manual-test/Archive.tar.gz").copyTo(testDir / "input" / "1.tar.gz")
+    val uuid = createDeposit
+    val relativeTarget = "path/to/dir"
+    val bagDir = testDir / "drafts" / "foo" / uuid.toString / "bag"
+    val absoluteTarget = (bagDir / "data" / relativeTarget).createDirectories()
+    absoluteTarget.list.size shouldBe 0 // precondition
+    post(
+      uri = s"/deposit/$uuid/file/$relativeTarget",
+      params = Iterable(),
+      headers = Seq(fooBarBasicAuthHeader),
+      files = Seq(("formFieldName", (testDir / "input/1.tar.gz").toJava))
+    ) {
+      body shouldBe "ZIP file is malformed. No entries found."
+      status shouldBe BAD_REQUEST_400
     }
   }
 
@@ -227,7 +281,6 @@ class UploadSpec extends DepositServletFixture {
         .map(_.replaceAll(".* +", "")) should contain theSameElementsAs List(
         "login.html", "readme.md", "__MACOSX/._login.html", "upload.html"
       ).map("data/" + _)
-
     }
     // get should show uploaded files
     get(
@@ -262,7 +315,7 @@ class UploadSpec extends DepositServletFixture {
     ) {
       absoluteTarget.list.size shouldBe 2
       status shouldBe CONFLICT_409
-      body shouldBe s"Conflict. The following file(s) already exist on the server: some/3.txt, some/2.txt"
+      body shouldBe s"The following file(s) already exist on the server: some/3.txt, some/2.txt"
     }
   }
 
@@ -276,7 +329,7 @@ class UploadSpec extends DepositServletFixture {
       body = "Lorem ipsum dolor sit amet"
     ) {
       status shouldBe BAD_REQUEST_400
-      body shouldBe """Must have a Content-Type starting with "multipart/", got None."""
+      body shouldBe """Content-Type is a mandatory request header and must start with "multipart/"."""
     }
   }
 
@@ -290,7 +343,7 @@ class UploadSpec extends DepositServletFixture {
       body = "Lorem ipsum dolor sit amet"
     ) {
       status shouldBe BAD_REQUEST_400
-      body shouldBe """Must have a Content-Type starting with "multipart/", got Some(text/plain)."""
+      body shouldBe """Content-Type must start with "multipart/". Got: text/plain"""
     }
   }
 
@@ -304,7 +357,7 @@ class UploadSpec extends DepositServletFixture {
     // first upload
     put(
       uri = s"/deposit/$uuid/file/path/to/text.txt",
-      headers = Seq(fooBarBasicAuthHeader),
+      headers = Seq(fooBarBasicAuthHeader, contentTypePlainText),
       body = longContent
     ) {
       status shouldBe CREATED_201
@@ -316,7 +369,7 @@ class UploadSpec extends DepositServletFixture {
     val sha = "c5b8de8cc3587aef4e118a481115391033621e06"
     put(
       uri = s"/deposit/$uuid/file/path/to/text.txt",
-      headers = Seq(fooBarBasicAuthHeader),
+      headers = Seq(fooBarBasicAuthHeader, contentTypePlainText),
       body = shortContent
     ) {
       status shouldBe NO_CONTENT_204
@@ -342,7 +395,7 @@ class UploadSpec extends DepositServletFixture {
     val sha = "c5b8de8cc3587aef4e118a481115391033621e06"
     put(
       uri = s"/deposit/$uuid/file/text.txt",
-      headers = Seq(fooBarBasicAuthHeader),
+      headers = Seq(fooBarBasicAuthHeader, contentTypePlainText),
       body = shortContent
     ) {
       status shouldBe CREATED_201

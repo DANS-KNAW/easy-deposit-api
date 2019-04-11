@@ -19,12 +19,15 @@ import java.io.IOException
 import java.nio.file._
 import java.nio.file.attribute.PosixFilePermission.GROUP_WRITE
 import java.nio.file.attribute.{ PosixFileAttributeView, UserPrincipalNotFoundException }
+import java.nio.file.spi.FileSystemProvider
+import java.util.UUID
 
 import better.files.File
 import better.files.File.VisitOptions
 import nl.knaw.dans.bag.ChecksumAlgorithm.ChecksumAlgorithm
 import nl.knaw.dans.bag.DansBag
 import nl.knaw.dans.bag.v0.DansV0Bag
+import nl.knaw.dans.easy.deposit.Errors.{ AlreadySubmittedException, InvalidDoiException }
 import nl.knaw.dans.easy.deposit.docs.{ AgreementsXml, DDM, FilesXml, StateInfo }
 import nl.knaw.dans.lib.error._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
@@ -46,13 +49,15 @@ class Submitter(stagingBaseDir: File,
                ) extends DebugEnhancedLogging {
   private val groupPrincipal = {
     Try {
-      stagingBaseDir.path.getFileSystem.getUserPrincipalLookupService.lookupPrincipalByGroupName(groupName)
+      stagingBaseDir.fileSystem.getUserPrincipalLookupService.lookupPrincipalByGroupName(groupName)
     }.getOrRecover {
       case e: UserPrincipalNotFoundException => throw new IOException(s"Group $groupName could not be found", e)
       case e: UnsupportedOperationException => throw new IOException("Not on a POSIX supported file system", e)
       case NonFatal(e) => throw new IOException(s"unexpected error occured on $stagingBaseDir", e)
     }
   }
+  val srcProvider: FileSystemProvider = stagingBaseDir.fileSystem.provider()
+  StartupValidation.sameMounts(srcProvider, stagingBaseDir, submitToBaseDir)
 
   /**
    * Submits `depositDir` by writing the file metadata, updating the bag checksums, staging a copy
@@ -79,6 +84,8 @@ class Submitter(stagingBaseDir: File,
       msg = datasetMetadata.messageForDataManager.getOrElse("")
       filesXml <- FilesXml(draftBag.data)
       _ <- sameFiles(draftBag.payloadManifests, draftBag.baseDir / "data")
+      submitDir = submitToBaseDir / draftDeposit.id.toString
+      _ = if (submitDir.exists) throw AlreadySubmittedException(draftDeposit.id)
       // from now on no more user errors but internal errors
       // EASY-1464 3.3.8.a create empty staged bag to take a copy of the deposit
       stageDir = (stagingBaseDir / draftDeposit.id.toString).createDirectories()
@@ -91,22 +98,25 @@ class Submitter(stagingBaseDir: File,
       _ <- stageBag.addMetadataFile(agreementsXml, "agreements.xml")
       _ <- stageBag.addMetadataFile(datasetXml, "dataset.xml")
       _ <- stageBag.addMetadataFile(filesXml, "files.xml")
-      _ <- workerActions(draftBag, stageBag, submitToBaseDir / draftDeposit.id.toString)
+      _ <- workerActions(draftDeposit.id, draftBag, stageBag, submitDir)
     } yield ()
   }
 
   // TODO a worker thread allows submit to return fast for large deposits.
-  private def workerActions(draftBag: DansBag, stageBag: DansBag, submitDir: File) = for {
+  private def workerActions(id: UUID, draftBag: DansBag, stageBag: DansBag, submitDir: File) = for {
     // EASY-1464 3.3.8.b copy files
     _ <- stageBag.addPayloadFile(draftBag.data, Paths.get("."))
     _ <- stageBag.save()
     _ <- isValid(stageBag)
     // EASY-1464 3.3.7 checksums
     _ <- samePayloadManifestEntries(stageBag, draftBag)
-    _ <- setRightsRecursively(stageBag.baseDir.parent)
+    draftDepositDir = stageBag.baseDir.parent
+    _ <- setRightsRecursively(draftDepositDir)
     // EASY-1464 step 3.3.9 Move copy to submit-to area
-    _ = logger.info(s"moving ${stageBag.baseDir.parent} to $submitDir")
-    _ = stageBag.baseDir.parent.moveTo(submitDir)
+    _ = logger.info(s"moving $draftDepositDir to $submitDir")
+    _ <- Try(srcProvider.move(draftDepositDir.path, submitDir.path, StandardCopyOption.ATOMIC_MOVE)).recoverWith {
+      case e: FileAlreadyExistsException => Failure(AlreadySubmittedException(id))
+    }
   } yield ()
 
   private def setRightsRecursively(file: File): Try[Unit] = {

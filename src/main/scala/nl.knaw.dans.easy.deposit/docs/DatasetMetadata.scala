@@ -15,8 +15,9 @@
  */
 package nl.knaw.dans.easy.deposit.docs
 
+import nl.knaw.dans.easy.deposit.Errors.InvalidDocumentException
 import nl.knaw.dans.easy.deposit.docs.DatasetMetadata._
-import nl.knaw.dans.easy.deposit.docs.JsonUtil.{ InvalidDocumentException, RichJsonInput }
+import nl.knaw.dans.easy.deposit.docs.JsonUtil.RichJsonInput
 import nl.knaw.dans.easy.deposit.docs.dm.AccessRights.AccessRights
 import nl.knaw.dans.easy.deposit.docs.dm.Date._
 import nl.knaw.dans.easy.deposit.docs.dm.PrivacySensitiveDataPresent.PrivacySensitiveDataPresent

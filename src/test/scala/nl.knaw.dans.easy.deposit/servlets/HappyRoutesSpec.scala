@@ -164,14 +164,13 @@ class HappyRoutesSpec extends TestSupportFixture with ServletFixture with Scalat
 
   "put /deposit/:uuid/metadata" should "reject invalid datasetmetadata.json" in {
     authMocker.expectsUserFooBar
-
     put(
       uri = s"/deposit/$uuid/metadata",
       body = """{"title":"blabla"}""", // N.B: key should be plural
       headers = Seq(fooBarBasicAuthHeader)
     ) {
       status shouldBe BAD_REQUEST_400
-      body shouldBe """Bad Request. invalid DatasetMetadata: don't recognize {"title":"blabla"}"""
+      body shouldBe """invalid DatasetMetadata: don't recognize {"title":"blabla"}"""
     }
   }
 }

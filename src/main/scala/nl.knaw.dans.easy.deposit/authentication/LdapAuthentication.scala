@@ -58,8 +58,6 @@ trait LdapAuthentication extends DebugEnhancedLogging {
     }
 
     private def findUser(searchedUserName: String, contextProperties: util.Hashtable[String, String]) = {
-      logger.info(s"looking for user [$searchedUserName]")
-
       val query = s"(&(objectClass=$ldapUserClass)($ldapUserIdAttrName=$searchedUserName))"
       val searchControls = new SearchControls() {
         setSearchScope(SearchControls.SUBTREE_SCOPE)

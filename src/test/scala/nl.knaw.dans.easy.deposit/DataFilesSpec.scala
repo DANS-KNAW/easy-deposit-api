@@ -18,11 +18,12 @@ package nl.knaw.dans.easy.deposit
 import java.io.ByteArrayInputStream
 import java.nio.charset.StandardCharsets
 import java.nio.file.attribute.PosixFilePermission
-import java.nio.file.{ AccessDeniedException, NoSuchFileException, Paths }
+import java.nio.file.{ AccessDeniedException, Paths }
 import java.util.UUID
 
 import better.files.StringOps
 import nl.knaw.dans.bag.v0.DansV0Bag
+import nl.knaw.dans.easy.deposit.Errors.NoSuchFileInDepositException
 import nl.knaw.dans.easy.deposit.docs.FileInfo
 import nl.knaw.dans.lib.error._
 
@@ -93,9 +94,8 @@ class DataFilesSpec extends TestSupportFixture {
   }
 
   it should "report a non existing file" in {
-    inside(createDatafiles.delete(Paths.get("file.txt"))) {
-      case Failure(e: NoSuchFileException) => e.getMessage shouldBe "file.txt"
-      case other => fail(s"expecting Failure(NoSuchFileException(file.txt)) but got $other")
+    createDatafiles.delete(Paths.get("file.txt")) should matchPattern {
+      case Failure(e: NoSuchFileInDepositException) if e.getMessage == "file.txt not found in deposit" =>
     }
   }
 
