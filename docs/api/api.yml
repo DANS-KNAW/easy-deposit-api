@@ -407,10 +407,6 @@ paths:
         unzipped in `dir_path`. For each file in the ZIP file, the path in the deposit will be `dir_path`/`path_in_zip`.
         The ZIP file may contain `nested ZIP files`, which will **not** be extracted, but stored as ZIP file.
 
-        In all other cases the files are all stored in the directory pointed to by `dir_path` and **it is not
-        allowed** to include any files with `Content-Type: application/zip`. Note, that this means that only a flat
-        list of files can be sent this way, i.e. not including any directory hierarchy.
-
         Concurrent POST calls to the same deposit are not allowed. The result of concurrent PUT and POST calls is
         undefined.
       parameters:
@@ -503,7 +499,7 @@ paths:
        - $ref: "#/components/parameters/FilePath"
       description: |
         If any of `file_path`'s parent do not yet exist, they are first created. The parameter `file_path` must not refer
-        to an existing directory. The Content-Type may be anything except `application/zip`.
+        to an existing directory. The Content-Type may be not be `application/zip` nor `multipart`.
       operationId: writeFile
       requestBody:
         description: file data
@@ -685,7 +681,7 @@ components:
       description: Bad Request. The request body must be multipart/form-data.
 
     ZipFileNotAllowed:
-      description: Bad request. Content-Type must not be application/zip.
+      description: Bad request. Content-Type must not be application/zip nor start with multipart.
 
   schemas:
 
