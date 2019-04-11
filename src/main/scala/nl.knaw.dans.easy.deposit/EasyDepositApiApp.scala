@@ -294,12 +294,12 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
   }
 
   private def contentTypeAnythingBut(contentType: Option[String]): Try[Unit] = {
-    if (contentType.map(_.trim.toLowerCase).exists(str =>
-      str.nonEmpty &&
-      !str.matches(contentTypeZipPattern) &&
-      !str.startsWith("multipart")
-    )) Success(())
-    else Failure(InvalidContentTypeException(contentType, "must not be application/zip nor start with multipart."))
+    contentType.map(_.trim.toLowerCase) match {
+      case Some(str) if str.nonEmpty
+        && !str.startsWith("multipart")
+        && !str.matches(contentTypeZipPattern) => Success(())
+      case _ => Failure(InvalidContentTypeException(contentType, "must not be application/zip nor start with multipart."))
+    }
   }
 
   def stageFiles(userId: String, id: UUID, destination: Path): Try[(Dispose[File], StagedFilesTarget)] = {
