@@ -61,8 +61,8 @@ class DepositServletErrorSpec extends TestSupportFixture with ServletFixture wit
     props.clearProperty("multipart.file-size-threshold")
     Option(props.getInteger("multipart.file-size-threshold",null)) shouldBe None // precondition
 
-    the[ConfigurationException] thrownBy new DepositServlet(new EasyDepositApiApp(Configuration("",props))) should
-      have message "Configuration error: Please configure multipart.file-size-threshold to prevent heap space exceptions on large uploads"
+    the[NoSuchElementException] thrownBy new DepositServlet(new EasyDepositApiApp(Configuration("",props))) should
+      have message s"'multipart.file-size-threshold' doesn't map to an existing object"
   }
 
   "post /" should "return 500 (Internal Server Error) on a not expected exception and basic authentication" in {
