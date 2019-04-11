@@ -58,12 +58,21 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
     logger.info(s"users.ldap-user-id-attr-name = $ldapUserIdAttrName")
     logger.info(s"users.ldap-admin-principal = $ldapAdminPrincipal")
   }
+
   val multipartConfig: MultipartConfig = MultipartConfig(
     location = Option(properties.getString("multipart.location", null)),
     maxFileSize = Option(properties.getLong("multipart.max-file-size", null)),
     maxRequestSize = Option(properties.getLong("multipart.max-request-size", null)),
-    fileSizeThreshold = Some(properties.getInt("multipart.file-size-threshold", 0)),
-    // getInt doesn't compile with null as default
+    fileSizeThreshold = {
+      val integerValue = properties.getInteger("multipart.file-size-threshold", null)
+      // we can't postpone next check to the constructor of DepositServlet
+      // because in case of null next line would print: Some(0) None
+      // println(s"${Option[Int](integerValue)} ${Option[Integer](integerValue)}")
+      Option(integerValue).getOrElse(
+        throw ConfigurationException("Please configure multipart.file-size-threshold to prevent heap space exceptions on large uploads")
+      )
+      Option(integerValue)
+    },
   )
 
   def getVersion: String = {

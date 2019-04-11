@@ -50,15 +50,19 @@ class DepositServletErrorSpec extends TestSupportFixture with ServletFixture wit
 
   it should "fail with empty threshold value" in {
     val props = minimalAppConfig.properties.clone().asInstanceOf[PropertiesConfiguration]
+    props.clearProperty("multipart.file-size-threshold")
     props.addProperty("multipart.file-size-threshold", "")
     the[ConversionException] thrownBy new DepositServlet(new EasyDepositApiApp(new Configuration("", props))) should
       have message s"'multipart.file-size-threshold' doesn't map to an Integer object"
   }
 
-  it should "succeed without threshold property" in {
+  it should "fail without threshold property" in {
     val props = minimalAppConfig.properties
-    Option(props.getProperty("multipart.file-size-threshold")) shouldBe None // precondition
-    new DepositServlet(new EasyDepositApiApp(new Configuration("", props))) shouldBe a[DepositServlet]
+    props.clearProperty("multipart.file-size-threshold")
+    Option(props.getInteger("multipart.file-size-threshold",null)) shouldBe None // precondition
+
+    the[ConfigurationException] thrownBy new DepositServlet(new EasyDepositApiApp(Configuration("",props))) should
+      have message "Configuration error: Please configure multipart.file-size-threshold to prevent heap space exceptions on large uploads"
   }
 
   "post /" should "return 500 (Internal Server Error) on a not expected exception and basic authentication" in {
