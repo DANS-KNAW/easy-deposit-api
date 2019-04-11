@@ -23,7 +23,6 @@ import nl.knaw.dans.bag.DansBag
 import nl.knaw.dans.easy.deposit.docs.StateInfo.State
 import nl.knaw.dans.easy.deposit.docs._
 import nl.knaw.dans.lib.error._
-import org.apache.commons.configuration.PropertiesConfiguration
 import org.scalamock.scalatest.MockFactory
 
 import scala.util.{ Failure, Success }
