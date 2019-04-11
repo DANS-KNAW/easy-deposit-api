@@ -164,16 +164,26 @@ class DatasetMetadataSpec extends TestSupportFixture {
     DatasetMetadata(s) shouldBe a[Success[_]]
   }
 
-  "DatasetMetadata.*" should "only report the item in the list that is troublesome" in {
+  "DatasetMetadata.*" should "only report the item in the list that are invalid" in {
     val alteredData = createCorruptMetadataJsonString("\"scheme\": \"string\"", "\"invalid\": \"property\"")
     DatasetMetadata(alteredData) should matchPattern {
       case Failure(ide: InvalidDocumentException) if ide.getMessage.contains("{\"languageOfDescription\":{\"invalid\":\"property\"},\"audiences\":{\"invalid\":\"property\"},\"subjects\":{\"invalid\":\"property\"},\"languagesOfFiles\":{\"invalid\":\"property\"},\"temporalCoverages\":{\"invalid\":\"property\"}}") =>
     }
   }
 
-  "DatasetMetadata.spatialBoxes" should "only report spatial boxes if the box values are invalid" in {
-    val alteredData: String = createCorruptMetadataJsonString("  "north": "0",\n      "east": "0",\n      "south": "0",\n      "west": "0"", "\"north-west\": 2, \"south-east\": 3")
-    DatasetMetadata(alteredData) should matchPattern {
+  "DatasetMetadata.spatialBoxes" should "only report spatial points of the box that are invalid" in {
+    val boxes: String =
+      """{
+        |	"spatialBoxes": [{
+        |		"north-west": 2,
+        |		"south-east": 3,
+        |		"north": 4,
+        |		"east": 5,
+        |		"south": 9,
+        |		"west": 10
+        |	}],
+        |}""".stripMargin
+    DatasetMetadata(boxes) should matchPattern {
       case Failure(ide: InvalidDocumentException) if ide.getMessage == "invalid DatasetMetadata: don't recognize {\"spatialBoxes\":{\"north-west\":2,\"south-east\":3}}" =>
     }
   }
@@ -186,27 +196,21 @@ class DatasetMetadataSpec extends TestSupportFixture {
   }
 
   "DatasetMetadata.Dates" should "only report the dates that are not correct" in {
-    val placeHolder =
-      """\{
-        |      "scheme": "dcterms:W3CDTF",
-        |      "value": "2018-05-31",
-        |      "qualifier": "dcterms:created"
-        |    \}""".stripMargin
-
-    val newListOfDates =
+    val dates =
       """{
-        |      "scheme": "dcterms:W3CDTF",
-        |      "value": "2018-05-31",
-        |      "qualifier": "dcterms:created"
-        |    },
-        |    {
-        |       "invalidOne": "invalid"
-        |       "invalidValue": "2018-05-31",
-        |      "invalidQualifier": "dcterms:created"
-        |    }
-        |    """.stripMargin
-    val alteredData = createCorruptMetadataJsonString(placeHolder, newListOfDates)
-    DatasetMetadata(alteredData) should matchPattern {
+        |	"dates": [{
+        |			"scheme": "dcterms:W3CDTF",
+        |			"value": "2018-05-31",
+        |			"qualifier": "dcterms:created"
+        |		},
+        |		{
+        |			"invalidOne": "invalid",
+        |			"invalidValue": "2018-05-31",
+        |			"invalidQualifier": "dcterms:created"
+        |		}
+        |	]
+        |}""".stripMargin
+    DatasetMetadata(dates) should matchPattern {
       case Failure(ide: InvalidDocumentException) if ide.getMessage == """invalid DatasetMetadata: don't recognize {"dates":{"invalidOne":"invalid","invalidValue":"2018-05-31","invalidQualifier":"dcterms:created"}}""" =>
     }
   }
@@ -216,45 +220,46 @@ class DatasetMetadataSpec extends TestSupportFixture {
     val creatorInvalidIdElement = """{"titles": "Msc", "initials": "B.A.M.", "surname": "Hoter", "ids": [ { "scheme": "DAI", "value":  "93313935Z"}, {"scheme": "BSN", "value": "1235", "organization": "overheid"} ], "organization" :"DANS"}"""
     val creatorInvalidElementAtRootLevel = """{"titles": "Aartshertog", "FirstName": "jan-willem-hendrik", "surname": "Oranje", "ids": [ { "scheme": "DAI", "value":  "93313935y"}, {"scheme": "BSN", "value": "9999"} ], "organization" :"DANS"}"""
     //TODO moet hij hier niet struikelen over het veld role[0].waarde?
-    val creatorInvalidRole = """{"titles": "Dr", "initials": "S.", "surname": "Pieterzoon", "ids": [ { "scheme": "DAI", "value":  "93313935i"} ], "organization" :"DANS", "role": [ { "scheme": "datacite:contributorType", "key": "ContactPerson", "waarde": "invalid", "andereWaarde": "invalid"} ] }"""
+    val creatorInvalidRole =
+      """{"titles": "Dr", "initials": "S.", "surname": "Pieterzoon", "ids": [ { "scheme": "DAI", "value":  "93313935i"} ], "organization" :"DANS", "role": [ { "scheme": "datacite:contributorType", "key": "ContactPerson", "waarde": "invalid", "andereWaarde": "invalid"} ] }"""
     val creators = s"""{ "creators": [$creatorValid, $creatorInvalidIdElement, $creatorInvalidElementAtRootLevel, $creatorInvalidRole] }"""
     DatasetMetadata(creators) should matchPattern {
-      case Failure(ide: InvalidDocumentException) if ide.getMessage == """invalid DatasetMetadata: don't recognize {"creators\":[{"ids\":{"organization\":"overheid\"}},{"FirstName\":"jan-willem-hendrik\}]}""" =>
+      case Failure(ide: InvalidDocumentException) if ide.getMessage == """invalid DatasetMetadata: don't recognize {"creators":[{"ids":{"organization":"overheid"}},{"FirstName":"jan-willem-hendrik"}]}""" =>
     }
   }
 
   "DatasetMetadata.[creators, contributors]" should "only report the part of the creators and contributors that are wrong" in {
-    val metaData = s"""{ "contributors": [
-    {
-      "organization": "rightsHolder1",
-      "role": {
-        "scheme": "datacite:contributorType",
-        "key": "RightsHolder",
-        "value": "rightsholder"
-      },
-      "ids": [
-      { "scheme": "aScheme",
-        "key": "aKey",
-        "value": "aValue",
-        "waarde": "invalidProperty"
-      }
-      ],
-    },
-    {
-      "titles": "Dr.",
-      "initials": "A.S.",
-      "insertions": "van",
-      "surname": "Terix",
-      "role": {
-        "scheme": "datacite:contributorType",
-        "key": "RightsHolder",
-        "value": "rightsholder",
-        "otherKey": "placeHolder",
-        "otherValue": "placeHolder"
-      }
-    }
-    ],
-     }"""
+    val metaData =
+      s"""{
+         |	"contributors": [{
+         |			"organization": "rightsHolder1",
+         |			"role": {
+         |				"scheme": "datacite:contributorType",
+         |				"key": "RightsHolder",
+         |				"value": "rightsholder"
+         |			},
+         |			"ids": [{
+         |				"scheme": "aScheme",
+         |				"key": "aKey",
+         |				"value": "aValue",
+         |				"waarde": "invalidProperty"
+         |			}]
+         |		},
+         |		{
+         |			"titles": "Dr.",
+         |			"initials": "A.S.",
+         |			"insertions": "van",
+         |			"surname": "Terix",
+         |			"role": {
+         |				"scheme": "datacite:contributorType",
+         |				"key": "RightsHolder",
+         |				"value": "rightsholder",
+         |				"otherKey": "placeHolder",
+         |				"otherValue": "placeHolder"
+         |			}
+         |		}
+         |	]
+         |}""".stripMargin
 
     //TODO it also complains about the the field "key" in ids along with the invlaid field "waarde"
     val expectedErrorMsg =
