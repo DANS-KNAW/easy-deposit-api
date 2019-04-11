@@ -32,6 +32,7 @@ import nl.knaw.dans.easy.deposit.servlets.contentTypeZipPattern
 import nl.knaw.dans.lib.error._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.apache.commons.configuration.PropertiesConfiguration
+import org.scalatra.servlet.MultipartConfig
 
 import scala.util.{ Failure, Success, Try }
 
@@ -57,6 +58,13 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
     logger.info(s"users.ldap-user-id-attr-name = $ldapUserIdAttrName")
     logger.info(s"users.ldap-admin-principal = $ldapAdminPrincipal")
   }
+
+  val multipartConfig: MultipartConfig = MultipartConfig(
+    location = Option(properties.getString("multipart.location")),
+    maxFileSize = Option(properties.getLong("multipart.max-file-size", null)),
+    maxRequestSize = Option(properties.getLong("multipart.max-request-size", null)),
+    fileSizeThreshold = Some(properties.getInt("multipart.file-size-threshold")), //throws if not provided
+  )
 
   def getVersion: String = {
     configuration.version
