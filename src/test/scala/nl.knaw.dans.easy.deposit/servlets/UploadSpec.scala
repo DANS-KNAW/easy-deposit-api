@@ -130,7 +130,7 @@ class UploadSpec extends DepositServletFixture {
     }
   }
 
-  it should "report ZIP item found without uploading any of the others" in {
+  it should "report a ZIP item found without uploading any of the others" in {
     val bodyParts = createBodyParts(Seq(
       ("some", "1.zip", "content doesn't matter"),
       ("some", "2.txt", "Lorem ipsum dolor sit amet"),
@@ -163,7 +163,41 @@ class UploadSpec extends DepositServletFixture {
     ) {
       absoluteTarget.list.size shouldBe 0
       status shouldBe BAD_REQUEST_400
-      body shouldBe s"ZIP file is malformed. No entries found."
+      body shouldBe "ZIP file is malformed. No entries found."
+    }
+  }
+
+  it should "report a ZIP file with a few corrupted bytes" in {
+    val bodyParts = Seq(("some", new java.io.File("src/test/resources/manual-test/invalid.zip")))
+    val uuid = createDeposit
+    val relativeTarget = "path/to/dir"
+    val absoluteTarget = (testDir / "drafts" / "foo" / uuid.toString / "bag/data" / relativeTarget).createDirectories()
+    post(
+      uri = s"/deposit/$uuid/file/$relativeTarget",
+      params = Iterable(),
+      headers = Seq(fooBarBasicAuthHeader),
+      files = bodyParts
+    ) {
+      absoluteTarget.list.size shouldBe 0
+      status shouldBe 400
+      body shouldBe "ZIP file is malformed. No entries found."
+    }
+  }
+
+  it should "report an empty ZIP archive" in {
+    val bodyParts = Seq(("some", new java.io.File("src/test/resources/manual-test/empty.zip")))
+    val uuid = createDeposit
+    val relativeTarget = "path/to/dir"
+    val absoluteTarget = (testDir / "drafts" / "foo" / uuid.toString / "bag/data" / relativeTarget).createDirectories()
+    post(
+      uri = s"/deposit/$uuid/file/$relativeTarget",
+      params = Iterable(),
+      headers = Seq(fooBarBasicAuthHeader),
+      files = bodyParts
+    ) {
+      body shouldBe "ZIP file is malformed. No entries found."
+      status shouldBe BAD_REQUEST_400
+      absoluteTarget.list.size shouldBe 0
     }
   }
 
@@ -347,7 +381,7 @@ class UploadSpec extends DepositServletFixture {
     }
   }
 
-  s"PUT" should "return 201 for a new respectively 204 for a replaced file" in {
+  "PUT" should "return 201 for a new respectively 204 for a replaced file" in {
     val uuid = createDeposit
 
     val bagBase = DepositDir(testDir / "drafts", "foo", UUID.fromString(uuid.toString)).getDataFiles.get.bag
@@ -419,7 +453,7 @@ class UploadSpec extends DepositServletFixture {
 
   private def createDataset: UUID = {
     val responseBody = post(
-      uri = s"/deposit",
+      uri = "/deposit",
       headers = Seq(fooBarBasicAuthHeader)
     ) {
       new String(bodyBytes)
