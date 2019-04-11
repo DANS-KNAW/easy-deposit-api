@@ -16,14 +16,9 @@
 package nl.knaw.dans.easy.deposit.servlets
 
 import nl.knaw.dans.easy.deposit.EasyDepositApiApp
-import nl.knaw.dans.lib.logging.DebugEnhancedLogging
-import nl.knaw.dans.lib.logging.servlet._
 import org.scalatra.Unauthorized
 
-abstract class ProtectedServlet(app: EasyDepositApiApp) extends AbstractAuthServlet(app)
-  with ServletLogger
-  with MaskedLogFormatter
-  with DebugEnhancedLogging {
+abstract class ProtectedServlet(app: EasyDepositApiApp) extends AbstractAuthServlet(app) {
 
   before() {
     if (!isAuthenticated) {

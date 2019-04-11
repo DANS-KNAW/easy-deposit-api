@@ -25,7 +25,7 @@ import org.scalatra.auth.ScentryAuthStore.CookieAuthStore
 import org.scalatra.auth.{ ScentryConfig, ScentrySupport }
 
 trait AuthenticationSupport extends ScentrySupport[AuthUser] {
-  self: ScalatraBase with TokenSupport with AuthConfig with ServletLogger =>
+  self: ScalatraBase with TokenSupport with AuthConfig =>
 
   /** read method name as: fromCookie, see configured scentry.store */
   override protected def fromSession: PartialFunction[String, AuthUser] = {

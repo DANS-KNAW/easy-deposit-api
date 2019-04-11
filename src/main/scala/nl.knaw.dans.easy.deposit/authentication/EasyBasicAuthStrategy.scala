@@ -24,13 +24,11 @@ import org.scalatra.{ ScalatraBase, ServiceUnavailable, Unauthorized }
 
 import scala.util.{ Failure, Success }
 
-class EasyBasicAuthStrategy(protected override val app: ScalatraBase with ServletLogger,
+class EasyBasicAuthStrategy(protected override val app: ScalatraBase,
                             authenticationProvider: AuthenticationProvider,
                             realm: String
                            ) extends BasicAuthStrategy[AuthUser](app, realm)
   with DebugEnhancedLogging {
-
-  implicit val responseLogger: ServletLogger = app
 
   override def name: String = getClass.getSimpleName
 

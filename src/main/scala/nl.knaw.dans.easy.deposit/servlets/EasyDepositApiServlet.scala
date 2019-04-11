@@ -21,7 +21,9 @@ import nl.knaw.dans.lib.logging.servlet._
 import org.scalatra._
 
 class EasyDepositApiServlet(app: EasyDepositApiApp) extends ScalatraServlet
-  with ServletLogger with MaskedLogFormatter with DebugEnhancedLogging {
+  with ServletLogger
+  with MaskedLogFormatter
+  with DebugEnhancedLogging {
 
   get("/") {
     contentType = "text/plain"
