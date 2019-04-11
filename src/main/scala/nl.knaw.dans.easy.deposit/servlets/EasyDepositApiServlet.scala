@@ -23,6 +23,7 @@ import org.scalatra._
 class EasyDepositApiServlet(app: EasyDepositApiApp) extends ScalatraServlet
   with ServletLogger
   with MaskedLogFormatter
+  with LogResponseBodyOnError
   with DebugEnhancedLogging {
 
   get("/") {
