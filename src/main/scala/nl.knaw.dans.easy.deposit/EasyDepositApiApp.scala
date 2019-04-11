@@ -32,6 +32,7 @@ import nl.knaw.dans.easy.deposit.servlets.contentTypeZipPattern
 import nl.knaw.dans.lib.error._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.apache.commons.configuration.PropertiesConfiguration
+import org.scalatra.servlet.MultipartConfig
 
 import scala.util.{ Failure, Success, Try }
 
@@ -57,6 +58,13 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
     logger.info(s"users.ldap-user-id-attr-name = $ldapUserIdAttrName")
     logger.info(s"users.ldap-admin-principal = $ldapAdminPrincipal")
   }
+
+  val multipartConfig: MultipartConfig = MultipartConfig(
+    location = Option(properties.getString("multipart.location")),
+    maxFileSize = Option(properties.getLong("multipart.max-file-size", null)),
+    maxRequestSize = Option(properties.getLong("multipart.max-request-size", null)),
+    fileSizeThreshold = Some(properties.getInt("multipart.file-size-threshold")), //throws if not provided
+  )
 
   def getVersion: String = {
     configuration.version
@@ -277,7 +285,7 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
    */
   def writeDepositFile(is: => InputStream, user: String, id: UUID, path: Path, contentType: Option[String]): Try[Boolean] = {
     for {
-      _ <- contentTypeAnythingButZip(contentType)
+      _ <- contentTypeAnythingBut(contentType)
       dataFiles <- getDataFiles(user, id)
       _ <- canUpdate(user, id)
       _ <- pathNotADirectory(path, dataFiles)
@@ -293,10 +301,13 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
     else Success(())
   }
 
-  private def contentTypeAnythingButZip(contentType: Option[String]): Try[Unit] = {
-    if (contentType.exists(str => str.trim.nonEmpty && !str.trim.matches(contentTypeZipPattern)))
-      Success(())
-    else Failure(InvalidContentTypeException(contentType, "must not be a zip."))
+  private def contentTypeAnythingBut(contentType: Option[String]): Try[Unit] = {
+    contentType.map(_.trim.toLowerCase) match {
+      case Some(str) if str.nonEmpty
+        && !str.startsWith("multipart")
+        && !str.matches(contentTypeZipPattern) => Success(())
+      case _ => Failure(InvalidContentTypeException(contentType, "must not be application/zip nor start with multipart."))
+    }
   }
 
   def stageFiles(userId: String, id: UUID, destination: Path): Try[(Dispose[File], StagedFilesTarget)] = {

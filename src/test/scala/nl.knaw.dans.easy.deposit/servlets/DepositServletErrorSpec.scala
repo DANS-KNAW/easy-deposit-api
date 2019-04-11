@@ -17,10 +17,12 @@ package nl.knaw.dans.easy.deposit.servlets
 
 import java.util.UUID
 
-import nl.knaw.dans.easy.deposit.Errors.CorruptDepositException
-import nl.knaw.dans.easy.deposit._
+import better.files.File
+import nl.knaw.dans.easy.deposit.Errors.{ ConfigurationException, CorruptDepositException }
 import nl.knaw.dans.easy.deposit.authentication.AuthUser.UserState
 import nl.knaw.dans.easy.deposit.authentication.{ AuthUser, AuthenticationMocker, AuthenticationProvider }
+import nl.knaw.dans.easy.deposit.{ EasyDepositApiApp, _ }
+import org.apache.commons.configuration.{ ConversionException, PropertiesConfiguration }
 import org.eclipse.jetty.http.HttpStatus._
 import org.scalatra.auth.Scentry
 import org.scalatra.test.scalatest.ScalatraSuite
@@ -38,6 +40,30 @@ class DepositServletErrorSpec extends TestSupportFixture with ServletFixture wit
     override def getAuthenticationProvider: AuthenticationProvider = authMocker.mockedAuthenticationProvider
   }
   addServlet(depositServlet, "/*")
+
+  "constructor" should "fail with not existing multipart location" in {
+    val props = minimalAppConfig.properties
+    props.addProperty("multipart.location", "notExistingLocation")
+    the[ConfigurationException] thrownBy new DepositServlet(new EasyDepositApiApp(new Configuration("", props))) should
+      have message s"Configuration error: ${ File("notExistingLocation").path.toAbsolutePath } not found/readable/writable or not a directory"
+  }
+
+  it should "fail with empty threshold value" in {
+    val props = minimalAppConfig.properties
+    props.clearProperty("multipart.file-size-threshold")
+    props.addProperty("multipart.file-size-threshold", "")
+    the[ConversionException] thrownBy new DepositServlet(new EasyDepositApiApp(new Configuration("", props))) should
+      have message s"'multipart.file-size-threshold' doesn't map to an Integer object"
+  }
+
+  it should "fail without threshold property" in {
+    val props = minimalAppConfig.properties
+    props.clearProperty("multipart.file-size-threshold")
+    Option(props.getInteger("multipart.file-size-threshold", null)) shouldBe None // precondition
+
+    the[NoSuchElementException] thrownBy new DepositServlet(new EasyDepositApiApp(Configuration("", props))) should
+      have message s"'multipart.file-size-threshold' doesn't map to an existing object"
+  }
 
   "post /" should "return 500 (Internal Server Error) on a not expected exception and basic authentication" in {
     (mockedApp.createDeposit(_: String)) expects "foo" returning Failure(new Exception("whoops"))
