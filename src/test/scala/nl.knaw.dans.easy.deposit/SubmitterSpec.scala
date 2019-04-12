@@ -104,10 +104,28 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
     val depositDir = createDeposit(datasetMetadata.copy(messageForDataManager = None))
     addDoiToDepositProperties(getBag(depositDir))
 
-    val bagStoreBagID = succeedingSubmit(depositDir)
+    val bagStoreBagId1 = succeedingSubmit(depositDir)
 
-    (testDir / "submitted" / bagStoreBagID / "bag" / "metadata" / "message-from-depositor.txt")
+    (testDir / "submitted" / bagStoreBagId1 / "bag" / "metadata" / "message-from-depositor.txt")
       .contentAsString shouldBe ""
+  }
+
+  it should "overwrite a previous bag-store.bag-id at resubmit" in {
+
+    val depositDir = createDeposit(datasetMetadata.copy(messageForDataManager = None))
+    addDoiToDepositProperties(getBag(depositDir))
+
+    // submit twice
+    val bagStoreBagId1 = succeedingSubmit(depositDir)
+    val depositProps = depositDir.bagDir.parent / "deposit.properties"
+    depositProps.write(depositProps.contentAsString.replace("SUBMITTED", "DRAFT"))
+    val bagStoreBagId2 = succeedingSubmit(depositDir)
+
+    // we only have the second bag-store.bag-id
+    bagStoreBagId1 shouldNot be(bagStoreBagId2)
+    val lines = depositProps.contentAsString.split("\n")
+    lines.count(_.contains("bag-store.bag-id")) shouldBe 1
+    lines.count(_ == s"bag-store.bag-id = $bagStoreBagId2") shouldBe 1
   }
 
   private def succeedingSubmit(deposit: DepositDir) = {
