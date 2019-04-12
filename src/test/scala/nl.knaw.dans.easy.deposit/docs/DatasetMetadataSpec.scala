@@ -200,7 +200,7 @@ class DatasetMetadataSpec extends TestSupportFixture {
     expectErrorMessage(creators, """invalid DatasetMetadata: don't recognize {"creators":[{"ids":{"organization":"overheid"}},{"FirstName":"jan-willem-hendrik"},{"role":{"waarde":"invalid","andereWaarde":"invalid"}}]}""")
   }
 
-  "DatasetMetadata.creators" should "report the unrecocginzed value in roles" in {
+  "DatasetMetadata.creators" should "report the unrecognized value in roles" in {
     val creators =
       """{ "creators": [{"role": [{ "scheme": "datacite:contributorType", "key": "ContactPerson""waarde": "invalid", "andereWaarde": "invalid"}]}]}"""
     DatasetMetadata(creators) shouldBe a[Success[_]] //TODO this is not correct, creators[0].role[0].waarde should probably fail! Perhaps it succeeds since it is seen as an option?
