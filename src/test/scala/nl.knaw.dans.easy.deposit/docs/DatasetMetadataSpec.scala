@@ -164,24 +164,17 @@ class DatasetMetadataSpec extends TestSupportFixture {
 
   "DatasetMetadata.*" should "only report the item in the list that are invalid" in {
     val alteredData = createCorruptMetadataJsonString(""""scheme": "string"""", """"invalid": "property"""")
-    DatasetMetadata(alteredData) should matchPattern {
-      case Failure(ide: InvalidDocumentException) if ide.getMessage == """invalid DatasetMetadata: don't recognize {"languageOfDescription":{"invalid":"property"},"audiences":{"invalid":"property"},"subjects":{"invalid":"property"},"languagesOfFiles":{"invalid":"property"},"temporalCoverages":{"invalid":"property"}}""" =>
-    }
+    expectErrorMessage(alteredData,"""invalid DatasetMetadata: don't recognize {"languageOfDescription":{"invalid":"property"},"audiences":{"invalid":"property"},"subjects":{"invalid":"property"},"languagesOfFiles":{"invalid":"property"},"temporalCoverages":{"invalid":"property"}}""")
   }
 
   "DatasetMetadata.spatialBoxes" should "only report spatial points of the box that are invalid" in {
     val boxes: String =
       """{ "spatialBoxes": [{"north-west": 2,"south-east": 3,"north": 4,"east": 5,"south": 9,"west": 10}]}"""
-    DatasetMetadata(boxes) should matchPattern {
-      case Failure(ide: InvalidDocumentException) if ide.getMessage == """invalid DatasetMetadata: don't recognize {"spatialBoxes":{"north-west":2,"south-east":3}}""" =>
-    }
+    expectErrorMessage(boxes,"""invalid DatasetMetadata: don't recognize {"spatialBoxes":{"north-west":2,"south-east":3}}""")
   }
 
   "DatasetMetadata.spatialCoverages" should "only report someCoverage if is supplied instead of spatialCoverages" in {
-    val alteredData = createCorruptMetadataJsonString(""" "spatialCoverages"""", """ "someCoverage"""")
-    DatasetMetadata(alteredData) should matchPattern {
-      case Failure(ide: InvalidDocumentException) if ide.getMessage == """invalid DatasetMetadata: don't recognize {"someCoverage":[{"scheme":"dcterms:ISO3166","value":"string","key":"string"}]}""" =>
-    }
+    expectErrorMessage(createCorruptMetadataJsonString(""" "spatialCoverages"""", """ "someCoverage""""), """invalid DatasetMetadata: don't recognize {"someCoverage":[{"scheme":"dcterms:ISO3166","value":"string","key":"string"}]}""")
   }
 
   "DatasetMetadata.Dates" should "only report the dates that are not correct" in {
@@ -192,9 +185,7 @@ class DatasetMetadataSpec extends TestSupportFixture {
         |{"invalidOne": "invalid","invalidValue": "2018-05-31","invalidQualifier": "dcterms:created"}
         ]
         |}""".stripMargin
-    DatasetMetadata(dates) should matchPattern {
-      case Failure(ide: InvalidDocumentException) if ide.getMessage == """invalid DatasetMetadata: don't recognize {"dates":{"invalidOne":"invalid","invalidValue":"2018-05-31","invalidQualifier":"dcterms:created"}}""" =>
-    }
+    expectErrorMessage(dates, """invalid DatasetMetadata: don't recognize {"dates":{"invalidOne":"invalid","invalidValue":"2018-05-31","invalidQualifier":"dcterms:created"}}""")
   }
 
   "DatasetMetadata.creators" should "only report the part of the creators that are wrong" in {
@@ -206,15 +197,13 @@ class DatasetMetadataSpec extends TestSupportFixture {
          |  {"role": { "scheme": "datacite:contributorType", "key": "ContactPerson", "waarde": "invalid", "andereWaarde": "invalid"} }
          | ]
          |}""".stripMargin
-    DatasetMetadata(creators) should matchPattern {
-      case Failure(ide: InvalidDocumentException) if ide.getMessage == """invalid DatasetMetadata: don't recognize {"creators":[{"ids":{"organization":"overheid"}},{"FirstName":"jan-willem-hendrik"},{"role":{"waarde":"invalid","andereWaarde":"invalid"}}]}""" =>
-    }
+    expectErrorMessage(creators, """invalid DatasetMetadata: don't recognize {"creators":[{"ids":{"organization":"overheid"}},{"FirstName":"jan-willem-hendrik"},{"role":{"waarde":"invalid","andereWaarde":"invalid"}}]}""")
   }
 
   "DatasetMetadata.creators" should "report the unrecocginzed value in roles" in {
     val creators =
       """{ "creators": [{"role": [{ "scheme": "datacite:contributorType", "key": "ContactPerson""waarde": "invalid", "andereWaarde": "invalid"}]}]}"""
-    DatasetMetadata(creators) shouldBe a[Success[_]] //TODO dit klopt niet, creators[0].role[0].waarde zou fout moeten gaan! Wordt gezien als option wellicht?
+    DatasetMetadata(creators) shouldBe a[Success[_]] //TODO this is not correct, creators[0].role[0].waarde should probably fail! Perhaps it succeeds since it is seen as an option?
   }
 
   "DatasetMetadata.[creators, contributors]" should "only report the part of the creators and contributors that are wrong" in {
@@ -230,11 +219,13 @@ class DatasetMetadataSpec extends TestSupportFixture {
          | ]
          |}""".stripMargin
 
-    //TODO it also complains about the the field "key" in ids along with the invlaid field "waarde"
-    val expectedErrorMsg =
-      """invalid DatasetMetadata: don't recognize {"contributors":[{"ids":{"key":"aKey","waarde":"invalidProperty"}},{"role":{"otherKey":"placeHolder","otherValue":"placeHolder"}}]}""".stripMargin
+    //TODO it also complains about the the field "key" in ids along with the invalid field "waarde"
+    expectErrorMessage(metaData, """invalid DatasetMetadata: don't recognize {"contributors":[{"ids":{"key":"aKey","waarde":"invalidProperty"}},{"role":{"otherKey":"placeHolder","otherValue":"placeHolder"}}]}""")
+  }
+
+  private def expectErrorMessage(metaData: String, expectedErrorMessage: String): Unit = {
     DatasetMetadata(metaData) should matchPattern {
-      case Failure(e: InvalidDocumentException) if e.getMessage == expectedErrorMsg =>
+      case Failure(e: InvalidDocumentException) if e.getMessage == expectedErrorMessage =>
     }
   }
 
