@@ -65,15 +65,31 @@ case class DepositDir private(baseDir: File, user: String, id: UUID) extends Deb
    * an [[nl.knaw.dans.easy.deposit.Errors.IllegalStateTransitionException]] is returned.
    *
    * @param stateInfo the new state
-   * @return success of failure
+   * @return Failure or Success(submitId or null)
    */
-  def setStateInfo(stateInfo: StateInfo): Try[Unit] = {
+  def setStateInfo(stateInfo: StateInfo): Try[UUID] = {
     for {
       props <- checkStateTransition(stateInfo.state)
       _ = props.setProperty("state.label", stateInfo.state.toString)
       _ = props.setProperty("state.description", stateInfo.stateDescription.toString)
+      uuid = setSubmitId(stateInfo, props)
       _ = props.save()
-    } yield ()
+    } yield uuid
+  }
+
+  private def setSubmitId(stateInfo: StateInfo, props: PropertiesConfiguration): UUID = {
+    // TODO refactor with issue easy-2054 perhaps into some StateManager class
+    //  reduce StateInfo back to the document (alias case class) to exchange with the client
+    val propertyKey = "bag-store.bag-id"
+    if (stateInfo.state == State.submitted) {
+      val uuid = UUID.randomUUID()
+      props.setProperty(propertyKey, uuid)
+      uuid
+    }
+    else { // this must be: rejected -> draft
+      props.clearProperty(propertyKey)
+      null
+    }
   }
 
   def checkStateTransition(newState: State): Try[PropertiesConfiguration] = {
@@ -269,7 +285,6 @@ object DepositDir {
       addProperty("depositor.userId", user)
       addProperty("curation.required", "yes")
       addProperty("curation.performed", "no")
-      addProperty("bag-store.bag-id", depositInfo.id)
       addProperty("identifier.dans-doi.registered", "no")
       addProperty("identifier.dans-doi.action", "create")
     }.save(depositDir.depositPropertiesFile.toJava)

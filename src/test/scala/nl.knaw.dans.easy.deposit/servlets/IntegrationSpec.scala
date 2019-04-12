@@ -23,6 +23,7 @@ import nl.knaw.dans.easy.deposit._
 import nl.knaw.dans.easy.deposit.authentication.{ AuthenticationMocker, AuthenticationProvider }
 import nl.knaw.dans.easy.deposit.docs._
 import nl.knaw.dans.lib.error._
+import org.apache.commons.configuration.PropertiesConfiguration
 import org.eclipse.jetty.http.HttpStatus._
 import org.scalatra.test.scalatest.ScalatraSuite
 
@@ -206,7 +207,7 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
   "scenario: create - ... - sumbit" should "create submitted dataset copied from a draft" in {
     val uuid: String = setupSubmittedDeposit
 
-    // resubmit fails
+    // resubmit succeeds
     val props = testDir / s"drafts/foo/$uuid/deposit.properties"
     props.write(props.contentAsString.replace("SUBMITTED", "DRAFT"))
     authMocker.expectsUserFooBar
@@ -215,8 +216,7 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
       headers = Seq(fooBarBasicAuthHeader),
       body = """{"state":"SUBMITTED","stateDescription":"blabla"}"""
     ) {
-      status shouldBe CONFLICT_409
-      body shouldBe s"The deposit (UUID $uuid) already exists in the submit area. Possibly due to a resubmit."
+      status shouldBe NO_CONTENT_204
     }
     props.write(props.contentAsString.replace("DRAFT", "SUBMITTED"))
 
@@ -354,8 +354,12 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
       body shouldBe ""
       status shouldBe NO_CONTENT_204
 
+      val bagStoreBagId = new PropertiesConfiguration((depositDir / "deposit.properties").toJava)
+        .getString("bag-store.bag-id")
+      bagStoreBagId shouldNot be(null)
+
       // +3 is difference in number of files in metadata directory: json versus xml's
-      (depositDir.walk().size + 3) shouldBe (testDir / "easy-ingest-flow-inbox" / uuid.toString).walk().size
+      (depositDir.walk().size + 3) shouldBe (testDir / "easy-ingest-flow-inbox" / bagStoreBagId).walk().size
     }
     uuid
   }

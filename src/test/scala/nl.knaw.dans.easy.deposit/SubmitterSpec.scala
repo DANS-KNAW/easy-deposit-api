@@ -77,12 +77,13 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
     }
 
     // the test
-    createSubmitter(userGroup).submit(depositDir) shouldBe a[Success[_]]
+    val bagStoreBagID = succeedingSubmit(depositDir)
 
     // post conditions
     (testDir / "stage-for-submit").children.size shouldBe 0
-    (bagDir / "metadata" / "dataset.json").size shouldBe mdOldSize // no DOI added
-    val submittedBagDir = testDir / "submitted" / depositDir.id.toString / "bag"
+    (bagDir / "metadata" / "dataset.json").size shouldBe mdOldSize
+    // no DOI added
+    val submittedBagDir = testDir / "submitted" / bagStoreBagID / "bag"
     (submittedBagDir / "metadata" / "message-from-depositor.txt").contentAsString shouldBe customMessage
     (submittedBagDir / "metadata" / "agreements.xml").lineIterator.next() shouldBe prologue
     (submittedBagDir / "metadata" / "dataset.xml").lineIterator.next() shouldBe prologue
@@ -103,10 +104,18 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
     val depositDir = createDeposit(datasetMetadata.copy(messageForDataManager = None))
     addDoiToDepositProperties(getBag(depositDir))
 
-    createSubmitter(userGroup).submit(depositDir) shouldBe a[Success[_]]
+    val bagStoreBagID = succeedingSubmit(depositDir)
 
-    (testDir / "submitted" / depositDir.id.toString / "bag" / "metadata" / "message-from-depositor.txt")
+    (testDir / "submitted" / bagStoreBagID / "bag" / "metadata" / "message-from-depositor.txt")
       .contentAsString shouldBe ""
+  }
+
+  private def succeedingSubmit(deposit: DepositDir) = {
+    val triedBagStoreBagID = createSubmitter(userGroup).submit(deposit)
+    triedBagStoreBagID shouldBe a[Success[_]]
+    triedBagStoreBagID
+      .map(_.toString)
+      .getOrElse(throw new Exception("should not get here"))
   }
 
   it should "report a file missing in the draft" in {

@@ -64,9 +64,9 @@ class Submitter(stagingBaseDir: File,
    * and moving that copy to the submit-to area.
    *
    * @param draftDeposit the deposit object to submit
-   * @return
+   * @return the UUID of the deposit in the ingest-flow-inbox
    */
-  def submit(draftDeposit: DepositDir): Try[Unit] = {
+  def submit(draftDeposit: DepositDir): Try[UUID] = {
     val propsFileName = "deposit.properties"
     for {
       // EASY-1464 step 3.3.4 validation
@@ -84,14 +84,14 @@ class Submitter(stagingBaseDir: File,
       msg = datasetMetadata.messageForDataManager.getOrElse("")
       filesXml <- FilesXml(draftBag.data)
       _ <- sameFiles(draftBag.payloadManifests, draftBag.baseDir / "data")
-      submitDir = submitToBaseDir / draftDeposit.id.toString
-      _ = if (submitDir.exists) throw AlreadySubmittedException(draftDeposit.id)
       // from now on no more user errors but internal errors
       // EASY-1464 3.3.8.a create empty staged bag to take a copy of the deposit
       stageDir = (stagingBaseDir / draftDeposit.id.toString).createDirectories()
       stageBag <- DansV0Bag.empty(stageDir / "bag").map(_.withCreated())
       // EASY-1464 3.3.6 change state and copy with the rest of the deposit properties to staged dir
-      _ <- draftDeposit.setStateInfo(StateInfo(StateInfo.State.submitted, "Deposit is ready for processing."))
+      submittedId <- draftDeposit.setStateInfo(StateInfo(StateInfo.State.submitted, "Deposit is ready for processing."))
+      submitDir = submitToBaseDir / submittedId.toString
+      _ = if (submitDir.exists) throw AlreadySubmittedException(draftDeposit.id)
       _ = (draftBag.baseDir.parent / propsFileName).copyTo(stageDir / propsFileName)
       // EASY-1464 3.3.5.b: write files to metadata
       _ = stageBag.addMetadataFile(msg, "message-from-depositor.txt")
@@ -99,7 +99,7 @@ class Submitter(stagingBaseDir: File,
       _ <- stageBag.addMetadataFile(datasetXml, "dataset.xml")
       _ <- stageBag.addMetadataFile(filesXml, "files.xml")
       _ <- workerActions(draftDeposit.id, draftBag, stageBag, submitDir)
-    } yield ()
+    } yield submittedId
   }
 
   // TODO a worker thread allows submit to return fast for large deposits.
