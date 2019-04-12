@@ -191,7 +191,7 @@ class DatasetMetadataSpec extends TestSupportFixture {
         |{"scheme": "dcterms:W3CDTF","value": "2018-05-31","qualifier": "dcterms:created"},
         |{"invalidOne": "invalid","invalidValue": "2018-05-31","invalidQualifier": "dcterms:created"}
         ]
-        |}""".stripMargin
+        |]}""".stripMargin
     DatasetMetadata(dates) should matchPattern {
       case Failure(ide: InvalidDocumentException) if ide.getMessage == """invalid DatasetMetadata: don't recognize {"dates":{"invalidOne":"invalid","invalidValue":"2018-05-31","invalidQualifier":"dcterms:created"}}""" =>
     }
