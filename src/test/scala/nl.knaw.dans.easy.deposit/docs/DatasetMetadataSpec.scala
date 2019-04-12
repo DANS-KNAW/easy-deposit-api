@@ -188,7 +188,7 @@ class DatasetMetadataSpec extends TestSupportFixture {
     val dates =
       """{
         |"dates": [{
-        |"scheme": "dcterms:W3CDTF","value": "2018-05-31","qualifier": "dcterms:created"},
+        |{"scheme": "dcterms:W3CDTF","value": "2018-05-31","qualifier": "dcterms:created"},
         |{"invalidOne": "invalid","invalidValue": "2018-05-31","invalidQualifier": "dcterms:created"}
         ]
         |}""".stripMargin
