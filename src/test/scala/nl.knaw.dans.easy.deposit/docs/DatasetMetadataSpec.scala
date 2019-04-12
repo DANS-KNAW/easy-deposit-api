@@ -182,7 +182,7 @@ class DatasetMetadataSpec extends TestSupportFixture {
   "DatasetMetadata.spatialCoverages" should "only report someCoverage if is supplied instead of spatialCoverages" in {
     val alteredData = createCorruptMetadataJsonString(" \"spatialCoverages\"", " \"someCoverage\"")
     DatasetMetadata(alteredData) should matchPattern {
-      case Failure(ide: InvalidDocumentException) if ide.getMessage == "invalid DatasetMetadata: don't recognize {\"someCoverage\":[{\"scheme\":\"dcterms:ISO3166\",\"value\":\"string\",\"key\":\"string\"}]}" =>
+      case Failure(ide: InvalidDocumentException) if ide.getMessage == """invalid DatasetMetadata: don't recognize {"someCoverage":[{"scheme":"dcterms:ISO3166","value":"string","key":"string"}]}""" =>
     }
   }
 
