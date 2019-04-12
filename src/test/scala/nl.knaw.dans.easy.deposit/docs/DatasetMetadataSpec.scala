@@ -165,7 +165,7 @@ class DatasetMetadataSpec extends TestSupportFixture {
   "DatasetMetadata.*" should "only report the item in the list that are invalid" in {
     val alteredData = createCorruptMetadataJsonString(""""scheme": "string"""", """"invalid": "property"""")
     DatasetMetadata(alteredData) should matchPattern {
-      case Failure(ide: InvalidDocumentException) if ide.getMessage.contains("""{"languageOfDescription":{"invalid":"property"},"audiences":{"invalid":"property"},"subjects":{"invalid":"property"},"languagesOfFiles":{"invalid":"property"},"temporalCoverages":{"invalid":"property"}}""") =>
+      case Failure(ide: InvalidDocumentException) if ide.getMessage == """invalid DatasetMetadata: don't recognize {"languageOfDescription":{"invalid":"property"},"audiences":{"invalid":"property"},"subjects":{"invalid":"property"},"languagesOfFiles":{"invalid":"property"},"temporalCoverages":{"invalid":"property"}}""" =>
     }
   }
 
@@ -173,12 +173,12 @@ class DatasetMetadataSpec extends TestSupportFixture {
     val boxes: String =
       """{ "spatialBoxes": [{"north-west": 2,"south-east": 3,"north": 4,"east": 5,"south": 9,"west": 10}]}"""
     DatasetMetadata(boxes) should matchPattern {
-      case Failure(ide: InvalidDocumentException) if ide.getMessage == "invalid DatasetMetadata: don't recognize {\"spatialBoxes\":{\"north-west\":2,\"south-east\":3}}" =>
+      case Failure(ide: InvalidDocumentException) if ide.getMessage == """invalid DatasetMetadata: don't recognize {"spatialBoxes":{"north-west":2,"south-east":3}}""" =>
     }
   }
 
   "DatasetMetadata.spatialCoverages" should "only report someCoverage if is supplied instead of spatialCoverages" in {
-    val alteredData = createCorruptMetadataJsonString(" \"spatialCoverages\"", " \"someCoverage\"")
+    val alteredData = createCorruptMetadataJsonString(""" "spatialCoverages"""", """ "someCoverage"""")
     DatasetMetadata(alteredData) should matchPattern {
       case Failure(ide: InvalidDocumentException) if ide.getMessage == """invalid DatasetMetadata: don't recognize {"someCoverage":[{"scheme":"dcterms:ISO3166","value":"string","key":"string"}]}""" =>
     }
