@@ -180,8 +180,8 @@ class DatasetMetadataSpec extends TestSupportFixture {
   "DatasetMetadata.Dates" should "only report the dates that are not correct" in {
     val dates =
       """{
-        |"dates": [{
-        |"scheme": "dcterms:W3CDTF","value": "2018-05-31","qualifier": "dcterms:created"},
+        |"dates": [
+        |{"scheme": "dcterms:W3CDTF","value": "2018-05-31","qualifier": "dcterms:created"},
         |{"invalidOne": "invalid","invalidValue": "2018-05-31","invalidQualifier": "dcterms:created"}
         ]
         |}""".stripMargin
