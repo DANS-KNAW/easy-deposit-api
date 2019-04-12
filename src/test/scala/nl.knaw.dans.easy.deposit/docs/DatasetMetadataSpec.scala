@@ -165,24 +165,15 @@ class DatasetMetadataSpec extends TestSupportFixture {
   }
 
   "DatasetMetadata.*" should "only report the item in the list that are invalid" in {
-    val alteredData = createCorruptMetadataJsonString("\"scheme\": \"string\"", "\"invalid\": \"property\"")
+    val alteredData = createCorruptMetadataJsonString(""""scheme": "string"""", """"invalid": "property"""")
     DatasetMetadata(alteredData) should matchPattern {
-      case Failure(ide: InvalidDocumentException) if ide.getMessage.contains("{\"languageOfDescription\":{\"invalid\":\"property\"},\"audiences\":{\"invalid\":\"property\"},\"subjects\":{\"invalid\":\"property\"},\"languagesOfFiles\":{\"invalid\":\"property\"},\"temporalCoverages\":{\"invalid\":\"property\"}}") =>
+      case Failure(ide: InvalidDocumentException) if ide.getMessage.contains("""{"languageOfDescription":{"invalid":"property"},"audiences":{"invalid":"property"},"subjects":{"invalid":"property"},"languagesOfFiles":{"invalid":"property"},"temporalCoverages":{"invalid":"property"}}""") =>
     }
   }
 
   "DatasetMetadata.spatialBoxes" should "only report spatial points of the box that are invalid" in {
     val boxes: String =
-      """{
-        |	"spatialBoxes": [{
-        |		"north-west": 2,
-        |		"south-east": 3,
-        |		"north": 4,
-        |		"east": 5,
-        |		"south": 9,
-        |		"west": 10
-        |	}],
-        |}""".stripMargin
+      """{ "spatialBoxes": [{"north-west": 2,"south-east": 3,"north": 4,"east": 5,"south": 9,"west": 10}]}"""
     DatasetMetadata(boxes) should matchPattern {
       case Failure(ide: InvalidDocumentException) if ide.getMessage == "invalid DatasetMetadata: don't recognize {\"spatialBoxes\":{\"north-west\":2,\"south-east\":3}}" =>
     }
