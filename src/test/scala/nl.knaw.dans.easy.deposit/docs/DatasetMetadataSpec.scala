@@ -15,6 +15,7 @@
  */
 package nl.knaw.dans.easy.deposit.docs
 
+import better.files.File
 import nl.knaw.dans.easy.deposit.Errors.InvalidDocumentException
 import nl.knaw.dans.easy.deposit.TestSupportFixture
 import nl.knaw.dans.easy.deposit.docs.JsonUtil.toJson
@@ -136,15 +137,13 @@ class DatasetMetadataSpec extends TestSupportFixture {
 
   "DatasetMetadata.author" should "accept an author with initials and surname" in {
     DatasetMetadata(
-      """{ "creators": [ {
+      """{ "creators": [{
         | "initials": "A",
         |  "surname": "Einstein",
-        |  "role": {
-        |        "scheme": "datacite:contributorType",
-        |        "key": "RightsHolder",
-        |        "value": "rightsholder"
-        |      }
-        |} ] }""".stripMargin)
+        |  "role": { "scheme": "datacite:contributorType","key": "RightsHolder","value": "rightsholder" }
+        |  }
+        | ]
+        |}""".stripMargin)
       .map(_.rightsHolders.map(_.toString).mkString(";")) shouldBe Success("A Einstein")
   }
 
@@ -161,5 +160,76 @@ class DatasetMetadataSpec extends TestSupportFixture {
     val s =
       """{"spatialBoxes": [ { "scheme": "RD", "north": "486890.5", "east": 121811.88, "south": 436172.5,  "west": 91232.016 }]}""".stripMargin
     DatasetMetadata(s) shouldBe a[Success[_]]
+  }
+
+  "DatasetMetadata.*" should "only report the item in the list that are invalid" in {
+    val alteredData = createCorruptMetadataJsonString(""""scheme": "string"""", """"invalid": "property"""")
+    expectErrorMessage(alteredData,"""invalid DatasetMetadata: don't recognize {"languageOfDescription":{"invalid":"property"},"audiences":{"invalid":"property"},"subjects":{"invalid":"property"},"languagesOfFiles":{"invalid":"property"},"temporalCoverages":{"invalid":"property"}}""")
+  }
+
+  "DatasetMetadata.spatialBoxes" should "only report spatial points of the box that are invalid" in {
+    val boxes: String =
+      """{ "spatialBoxes": [{"north-west": 2,"south-east": 3,"north": 4,"east": 5,"south": 9,"west": 10}]}"""
+    expectErrorMessage(boxes,"""invalid DatasetMetadata: don't recognize {"spatialBoxes":{"north-west":2,"south-east":3}}""")
+  }
+
+  "DatasetMetadata.spatialCoverages" should "only report someCoverage if is supplied instead of spatialCoverages" in {
+    expectErrorMessage(createCorruptMetadataJsonString(""" "spatialCoverages"""", """ "someCoverage""""), """invalid DatasetMetadata: don't recognize {"someCoverage":[{"scheme":"dcterms:ISO3166","value":"string","key":"string"}]}""")
+  }
+
+  "DatasetMetadata.Dates" should "only report the dates that are not correct" in {
+    val dates =
+      """{
+        |"dates": [
+        |{"scheme": "dcterms:W3CDTF","value": "2018-05-31","qualifier": "dcterms:created"},
+        |{"invalidOne": "invalid","invalidValue": "2018-05-31","invalidQualifier": "dcterms:created"}
+        ]
+        |}""".stripMargin
+    expectErrorMessage(dates, """invalid DatasetMetadata: don't recognize {"dates":{"invalidOne":"invalid","invalidValue":"2018-05-31","invalidQualifier":"dcterms:created"}}""")
+  }
+
+  "DatasetMetadata.creators" should "only report the part of the creators that are wrong" in {
+    val creators =
+      s"""{ "creators": [
+         |  {"titles": "Msc", "initials": "H.A.M.", "surname": "Boter", "ids": [ { "scheme": "DAI", "value":  "93313935x"}, {"scheme": "BSN", "value": "1234"} ], "organization" :"DANS"},
+         |  {"titles": "Msc", "initials": "B.A.M.", "surname": "Hoter", "ids": [ { "scheme": "DAI", "value":  "93313935Z"}, {"scheme": "BSN", "value": "1235", "organization": "overheid"} ], "organization" :"DANS"},
+         |  {"titles": "Aartshertog", "FirstName": "jan-willem-hendrik", "surname": "Oranje", "ids": [ { "scheme": "DAI", "value":  "93313935y"}, {"scheme": "BSN", "value": "9999"} ], "organization" :"DANS"},
+         |  {"role": { "scheme": "datacite:contributorType", "key": "ContactPerson", "waarde": "invalid", "andereWaarde": "invalid"} }
+         | ]
+         |}""".stripMargin
+    expectErrorMessage(creators, """invalid DatasetMetadata: don't recognize {"creators":[{"ids":{"organization":"overheid"}},{"FirstName":"jan-willem-hendrik"},{"role":{"waarde":"invalid","andereWaarde":"invalid"}}]}""")
+  }
+
+  "DatasetMetadata.creators" should "report the unrecognized value in roles" in {
+    val creators =
+      """{ "creators": [{"role": [{ "scheme": "datacite:contributorType", "key": "ContactPerson""waarde": "invalid", "andereWaarde": "invalid"}]}]}"""
+    DatasetMetadata(creators) shouldBe a[Success[_]] //TODO this is not correct, creators[0].role[0].waarde should probably fail! Perhaps it succeeds since it is seen as an option?
+  }
+
+  "DatasetMetadata.[creators, contributors]" should "only report the part of the creators and contributors that are wrong" in {
+    val metaData =
+      s"""{
+         |"contributors": [{
+         |  "organization": "rightsHolder1",
+         |  "role": {"scheme": "datacite:contributorType","key": "RightsHolder","value": "rightsholder"},
+         |  "ids": [{"scheme": "aScheme","key": "aKey","value": "aValue","waarde": "invalidProperty"}]
+         |  },
+         |  { "role": {"scheme": "datacite:contributorType","key": "RightsHolder","value": "rightsholder","otherKey": "placeHolder","otherValue": "placeHolder"}
+         |  }
+         | ]
+         |}""".stripMargin
+
+    //TODO it also complains about the the field "key" in ids along with the invalid field "waarde"
+    expectErrorMessage(metaData, """invalid DatasetMetadata: don't recognize {"contributors":[{"ids":{"key":"aKey","waarde":"invalidProperty"}},{"role":{"otherKey":"placeHolder","otherValue":"placeHolder"}}]}""")
+  }
+
+  private def expectErrorMessage(metaData: String, expectedErrorMessage: String): Unit = {
+    DatasetMetadata(metaData) should matchPattern {
+      case Failure(e: InvalidDocumentException) if e.getMessage == expectedErrorMessage =>
+    }
+  }
+
+  private def createCorruptMetadataJsonString(pattern: String, replacement: String): String = {
+    File("src/test/resources/manual-test/datasetmetadata.json").contentAsString.replaceAll(pattern, replacement)
   }
 }
