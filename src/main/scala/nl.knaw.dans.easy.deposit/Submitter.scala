@@ -64,7 +64,7 @@ class Submitter(stagingBaseDir: File,
    * and moving that copy to the submit-to area.
    *
    * @param draftDeposit the deposit object to submit
-   * @return the UUID of the deposit in the ingest-flow-inbox
+   * @return the UUID of the deposit in the submit area (easy-ingest-flow-inbox)
    */
   def submit(draftDeposit: DepositDir): Try[UUID] = {
     val propsFileName = "deposit.properties"

@@ -122,13 +122,13 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
     val bagStoreBagId2 = succeedingSubmit(depositDir)
 
     // we only have the second bag-store.bag-id
-    bagStoreBagId1 shouldNot be(bagStoreBagId2)
+    bagStoreBagId1 should not be bagStoreBagId2
     val lines = depositProps.contentAsString.split("\n")
     lines.count(_.contains("bag-store.bag-id")) shouldBe 1
     lines.count(_ == s"bag-store.bag-id = $bagStoreBagId2") shouldBe 1
   }
 
-  private def succeedingSubmit(deposit: DepositDir) = {
+  private def succeedingSubmit(deposit: DepositDir): String = {
     val triedBagStoreBagID = createSubmitter(userGroup).submit(deposit)
     triedBagStoreBagID shouldBe a[Success[_]]
     triedBagStoreBagID
