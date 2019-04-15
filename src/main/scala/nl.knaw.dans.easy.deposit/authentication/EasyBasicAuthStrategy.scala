@@ -18,19 +18,16 @@ package nl.knaw.dans.easy.deposit.authentication
 import javax.servlet.http.{ HttpServletRequest, HttpServletResponse }
 import nl.knaw.dans.easy.deposit.authentication.AuthUser.UserState
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
-import nl.knaw.dans.lib.logging.servlet._
 import org.scalatra.auth.strategy.BasicAuthStrategy
 import org.scalatra.{ ScalatraBase, ServiceUnavailable, Unauthorized }
 
 import scala.util.{ Failure, Success }
 
-class EasyBasicAuthStrategy(protected override val app: ScalatraBase with ServletLogger,
+class EasyBasicAuthStrategy(protected override val app: ScalatraBase,
                             authenticationProvider: AuthenticationProvider,
                             realm: String
                            ) extends BasicAuthStrategy[AuthUser](app, realm)
   with DebugEnhancedLogging {
-
-  implicit val responseLogger: ServletLogger = app
 
   override def name: String = getClass.getSimpleName
 
@@ -40,15 +37,15 @@ class EasyBasicAuthStrategy(protected override val app: ScalatraBase with Servle
                          response: HttpServletResponse
                         ): Option[AuthUser] = {
     def haltWithInvalidUser = {
-      app halt Unauthorized(body = "invalid username/password").logResponse
+      app halt Unauthorized(body = "invalid username/password")
     }
 
     def haltWithRegisteredUser = {
-      app halt Unauthorized(body = "please confirm your registration first").logResponse
+      app halt Unauthorized(body = "please confirm your registration first")
     }
 
     def haltWithFailure = {
-      app halt ServiceUnavailable(body = "login service temporarily not available").logResponse
+      app halt ServiceUnavailable(body = "login service temporarily not available")
     }
 
     authenticationProvider.authenticate(userName, password) match {

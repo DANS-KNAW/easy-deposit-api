@@ -24,7 +24,6 @@ import nl.knaw.dans.easy.deposit.EasyDepositApiApp
 import nl.knaw.dans.easy.deposit.Errors._
 import nl.knaw.dans.easy.deposit.docs.JsonUtil.toJson
 import nl.knaw.dans.easy.deposit.docs.{ DatasetMetadata, StateInfo }
-import nl.knaw.dans.lib.logging.servlet._
 import org.scalatra._
 import org.scalatra.servlet.{ FileUploadSupport, SizeConstraintExceededException }
 import org.scalatra.util.RicherString._
@@ -73,7 +72,7 @@ class DepositServlet(app: EasyDepositApiApp)
         userId <- getUserId
         deposits <- app.getDeposits(userId)
       } yield Ok(body = toJson(deposits), headers = Map(contentTypeJson))
-    }.getOrRecoverWithActionResult.logResponse
+    }.getOrRecoverWithActionResult
   }
   post("/") {
     {
@@ -82,7 +81,7 @@ class DepositServlet(app: EasyDepositApiApp)
         depositInfo <- app.createDeposit(userId)
         locationHeader = "Location" -> s"${ request.getRequestURL }/${ depositInfo.id }"
       } yield Created(body = toJson(depositInfo), headers = Map(contentTypeJson, locationHeader))
-    }.getOrRecoverWithActionResult.logResponse
+    }.getOrRecoverWithActionResult
   }
   get("/:uuid/metadata") {
     {
@@ -90,7 +89,7 @@ class DepositServlet(app: EasyDepositApiApp)
         uuid <- getUUID
         dmd <- app.getDatasetMetadataForDeposit(user.id, uuid)
       } yield Ok(body = toJson(dmd), headers = Map(contentTypeJson))
-    }.getOrRecoverWithActionResult.logResponse
+    }.getOrRecoverWithActionResult
   }
   get("/:uuid/doi") {
     {
@@ -98,7 +97,7 @@ class DepositServlet(app: EasyDepositApiApp)
         uuid <- getUUID
         doi <- app.getDoi(user.id, uuid)
       } yield Ok(body = s"""{"doi":"$doi"}""", headers = Map(contentTypeJson))
-    }.getOrRecoverWithActionResult.logResponse
+    }.getOrRecoverWithActionResult
   }
   put("/:uuid/metadata") {
     {
@@ -109,7 +108,7 @@ class DepositServlet(app: EasyDepositApiApp)
         _ <- app.checkDoi(user.id, uuid, datasetMetadata)
         _ <- app.writeDataMetadataToDeposit(datasetMetadata, user.id, uuid)
       } yield NoContent()
-    }.getOrRecoverWithActionResult.logResponse
+    }.getOrRecoverWithActionResult
   }
   get("/:uuid/state") {
     {
@@ -117,7 +116,7 @@ class DepositServlet(app: EasyDepositApiApp)
         uuid <- getUUID
         depositState <- app.getDepositState(user.id, uuid)
       } yield Ok(body = toJson(depositState), headers = Map(contentTypeJson))
-    }.getOrRecoverWithActionResult.logResponse
+    }.getOrRecoverWithActionResult
   }
   put("/:uuid/state") {
     {
@@ -127,7 +126,7 @@ class DepositServlet(app: EasyDepositApiApp)
         stateInfo <- managedIS.apply(is => StateInfo(is))
         _ <- app.setDepositState(stateInfo, user.id, uuid)
       } yield NoContent()
-    }.getOrRecoverWithActionResult.logResponse
+    }.getOrRecoverWithActionResult
   }
   delete("/:uuid") {
     {
@@ -135,7 +134,7 @@ class DepositServlet(app: EasyDepositApiApp)
         uuid <- getUUID
         _ <- app.deleteDeposit(user.id, uuid)
       } yield NoContent()
-    }.getOrRecoverWithActionResult.logResponse
+    }.getOrRecoverWithActionResult
   }
   get("/:uuid/file/*") { //dir and file
     {
@@ -144,7 +143,7 @@ class DepositServlet(app: EasyDepositApiApp)
         path <- getPath
         contents <- app.getFileInfo(user.id, uuid, path)
       } yield Ok(body = toJson(contents), headers = Map(contentTypeJson))
-    }.getOrRecoverWithActionResult.logResponse
+    }.getOrRecoverWithActionResult
   }
   post("/:uuid/file/*") { //file(s)
     {
@@ -162,7 +161,7 @@ class DepositServlet(app: EasyDepositApiApp)
             .flatMap(_ => stagedFilesTarget.moveAllFrom(stagingDir))
         )
       } yield Created()
-    }.getOrRecoverWithActionResult.logResponse
+    }.getOrRecoverWithActionResult
   }
 
   put("/:uuid/file/*") { //file
@@ -175,7 +174,7 @@ class DepositServlet(app: EasyDepositApiApp)
       } yield if (newFileWasCreated)
                 Created(headers = Map("Location" -> request.uri.toASCIIString))
               else NoContent()
-    }.getOrRecoverWithActionResult.logResponse
+    }.getOrRecoverWithActionResult
   }
   delete("/:uuid/file/*") { //dir and file
     {
@@ -184,7 +183,7 @@ class DepositServlet(app: EasyDepositApiApp)
         path <- getPath
         _ <- app.deleteDepositFile(user.id, uuid, path)
       } yield NoContent()
-    }.getOrRecoverWithActionResult.logResponse
+    }.getOrRecoverWithActionResult
   }
 
   private def getUserId: Try[String] = {

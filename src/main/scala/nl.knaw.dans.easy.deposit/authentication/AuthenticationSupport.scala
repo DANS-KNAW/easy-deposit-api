@@ -19,13 +19,12 @@ import java.net.URL
 
 import nl.knaw.dans.easy.deposit.authentication.AuthUser.UserState
 import nl.knaw.dans.lib.error._
-import nl.knaw.dans.lib.logging.servlet._
 import org.scalatra._
 import org.scalatra.auth.ScentryAuthStore.CookieAuthStore
 import org.scalatra.auth.{ ScentryConfig, ScentrySupport }
 
 trait AuthenticationSupport extends ScentrySupport[AuthUser] {
-  self: ScalatraBase with TokenSupport with AuthConfig with ServletLogger =>
+  self: ScalatraBase with TokenSupport with AuthConfig =>
 
   /** read method name as: fromCookie, see configured scentry.store */
   override protected def fromSession: PartialFunction[String, AuthUser] = {
@@ -39,8 +38,8 @@ trait AuthenticationSupport extends ScentrySupport[AuthUser] {
   override protected def toSession: PartialFunction[AuthUser, String] = {
     case user: AuthUser =>
       user.state match {
-        case UserState.registered => halt(Unauthorized("Please confirm your email.").logResponse)
-        case UserState.blocked => halt(Unauthorized("invalid credentials").logResponse)
+        case UserState.registered => halt(Unauthorized("Please confirm your email."))
+        case UserState.blocked => halt(Unauthorized("invalid credentials"))
         case UserState.active => encodeJWT(user)
       }
   }
@@ -86,7 +85,7 @@ trait AuthenticationSupport extends ScentrySupport[AuthUser] {
   /** Halts request processing in case of trouble. */
   def login() {
     if (!isAuthenticated) {
-      halt(Unauthorized("invalid credentials").logResponse)
+      halt(Unauthorized("invalid credentials"))
     }
   }
 }
