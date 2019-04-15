@@ -104,9 +104,9 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
     val depositDir = createDeposit(datasetMetadata.copy(messageForDataManager = None))
     addDoiToDepositProperties(getBag(depositDir))
 
-    val bagStoreBagId1 = succeedingSubmit(depositDir)
+    val bagStoreBagId = succeedingSubmit(depositDir)
 
-    (testDir / "submitted" / bagStoreBagId1 / "bag" / "metadata" / "message-from-depositor.txt")
+    (testDir / "submitted" / bagStoreBagId / "bag" / "metadata" / "message-from-depositor.txt")
       .contentAsString shouldBe ""
   }
 
