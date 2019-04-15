@@ -83,16 +83,11 @@ object Errors extends DebugEnhancedLogging {
       else s"invalid $document: ${ t.getMessage }"
     )
 
-  /**
-   * Note 1: submit area == easy-ingest-flow-inbox
-   * Note 2: Resubmit may follow a reject, be a concurrent submit request or ...
-   * The end user can compare the UUID with the URL of a deposit.
-   * The UUID can help communication with trouble shooters.
-   */
+  /** Note: submit area == easy-ingest-flow-inbox */
   case class AlreadySubmittedException(uuid: UUID)
     extends ServletResponseException(
-      CONFLICT_409,
-      s"The deposit (UUID $uuid) already exists in the submit area. Possibly due to a resubmit."
+      INTERNAL_SERVER_ERROR_500,
+      s"The submit-id (UUID $uuid) already exists in the submit area."
     )
 
   case class InvalidDoiException(uuid: UUID)

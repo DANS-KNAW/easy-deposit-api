@@ -23,6 +23,7 @@ import nl.knaw.dans.easy.deposit._
 import nl.knaw.dans.easy.deposit.authentication.{ AuthenticationMocker, AuthenticationProvider }
 import nl.knaw.dans.easy.deposit.docs._
 import nl.knaw.dans.lib.error._
+import org.apache.commons.configuration.PropertiesConfiguration
 import org.eclipse.jetty.http.HttpStatus._
 import org.scalatra.test.scalatest.ScalatraSuite
 
@@ -206,8 +207,8 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
   "scenario: create - ... - sumbit" should "create submitted dataset copied from a draft" in {
     val uuid: String = setupSubmittedDeposit
 
-    // resubmit fails
-    val props = testDir / s"drafts/foo/$uuid/deposit.properties"
+    // resubmit succeeds
+    val props = testDir / "drafts" / "foo" / uuid / "deposit.properties"
     props.write(props.contentAsString.replace("SUBMITTED", "DRAFT"))
     authMocker.expectsUserFooBar
     put(
@@ -215,8 +216,7 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
       headers = Seq(fooBarBasicAuthHeader),
       body = """{"state":"SUBMITTED","stateDescription":"blabla"}"""
     ) {
-      status shouldBe CONFLICT_409
-      body shouldBe s"The deposit (UUID $uuid) already exists in the submit area. Possibly due to a resubmit."
+      status shouldBe NO_CONTENT_204
     }
     props.write(props.contentAsString.replace("DRAFT", "SUBMITTED"))
 
@@ -346,6 +346,8 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
     }
 
     // submit
+    new PropertiesConfiguration((depositDir / "deposit.properties").toJava)
+      .containsKey("bag-store.bag-id") shouldBe false
     authMocker.expectsUserFooBar
     put(
       uri = s"/deposit/$uuid/state", headers = Seq(fooBarBasicAuthHeader),
@@ -354,8 +356,12 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
       body shouldBe ""
       status shouldBe NO_CONTENT_204
 
+      val updatesProps = new PropertiesConfiguration((depositDir / "deposit.properties").toJava)
+      updatesProps.containsKey("bag-store.bag-id") shouldBe true
+
       // +3 is difference in number of files in metadata directory: json versus xml's
-      (depositDir.walk().size + 3) shouldBe (testDir / "easy-ingest-flow-inbox" / uuid.toString).walk().size
+      (depositDir.walk().size + 3) shouldBe
+        (testDir / "easy-ingest-flow-inbox" / updatesProps.getString("bag-store.bag-id")).walk().size
     }
     uuid
   }

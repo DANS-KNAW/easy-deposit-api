@@ -77,12 +77,13 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
     }
 
     // the test
-    createSubmitter(userGroup).submit(depositDir) shouldBe a[Success[_]]
+    val bagStoreBagID = succeedingSubmit(depositDir)
 
     // post conditions
     (testDir / "stage-for-submit").children.size shouldBe 0
-    (bagDir / "metadata" / "dataset.json").size shouldBe mdOldSize // no DOI added
-    val submittedBagDir = testDir / "submitted" / depositDir.id.toString / "bag"
+    (bagDir / "metadata" / "dataset.json").size shouldBe mdOldSize
+    // no DOI added
+    val submittedBagDir = testDir / "submitted" / bagStoreBagID / "bag"
     (submittedBagDir / "metadata" / "message-from-depositor.txt").contentAsString shouldBe customMessage
     (submittedBagDir / "metadata" / "agreements.xml").lineIterator.next() shouldBe prologue
     (submittedBagDir / "metadata" / "dataset.xml").lineIterator.next() shouldBe prologue
@@ -103,10 +104,43 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
     val depositDir = createDeposit(datasetMetadata.copy(messageForDataManager = None))
     addDoiToDepositProperties(getBag(depositDir))
 
-    createSubmitter(userGroup).submit(depositDir) shouldBe a[Success[_]]
+    val bagStoreBagId = succeedingSubmit(depositDir)
 
-    (testDir / "submitted" / depositDir.id.toString / "bag" / "metadata" / "message-from-depositor.txt")
+    (testDir / "submitted" / bagStoreBagId / "bag" / "metadata" / "message-from-depositor.txt")
       .contentAsString shouldBe ""
+  }
+
+  it should "overwrite a previous bag-store.bag-id at resubmit" in {
+
+    val depositDir = createDeposit(datasetMetadata.copy(messageForDataManager = None))
+    addDoiToDepositProperties(getBag(depositDir))
+
+    // submit twice (skipping ingest-flow or a curator changed the state to rejected)
+    val bagStoreBagId1 = succeedingSubmit(depositDir)
+    val depositProps = depositDir.bagDir.parent / "deposit.properties"
+    depositProps.write(depositProps.contentAsString.replace("SUBMITTED", "DRAFT"))
+    val bagStoreBagId2 = succeedingSubmit(depositDir)
+
+    // we have both submits
+    bagStoreBagId1 should not be depositDir.id.toString
+    bagStoreBagId2 should not be depositDir.id.toString
+    bagStoreBagId1 should not be bagStoreBagId2
+    (testDir / "submitted" / bagStoreBagId1) should exist
+    (testDir / "submitted" / bagStoreBagId2) should exist
+
+    // we only have the second bag-store.bag-id in the properties
+    bagStoreBagId1 should not be bagStoreBagId2
+    val lines = depositProps.contentAsString.split("\n")
+    lines.count(_.contains("bag-store.bag-id")) shouldBe 1
+    lines.count(_ == s"bag-store.bag-id = $bagStoreBagId2") shouldBe 1
+  }
+
+  private def succeedingSubmit(deposit: DepositDir): String = {
+    val triedBagStoreBagID = createSubmitter(userGroup).submit(deposit)
+    triedBagStoreBagID shouldBe a[Success[_]]
+    triedBagStoreBagID
+      .map(_.toString)
+      .getOrElse(throw new Exception("should not get here"))
   }
 
   it should "report a file missing in the draft" in {
