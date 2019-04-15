@@ -208,7 +208,7 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
     val uuid: String = setupSubmittedDeposit
 
     // resubmit succeeds
-    val props = testDir / s"drafts/foo/$uuid/deposit.properties"
+    val props = testDir / "drafts" / "foo" / uuid / "deposit.properties"
     props.write(props.contentAsString.replace("SUBMITTED", "DRAFT"))
     authMocker.expectsUserFooBar
     put(
@@ -346,6 +346,8 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
     }
 
     // submit
+    new PropertiesConfiguration((depositDir / "deposit.properties").toJava)
+      .containsKey("bag-store.bag-id") shouldBe false
     authMocker.expectsUserFooBar
     put(
       uri = s"/deposit/$uuid/state", headers = Seq(fooBarBasicAuthHeader),
@@ -354,12 +356,12 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
       body shouldBe ""
       status shouldBe NO_CONTENT_204
 
-      val bagStoreBagId = new PropertiesConfiguration((depositDir / "deposit.properties").toJava)
-        .getString("bag-store.bag-id")
-      bagStoreBagId shouldNot be(null)
+      val updatesProps = new PropertiesConfiguration((depositDir / "deposit.properties").toJava)
+      updatesProps.containsKey("bag-store.bag-id") shouldBe true
 
       // +3 is difference in number of files in metadata directory: json versus xml's
-      (depositDir.walk().size + 3) shouldBe (testDir / "easy-ingest-flow-inbox" / bagStoreBagId).walk().size
+      (depositDir.walk().size + 3) shouldBe
+        (testDir / "easy-ingest-flow-inbox" / updatesProps.getString("bag-store.bag-id")).walk().size
     }
     uuid
   }

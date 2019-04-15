@@ -115,7 +115,7 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
     val depositDir = createDeposit(datasetMetadata.copy(messageForDataManager = None))
     addDoiToDepositProperties(getBag(depositDir))
 
-    // submit twice
+    // submit twice (skipping ingest-flow or a curator changed the state to rejected)
     val bagStoreBagId1 = succeedingSubmit(depositDir)
     val depositProps = depositDir.bagDir.parent / "deposit.properties"
     depositProps.write(depositProps.contentAsString.replace("SUBMITTED", "DRAFT"))
