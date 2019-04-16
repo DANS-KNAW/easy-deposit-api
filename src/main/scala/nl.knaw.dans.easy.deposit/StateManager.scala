@@ -41,14 +41,14 @@ case class StateManager(depositDir: File, submitBase: File) {
     val draftState = getStateLabel()
     draftState match {
       case State.submitted | State.inProgress =>
-        val newState: State = getProp(stateLabelKey, submittedProps) match {
-          case "REJECTED" => State.rejected
-          case "FEDORA_ARCHIVED" => State.archived
-          case "SUBMITTED" => State.submitted
-          case "IN_REVIEW" | "FAILED" => State.inProgress
+        val newState: StateInfo = getProp(stateLabelKey, submittedProps) match {
+          case "SUBMITTED" => StateInfo(State.submitted, getStateDescription())
+          case "REJECTED" => StateInfo(State.rejected, getStateDescription(submittedProps))
+          case "FEDORA_ARCHIVED" => StateInfo(State.archived, "The dataset is published in https://easy.dans.knaw.nl/ui")
+          case "IN_REVIEW" | "FAILED" => StateInfo(State.inProgress, "The dataset is visible for you under your datasets in https://easy.dans.knaw.nl/ui")
           case str: String => throw InvalidPropertyException(stateLabelKey, str, submittedProps)
         }
-        saveNewState(StateInfo(newState, getStateDescription(submittedProps)))
+        saveNewState(newState)
       case State.draft | State.rejected | State.archived =>
         StateInfo(draftState, getStateDescription())
     }

@@ -63,10 +63,10 @@ object Errors extends DebugEnhancedLogging {
     extends NotExpectedException(s"Invalid deposit uuid $id for user $user: ${ cause.getMessage }", cause)
 
   case class PropertyNotFoundException(key: String, props: PropertiesConfiguration)
-    extends NotExpectedException(s"'$key' not found in ${ props.getFileName }")
+    extends NotExpectedException(s"'$key' not found in ${ props.getFile }")
 
   case class InvalidPropertyException(key: String, value: String, props: PropertiesConfiguration)
-    extends NotExpectedException(s"Not expected value '$value' for '$key' in ${ props.getFileName }")
+    extends NotExpectedException(s"Not expected value '$value' for '$key' in ${ props.getFile }")
 
   case class IllegalStateTransitionException(oldState: State, newState: State)
     extends ServletResponseException(FORBIDDEN_403, s"Cannot transition from $oldState to $newState")
