@@ -81,13 +81,14 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
     }
     dir
   }
-  private val draftsDir: File = getConfiguredDirectory("deposits.drafts")
-  private val provider: FileSystemProvider = uploadStagingDir.fileSystem.provider()
-  StartupValidation.sameMounts(provider, uploadStagingDir, draftsDir)
+  private val draftBase: File = getConfiguredDirectory("deposits.drafts")
+  private val submitBase: File = getConfiguredDirectory("deposits.submit-to")
+  private val uploadProvider: FileSystemProvider = uploadStagingDir.fileSystem.provider()
+  StartupValidation.sameMounts(uploadProvider, uploadStagingDir, draftBase)
 
   private val submitter = new Submitter(
     getConfiguredDirectory("deposits.stage-for-submit"),
-    getConfiguredDirectory("deposits.submit-to"),
+    submitBase,
     configuration.properties.getString("deposit.permissions.group"),
   )
 
@@ -106,7 +107,7 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
   }
 
   private def getDeposit(user: String, id: UUID): Try[DepositDir] = {
-    DepositDir.get(draftsDir, user, id)
+    DepositDir.get(draftBase, user, id)
   }
 
   def getUser(user: String): Try[Map[String, Seq[String]]] = authentication.getUser(user)
@@ -119,7 +120,7 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
    * @return the new deposit's ID
    */
   def createDeposit(user: String): Try[DepositInfo] = {
-    DepositDir.create(draftsDir, user).flatMap(_.getDepositInfo)
+    DepositDir.create(draftBase, user).flatMap(_.getDepositInfo(submitBase))
   }
 
   /**
@@ -130,8 +131,8 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
    */
   def getDeposits(user: String): Try[Seq[DepositInfo]] = {
     for {
-      deposits <- DepositDir.list(draftsDir, user)
-      infos <- deposits.map(_.getDepositInfo).collectResults
+      deposits <- DepositDir.list(draftBase, user)
+      infos <- deposits.map(_.getDepositInfo(submitBase)).collectResults
     }
       yield infos
   }
@@ -146,7 +147,8 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
   def getDepositState(user: String, id: UUID): Try[StateInfo] = {
     for {
       deposit <- getDeposit(user, id)
-      state <- deposit.getStateInfo
+      stateManager = StateManager(deposit.bagDir.parent, submitBase)
+      state <- stateManager.getStateInfo
     } yield state
   }
 
@@ -165,17 +167,18 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
    * 3. The deposit directory will be copied to the staging area.
    * 4. The copy will be moved to the deposit area.
    *
-   * @param user      the user ID
-   * @param id        the deposit ID
-   * @param stateInfo the state to transition to
+   * @param user         the user ID
+   * @param id           the deposit ID
+   * @param newStateInfo the state to transition to
    * @return
    */
-  def setDepositState(stateInfo: StateInfo, user: String, id: UUID): Try[Unit] = for {
+  def setDepositState(newStateInfo: StateInfo, user: String, id: UUID): Try[Unit] = for {
     deposit <- getDeposit(user, id)
-    _ <- deposit.checkStateTransition(stateInfo.state)
-    _ <- if (stateInfo.state == State.submitted)
-           submitter.submit(deposit) // also changes the state
-         else deposit.setStateInfo(stateInfo)
+    stateManager = StateManager(deposit.bagDir.parent, submitBase)
+    _ <- stateManager.canChangeState(newStateInfo)
+    _ <- if (newStateInfo.state == State.submitted)
+           submitter.submit(deposit, stateManager) // changes the state halfway
+         else stateManager.changeState(newStateInfo)
   } yield ()
 
   /**
@@ -187,7 +190,10 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
    */
   def deleteDeposit(user: String, id: UUID): Try[Unit] = for {
     deposit <- getDeposit(user, id)
-    _ <- deposit.delete()
+    stateManager = StateManager(deposit.bagDir.parent, submitBase)
+    state <- stateManager.getStateInfo
+    _ <- state.canDelete
+    _ = deposit.bagDir.parent.delete()
   } yield ()
 
   /**
@@ -313,7 +319,7 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
   def stageFiles(userId: String, id: UUID, destination: Path): Try[(Dispose[File], StagedFilesTarget)] = {
     val prefix = s"$userId-$id-"
     for {
-      deposit <- DepositDir.get(draftsDir, userId, id)
+      deposit <- DepositDir.get(draftBase, userId, id)
       dataFiles <- deposit.getDataFiles
       stagingDir <- createManagedTempDir(prefix)
       _ <- atMostOneTempDir(prefix).doIfFailure { case _ => stagingDir.get() }

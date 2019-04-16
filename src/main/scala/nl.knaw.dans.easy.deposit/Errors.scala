@@ -23,6 +23,7 @@ import nl.knaw.dans.easy.deposit.docs.StateInfo.State.State
 import nl.knaw.dans.easy.deposit.servlets.contentTypePlainText
 import nl.knaw.dans.lib.error._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
+import org.apache.commons.configuration.PropertiesConfiguration
 import org.eclipse.jetty.http.HttpStatus._
 import org.scalatra.servlet.FileItem
 import org.scalatra.{ ActionResult, InternalServerError }
@@ -33,7 +34,7 @@ object Errors extends DebugEnhancedLogging {
 
   case class ConfigurationException(msg: String) extends IllegalArgumentException(s"Configuration error: $msg")
 
-  abstract sealed class NotExpectedException(msg: String, cause: Throwable)
+  abstract sealed class NotExpectedException(msg: String, cause: Throwable = null)
     extends Exception(msg, cause)
 
   abstract sealed class ServletResponseException(status: Int, httpResponseBody: String)
@@ -60,6 +61,12 @@ object Errors extends DebugEnhancedLogging {
 
   case class CorruptDepositException(user: String, id: String, cause: Throwable)
     extends NotExpectedException(s"Invalid deposit uuid $id for user $user: ${ cause.getMessage }", cause)
+
+  case class PropertyNotFoundException(key: String, props: PropertiesConfiguration)
+    extends NotExpectedException(s"'$key' not found in ${ props.getFileName }")
+
+  case class InvalidPropertyException(key: String, value: String, props: PropertiesConfiguration)
+    extends NotExpectedException(s"Not expected value '$value' for '$key' in ${ props.getFileName }")
 
   case class IllegalStateTransitionException(oldState: State, newState: State)
     extends ServletResponseException(FORBIDDEN_403, s"Cannot transition from $oldState to $newState")

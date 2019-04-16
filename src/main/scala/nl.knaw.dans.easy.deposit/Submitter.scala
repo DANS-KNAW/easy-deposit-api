@@ -66,7 +66,7 @@ class Submitter(stagingBaseDir: File,
    * @param draftDeposit the deposit object to submit
    * @return the UUID of the deposit in the submit area (easy-ingest-flow-inbox)
    */
-  def submit(draftDeposit: DepositDir): Try[UUID] = {
+  def submit(draftDeposit: DepositDir, stateManager: StateManager): Try[UUID] = {
     val propsFileName = "deposit.properties"
     for {
       // EASY-1464 step 3.3.4 validation
@@ -89,7 +89,7 @@ class Submitter(stagingBaseDir: File,
       stageDir = (stagingBaseDir / draftDeposit.id.toString).createDirectories()
       stageBag <- DansV0Bag.empty(stageDir / "bag").map(_.withCreated())
       // EASY-1464 3.3.6 change state and copy with the rest of the deposit properties to staged dir
-      submittedId <- draftDeposit.setStateInfo(StateInfo(StateInfo.State.submitted, "Deposit is ready for processing."))
+      submittedId <- stateManager.changeState(StateInfo(StateInfo.State.submitted, "Deposit is ready for processing."))
       submitDir = submitToBaseDir / submittedId.toString
       _ = if (submitDir.exists) throw AlreadySubmittedException(draftDeposit.id)
       _ = (draftBag.baseDir.parent / propsFileName).copyTo(stageDir / propsFileName)
@@ -115,7 +115,7 @@ class Submitter(stagingBaseDir: File,
     // EASY-1464 step 3.3.9 Move copy to submit-to area
     _ = logger.info(s"moving $draftDepositDir to $submitDir")
     _ <- Try(srcProvider.move(draftDepositDir.path, submitDir.path, StandardCopyOption.ATOMIC_MOVE)).recoverWith {
-      case e: FileAlreadyExistsException => Failure(AlreadySubmittedException(id))
+      case _: FileAlreadyExistsException => Failure(AlreadySubmittedException(id))
     }
   } yield ()
 

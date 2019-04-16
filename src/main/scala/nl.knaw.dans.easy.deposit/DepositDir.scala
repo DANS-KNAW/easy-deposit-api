@@ -24,9 +24,7 @@ import nl.knaw.dans.bag.v0.DansV0Bag
 import nl.knaw.dans.easy.deposit.Errors._
 import nl.knaw.dans.easy.deposit.PidRequesterComponent.{ PidRequester, PidType }
 import nl.knaw.dans.easy.deposit.docs.JsonUtil.toJson
-import nl.knaw.dans.easy.deposit.docs.StateInfo.State
-import nl.knaw.dans.easy.deposit.docs.StateInfo.State.State
-import nl.knaw.dans.easy.deposit.docs.{ StateInfo, _ }
+import nl.knaw.dans.easy.deposit.docs._
 import nl.knaw.dans.lib.error._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.apache.commons.configuration.PropertiesConfiguration
@@ -39,95 +37,31 @@ import scala.util.{ Failure, Success, Try }
 /**
  * Represents an existing deposit directory.
  *
- * @param baseDir the base directory for the deposits
- * @param user    the user ID of the deposit's owner
- * @param id      the ID of the deposit
+ * @param draftBase the base directory for the deposits
+ * @param user      the user ID of the deposit's owner
+ * @param id        the ID of the deposit
  */
-case class DepositDir private(baseDir: File, user: String, id: UUID) extends DebugEnhancedLogging {
-  val bagDir: File = baseDir / user / id.toString / "bag"
+case class DepositDir private(draftBase: File, user: String, id: UUID) extends DebugEnhancedLogging {
+  val bagDir: File = draftBase / user / id.toString / "bag"
   private val metadataDir = bagDir / "metadata"
   private val depositPropertiesFile = bagDir.parent / "deposit.properties"
   private val datasetMetadataJsonFile = metadataDir / "dataset.json"
 
   /**
-   * @return an information object about the current state of the desposit.
-   */
-  def getStateInfo: Try[StateInfo] = {
-    for {
-      props <- getDepositProps
-      state = State.withName(props.getString("state.label"))
-      description = props.getString("state.description")
-    } yield StateInfo(state, description)
-  }
-
-  /**
-   * Sets changes the state of the deposit. If the state transition is not allow a `Failure` containing
-   * an [[nl.knaw.dans.easy.deposit.Errors.IllegalStateTransitionException]] is returned.
-   *
-   * @param stateInfo the new state
-   * @return Failure or Success(submitId or null)
-   */
-  def setStateInfo(stateInfo: StateInfo): Try[UUID] = {
-    for {
-      props <- checkStateTransition(stateInfo.state)
-      _ = props.setProperty("state.label", stateInfo.state.toString)
-      _ = props.setProperty("state.description", stateInfo.stateDescription.toString)
-      uuid = setSubmitId(stateInfo, props)
-      _ = props.save()
-    } yield uuid
-  }
-
-  private def setSubmitId(stateInfo: StateInfo, props: PropertiesConfiguration): UUID = {
-    // TODO refactor with issue easy-2054 perhaps into some StateManager class
-    //  reduce StateInfo back to the document (alias case class) to exchange with the client
-    val propertyKey = "bag-store.bag-id"
-    if (stateInfo.state == State.submitted) {
-      val uuid = UUID.randomUUID()
-      props.setProperty(propertyKey, uuid)
-      uuid
-    }
-    else { // this must be: rejected -> draft
-      props.clearProperty(propertyKey)
-      null
-    }
-  }
-
-  def checkStateTransition(newState: State): Try[PropertiesConfiguration] = {
-    for {
-      props <- getDepositProps
-      currentState <- getState(props)
-      _ <- if (currentState.canChangeTo(newState)) Success(())
-           else Failure(IllegalStateTransitionException(currentState, newState))
-    } yield props
-  }
-
-  private def getState(props: PropertiesConfiguration): Try[StateInfo.State.Value] = Try {
-    State.withName(props.getString("state.label"))
-  }
-
-  /**
-   * Deletes the deposit.
-   */
-  def delete(): Try[Unit] = for {
-    stateInfo <- getStateInfo
-    _ <- stateInfo.canDelete
-    _ = bagDir.parent.delete()
-  } yield ()
-
-  /**
+   * @param submitBase the base directory with submitted deposits to extract the actual state
    * @return basic information about the deposit.
    */
-  def getDepositInfo: Try[DepositInfo] = {
+  def getDepositInfo(submitBase: File): Try[DepositInfo] = {
     for {
       title <- getDatasetTitle
-      props <- getDepositProps
-      state <- getState(props)
-      created = new DateTime(props.getString("creation.timestamp")).withZone(UTC)
+      stateManager = StateManager(bagDir.parent, submitBase)
+      stateInfo <- stateManager.getStateInfo
+      created = new DateTime(stateManager.draftProps.getString("creation.timestamp")).withZone(UTC)
     } yield DepositInfo(
       id,
       title,
-      state,
-      props.getString("state.description"),
+      stateInfo.state,
+      stateInfo.stateDescription,
       created
     )
   }.recoverWith {
@@ -224,18 +158,18 @@ object DepositDir {
   /**
    * Lists the deposits of the specified user.
    *
-   * @param baseDir the base directory for all draft deposits.
-   * @param user    the user name
+   * @param draftDir the base directory for all draft deposits.
+   * @param user     the user name
    * @return a list of [[DepositDir]] objects
    */
-  def list(baseDir: File, user: String): Try[Seq[DepositDir]] = {
-    val userDir = baseDir / user
+  def list(draftDir: File, user: String): Try[Seq[DepositDir]] = {
+    val userDir = draftDir / user
     if (userDir.exists)
       userDir
         .list
         .filter(_.isDirectory)
         .map(deposit => Try {
-          new DepositDir(baseDir, user, UUID.fromString(deposit.name))
+          DepositDir(draftDir, user, UUID.fromString(deposit.name))
         }.recoverWith { case t: Throwable => Failure(CorruptDepositException(user, deposit.name, t)) })
         .toSeq
         .collectResults
@@ -245,13 +179,13 @@ object DepositDir {
   /**
    * Returns the requested [[DepositDir]], if it is owned by `user`
    *
-   * @param baseDir the base directory for all draft deposits
-   * @param user    the user name
-   * @param id      the identifier of the deposit
+   * @param draftDir the base directory for all draft deposits
+   * @param user     the user name
+   * @param id       the identifier of the deposit
    * @return a [[DepositDir]] object
    */
-  def get(baseDir: File, user: String, id: UUID): Try[DepositDir] = {
-    val depositDir = DepositDir(baseDir, user, id)
+  def get(draftDir: File, user: String, id: UUID): Try[DepositDir] = {
+    val depositDir = DepositDir(draftDir, user, id)
     if (depositDir.bagDir.parent.exists) Success(depositDir)
     else Failure(NoSuchDepositException(user, id, new FileNotFoundException()))
   }
@@ -259,14 +193,14 @@ object DepositDir {
   /**
    * Creates and returns a new deposit for `user`.
    *
-   * @param baseDir the base directory for all draft deposits
-   * @param user    the user name
+   * @param draftDir the base directory for all draft deposits
+   * @param user     the user name
    * @return the newly created [[DepositDir]]
    */
-  def create(baseDir: File, user: String): Try[DepositDir] = {
+  def create(draftDir: File, user: String): Try[DepositDir] = {
     val depositInfo = DepositInfo()
-    val deposit = DepositDir(baseDir, user, depositInfo.id)
-    val depositDir = deposit.baseDir / user / depositInfo.id.toString
+    val deposit = DepositDir(draftDir, user, depositInfo.id)
+    val depositDir = deposit.draftBase / user / depositInfo.id.toString
     for {
       _ <- Try { depositDir.createDirectories }
       bag <- DansV0Bag.empty(depositDir / "bag")

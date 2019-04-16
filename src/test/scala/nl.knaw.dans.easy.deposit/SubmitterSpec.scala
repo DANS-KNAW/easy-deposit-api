@@ -20,9 +20,9 @@ import java.nio.file.Paths
 
 import better.files.StringOps
 import nl.knaw.dans.bag.DansBag
-import nl.knaw.dans.easy.deposit.docs.StateInfo.State
 import nl.knaw.dans.easy.deposit.docs._
 import nl.knaw.dans.lib.error._
+import org.apache.commons.configuration.PropertiesConfiguration
 import org.scalamock.scalatest.MockFactory
 
 import scala.util.{ Failure, Success }
@@ -51,9 +51,10 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
 
   "submit" should "fail if the user is not part of the given group" in {
     val depositDir = createDeposit(datasetMetadata)
+    val stateManager = StateManager(depositDir.bagDir.parent, testDir / "submitted")
     addDoiToDepositProperties(getBag(depositDir))
 
-    createSubmitter(unrelatedGroup).submit(depositDir) should matchPattern {
+    createSubmitter(unrelatedGroup).submit(depositDir, stateManager) should matchPattern {
       case Failure(e: IOException) if e.getMessage matches
         ".*Probably the current user .* is not part of this group.*" =>
     }
@@ -72,9 +73,8 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
 
     // preconditions
     val mdOldSize = (bagDir / "metadata" / "dataset.json").size // should not change
-    depositDir.getStateInfo should matchPattern { // should change
-      case Success(StateInfo(State.draft, "Deposit is open for changes.")) =>
-    }
+    new PropertiesConfiguration((bagDir.parent / "deposit.properties").toJava)
+      .getString("state.label") shouldBe "DRAFT"
 
     // the test
     val bagStoreBagID = succeedingSubmit(depositDir)
@@ -94,9 +94,8 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
     (submittedBagDir.parent / "deposit.properties").contentAsString shouldBe
       (bagDir.parent / "deposit.properties").contentAsString
     depositDir.getDOI(null) shouldBe Success(doi) // no pid-requester so obtained from json and/or props
-    depositDir.getStateInfo should matchPattern {
-      case Success(StateInfo(State.submitted, "Deposit is ready for processing.")) =>
-    }
+    new PropertiesConfiguration((bagDir.parent / "deposit.properties").toJava)
+      .getString("state.label") shouldBe "SUBMITTED"
   }
 
   it should "write empty message-from-depositor file" in {
@@ -136,7 +135,9 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
   }
 
   private def succeedingSubmit(deposit: DepositDir): String = {
-    val triedBagStoreBagID = createSubmitter(userGroup).submit(deposit)
+    val stateManager = StateManager(deposit.bagDir.parent, testDir / "submitted")
+
+    val triedBagStoreBagID = createSubmitter(userGroup).submit(deposit, stateManager)
     triedBagStoreBagID shouldBe a[Success[_]]
     triedBagStoreBagID
       .map(_.toString)
@@ -145,6 +146,7 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
 
   it should "report a file missing in the draft" in {
     val depositDir = createDeposit(datasetMetadata)
+    val stateManager = StateManager(depositDir.bagDir.parent, testDir / "submitted")
     val bag = getBag(depositDir)
     addDoiToDepositProperties(bag)
     bag.addPayloadFile("lorum ipsum".inputStream, Paths.get("file.txt"))
@@ -153,13 +155,14 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
     // add file to manifest that does not exist
     (bag.baseDir / "manifest-sha1.txt").append("chk file")
 
-    createSubmitter(userGroup).submit(depositDir) should matchPattern {
+    createSubmitter(userGroup).submit(depositDir, stateManager) should matchPattern {
       case Failure(e) if e.getMessage == s"invalid bag, missing [files, checksums]: [Set($testDir/drafts/user/${ depositDir.id }/bag/file), Set()]" =>
     }
   }
 
   it should "report an invalid checksum" in {
     val depositDir = createDeposit(datasetMetadata)
+    val stateManager = StateManager(depositDir.bagDir.parent, testDir / "submitted")
     val bag = getBag(depositDir)
     addDoiToDepositProperties(bag)
     bag.addPayloadFile("lorum ipsum".inputStream, Paths.get("file.txt"))
@@ -170,7 +173,7 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
     manifest.write(manifest.contentAsString.replaceAll(" +", "xxx  "))
 
     val checksum = "a57ec0c3239f30b29f1e9270581be50a70c74c04"
-    createSubmitter(userGroup).submit(depositDir) should matchPattern {
+    createSubmitter(userGroup).submit(depositDir, stateManager) should matchPattern {
       case Failure(e)
         if e.getMessage == s"staged and draft bag [${ bag.baseDir.parent }] have different payload manifest elements: (Set((data/file.txt,$checksum)),Set((data/file.txt,${ checksum }xxx)))" =>
     }
