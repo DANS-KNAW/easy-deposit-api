@@ -127,7 +127,7 @@ class StateManagerSpec extends TestSupportFixture {
     draftPropsFile.writeText(props)
     StateManager(draftDeposit, submitBase)
       .changeState(StateInfo(State.archived, "rabarbera")) should matchPattern {
-      case e: IllegalStateTransitionException if e.getMessage == "Cannot transition from DRAFT to ARCHIVED" =>
+      case Failure( IllegalStateTransitionException(State.draft, State.archived)) =>
     }
     draftPropsFile.contentAsString shouldBe props
   }
