@@ -94,14 +94,14 @@ class StateManagerSpec extends TestSupportFixture {
       """state.label = DRAFT
         |state.description = Deposit is open for changes.
       """.stripMargin)
-    val triedUuid = StateManager(draftDeposit, submitBase)
-      .changeState(StateInfo(State.submitted, "rabarbera"))
-    val newUuid = triedUuid.getOrElse(fail(s"expecting Success but got $triedUuid"))
-    draftPropsFile.contentAsString should startWith(
-      s"""state.label = SUBMITTED
-         |state.description = rabarbera
-         |bag-store.bag-id = $newUuid
-         |""".stripMargin)
+    val stateManager = StateManager(draftDeposit, submitBase)
+    stateManager.changeState(StateInfo(State.submitted, "rabarbera")) shouldBe a[Success[_]]
+    val props = draftPropsFile.contentAsString
+    props should include("bag-store.bag-id = ")
+    props.split("\n") should contain allOf(
+      "state.label = SUBMITTED",
+      "state.description = rabarbera"
+    )
   }
 
   it should "result in Success when transitioning from REJECTED to DRAFT" in {
@@ -111,7 +111,7 @@ class StateManagerSpec extends TestSupportFixture {
          |bag-store.bag-id = $uuid
          |""".stripMargin)
     StateManager(draftDeposit, submitBase)
-      .changeState(StateInfo(State.draft, "rabarbera")) shouldBe Success(null)
+      .changeState(StateInfo(State.draft, "rabarbera")) shouldBe a[Success[_]]
     draftPropsFile.contentAsString shouldBe
       s"""state.label = DRAFT
          |state.description = rabarbera

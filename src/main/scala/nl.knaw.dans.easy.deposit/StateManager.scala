@@ -34,7 +34,7 @@ case class StateManager(depositDir: File, submitBase: File) {
     (depositDir / "deposit.properties").toJava
   )
   private lazy val submittedProps = new PropertiesConfiguration(
-    (submitBase / getProp(bagIdKey) / "deposit.properties").toJava
+    (submitBase / getProp(bagIdKey, draftProps) / "deposit.properties").toJava
   )
 
   def getStateInfo: Try[StateInfo] = Try {
@@ -42,7 +42,7 @@ case class StateManager(depositDir: File, submitBase: File) {
     draftState match {
       case State.submitted | State.inProgress =>
         val newState: StateInfo = getProp(stateLabelKey, submittedProps) match {
-          case "SUBMITTED" => StateInfo(State.submitted, getStateDescription())
+          case "SUBMITTED" => StateInfo(State.submitted, getStateDescription(draftProps))
           case "REJECTED" => StateInfo(State.rejected, getStateDescription(submittedProps))
           case "FEDORA_ARCHIVED" => StateInfo(State.archived, "The dataset is published in https://easy.dans.knaw.nl/ui")
           case "IN_REVIEW" | "FAILED" => StateInfo(State.inProgress, "The dataset is visible for you under your datasets in https://easy.dans.knaw.nl/ui")
@@ -50,7 +50,7 @@ case class StateManager(depositDir: File, submitBase: File) {
         }
         saveNewState(newState)
       case State.draft | State.rejected | State.archived =>
-        StateInfo(draftState, getStateDescription())
+        StateInfo(draftState, getStateDescription(draftProps))
     }
   }
 
@@ -64,22 +64,28 @@ case class StateManager(depositDir: File, submitBase: File) {
     }
   }
 
-  /** @return bag-store.bag-id in case the new state is submitted */
-  def changeState(newStateInfo: StateInfo): Try[UUID] = getStateInfo.flatMap { old =>
+  def changeState(newStateInfo: StateInfo): Try[Unit] = getStateInfo.flatMap { old =>
     // getStateInfo has been called by canChangeState, but it is not an IO action so no optimisation
     (old.state, newStateInfo.state) match {
       case (State.draft, State.submitted) =>
         val bagStoreBagId = UUID.randomUUID()
-        draftProps.setProperty(bagIdKey, bagStoreBagId)
+        draftProps.setProperty(bagIdKey, bagStoreBagId.toString)
         saveNewState(newStateInfo)
-        Success(bagStoreBagId)
+        Success(())
       case (State.rejected, State.draft) =>
         draftProps.clearProperty(bagIdKey)
         saveNewState(newStateInfo)
-        Success(null)
+        Success(())
       case (oldState, newState) =>
         Failure(IllegalStateTransitionException(oldState, newState))
     }
+  }
+
+  /** @return the value of bag-store.bag-id created by changeState when set to SUBMITTED */
+  def getSubmittedBagId: Try[UUID] = Try {
+    // exception intercepted as not expected
+    // by TriedActionResult.getOrRecoverWithActionResult
+    UUID.fromString(draftProps.getString(bagIdKey))
   }
 
   private def saveNewState(newStateInfo: StateInfo) = {
@@ -99,11 +105,11 @@ case class StateManager(depositDir: File, submitBase: File) {
     State.withName(str)
   }.getOrElse(throw InvalidPropertyException(stateLabelKey, str, draftProps))
 
-  private def getStateDescription(props: PropertiesConfiguration = draftProps): String = {
+  private def getStateDescription(props: PropertiesConfiguration): String = {
     getProp(stateDescriptionKey, props)
   }
 
-  private def getProp(key: String, props: PropertiesConfiguration = draftProps): String = {
+  private def getProp(key: String, props: PropertiesConfiguration): String = {
     Option(props.getString(key))
       .getOrElse(throw PropertyNotFoundException(key, props))
   }
