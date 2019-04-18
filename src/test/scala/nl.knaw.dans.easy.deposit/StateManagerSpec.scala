@@ -114,7 +114,7 @@ class StateManagerSpec extends TestSupportFixture {
          |state.description = rabarbeara
       """.stripMargin)
     StateManager(draftDeposit, submitBase).getStateInfo should matchPattern {
-      case Success(StateInfo(State.inProgress, "The dataset is published at https://doi.org/10.5072/dans-zyf-v9sc")) =>
+      case Success(StateInfo(State.archived, "The dataset is published at https://doi.org/10.5072/dans-zyf-v9sc")) =>
     }
   }
 
