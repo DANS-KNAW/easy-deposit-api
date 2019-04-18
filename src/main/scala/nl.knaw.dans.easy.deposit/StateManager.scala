@@ -45,7 +45,8 @@ case class StateManager(depositDir: File, submitBase: File) {
           case "SUBMITTED" => StateInfo(State.submitted, getStateDescription(draftProps))
           case "REJECTED" => StateInfo(State.rejected, getStateDescription(submittedProps))
           case "FEDORA_ARCHIVED" => StateInfo(State.archived, "The dataset is published in https://easy.dans.knaw.nl/ui")
-          case "IN_REVIEW" | "FAILED" => StateInfo(State.inProgress, "The dataset is visible for you under your datasets in https://easy.dans.knaw.nl/ui")
+          case "IN_REVIEW" => StateInfo(State.inProgress, "The dataset is visible for you under your datasets in https://easy.dans.knaw.nl/ui")
+          case "FAILED" => StateInfo(State.inProgress, "The dataset passed automated validations")
           case str: String => throw InvalidPropertyException(stateLabelKey, str, submittedProps)
         }
         saveNewState(newState)
