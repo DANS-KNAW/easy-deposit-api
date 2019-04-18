@@ -73,8 +73,8 @@ class StateManagerSpec extends TestSupportFixture {
   }
 
   it should "change SUBMITTED to IN_PROGRESS" in {
-    val oldMessage = """The dataset is ready for processing"""
-    val newMessage = """The dataset is visible for you under your datasets in https://easy.dans.knaw.nl/ui"""
+    val oldMessage = "The deposit is ready for processing"
+    val newMessage = "The deposit is available at https://easy.dans.knaw.nl/ui/mydatasets"
     draftPropsFile.writeText(
       s"""state.label = SUBMITTED
          |state.description = $oldMessage
@@ -127,7 +127,7 @@ class StateManagerSpec extends TestSupportFixture {
     draftPropsFile.writeText(props)
     StateManager(draftDeposit, submitBase)
       .changeState(StateInfo(State.archived, "rabarbera")) should matchPattern {
-      case Failure( IllegalStateTransitionException(State.draft, State.archived)) =>
+      case Failure(e: IllegalStateTransitionException) if e.getMessage == "Cannot transition from DRAFT to ARCHIVED" =>
     }
     draftPropsFile.contentAsString shouldBe props
   }

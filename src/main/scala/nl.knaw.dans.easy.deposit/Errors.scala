@@ -61,11 +61,14 @@ object Errors extends DebugEnhancedLogging {
     logger.error(cause.getMessage, cause)
   }
 
+  class PropertyException(msg: String)
+    extends ServletResponseException(INTERNAL_SERVER_ERROR_500, msg)
+
   case class PropertyNotFoundException(key: String, props: PropertiesConfiguration)
-    extends ServletResponseException(INTERNAL_SERVER_ERROR_500, s"'$key' not found in ${ props.getFile }")
+    extends PropertyException( s"'$key' not found in ${ props.getFile }")
 
   case class InvalidPropertyException(key: String, value: String, props: PropertiesConfiguration)
-    extends ServletResponseException(INTERNAL_SERVER_ERROR_500, s"Not expected value '$value' for '$key' in ${ props.getFile }")
+    extends PropertyException(s"Not expected value '$value' for '$key' in ${ props.getFile }")
 
   case class IllegalStateTransitionException(oldState: State, newState: State)
     extends ServletResponseException(FORBIDDEN_403, s"Cannot transition from $oldState to $newState")
