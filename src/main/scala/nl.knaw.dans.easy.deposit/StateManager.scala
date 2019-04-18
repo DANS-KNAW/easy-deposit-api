@@ -18,10 +18,9 @@ package nl.knaw.dans.easy.deposit
 import java.util.UUID
 
 import better.files.File
-import nl.knaw.dans.easy.deposit.Errors.{ IllegalStateTransitionException, InvalidPropertyException, PropertyException, PropertyNotFoundException }
+import nl.knaw.dans.easy.deposit.Errors.{ IllegalStateTransitionException, InvalidPropertyException, PropertyNotFoundException }
 import nl.knaw.dans.easy.deposit.docs.StateInfo
 import nl.knaw.dans.easy.deposit.docs.StateInfo.State
-import nl.knaw.dans.easy.deposit.docs.StateInfo.State.State
 import org.apache.commons.configuration.PropertiesConfiguration
 
 import scala.util.{ Failure, Success, Try }
@@ -45,14 +44,14 @@ case class StateManager(depositDir: File, submitBase: File) {
    *          unless more recent values might be available in SUBMITTED/UUID/deposit.properties
    */
   def getStateInfo: Try[StateInfo] = Try {
-    getStateLabel(draftProps) match {
+    toDraftState(getProp(stateLabelKey, draftProps)) match {
       case State.submitted | State.inProgress =>
         val newState: StateInfo = getProp(stateLabelKey, submittedProps) match {
           case "SUBMITTED" => StateInfo(State.submitted, getStateDescription(draftProps))
           case "REJECTED" => StateInfo(State.rejected, getStateDescription(submittedProps))
-          case "FEDORA_ARCHIVED" => StateInfo(State.archived, s"The dataset is published at $landingPage")
+          case "FEDORA_ARCHIVED" => StateInfo(State.archived, s"The dataset is published at ${ landingPage(tryDoi = true) }")
           case "FAILED" => StateInfo(State.inProgress, s"The deposit is in progress.")
-          case "IN_REVIEW" => StateInfo(State.inProgress, s"The deposit is available at $landingPage")
+          case "IN_REVIEW" => StateInfo(State.inProgress, s"The deposit is available at ${ landingPage(tryDoi = false) }")
           case str: String => throw InvalidPropertyException(stateLabelKey, str, submittedProps)
         }
         saveNewState(newState)
@@ -96,7 +95,7 @@ case class StateManager(depositDir: File, submitBase: File) {
   /** @return the value of bag-store.bag-id which is
    *          - created by changeState when changed to SUBMITTED
    *          - destroyed by changeState when changed to DRAFT
-   *          or fails with:
+   *          fails with:
    *          PropertyException (if bag-store.bag-id is not found)
    *          ConversionException (if setProperty was called with something else than a String)
    *          IllegalArgumentException (if the value is not a valid UUID)
@@ -107,20 +106,27 @@ case class StateManager(depositDir: File, submitBase: File) {
     UUID.fromString(draftProps.getString(bagIdKey))
   }
 
-  // TODO assemble with identifier.fedora
-  private def landingPage = "https://easy.dans.knaw.nl/ui/mydatasets"
+  val baseURL = "https://easy.dans.knaw.nl/ui"
+
+  private def landingPage(tryDoi: Boolean) = {
+    Try { getProp("identifier.fedora", submittedProps) }
+      .map(id => s"$baseURL/datasets/id/$id")
+      .getOrElse(landingPageFromDOI(tryDoi)
+      )
+  }
+
+  private def landingPageFromDOI(tryDoi: Boolean) = {
+    if (tryDoi)
+      Try { getProp("identifier.doi", draftProps) }
+        .map(id => s"https://doi.org/$id")
+        .getOrElse(s"$baseURL/mydatasets")
+    else s"$baseURL/mydatasets"
+  }
 
   private def saveNewState(newStateInfo: StateInfo): Unit = {
     draftProps.setProperty(stateLabelKey, newStateInfo.state.toString)
     draftProps.setProperty(stateDescriptionKey, newStateInfo.stateDescription)
     draftProps.save()
-  }
-
-  @throws[PropertyException](s"when $stateLabelKey is not found")
-  private def getStateLabel(props: PropertiesConfiguration): State = {
-    Option(props.getString(stateLabelKey, null))
-      .map(toDraftState)
-      .getOrElse(throw PropertyNotFoundException(stateLabelKey, props))
   }
 
   @throws[InvalidPropertyException](s"when $stateLabelKey has an invalid value")

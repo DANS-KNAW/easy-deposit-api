@@ -47,10 +47,9 @@ class StateManagerSpec extends TestSupportFixture {
   }
 
   it should "require a bag-store.bag-id for state SUBMITTED" in {
-    val message = "The dataset is ready for processing"
     draftPropsFile.writeText(
       s"""state.label = SUBMITTED
-         |state.description = $message
+         |state.description = The dataset is ready for processing
       """.stripMargin)
     StateManager(draftDeposit, File("does-not-exist")).getStateInfo should matchPattern {
       case Failure(e: PropertyNotFoundException) if e.getMessage ==
@@ -59,10 +58,9 @@ class StateManagerSpec extends TestSupportFixture {
   }
 
   it should "require submit properties for state SUBMITTED" in {
-    val message = "The dataset is ready for processing"
     draftPropsFile.writeText(
       s"""state.label = SUBMITTED
-         |state.description = $message
+         |state.description = The dataset is ready for processing
          |bag-store.bag-id = $uuid
       """.stripMargin)
     StateManager(draftDeposit, testDir / "does-not-exist").getStateInfo should matchPattern {
@@ -73,19 +71,50 @@ class StateManagerSpec extends TestSupportFixture {
   }
 
   it should "change SUBMITTED to IN_PROGRESS" in {
-    val oldMessage = "The deposit is ready for processing"
-    val newMessage = "The deposit is available at https://easy.dans.knaw.nl/ui/mydatasets"
     draftPropsFile.writeText(
       s"""state.label = SUBMITTED
-         |state.description = $oldMessage
+         |state.description = The deposit is ready for processing
          |bag-store.bag-id = $uuid
       """.stripMargin)
     submittedPropsFile.writeText(
       s"""state.label = IN_REVIEW
-         |state.description = $newMessage
+         |state.description = rabarbera
       """.stripMargin)
     StateManager(draftDeposit, submitBase).getStateInfo should matchPattern {
-      case Success(StateInfo(State.inProgress, `newMessage`)) =>
+      case Success(StateInfo(State.inProgress, "The deposit is available at https://easy.dans.knaw.nl/ui/mydatasets")) =>
+    }
+  }
+
+  it should "return the fedora landing page" in {
+    draftPropsFile.writeText(
+      s"""state.label = SUBMITTED
+         |state.description = The deposit is ready for processing
+         |bag-store.bag-id = $uuid
+         |identifier.doi = 10.5072/dans-zyf-v9sc
+      """.stripMargin)
+    submittedPropsFile.writeText(
+      s"""state.label = IN_REVIEW
+         |state.description = rabarbera
+         |identifier.fedora = easy-dataset:1239
+      """.stripMargin)
+    StateManager(draftDeposit, submitBase).getStateInfo should matchPattern {
+      case Success(StateInfo(State.inProgress, "The deposit is available at https://easy.dans.knaw.nl/ui/datasets/id/easy-dataset:1239")) =>
+    }
+  }
+
+  it should "return the doi landing page when no fedora-id is available" in {
+    draftPropsFile.writeText(
+      s"""state.label = SUBMITTED
+         |state.description = The deposit is ready for processin
+         |bag-store.bag-id = $uuid
+         |identifier.doi = 10.5072/dans-zyf-v9sc
+      """.stripMargin)
+    submittedPropsFile.writeText(
+      s"""state.label = FEDORA_ARCHIVED
+         |state.description = rabarbeara
+      """.stripMargin)
+    StateManager(draftDeposit, submitBase).getStateInfo should matchPattern {
+      case Success(StateInfo(State.inProgress, "The dataset is published at https://doi.org/10.5072/dans-zyf-v9sc")) =>
     }
   }
 
