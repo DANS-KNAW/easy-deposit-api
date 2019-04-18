@@ -38,15 +38,15 @@ case class StateManager(depositDir: File, submitBase: File) {
   )
 
   def getStateInfo: Try[StateInfo] = Try {
-    val draftState = getStateLabel()
+    val draftState = getStateLabel(draftProps)
     draftState match {
       case State.submitted | State.inProgress =>
         val newState: StateInfo = getProp(stateLabelKey, submittedProps) match {
           case "SUBMITTED" => StateInfo(State.submitted, getStateDescription(draftProps))
           case "REJECTED" => StateInfo(State.rejected, getStateDescription(submittedProps))
-          case "FEDORA_ARCHIVED" => StateInfo(State.archived, "The dataset is published in https://easy.dans.knaw.nl/ui")
+          case "FEDORA_ARCHIVED" => StateInfo(State.archived, "The dataset is published")
           case "IN_REVIEW" => StateInfo(State.inProgress, "The dataset is visible for you under your datasets in https://easy.dans.knaw.nl/ui")
-          case "FAILED" => StateInfo(State.inProgress, "The dataset passed automated validations")
+          case "FAILED" => StateInfo(State.inProgress, "The dataset is in progress")
           case str: String => throw InvalidPropertyException(stateLabelKey, str, submittedProps)
         }
         saveNewState(newState)
@@ -96,13 +96,13 @@ case class StateManager(depositDir: File, submitBase: File) {
     newStateInfo
   }
 
-  private def getStateLabel(props: PropertiesConfiguration = draftProps): State = {
+  private def getStateLabel(props: PropertiesConfiguration): State = {
     Option(props.getString(stateLabelKey))
-      .map(toDraftState) // TODO recover InvalidPropertyException
+      .map(toDraftState)
       .getOrElse(throw PropertyNotFoundException(stateLabelKey, props))
   }
 
-  private def toDraftState(str: String) = Try {
+  private def toDraftState(str: String): State.Value = Try {
     State.withName(str)
   }.getOrElse(throw InvalidPropertyException(stateLabelKey, str, draftProps))
 
