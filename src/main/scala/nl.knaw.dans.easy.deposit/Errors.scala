@@ -34,9 +34,6 @@ object Errors extends DebugEnhancedLogging {
 
   case class ConfigurationException(msg: String) extends IllegalArgumentException(s"Configuration error: $msg")
 
-  abstract sealed class NotExpectedException(msg: String, cause: Throwable = null)
-    extends Exception(msg, cause)
-
   abstract sealed class ServletResponseException(status: Int, httpResponseBody: String)
     extends Exception(httpResponseBody) {
     val internalServerError: Boolean = status == INTERNAL_SERVER_ERROR_500
@@ -60,13 +57,15 @@ object Errors extends DebugEnhancedLogging {
     extends ServletResponseException(NOT_FOUND_404, httpResponseBody)
 
   case class CorruptDepositException(user: String, id: String, cause: Throwable)
-    extends NotExpectedException(s"Invalid deposit uuid $id for user $user: ${ cause.getMessage }", cause)
+    extends ServletResponseException(INTERNAL_SERVER_ERROR_500, s"Invalid deposit uuid $id for user $user: ${ cause.getMessage }") {
+    logger.error(cause.getMessage, cause)
+  }
 
   case class PropertyNotFoundException(key: String, props: PropertiesConfiguration)
-    extends NotExpectedException(s"'$key' not found in ${ props.getFile }")
+    extends ServletResponseException(INTERNAL_SERVER_ERROR_500, s"'$key' not found in ${ props.getFile }")
 
   case class InvalidPropertyException(key: String, value: String, props: PropertiesConfiguration)
-    extends NotExpectedException(s"Not expected value '$value' for '$key' in ${ props.getFile }")
+    extends ServletResponseException(INTERNAL_SERVER_ERROR_500, s"Not expected value '$value' for '$key' in ${ props.getFile }")
 
   case class IllegalStateTransitionException(oldState: State, newState: State)
     extends ServletResponseException(FORBIDDEN_403, s"Cannot transition from $oldState to $newState")

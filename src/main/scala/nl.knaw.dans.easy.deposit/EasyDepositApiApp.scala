@@ -177,7 +177,7 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
     stateManager = StateManager(deposit.bagDir.parent, submitBase)
     _ <- stateManager.canChangeState(newStateInfo)
     _ <- if (newStateInfo.state == State.submitted)
-           submitter.submit(deposit, stateManager) // changes the state halfway
+           submitter.submit(deposit, stateManager) // also changes the state
          else stateManager.changeState(newStateInfo)
   } yield ()
 
