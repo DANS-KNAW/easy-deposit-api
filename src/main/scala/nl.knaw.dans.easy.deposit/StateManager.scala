@@ -21,11 +21,15 @@ import better.files.File
 import nl.knaw.dans.easy.deposit.Errors.{ IllegalStateTransitionException, InvalidPropertyException, PropertyNotFoundException }
 import nl.knaw.dans.easy.deposit.docs.StateInfo
 import nl.knaw.dans.easy.deposit.docs.StateInfo.State
+import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.apache.commons.configuration.PropertiesConfiguration
 
 import scala.util.{ Failure, Success, Try }
 
-case class StateManager(depositDir: File, submitBase: File) {
+case class StateManager(depositDir: File, submitBase: File) extends DebugEnhancedLogging {
+
+  private val landingPageBase = "https://easy.dans.knaw.nl/ui"
+
   private val stateDescriptionKey = "state.description"
   private val stateLabelKey = "state.label"
 
@@ -49,10 +53,12 @@ case class StateManager(depositDir: File, submitBase: File) {
         val newState: StateInfo = getProp(stateLabelKey, submittedProps) match {
           case "SUBMITTED" => StateInfo(State.submitted, getStateDescription(draftProps))
           case "REJECTED" => StateInfo(State.rejected, getStateDescription(submittedProps))
-          case "FEDORA_ARCHIVED" => StateInfo(State.archived, s"The dataset is published at ${ landingPage(tryDoi = true) }")
           case "FAILED" => StateInfo(State.inProgress, s"The deposit is in progress.")
-          case "IN_REVIEW" => StateInfo(State.inProgress, s"The deposit is available at ${ landingPage(tryDoi = false) }")
-          case str: String => throw InvalidPropertyException(stateLabelKey, str, submittedProps)
+          case "IN_REVIEW" => StateInfo(State.inProgress, s"The deposit is available at $landingPage")
+          case "FEDORA_ARCHIVED" | "ARCHIVED" => StateInfo(State.archived, s"The dataset is published at $landingPage")
+          case str: String =>
+            logger.error(InvalidPropertyException(stateLabelKey, str, submittedProps).getMessage)
+            StateInfo(State.inProgress, s"The deposit is in progress.")
         }
         saveNewState(newState)
         newState
@@ -106,21 +112,10 @@ case class StateManager(depositDir: File, submitBase: File) {
     UUID.fromString(draftProps.getString(bagIdKey))
   }
 
-  val baseURL = "https://easy.dans.knaw.nl/ui"
-
-  private def landingPage(tryDoi: Boolean) = {
+  private def landingPage = {
     Try { getProp("identifier.fedora", submittedProps) }
-      .map(id => s"$baseURL/datasets/id/$id")
-      .getOrElse(landingPageFromDOI(tryDoi)
-      )
-  }
-
-  private def landingPageFromDOI(tryDoi: Boolean) = {
-    if (tryDoi)
-      Try { getProp("identifier.doi", draftProps) }
-        .map(id => s"https://doi.org/$id")
-        .getOrElse(s"$baseURL/mydatasets")
-    else s"$baseURL/mydatasets"
+      .map(id => s"$landingPageBase/datasets/id/$id")
+      .getOrElse(landingPageBase)
   }
 
   private def saveNewState(newStateInfo: StateInfo): Unit = {
