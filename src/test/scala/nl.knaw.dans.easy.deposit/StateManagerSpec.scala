@@ -67,6 +67,8 @@ class StateManagerSpec extends TestSupportFixture {
       case Failure(e: PropertyNotFoundException) if e.getMessage ==
         s"'state.label' not found in $testDir/does-not-exist/$uuid/deposit.properties" =>
       // actually the submitted deposit does not exist
+      // for example due to lack of space to create a copy in the staging area
+      // or removed by some ignorant clean-up action
     }
   }
 
