@@ -115,7 +115,7 @@ case class StateManager(depositDir: File, submitBase: File) extends DebugEnhance
   private def landingPage = {
     Try { getProp("identifier.fedora", submittedProps) }
       .map(id => s"$landingPageBase/datasets/id/$id")
-      .getOrElse(landingPageBase)
+      .getOrElse(s"$landingPageBase/mydatasets") // fall back
   }
 
   private def saveNewState(newStateInfo: StateInfo): Unit = {
