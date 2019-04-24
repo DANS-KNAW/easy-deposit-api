@@ -49,12 +49,20 @@ case class DepositDir private(draftBase: File, user: String, id: UUID) extends D
 
   /**
    * @param submitBase the base directory with submitted deposits to extract the actual state
+   * @return the `StateManager` for this deposit
+   */
+  def getStateManager(submitBase: File): StateManager = {
+    StateManager(bagDir.parent, submitBase)
+  }
+
+  /**
+   * @param submitBase the base directory with submitted deposits to extract the actual state
    * @return basic information about the deposit.
    */
   def getDepositInfo(submitBase: File): Try[DepositInfo] = {
     for {
       title <- getDatasetTitle
-      stateManager = StateManager(bagDir.parent, submitBase)
+      stateManager = getStateManager(submitBase)
       stateInfo <- stateManager.getStateInfo
       created = new DateTime(stateManager.draftProps.getString("creation.timestamp")).withZone(UTC)
     } yield DepositInfo(
