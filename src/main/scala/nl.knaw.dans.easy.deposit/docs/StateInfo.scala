@@ -47,15 +47,5 @@ object StateInfo {
     val archived: State = Value("ARCHIVED")
   }
 
-  implicit class StateExtensions(val state: State) extends AnyVal {
-    def canChangeTo(newValue: State): Boolean = {
-      (state, newValue) match {
-        case (State.draft, State.submitted) => true
-        case (State.rejected, State.draft) => true
-        case _ => false
-      }
-    }
-  }
-
   def apply(input: JsonInput): Try[StateInfo] = input.deserialize[StateInfo]
 }

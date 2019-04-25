@@ -17,10 +17,8 @@ package nl.knaw.dans.easy.deposit
 
 import java.nio.file.attribute.PosixFilePermission
 
-import nl.knaw.dans.easy.deposit.Errors.{ CorruptDepositException, IllegalStateTransitionException }
+import nl.knaw.dans.easy.deposit.Errors.CorruptDepositException
 import nl.knaw.dans.easy.deposit.PidRequesterComponent.PidType.PidType
-import nl.knaw.dans.easy.deposit.docs.StateInfo
-import nl.knaw.dans.easy.deposit.docs.StateInfo.State
 import nl.knaw.dans.lib.error._
 import org.apache.commons.configuration.PropertiesConfiguration
 import org.scalamock.scalatest.MockFactory
@@ -33,9 +31,11 @@ class DepositDirSpec extends TestSupportFixture with MockFactory {
     super.beforeEach()
     clearTestDir()
     draftsDir.createDirectories()
+    submitDir.createDirectories()
   }
 
   private val draftsDir = testDir / "drafts"
+  private val submitDir = testDir / "submits"
 
   "DepositDir.create" should "fail if the dir 'draft' is read only" in {
     draftsDir
@@ -113,46 +113,13 @@ class DepositDirSpec extends TestSupportFixture with MockFactory {
     }
   }
 
-  "setStateInfo" should "result in Success when transitioning from DRAFT to SUBMITTED" in {
-    val deposit = createDepositAsPreparation("user001")
-    val propsFile = draftsDir / "user001" / deposit.id.toString / "deposit.properties"
-    deposit.setStateInfo(StateInfo(State.submitted, "Ready for processing")) shouldBe a[Success[_]]
-    propsFile.contentAsString should include regex """state.label\s*=\s*SUBMITTED""".r
-  }
-
-  it should "result in Success when transitioning from REJECTED to DRAFT" in {
-    val deposit = createDepositAsPreparation("user001")
-    val propsFile = draftsDir / "user001" / deposit.id.toString / "deposit.properties"
-    val old = propsFile.contentAsString
-    propsFile.write(old.replaceFirst("DRAFT", "REJECTED"))
-    deposit.setStateInfo(StateInfo(State.draft, "Open for changes")) shouldBe a[Success[_]]
-    propsFile.contentAsString should include regex """state.label\s*=\s*DRAFT""".r
-  }
-
-  it should "result in IllegalStateTransitionException when transitioning from DRAFT to ARCHIVED" in {
-    val deposit = createDepositAsPreparation("user001")
-    deposit.setStateInfo(StateInfo(State.archived, "Completed archival process")) should matchPattern {
-      case Failure(IllegalStateTransitionException(State.draft, State.archived)) =>
-    }
-  }
-
-  it should "result in IllegalStateTransitionException when transitioning from REJECTED to ARCHIVED" in {
-    val deposit = DepositDir.create(draftsDir, "user001").get
-    val propsFile = draftsDir / "user001" / deposit.id.toString / "deposit.properties"
-    val old = propsFile.contentAsString
-    propsFile.write(old.replaceFirst("DRAFT", "REJECTED"))
-    deposit.setStateInfo(StateInfo(State.archived, "Completed archival process")) should matchPattern {
-      case Failure(IllegalStateTransitionException(State.`rejected`, State.archived)) =>
-    }
-  }
-
   "getDOI" should """return a new value""" in {
     // set up
     val user = "user001"
     val doi = "12345"
     val deposit = createDepositAsPreparation(user)
-    val mdFile = deposit.baseDir / user / deposit.id.toString / "bag" / "metadata" / "dataset.json"
-    val depositPropertiesFile = deposit.baseDir / user / deposit.id.toString / "deposit.properties"
+    val mdFile = deposit.draftBase / user / deposit.id.toString / "bag" / "metadata" / "dataset.json"
+    val depositPropertiesFile = deposit.draftBase / user / deposit.id.toString / "deposit.properties"
     val oldDepositProperties = depositPropertiesFile.lines.toSeq
 
     // preconditions
@@ -173,7 +140,7 @@ class DepositDirSpec extends TestSupportFixture with MockFactory {
     val user = "user001"
     val doi = "12345"
     val deposit = createDepositAsPreparation(user)
-    (deposit.baseDir / user / deposit.id.toString / "bag" / "metadata" / "dataset.json").writeText(s"""{"doi":"$doi"}""")
+    (deposit.draftBase / user / deposit.id.toString / "bag" / "metadata" / "dataset.json").writeText(s"""{"doi":"$doi"}""")
 
     deposit.getDOI(null) should matchPattern { case Failure(CorruptDepositException(_, _, _)) => }
   }
@@ -182,7 +149,7 @@ class DepositDirSpec extends TestSupportFixture with MockFactory {
     val user = "user001"
     val doi = "12345"
     val deposit = createDepositAsPreparation(user)
-    val dd = deposit.baseDir / user / deposit.id.toString
+    val dd = deposit.draftBase / user / deposit.id.toString
     (dd / "bag" / "metadata" / "dataset.json").writeText(s"""{"identifiers":[{"scheme":"id-type:DOI","value":"12345"}]}""")
     (dd / "deposit.properties").writeText(s"identifier.doi = $doi")
 

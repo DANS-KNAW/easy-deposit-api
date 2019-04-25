@@ -28,6 +28,7 @@ import nl.knaw.dans.bag.ChecksumAlgorithm.ChecksumAlgorithm
 import nl.knaw.dans.bag.DansBag
 import nl.knaw.dans.bag.v0.DansV0Bag
 import nl.knaw.dans.easy.deposit.Errors.{ AlreadySubmittedException, InvalidDoiException }
+import nl.knaw.dans.easy.deposit.docs.StateInfo.State
 import nl.knaw.dans.easy.deposit.docs.{ AgreementsXml, DDM, FilesXml, StateInfo }
 import nl.knaw.dans.lib.error._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
@@ -66,7 +67,7 @@ class Submitter(stagingBaseDir: File,
    * @param draftDeposit the deposit object to submit
    * @return the UUID of the deposit in the submit area (easy-ingest-flow-inbox)
    */
-  def submit(draftDeposit: DepositDir): Try[UUID] = {
+  def submit(draftDeposit: DepositDir, stateManager: StateManager): Try[UUID] = {
     val propsFileName = "deposit.properties"
     for {
       // EASY-1464 step 3.3.4 validation
@@ -89,7 +90,8 @@ class Submitter(stagingBaseDir: File,
       stageDir = (stagingBaseDir / draftDeposit.id.toString).createDirectories()
       stageBag <- DansV0Bag.empty(stageDir / "bag").map(_.withCreated())
       // EASY-1464 3.3.6 change state and copy with the rest of the deposit properties to staged dir
-      submittedId <- draftDeposit.setStateInfo(StateInfo(StateInfo.State.submitted, "Deposit is ready for processing."))
+      _ <- stateManager.changeState(StateInfo(State.submitted, "Deposit is ready for processing."))
+      submittedId <- stateManager.getSubmittedBagId // created by changeState
       submitDir = submitToBaseDir / submittedId.toString
       _ = if (submitDir.exists) throw AlreadySubmittedException(draftDeposit.id)
       _ = (draftBag.baseDir.parent / propsFileName).copyTo(stageDir / propsFileName)
@@ -115,7 +117,7 @@ class Submitter(stagingBaseDir: File,
     // EASY-1464 step 3.3.9 Move copy to submit-to area
     _ = logger.info(s"moving $draftDepositDir to $submitDir")
     _ <- Try(srcProvider.move(draftDepositDir.path, submitDir.path, StandardCopyOption.ATOMIC_MOVE)).recoverWith {
-      case e: FileAlreadyExistsException => Failure(AlreadySubmittedException(id))
+      case _: FileAlreadyExistsException => Failure(AlreadySubmittedException(id))
     }
   } yield ()
 
