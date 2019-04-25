@@ -15,6 +15,7 @@
  */
 package nl.knaw.dans.easy.deposit.servlets
 
+import java.net.URL
 import java.nio.file.attribute.PosixFilePermission
 import java.util.UUID
 
@@ -384,7 +385,7 @@ class UploadSpec extends DepositServletFixture {
   "PUT" should "return 201 for a new respectively 204 for a replaced file" in {
     val uuid = createDeposit
 
-    val bagBase = DepositDir(testDir / "drafts", "foo", UUID.fromString(uuid.toString)).getDataFiles.get.bag
+    val bagBase = DepositDir(testDir / "drafts", "foo", UUID.fromString(uuid.toString), new URL("http://some.host/ui")).getDataFiles.get.bag
     val shortContent = "Lorum ipsum"
     val longContent = "dolor sit amet"
 
@@ -424,7 +425,7 @@ class UploadSpec extends DepositServletFixture {
   it should "upload file to root of data folder" in {
     val uuid = createDeposit
 
-    val bagBase = DepositDir(testDir / "drafts", "foo", UUID.fromString(uuid.toString)).getDataFiles.get.bag
+    val bagBase = DepositDir(testDir / "drafts", "foo", UUID.fromString(uuid.toString), new URL("http://some.host/ui")).getDataFiles.get.bag
     val shortContent = "Lorum ipsum"
     val sha = "c5b8de8cc3587aef4e118a481115391033621e06"
     put(

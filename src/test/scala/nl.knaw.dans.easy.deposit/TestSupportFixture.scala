@@ -87,6 +87,7 @@ trait TestSupportFixture extends FlatSpec with Matchers with Inside with BeforeA
       addProperty("users.ldap-admin-password", "-")
       addProperty("users.ldap-user-id-attr-name", "-")
       addProperty("multipart.file-size-threshold", "3145728") // 3MB
+      addProperty("landing-page.base-url", "https://easy.dans.knaw.nl")
     })
   }
 

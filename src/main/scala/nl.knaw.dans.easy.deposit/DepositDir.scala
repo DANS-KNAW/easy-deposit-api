@@ -16,6 +16,7 @@
 package nl.knaw.dans.easy.deposit
 
 import java.io.FileNotFoundException
+import java.net.URL
 import java.nio.file.{ NoSuchFileException, Paths }
 import java.util.UUID
 
@@ -41,7 +42,7 @@ import scala.util.{ Failure, Success, Try }
  * @param user      the user ID of the deposit's owner
  * @param id        the ID of the deposit
  */
-case class DepositDir private(draftBase: File, user: String, id: UUID) extends DebugEnhancedLogging {
+case class DepositDir private(draftBase: File, user: String, id: UUID, landingPageBase: URL) extends DebugEnhancedLogging {
   val bagDir: File = draftBase / user / id.toString / "bag"
   private val metadataDir = bagDir / "metadata"
   private val depositPropertiesFile = bagDir.parent / "deposit.properties"
@@ -52,7 +53,7 @@ case class DepositDir private(draftBase: File, user: String, id: UUID) extends D
    * @return the `StateManager` for this deposit
    */
   def getStateManager(submitBase: File): StateManager = {
-    StateManager(bagDir.parent, submitBase)
+    StateManager(bagDir.parent, submitBase, landingPageBase)
   }
 
   /**
@@ -170,14 +171,14 @@ object DepositDir {
    * @param user     the user name
    * @return a list of [[DepositDir]] objects
    */
-  def list(draftDir: File, user: String): Try[Seq[DepositDir]] = {
+  def list(draftDir: File, user: String, landingPageBase: URL): Try[Seq[DepositDir]] = {
     val userDir = draftDir / user
     if (userDir.exists)
       userDir
         .list
         .filter(_.isDirectory)
         .map(deposit => Try {
-          DepositDir(draftDir, user, UUID.fromString(deposit.name))
+          DepositDir(draftDir, user, UUID.fromString(deposit.name), landingPageBase)
         }.recoverWith { case t: Throwable => Failure(CorruptDepositException(user, deposit.name, t)) })
         .toSeq
         .collectResults
@@ -192,8 +193,9 @@ object DepositDir {
    * @param id       the identifier of the deposit
    * @return a [[DepositDir]] object
    */
-  def get(draftDir: File, user: String, id: UUID): Try[DepositDir] = {
-    val depositDir = DepositDir(draftDir, user, id)
+  def get(draftDir: File, user: String, id: UUID, landingPageBase: URL): Try[DepositDir] = {
+    val depositDir = DepositDir(draftDir, user, id, landingPageBase)
+    println(s"============== ${depositDir.bagDir.parent.exists} ${depositDir.bagDir.parent}")
     if (depositDir.bagDir.parent.exists) Success(depositDir)
     else Failure(NoSuchDepositException(user, id, new FileNotFoundException()))
   }
@@ -205,9 +207,9 @@ object DepositDir {
    * @param user     the user name
    * @return the newly created [[DepositDir]]
    */
-  def create(draftDir: File, user: String): Try[DepositDir] = {
+  def create(draftDir: File, user: String, landingPageBase: URL): Try[DepositDir] = {
     val depositInfo = DepositInfo()
-    val deposit = DepositDir(draftDir, user, depositInfo.id)
+    val deposit = DepositDir(draftDir, user, depositInfo.id, landingPageBase)
     val depositDir = deposit.draftBase / user / depositInfo.id.toString
     for {
       _ <- Try { depositDir.createDirectories }

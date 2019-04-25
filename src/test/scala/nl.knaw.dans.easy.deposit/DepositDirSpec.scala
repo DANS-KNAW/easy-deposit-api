@@ -15,6 +15,7 @@
  */
 package nl.knaw.dans.easy.deposit
 
+import java.net.URL
 import java.nio.file.attribute.PosixFilePermission
 
 import nl.knaw.dans.easy.deposit.Errors.CorruptDepositException
@@ -40,13 +41,13 @@ class DepositDirSpec extends TestSupportFixture with MockFactory {
   "DepositDir.create" should "fail if the dir 'draft' is read only" in {
     draftsDir
       .removePermission(PosixFilePermission.OWNER_WRITE)
-    inside(DepositDir.create(draftsDir, "user001")) {
+    inside(DepositDir.create(draftsDir, "user001", new URL("http://some.host/ui"))) {
       case Failure(_) =>
     }
   }
 
   it should "create a new directory with deposit.properties" in {
-    val tryDeposit = DepositDir.create(draftsDir, "user001")
+    val tryDeposit = DepositDir.create(draftsDir, "user001", new URL("http://some.host/ui"))
     tryDeposit shouldBe a[Success[_]]
     inside(tryDeposit) {
       case Success(d) =>
@@ -79,7 +80,7 @@ class DepositDirSpec extends TestSupportFixture with MockFactory {
   }
 
   "list" should """show no deposits of "user001" user""" in {
-    val tryDeposits = DepositDir.list(draftsDir, "user001")
+    val tryDeposits = DepositDir.list(draftsDir, "user001", new URL("http://some.host/ui"))
     tryDeposits shouldBe a[Success[_]]
     inside(tryDeposits) {
       case Success(list) => list shouldBe empty
@@ -87,8 +88,8 @@ class DepositDirSpec extends TestSupportFixture with MockFactory {
   }
 
   it should """show one deposit of "user001" user""" in {
-    DepositDir.create(draftsDir, "user001")
-    val tryDeposits = DepositDir.list(draftsDir, "user001")
+    DepositDir.create(draftsDir, "user001", new URL("http://some.host/ui"))
+    val tryDeposits = DepositDir.list(draftsDir, "user001", new URL("http://some.host/ui"))
     tryDeposits shouldBe a[Success[_]]
     inside(tryDeposits) {
       case Success(list) => list should have length 1
@@ -96,8 +97,8 @@ class DepositDirSpec extends TestSupportFixture with MockFactory {
   }
 
   it should """show more than two deposits of "user001" user""" in {
-    for (_ <- 1 to 3) DepositDir.create(draftsDir, "user001")
-    val tryDeposits = DepositDir.list(draftsDir, "user001")
+    for (_ <- 1 to 3) DepositDir.create(draftsDir, "user001", new URL("http://some.host/ui"))
+    val tryDeposits = DepositDir.list(draftsDir, "user001", new URL("http://some.host/ui"))
     tryDeposits shouldBe a[Success[_]]
     inside(tryDeposits) {
       case Success(list) => list should have length 3
@@ -106,7 +107,7 @@ class DepositDirSpec extends TestSupportFixture with MockFactory {
 
   "get" should """return a specified deposit""" in {
     val deposit = createDepositAsPreparation("user001")
-    val tryDeposit = DepositDir.get(draftsDir, "user001", deposit.id)
+    val tryDeposit = DepositDir.get(draftsDir, "user001", deposit.id, new URL("http://some.host/ui"))
     tryDeposit shouldBe a[Success[_]]
     inside(tryDeposit) {
       case Success(dp) => dp shouldBe deposit
@@ -157,6 +158,6 @@ class DepositDirSpec extends TestSupportFixture with MockFactory {
   }
 
   private def createDepositAsPreparation(user: String) = {
-    DepositDir.create(draftsDir, user).getOrRecover(e => fail(e.toString, e))
+    DepositDir.create(draftsDir, user, new URL("http://some.host/ui")).getOrRecover(e => fail(e.toString, e))
   }
 }

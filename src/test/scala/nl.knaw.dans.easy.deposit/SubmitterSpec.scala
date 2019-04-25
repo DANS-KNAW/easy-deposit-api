@@ -16,6 +16,7 @@
 package nl.knaw.dans.easy.deposit
 
 import java.io.IOException
+import java.net.URL
 import java.nio.file.Paths
 
 import better.files.StringOps
@@ -199,7 +200,7 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
   }
 
   private def createDeposit(metadata: DatasetMetadata) = {
-    val depositDir = DepositDir.create(testDir / "drafts", "user").getOrRecover(e => fail(e.toString, e))
+    val depositDir = DepositDir.create(testDir / "drafts", "user", new URL("http://some.host/ui")).getOrRecover(e => fail(e.toString, e))
     depositDir.writeDatasetMetadataJson(metadata)
     depositDir
   }

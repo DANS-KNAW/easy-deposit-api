@@ -15,6 +15,7 @@
  */
 package nl.knaw.dans.easy.deposit.servlets
 
+import java.net.URL
 import java.util.UUID
 
 import nl.knaw.dans.easy.deposit.PidRequesterComponent.PidRequester
@@ -107,7 +108,7 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
     val uuid = DepositInfo(responseBody).map(_.id.toString).getOrRecover(e => fail(e.toString, e))
 
     // upload files in a folder (more variations in UploadSpec)
-    val dataFilesBase = DepositDir(testDir / "drafts", "foo", UUID.fromString(uuid)).getDataFiles.get.bag.data
+    val dataFilesBase = DepositDir(testDir / "drafts", "foo", UUID.fromString(uuid), new URL("http://some.host/ui")).getDataFiles.get.bag.data
 
     // upload without content type
     authMocker.expectsUserFooBar

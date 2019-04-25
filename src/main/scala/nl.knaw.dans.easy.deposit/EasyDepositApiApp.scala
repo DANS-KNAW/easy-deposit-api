@@ -16,7 +16,7 @@
 package nl.knaw.dans.easy.deposit
 
 import java.io.InputStream
-import java.net.URI
+import java.net.{ URI, URL }
 import java.nio.file.spi.FileSystemProvider
 import java.nio.file.{ FileAlreadyExistsException, Path }
 import java.util.UUID
@@ -92,6 +92,9 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
     configuration.properties.getString("deposit.permissions.group"),
   )
 
+  /** without trailing slash! */
+  private val landingPageBase: URL = new URL(configuration.properties.getString("landing-page.base-url").replaceAll("/?$",""))
+
   @throws[ConfigurationException]("when no existing readable directory is configured")
   private def getConfiguredDirectory(key: String): File = {
     // TODO move to Validation?
@@ -107,7 +110,7 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
   }
 
   private def getDeposit(user: String, id: UUID): Try[DepositDir] = {
-    DepositDir.get(draftBase, user, id)
+    DepositDir.get(draftBase, user, id, landingPageBase)
   }
 
   def getUser(user: String): Try[Map[String, Seq[String]]] = authentication.getUser(user)
@@ -120,7 +123,7 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
    * @return the new deposit's ID
    */
   def createDeposit(user: String): Try[DepositInfo] = {
-    DepositDir.create(draftBase, user).flatMap(_.getDepositInfo(submitBase))
+    DepositDir.create(draftBase, user, landingPageBase).flatMap(_.getDepositInfo(submitBase))
   }
 
   /**
@@ -131,7 +134,7 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
    */
   def getDeposits(user: String): Try[Seq[DepositInfo]] = {
     for {
-      deposits <- DepositDir.list(draftBase, user)
+      deposits <- DepositDir.list(draftBase, user, landingPageBase)
       infos <- deposits.map(_.getDepositInfo(submitBase)).collectResults
     }
       yield infos
@@ -317,7 +320,7 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
   def stageFiles(userId: String, id: UUID, destination: Path): Try[(Dispose[File], StagedFilesTarget)] = {
     val prefix = s"$userId-$id-"
     for {
-      deposit <- DepositDir.get(draftBase, userId, id)
+      deposit <- DepositDir.get(draftBase, userId, id, landingPageBase)
       dataFiles <- deposit.getDataFiles
       stagingDir <- createManagedTempDir(prefix)
       _ <- atMostOneTempDir(prefix).doIfFailure { case _ => stagingDir.get() }

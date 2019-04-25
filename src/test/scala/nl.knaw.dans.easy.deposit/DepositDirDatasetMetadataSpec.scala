@@ -15,6 +15,7 @@
  */
 package nl.knaw.dans.easy.deposit
 
+import java.net.URL
 import java.nio.file.NoSuchFileException
 
 import nl.knaw.dans.easy.deposit.Errors.CorruptDepositException
@@ -23,7 +24,7 @@ import nl.knaw.dans.easy.deposit.docs.DatasetMetadata
 import scala.util.{ Failure, Success }
 
 class DepositDirDatasetMetadataSpec extends TestSupportFixture {
-  private val dd = DepositDir(testDir / "drafts", "foo", uuid)
+  private val dd = DepositDir(testDir / "drafts", "foo", uuid, new URL("http://some.host/ui"))
   private val metadataFile = dd.draftBase / "foo" / uuid.toString / "bag" / "metadata" / "dataset.json"
 
   override def beforeEach(): Unit = {

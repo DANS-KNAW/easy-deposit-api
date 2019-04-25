@@ -15,6 +15,7 @@
  */
 package nl.knaw.dans.easy.deposit
 
+import java.net.URL
 import java.util.UUID
 
 import better.files.File
@@ -26,9 +27,7 @@ import org.apache.commons.configuration.PropertiesConfiguration
 
 import scala.util.{ Failure, Success, Try }
 
-case class StateManager(depositDir: File, submitBase: File) extends DebugEnhancedLogging {
-
-  private val landingPageBase = "https://easy.dans.knaw.nl/ui"
+case class StateManager(depositDir: File, submitBase: File, landingPageBase: URL) extends DebugEnhancedLogging {
 
   private val stateDescriptionKey = "state.description"
   private val stateLabelKey = "state.label"
