@@ -35,6 +35,7 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
     (testDir / "submitted").createDirectories()
   }
 
+  private val landingPageBase: URL = new URL("https://easy.dans.knaw.nl/ui")
   private val customMessage = "Lorum ipsum"
   private val datasetMetadata = DatasetMetadata(getManualTestResource("datasetmetadata-from-ui-all.json"))
     .getOrRecover(e => fail("could not get test input", e))
@@ -52,7 +53,7 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
 
   "submit" should "fail if the user is not part of the given group" in {
     val depositDir = createDeposit(datasetMetadata)
-    val stateManager = depositDir.getStateManager(testDir / "submitted")
+    val stateManager = depositDir.getStateManager(testDir / "submitted", landingPageBase)
     addDoiToDepositProperties(getBag(depositDir))
 
     createSubmitter(unrelatedGroup).submit(depositDir, stateManager) should matchPattern {
@@ -136,7 +137,7 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
   }
 
   private def succeedingSubmit(deposit: DepositDir): String = {
-    val stateManager = deposit.getStateManager(testDir / "submitted")
+    val stateManager = deposit.getStateManager(testDir / "submitted", landingPageBase)
 
     val triedBagStoreBagID = createSubmitter(userGroup).submit(deposit, stateManager)
     triedBagStoreBagID shouldBe a[Success[_]]
@@ -147,7 +148,7 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
 
   it should "report a file missing in the draft" in {
     val depositDir = createDeposit(datasetMetadata)
-    val stateManager = depositDir.getStateManager(testDir / "submitted")
+    val stateManager = depositDir.getStateManager(testDir / "submitted", landingPageBase)
     val bag = getBag(depositDir)
     addDoiToDepositProperties(bag)
     bag.addPayloadFile("lorum ipsum".inputStream, Paths.get("file.txt"))
@@ -163,7 +164,7 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
 
   it should "report an invalid checksum" in {
     val depositDir = createDeposit(datasetMetadata)
-    val stateManager = depositDir.getStateManager(testDir / "submitted")
+    val stateManager = depositDir.getStateManager(testDir / "submitted", landingPageBase)
     val bag = getBag(depositDir)
     addDoiToDepositProperties(bag)
     bag.addPayloadFile("lorum ipsum".inputStream, Paths.get("file.txt"))
@@ -200,7 +201,7 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
   }
 
   private def createDeposit(metadata: DatasetMetadata) = {
-    val depositDir = DepositDir.create(testDir / "drafts", "user", new URL("http://some.host/ui")).getOrRecover(e => fail(e.toString, e))
+    val depositDir = DepositDir.create(testDir / "drafts", "user").getOrRecover(e => fail(e.toString, e))
     depositDir.writeDatasetMetadataJson(metadata)
     depositDir
   }

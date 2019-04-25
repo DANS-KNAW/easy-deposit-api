@@ -42,7 +42,7 @@ import scala.util.{ Failure, Success, Try }
  * @param user      the user ID of the deposit's owner
  * @param id        the ID of the deposit
  */
-case class DepositDir private(draftBase: File, user: String, id: UUID, landingPageBase: URL) extends DebugEnhancedLogging {
+case class DepositDir private(draftBase: File, user: String, id: UUID) extends DebugEnhancedLogging {
   val bagDir: File = draftBase / user / id.toString / "bag"
   private val metadataDir = bagDir / "metadata"
   private val depositPropertiesFile = bagDir.parent / "deposit.properties"
@@ -52,7 +52,7 @@ case class DepositDir private(draftBase: File, user: String, id: UUID, landingPa
    * @param submitBase the base directory with submitted deposits to extract the actual state
    * @return the `StateManager` for this deposit
    */
-  def getStateManager(submitBase: File): StateManager = {
+  def getStateManager(submitBase: File, landingPageBase: URL): StateManager = {
     StateManager(bagDir.parent, submitBase, landingPageBase)
   }
 
@@ -60,10 +60,10 @@ case class DepositDir private(draftBase: File, user: String, id: UUID, landingPa
    * @param submitBase the base directory with submitted deposits to extract the actual state
    * @return basic information about the deposit.
    */
-  def getDepositInfo(submitBase: File): Try[DepositInfo] = {
+  def getDepositInfo(submitBase: File, landingPageBase: URL): Try[DepositInfo] = {
     for {
       title <- getDatasetTitle
-      stateManager = getStateManager(submitBase)
+      stateManager = getStateManager(submitBase, landingPageBase)
       stateInfo <- stateManager.getStateInfo
       created = new DateTime(stateManager.draftProps.getString("creation.timestamp")).withZone(UTC)
     } yield DepositInfo(
@@ -171,14 +171,14 @@ object DepositDir {
    * @param user     the user name
    * @return a list of [[DepositDir]] objects
    */
-  def list(draftDir: File, user: String, landingPageBase: URL): Try[Seq[DepositDir]] = {
+  def list(draftDir: File, user: String): Try[Seq[DepositDir]] = {
     val userDir = draftDir / user
     if (userDir.exists)
       userDir
         .list
         .filter(_.isDirectory)
         .map(deposit => Try {
-          DepositDir(draftDir, user, UUID.fromString(deposit.name), landingPageBase)
+          DepositDir(draftDir, user, UUID.fromString(deposit.name))
         }.recoverWith { case t: Throwable => Failure(CorruptDepositException(user, deposit.name, t)) })
         .toSeq
         .collectResults
@@ -193,9 +193,8 @@ object DepositDir {
    * @param id       the identifier of the deposit
    * @return a [[DepositDir]] object
    */
-  def get(draftDir: File, user: String, id: UUID, landingPageBase: URL): Try[DepositDir] = {
-    val depositDir = DepositDir(draftDir, user, id, landingPageBase)
-    println(s"============== ${depositDir.bagDir.parent.exists} ${depositDir.bagDir.parent}")
+  def get(draftDir: File, user: String, id: UUID): Try[DepositDir] = {
+    val depositDir = DepositDir(draftDir, user, id)
     if (depositDir.bagDir.parent.exists) Success(depositDir)
     else Failure(NoSuchDepositException(user, id, new FileNotFoundException()))
   }
@@ -207,9 +206,9 @@ object DepositDir {
    * @param user     the user name
    * @return the newly created [[DepositDir]]
    */
-  def create(draftDir: File, user: String, landingPageBase: URL): Try[DepositDir] = {
+  def create(draftDir: File, user: String): Try[DepositDir] = {
     val depositInfo = DepositInfo()
-    val deposit = DepositDir(draftDir, user, depositInfo.id, landingPageBase)
+    val deposit = DepositDir(draftDir, user, depositInfo.id)
     val depositDir = deposit.draftBase / user / depositInfo.id.toString
     for {
       _ <- Try { depositDir.createDirectories }

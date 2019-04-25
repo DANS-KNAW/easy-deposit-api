@@ -16,7 +16,6 @@
 package nl.knaw.dans.easy.deposit
 
 import java.io.ByteArrayInputStream
-import java.net.URL
 import java.nio.charset.StandardCharsets
 import java.nio.file.attribute.PosixFilePermission
 import java.nio.file.{ AccessDeniedException, Paths }
@@ -151,7 +150,7 @@ class DataFilesSpec extends TestSupportFixture {
   }
 
   private def createDatafiles = {
-    DepositDir.create(draftsDir, "user01", new URL("http://some.host/ui"))
+    DepositDir.create(draftsDir, "user01")
       .getOrRecover(e => fail("can't create test deposit", e))
       .getDataFiles.getOrRecover(e => fail("can't get datafiles from test deposit", e))
   }

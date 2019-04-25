@@ -92,7 +92,7 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
     configuration.properties.getString("deposit.permissions.group"),
   )
 
-  /** without trailing slash! */
+  // possible trailing slash is dropped
   private val landingPageBase: URL = new URL(configuration.properties.getString("landing-page.base-url").replaceAll("/?$",""))
 
   @throws[ConfigurationException]("when no existing readable directory is configured")
@@ -110,7 +110,7 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
   }
 
   private def getDeposit(user: String, id: UUID): Try[DepositDir] = {
-    DepositDir.get(draftBase, user, id, landingPageBase)
+    DepositDir.get(draftBase, user, id)
   }
 
   def getUser(user: String): Try[Map[String, Seq[String]]] = authentication.getUser(user)
@@ -123,7 +123,7 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
    * @return the new deposit's ID
    */
   def createDeposit(user: String): Try[DepositInfo] = {
-    DepositDir.create(draftBase, user, landingPageBase).flatMap(_.getDepositInfo(submitBase))
+    DepositDir.create(draftBase, user).flatMap(_.getDepositInfo(submitBase, landingPageBase))
   }
 
   /**
@@ -134,8 +134,8 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
    */
   def getDeposits(user: String): Try[Seq[DepositInfo]] = {
     for {
-      deposits <- DepositDir.list(draftBase, user, landingPageBase)
-      infos <- deposits.map(_.getDepositInfo(submitBase)).collectResults
+      deposits <- DepositDir.list(draftBase, user)
+      infos <- deposits.map(_.getDepositInfo(submitBase, landingPageBase)).collectResults
     }
       yield infos
   }
@@ -150,7 +150,7 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
   def getDepositState(user: String, id: UUID): Try[StateInfo] = {
     for {
       deposit <- getDeposit(user, id)
-      state <- deposit.getStateManager(submitBase).getStateInfo
+      state <- deposit.getStateManager(submitBase, landingPageBase).getStateInfo
     } yield state
   }
 
@@ -176,7 +176,7 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
    */
   def setDepositState(newStateInfo: StateInfo, user: String, id: UUID): Try[Unit] = for {
     deposit <- getDeposit(user, id)
-    stateManager = deposit.getStateManager(submitBase)
+    stateManager = deposit.getStateManager(submitBase, landingPageBase)
     _ <- stateManager.canChangeState(newStateInfo)
     _ <- if (newStateInfo.state == State.submitted)
            submitter.submit(deposit, stateManager) // also changes the state
@@ -192,7 +192,7 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
    */
   def deleteDeposit(user: String, id: UUID): Try[Unit] = for {
     deposit <- getDeposit(user, id)
-    state <- deposit.getStateManager(submitBase).getStateInfo
+    state <- deposit.getStateManager(submitBase, landingPageBase).getStateInfo
     _ <- state.canDelete
     _ = deposit.bagDir.parent.delete()
   } yield ()
@@ -320,7 +320,7 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
   def stageFiles(userId: String, id: UUID, destination: Path): Try[(Dispose[File], StagedFilesTarget)] = {
     val prefix = s"$userId-$id-"
     for {
-      deposit <- DepositDir.get(draftBase, userId, id, landingPageBase)
+      deposit <- DepositDir.get(draftBase, userId, id)
       dataFiles <- deposit.getDataFiles
       stagingDir <- createManagedTempDir(prefix)
       _ <- atMostOneTempDir(prefix).doIfFailure { case _ => stagingDir.get() }
