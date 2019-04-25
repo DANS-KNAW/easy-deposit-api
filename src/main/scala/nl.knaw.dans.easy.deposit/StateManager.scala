@@ -27,7 +27,7 @@ import org.apache.commons.configuration.PropertiesConfiguration
 
 import scala.util.{ Failure, Success, Try }
 
-case class StateManager(depositDir: File, submitBase: File, landingPageBase: URL) extends DebugEnhancedLogging {
+case class StateManager(depositDir: File, submitBase: File, easyHome: URL) extends DebugEnhancedLogging {
 
   private val stateDescriptionKey = "state.description"
   private val stateLabelKey = "state.label"
@@ -113,8 +113,8 @@ case class StateManager(depositDir: File, submitBase: File, landingPageBase: URL
 
   private def landingPage = {
     Try { getProp("identifier.fedora", submittedProps) }
-      .map(id => s"$landingPageBase/datasets/id/$id")
-      .getOrElse(s"$landingPageBase/mydatasets") // fall back
+      .map(id => s"$easyHome/datasets/id/$id")
+      .getOrElse(s"$easyHome/mydatasets") // fall back
   }
 
   private def saveNewState(newStateInfo: StateInfo): Unit = {

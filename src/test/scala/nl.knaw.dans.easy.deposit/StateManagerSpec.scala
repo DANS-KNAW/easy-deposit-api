@@ -27,7 +27,7 @@ import scala.util.{ Failure, Success }
 class StateManagerSpec extends TestSupportFixture {
   private val draftDeposit: File = testDir / "draft"
   private val submitBase = testDir / "submitted"
-  private val landingPageBase: URL = new URL("https://easy.dans.knaw.nl/ui")
+  private val easyHome: URL = new URL("https://easy.dans.knaw.nl/ui")
 
   private def submittedPropsFile = (submitBase / uuid.toString).createDirectories() / "deposit.properties"
 
@@ -44,7 +44,7 @@ class StateManagerSpec extends TestSupportFixture {
       s"""state.label = DRAFT
          |state.description = $message
       """.stripMargin)
-    StateManager(draftDeposit, File("does-not-exist"), landingPageBase).getStateInfo should matchPattern {
+    StateManager(draftDeposit, File("does-not-exist"), easyHome).getStateInfo should matchPattern {
       case Success(StateInfo(State.draft, `message`)) =>
     }
   }
@@ -54,7 +54,7 @@ class StateManagerSpec extends TestSupportFixture {
       s"""state.label = SUBMITTED
          |state.description = The dataset is ready for processing
       """.stripMargin)
-    StateManager(draftDeposit, File("does-not-exist"), landingPageBase).getStateInfo should matchPattern {
+    StateManager(draftDeposit, File("does-not-exist"), easyHome).getStateInfo should matchPattern {
       case Failure(e: PropertyNotFoundException) if e.getMessage ==
         s"'bag-store.bag-id' not found in $draftDeposit/deposit.properties" =>
     }
@@ -66,7 +66,7 @@ class StateManagerSpec extends TestSupportFixture {
          |state.description = The dataset is ready for processing
          |bag-store.bag-id = $uuid
       """.stripMargin)
-    StateManager(draftDeposit, testDir / "does-not-exist", landingPageBase).getStateInfo should matchPattern {
+    StateManager(draftDeposit, testDir / "does-not-exist", easyHome).getStateInfo should matchPattern {
       case Failure(e: PropertyNotFoundException) if e.getMessage ==
         s"'state.label' not found in $testDir/does-not-exist/$uuid/deposit.properties" =>
       // actually the submitted deposit does not exist
@@ -85,7 +85,7 @@ class StateManagerSpec extends TestSupportFixture {
       s"""state.label = IN_REVIEW
          |state.description = rabarbera
       """.stripMargin)
-    StateManager(draftDeposit, submitBase, landingPageBase).getStateInfo should matchPattern {
+    StateManager(draftDeposit, submitBase, easyHome).getStateInfo should matchPattern {
       case Success(StateInfo(State.inProgress, "The deposit is available at https://easy.dans.knaw.nl/ui/mydatasets")) =>
     }
   }
@@ -102,7 +102,7 @@ class StateManagerSpec extends TestSupportFixture {
          |state.description = rabarbera
          |identifier.fedora = easy-dataset:1239
       """.stripMargin)
-    StateManager(draftDeposit, submitBase, landingPageBase).getStateInfo should matchPattern {
+    StateManager(draftDeposit, submitBase, easyHome).getStateInfo should matchPattern {
       case Success(StateInfo(State.inProgress, "The deposit is available at https://easy.dans.knaw.nl/ui/datasets/id/easy-dataset:1239")) =>
     }
   }
@@ -118,7 +118,7 @@ class StateManagerSpec extends TestSupportFixture {
       s"""state.label = FEDORA_ARCHIVED
          |state.description = rabarbeara
       """.stripMargin)
-    StateManager(draftDeposit, submitBase, landingPageBase).getStateInfo should matchPattern {
+    StateManager(draftDeposit, submitBase, easyHome).getStateInfo should matchPattern {
       case Success(StateInfo(State.archived, "The dataset is published at https://easy.dans.knaw.nl/ui/mydatasets")) =>
     }
   }
@@ -128,7 +128,7 @@ class StateManagerSpec extends TestSupportFixture {
       """state.label = DRAFT
         |state.description = Deposit is open for changes.
       """.stripMargin)
-    val stateManager = StateManager(draftDeposit, submitBase, landingPageBase)
+    val stateManager = StateManager(draftDeposit, submitBase, easyHome)
     stateManager.changeState(StateInfo(State.submitted, "rabarbera")) shouldBe a[Success[_]]
     val props = draftPropsFile.contentAsString
     props should include("bag-store.bag-id = ")
@@ -144,7 +144,7 @@ class StateManagerSpec extends TestSupportFixture {
          |state.description = Something's rotten on the state of ...
          |bag-store.bag-id = $uuid
          |""".stripMargin)
-    StateManager(draftDeposit, submitBase, landingPageBase)
+    StateManager(draftDeposit, submitBase, easyHome)
       .changeState(StateInfo(State.draft, "rabarbera")) shouldBe a[Success[_]]
     draftPropsFile.contentAsString shouldBe
       s"""state.label = DRAFT
@@ -159,7 +159,7 @@ class StateManagerSpec extends TestSupportFixture {
          |bag-store.bag-id = $uuid
          |""".stripMargin
     draftPropsFile.writeText(props)
-    StateManager(draftDeposit, submitBase, landingPageBase)
+    StateManager(draftDeposit, submitBase, easyHome)
       .changeState(StateInfo(State.archived, "rabarbera")) should matchPattern {
       case Failure(e: IllegalStateTransitionException) if e.getMessage == "Cannot transition from DRAFT to ARCHIVED" =>
     }

@@ -93,7 +93,7 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
   )
 
   // possible trailing slash is dropped
-  private val landingPageBase: URL = new URL(configuration.properties.getString("landing-page.base-url").replaceAll("/?$",""))
+  private val easyHome: URL = new URL(configuration.properties.getString("easy.home").replaceAll("/?$",""))
 
   @throws[ConfigurationException]("when no existing readable directory is configured")
   private def getConfiguredDirectory(key: String): File = {
@@ -123,7 +123,7 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
    * @return the new deposit's ID
    */
   def createDeposit(user: String): Try[DepositInfo] = {
-    DepositDir.create(draftBase, user).flatMap(_.getDepositInfo(submitBase, landingPageBase))
+    DepositDir.create(draftBase, user).flatMap(_.getDepositInfo(submitBase, easyHome))
   }
 
   /**
@@ -135,7 +135,7 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
   def getDeposits(user: String): Try[Seq[DepositInfo]] = {
     for {
       deposits <- DepositDir.list(draftBase, user)
-      infos <- deposits.map(_.getDepositInfo(submitBase, landingPageBase)).collectResults
+      infos <- deposits.map(_.getDepositInfo(submitBase, easyHome)).collectResults
     }
       yield infos
   }
@@ -150,7 +150,7 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
   def getDepositState(user: String, id: UUID): Try[StateInfo] = {
     for {
       deposit <- getDeposit(user, id)
-      state <- deposit.getStateManager(submitBase, landingPageBase).getStateInfo
+      state <- deposit.getStateManager(submitBase, easyHome).getStateInfo
     } yield state
   }
 
@@ -176,7 +176,7 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
    */
   def setDepositState(newStateInfo: StateInfo, user: String, id: UUID): Try[Unit] = for {
     deposit <- getDeposit(user, id)
-    stateManager = deposit.getStateManager(submitBase, landingPageBase)
+    stateManager = deposit.getStateManager(submitBase, easyHome)
     _ <- stateManager.canChangeState(newStateInfo)
     _ <- if (newStateInfo.state == State.submitted)
            submitter.submit(deposit, stateManager) // also changes the state
@@ -192,7 +192,7 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
    */
   def deleteDeposit(user: String, id: UUID): Try[Unit] = for {
     deposit <- getDeposit(user, id)
-    state <- deposit.getStateManager(submitBase, landingPageBase).getStateInfo
+    state <- deposit.getStateManager(submitBase, easyHome).getStateInfo
     _ <- state.canDelete
     _ = deposit.bagDir.parent.delete()
   } yield ()
