@@ -18,12 +18,13 @@ package nl.knaw.dans.easy.deposit
 import java.io.EOFException
 import java.nio.charset.Charset
 import java.nio.file.Files
+import java.util.UUID
 import java.util.zip.{ ZipEntry, ZipException, ZipInputStream }
 
 import better.files.File
-import nl.knaw.dans.easy.deposit.Errors.{ MalformedZipException, ZipMustBeOnlyFileException }
+import nl.knaw.dans.easy.deposit.Errors.{ ConfigurationException, MalformedZipException, ZipMustBeOnlyFileException }
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
-import org.scalatra.servlet.FileItem
+import org.scalatra.servlet.{ FileItem, MultipartConfig }
 import org.scalatra.util.RicherString._
 import resource.{ ManagedResource, managed }
 
@@ -102,23 +103,29 @@ package object servlets extends DebugEnhancedLogging {
         .map(charSet => managed(new ZipInputStream(fileItem.getInputStream, Charset.forName(charSet))))
         .getOrElse(managed(new ZipInputStream(fileItem.getInputStream)))
     }
+  }
 
-    def copyNonZipTo(dir: File): Try[Unit] = {
-      if (fileItem.name.isBlank) Success(()) // skip form field without selected files
-      else if (fileItem.isZip) Failure(ZipMustBeOnlyFileException(fileItem))
-      else
-        managed(fileItem.getInputStream)
-          .apply(inputStream => Try { Files.copy(inputStream, (dir / fileItem.name).path) })
+  implicit class RichMultipartConfig(config: MultipartConfig) {
+    def moveNonZips(srcItems: Iterator[FileItem], targetDir: File): Try[Unit] = {
+      srcItems.toStream
+        .map(moveIfNonZip(_, targetDir))
+        .failFastOr(Success(()))
+    }
+
+    private def moveIfNonZip(srcItem: FileItem, targetDir: File): Try[Unit] = {
+      logger.info(s"staging upload: size=${ srcItem.size } contentType=${ srcItem.contentType } $targetDir/${ srcItem.name }")
+      if (srcItem.name.isBlank) Success(()) // skip form field without selected files
+      else if (srcItem.isZip) Failure(ZipMustBeOnlyFileException(srcItem))
+      else Try {
+        val f = UUID.randomUUID().toString
+        val location = File(config.location.getOrElse(throw ConfigurationException("multipart.location is missing")))
+        srcItem.part.write(f) // for big files in practice a rename to a known file in location
+        (location / f).moveTo(targetDir / srcItem.name, overwrite = true)
+      }
     }
   }
 
   implicit class RichFileItems(val fileItems: BufferedIterator[FileItem]) extends AnyVal {
-
-    def copyPlainItemsTo(dir: File): Try[Unit] = {
-      fileItems.toStream
-        .map(_.copyNonZipTo(dir))
-        .failFastOr(Success(()))
-    }
 
     def nextAsZipIfOnlyOne: Try[Option[ManagedResource[ZipInputStream]]] = {
       skipLeadingEmptyFormFields()

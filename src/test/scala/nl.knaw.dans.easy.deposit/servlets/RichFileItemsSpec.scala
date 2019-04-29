@@ -90,36 +90,6 @@ class RichFileItemsSpec extends TestSupportFixture with MockFactory {
     }
   }
 
-  "copyPlainItemsTo" should "copy the plain item between form fields without selected files" in {
-    val stagingDir = (testDir / "staging").createDirectories()
-    val fileItems = Iterator(
-      mockFileItem(""),
-      mockFileItem("some.txt"),
-      mockFileItem(""),
-      mockFileItem("more.txt"),
-      mockFileItem(""),
-    ).buffered
-    fileItems.nextAsZipIfOnlyOne shouldBe Success(None)
-    fileItems.copyPlainItemsTo(stagingDir) shouldBe Success(())
-    stagingDir.walk().map(_.name).toList should
-      contain theSameElementsAs List("staging", "some.txt", "more.txt")
-  }
-
-  it should "refuse to copy a zip as plain item" in {
-    val stagingDir = (testDir / "staging").createDirectories()
-    val fileItems = Iterator(
-      mockFileItem("some.txt"),
-      mockFileItem("other.zip"),
-    ).buffered
-    fileItems.nextAsZipIfOnlyOne shouldBe Success(None)
-    fileItems.copyPlainItemsTo(stagingDir) should matchPattern {
-      case Failure(e: ZipMustBeOnlyFileException) if e.getMessage ==
-        "A multipart/form-data message contained a ZIP part [other.zip] but also other parts." =>
-    }
-    stagingDir.walk().map(_.name).toList should
-      contain theSameElementsAs List("staging", "some.txt")
-  }
-
   private def mockFileItem(fileName: String, contentType: String = null) = {
     val mocked = mock[Part]
     (() => mocked.getSize) expects() returning 20 anyNumberOfTimes()

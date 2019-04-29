@@ -15,12 +15,12 @@
 </head>
 <body>
 <h1>Manual test for upload.</h1>
-<a href="login.html">login</a>
 <form id="form"
       action="http://deasy.dans.knaw.nl:20190/deposit/UUID/file/some.png"
       method="post"
       enctype="multipart/form-data"
 >
+    <p>First <a href="http://deasy.dans.knaw.nl/deposit/login">login</a></p>
     <label for="uuid">UUID</label><input id="uuid" type="text" onchange="setAction(this)">
     <br>
     <label for="path">path</label><input id="path" type="text" onchange="setAction(this)">

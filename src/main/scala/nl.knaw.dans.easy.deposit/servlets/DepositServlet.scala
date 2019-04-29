@@ -157,7 +157,7 @@ class DepositServlet(app: EasyDepositApiApp)
         _ <- managedStagingDir.apply(stagingDir =>
           maybeZipInputStream
             .map(_.unzipPlainEntriesTo(stagingDir))
-            .getOrElse(fileItems.copyPlainItemsTo(stagingDir))
+            .getOrElse(app.multipartConfig.moveNonZips(fileItems, stagingDir))
             .flatMap(_ => stagedFilesTarget.moveAllFrom(stagingDir))
         )
       } yield Created()
