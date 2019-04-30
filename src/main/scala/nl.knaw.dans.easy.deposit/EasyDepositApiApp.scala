@@ -98,7 +98,7 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
   )
 
   // possible trailing slash is dropped
-  private val easyHome: URL = new URL(configuration.properties.getString("easy.home").replaceAll("/?$",""))
+  private val easyHome: URL = new URL(configuration.properties.getString("easy.home").replaceAll("/?$", ""))
 
   @throws[ConfigurationException]("when no existing readable directory is configured")
   private def getConfiguredDirectory(key: String): File = {

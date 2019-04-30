@@ -22,7 +22,7 @@ import nl.knaw.dans.easy.deposit.Errors.{ ConfigurationException, CorruptDeposit
 import nl.knaw.dans.easy.deposit.authentication.AuthUser.UserState
 import nl.knaw.dans.easy.deposit.authentication.{ AuthUser, AuthenticationMocker, AuthenticationProvider }
 import nl.knaw.dans.easy.deposit.{ EasyDepositApiApp, _ }
-import org.apache.commons.configuration.{ ConversionException, PropertiesConfiguration }
+import org.apache.commons.configuration.ConversionException
 import org.eclipse.jetty.http.HttpStatus._
 import org.scalatra.auth.Scentry
 import org.scalatra.test.scalatest.ScalatraSuite
