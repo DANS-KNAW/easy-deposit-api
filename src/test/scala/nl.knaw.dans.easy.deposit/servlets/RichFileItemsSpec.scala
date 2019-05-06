@@ -97,7 +97,6 @@ class RichFileItemsSpec extends TestSupportFixture with MockFactory {
     mocked.getHeader _ expects "content-disposition" returning "filename=" + fileName anyNumberOfTimes()
     mocked.getHeader _ expects "content-type" returning contentType anyNumberOfTimes()
     (() => mocked.getContentType) expects() returning contentType anyNumberOfTimes()
-    (() => mocked.getInputStream) expects() returning new ByteArrayInputStream("Lorem ipsum est".getBytes(StandardCharsets.UTF_8)) anyNumberOfTimes()
     FileItem(mocked)
   }
 }
