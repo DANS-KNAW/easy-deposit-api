@@ -27,7 +27,7 @@ import scala.util.Try
 object StartupValidation {
 
   @throws[IOException]("when files can not be moved atomically from src to target")
-  def sameMounts(srcProvider: FileSystemProvider, srcDir: File, targetDir: File): Unit = {
+  def allowsAtomicMove(srcProvider: FileSystemProvider, srcDir: File, targetDir: File): Unit = {
     val fileName = "same-mount-check"
     val srcFile = srcDir / fileName
     val targetFile = targetDir / fileName
