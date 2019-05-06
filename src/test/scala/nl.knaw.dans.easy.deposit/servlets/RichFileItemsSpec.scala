@@ -15,14 +15,12 @@
  */
 package nl.knaw.dans.easy.deposit.servlets
 
-import java.io.ByteArrayInputStream
-import java.nio.charset.StandardCharsets
-
+import better.files.File
 import javax.servlet.http.Part
 import nl.knaw.dans.easy.deposit.Errors.ZipMustBeOnlyFileException
 import nl.knaw.dans.easy.deposit.TestSupportFixture
 import org.scalamock.scalatest.MockFactory
-import org.scalatra.servlet.FileItem
+import org.scalatra.servlet.{ FileItem, MultipartConfig }
 
 import scala.util.{ Failure, Success }
 
@@ -90,13 +88,56 @@ class RichFileItemsSpec extends TestSupportFixture with MockFactory {
     }
   }
 
-  private def mockFileItem(fileName: String, contentType: String = null) = {
+  "moveNonZips" should "have no problems with an empty list" in {
+    val fileItems = Iterator(
+      mockFileItem(""),
+    ).buffered
+
+    createMultipartConfig.moveNonZips(fileItems, createStageDir) shouldBe a[Success[_]]
+    (testDir / "stage-upload").list should have size 0
+  }
+
+  it should "refuse a zip" in {
+    val contentOfStagedUpload = "Lorem ipsum est"
+    val fileItems = Iterator(
+      mockFileItem("some.txt", content = contentOfStagedUpload),
+      mockFileItem("some.zip"),
+      mockFileItem("another.txt", content = "Dolor sit amet"),
+    ).buffered
+
+    createMultipartConfig.moveNonZips(fileItems, createStageDir) should matchPattern {
+      case Failure(e: ZipMustBeOnlyFileException) if e.getMessage ==
+        "A multipart/form-data message contained a ZIP part [some.zip] but also other parts." =>
+      // moveNonZips should not have been called at all by the servlet with these items
+      // that's out of scope for this unit test but is the (fall back) rationale for the "but ..."
+      // of the message returned to the client
+    }
+    (testDir / "stage-upload" / "some.txt").contentAsString shouldBe contentOfStagedUpload
+    (testDir / "stage-upload").list should have size 1 // the file after the zip is not processed
+  }
+
+  private val multipartLocation: File = testDir / "mulitpart-location"
+
+  private def createMultipartConfig = {
+    val dir = multipartLocation.createDirectories()
+    MultipartConfig(Some(dir.toString()), None, None, Option(5))
+  }
+
+  private def createStageDir = {
+    (testDir / "stage-upload").createDirectories()
+  }
+
+  private def mockFileItem(fileName: String, contentType: String = null, content: String = "") = {
     val mocked = mock[Part]
     (() => mocked.getSize) expects() returning 20 anyNumberOfTimes()
     (() => mocked.getName) expects() returning "formFieldName" anyNumberOfTimes()
     mocked.getHeader _ expects "content-disposition" returning "filename=" + fileName anyNumberOfTimes()
     mocked.getHeader _ expects "content-type" returning contentType anyNumberOfTimes()
     (() => mocked.getContentType) expects() returning contentType anyNumberOfTimes()
+    mocked.write _ expects *  anyNumberOfTimes() onCall { f: String =>
+      (multipartLocation / f).write(content)
+      ()
+    }
     FileItem(mocked)
   }
 }

@@ -119,9 +119,12 @@ package object servlets extends DebugEnhancedLogging {
       else Try {
         val f = UUID.randomUUID().toString
         val location = File(config.location.getOrElse(throw ConfigurationException("multipart.location is missing")))
-        // Depending on the configuration, the upload is kept in memory or saved to disk with an unknown file name.
-        // The following call tries to move the file to a known name, or writes it if is kept in memory.
+
+        // Try to move the (big) uploaded file to a known name,
+        // otherwise write the in-memory content, depending on the MultipartConfig values of the servlet.
         srcItem.part.write(f)
+
+        // now we can move the upload to the location we really want
         (location / f).moveTo(targetDir / srcItem.name, overwrite = true)
       }
     }
