@@ -32,6 +32,7 @@ import nl.knaw.dans.easy.deposit.servlets.contentTypeZipPattern
 import nl.knaw.dans.lib.error._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.apache.commons.configuration.PropertiesConfiguration
+import org.joda.time.DateTime
 import org.scalatra.servlet.MultipartConfig
 
 import scala.util.{ Failure, Success, Try }
@@ -93,7 +94,7 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
   )
 
   // possible trailing slash is dropped
-  private val easyHome: URL = new URL(configuration.properties.getString("easy.home").replaceAll("/?$",""))
+  private val easyHome: URL = new URL(configuration.properties.getString("easy.home").replaceAll("/?$", ""))
 
   @throws[ConfigurationException]("when no existing readable directory is configured")
   private def getConfiguredDirectory(key: String): File = {
@@ -133,11 +134,12 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
    * @return a list of [[docs.DepositInfo]] objects
    */
   def getDeposits(user: String): Try[Seq[DepositInfo]] = {
+    implicit val timestampOrdering: Ordering[DateTime] = Ordering.fromLessThan[DateTime](_ isBefore _).reverse
     for {
       deposits <- DepositDir.list(draftBase, user)
       infos <- deposits.map(_.getDepositInfo(submitBase, easyHome)).collectResults
-    }
-      yield infos
+      sortedInfos = infos.sortBy(deposit => (deposit.state, deposit.date))
+    } yield sortedInfos
   }
 
   /**
