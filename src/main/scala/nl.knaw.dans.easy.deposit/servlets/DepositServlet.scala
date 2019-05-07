@@ -152,12 +152,12 @@ class DepositServlet(app: EasyDepositApiApp)
         path <- getPath
         _ <- isMultipart
         fileItems = fileMultiParams.valuesIterator.flatten.buffered
-        maybeZipInputStream <- fileItems.nextAsZipIfOnlyOne
+        maybeManagedZipInputStream <- fileItems.nextAsZipIfOnlyOne
         (managedStagingDir, stagedFilesTarget) <- app.stageFiles(user.id, uuid, path)
         _ <- managedStagingDir.apply(stagingDir =>
-          maybeZipInputStream
+          maybeManagedZipInputStream
             .map(_.unzipPlainEntriesTo(stagingDir))
-            .getOrElse(fileItems.copyPlainItemsTo(stagingDir))
+            .getOrElse(app.multipartConfig.moveNonZips(fileItems, stagingDir))
             .flatMap(_ => stagedFilesTarget.moveAllFrom(stagingDir))
         )
       } yield Created()

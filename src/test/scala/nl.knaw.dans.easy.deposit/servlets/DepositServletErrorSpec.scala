@@ -22,7 +22,7 @@ import nl.knaw.dans.easy.deposit.Errors.{ ConfigurationException, CorruptDeposit
 import nl.knaw.dans.easy.deposit.authentication.AuthUser.UserState
 import nl.knaw.dans.easy.deposit.authentication.{ AuthUser, AuthenticationMocker, AuthenticationProvider }
 import nl.knaw.dans.easy.deposit.{ EasyDepositApiApp, _ }
-import org.apache.commons.configuration.{ ConversionException, PropertiesConfiguration }
+import org.apache.commons.configuration.ConversionException
 import org.eclipse.jetty.http.HttpStatus._
 import org.scalatra.auth.Scentry
 import org.scalatra.test.scalatest.ScalatraSuite
@@ -43,15 +43,14 @@ class DepositServletErrorSpec extends TestSupportFixture with ServletFixture wit
 
   "constructor" should "fail with not existing multipart location" in {
     val props = minimalAppConfig.properties
-    props.addProperty("multipart.location", "notExistingLocation")
-    the[ConfigurationException] thrownBy new DepositServlet(new EasyDepositApiApp(new Configuration("", props))) should
-      have message s"Configuration error: ${ File("notExistingLocation").path.toAbsolutePath } not found/readable/writable or not a directory"
+    props.setProperty("multipart.location", "notExistingLocation")
+    the[ConfigurationException] thrownBy new EasyDepositApiApp(new Configuration("", props)) should
+      have message s"Configuration error: Configured directory 'multipart.location' does not exist: ${ File("notExistingLocation").path.toAbsolutePath }"
   }
 
   it should "fail with empty threshold value" in {
     val props = minimalAppConfig.properties
-    props.clearProperty("multipart.file-size-threshold")
-    props.addProperty("multipart.file-size-threshold", "")
+    props.setProperty("multipart.file-size-threshold", "")
     the[ConversionException] thrownBy new DepositServlet(new EasyDepositApiApp(new Configuration("", props))) should
       have message s"'multipart.file-size-threshold' doesn't map to an Integer object"
   }

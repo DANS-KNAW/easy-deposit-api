@@ -27,15 +27,15 @@ import scala.util.Try
 object StartupValidation {
 
   @throws[IOException]("when files can not be moved atomically from src to target")
-  def sameMounts(srcProvider: FileSystemProvider, src: File, target: File): Unit = {
+  def allowsAtomicMove(srcProvider: FileSystemProvider, srcDir: File, targetDir: File): Unit = {
     val fileName = "same-mount-check"
-    val tempFile = src / fileName
-    val movedTempFile = target / fileName
+    val srcFile = srcDir / fileName
+    val targetFile = targetDir / fileName
     Try {
-      if (tempFile.notExists) tempFile.createFile()
-      srcProvider.move(tempFile.path, movedTempFile.path, StandardCopyOption.ATOMIC_MOVE)
-      movedTempFile.delete()
-    }.doIfFailure { case _ => tempFile.delete() }
+      if (srcFile.notExists) srcFile.createFile()
+      srcProvider.move(srcFile.path, targetFile.path, StandardCopyOption.ATOMIC_MOVE)
+      targetFile.delete()
+    }.doIfFailure { case _ => srcFile.delete() }
       .unsafeGetOrThrow
   }
 }
