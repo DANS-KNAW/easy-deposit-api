@@ -60,13 +60,6 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
     logger.info(s"users.ldap-admin-principal = $ldapAdminPrincipal")
   }
 
-  val multipartConfig: MultipartConfig = MultipartConfig(
-    location = Option(properties.getString("multipart.location")),
-    maxFileSize = Option(properties.getLong("multipart.max-file-size", null)),
-    maxRequestSize = Option(properties.getLong("multipart.max-request-size", null)),
-    fileSizeThreshold = Some(properties.getInt("multipart.file-size-threshold")), //throws if not provided
-  )
-
   def getVersion: String = {
     configuration.version
   }
@@ -85,7 +78,19 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
   private val draftBase: File = getConfiguredDirectory("deposits.drafts")
   private val submitBase: File = getConfiguredDirectory("deposits.submit-to")
   private val uploadProvider: FileSystemProvider = uploadStagingDir.fileSystem.provider()
-  StartupValidation.sameMounts(uploadProvider, uploadStagingDir, draftBase)
+  StartupValidation.allowsAtomicMove(uploadProvider, srcDir = uploadStagingDir, targetDir = draftBase)
+
+  val multipartConfig: MultipartConfig = {
+    val multipartLocation = getConfiguredDirectory("multipart.location")
+    logger.info(s"Uploads are received at multipart.location: $multipartLocation")
+    StartupValidation.allowsAtomicMove(uploadProvider, srcDir = multipartLocation, targetDir = uploadStagingDir)
+    MultipartConfig(
+      location = Some(multipartLocation.toString()),
+      maxFileSize = Option(properties.getLong("multipart.max-file-size", null)),
+      maxRequestSize = Option(properties.getLong("multipart.max-request-size", null)),
+      fileSizeThreshold = Some(properties.getInt("multipart.file-size-threshold")), //throws if not provided
+    )
+  }
 
   private val submitter = new Submitter(
     getConfiguredDirectory("deposits.stage-for-submit"),
@@ -98,7 +103,6 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
 
   @throws[ConfigurationException]("when no existing readable directory is configured")
   private def getConfiguredDirectory(key: String): File = {
-    // TODO move to Validation?
     val str = Option(configuration.properties.getString(key))
       .getOrElse(throw ConfigurationException(s"No configuration value for $key"))
     val dir = File(str)

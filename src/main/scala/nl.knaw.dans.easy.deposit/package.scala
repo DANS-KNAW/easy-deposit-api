@@ -44,10 +44,10 @@ package object deposit {
       bag.addTagFile(content.inputStream, Paths.get(s"metadata/$target"))
     }
   }
-  implicit class FailFastStream[T](val stream: Stream[Try[T]]) extends AnyVal {
+  implicit class RichTries[T](val tries: TraversableOnce[Try[T]]) extends AnyVal {
     // TODO candidate for nl.knaw.dans.lib.error ?
     def failFastOr[R](onSuccess: => Try[R]): Try[R] = {
-      stream
+      tries
         .collectFirst { case Failure(e) => Failure(e) }
         .getOrElse(onSuccess)
     }
