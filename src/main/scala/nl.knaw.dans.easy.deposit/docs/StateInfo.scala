@@ -40,10 +40,11 @@ object StateInfo {
 
   object State extends Enumeration {
     type State = Value
+    // order of these declarations is important: this is the ordering used for sorting the deposits
+    val rejected: State = Value("REJECTED")
     val draft: State = Value("DRAFT")
     val submitted: State = Value("SUBMITTED")
     val inProgress: State = Value("IN_PROGRESS")
-    val rejected: State = Value("REJECTED")
     val archived: State = Value("ARCHIVED")
   }
 
