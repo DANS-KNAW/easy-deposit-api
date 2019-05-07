@@ -107,7 +107,7 @@ package object servlets extends DebugEnhancedLogging {
 
   implicit class RichMultipartConfig(config: MultipartConfig) {
     def moveNonZips(srcItems: Iterator[FileItem], targetDir: File): Try[Unit] = {
-      srcItems.toStream
+      srcItems
         .map(moveIfNonZip(_, targetDir))
         .failFastOr(Success(()))
     }
