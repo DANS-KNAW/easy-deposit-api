@@ -32,23 +32,26 @@ class EasyDepositApiAppSpec extends TestSupportFixture {
     override val pidRequester: PidRequester = mockPidRequester
   }
 
+  private val defaultUser: String = "user001"
+
   override def beforeEach(): Unit = {
     super.beforeEach()
     clearTestDir()
   }
 
   "getDeposits" should "list the deposits of a user in sorted order" in {
-    val deposit1 = createDeposit("foo", "my-title1", State.rejected, DateTime.now.minusDays(1).withZone(UTC))
-    val deposit2 = createDeposit("foo", "my-title2", State.archived, DateTime.now.minusDays(2).withZone(UTC))
-    val deposit3 = createDeposit("foo", "my-title3", State.rejected, DateTime.now.minusDays(3).withZone(UTC))
-    val deposit4 = createDeposit("foo", "my-title4", State.draft, DateTime.now.minusDays(4).withZone(UTC))
-    val deposit5 = createDeposit("foo", "my-title5", State.inProgress, DateTime.now.minusDays(5).withZone(UTC))
-    val deposit6 = createDeposit("foo", "my-title6", State.archived, DateTime.now.minusDays(6).withZone(UTC))
+    val deposit1 = createDeposit(State.rejected, 1)
+    val deposit2 = createDeposit(State.archived, 2)
+    val deposit3 = createDeposit(State.rejected, 3)
+    val deposit4 = createDeposit(State.draft, 4)
+    val deposit5 = createDeposit(State.inProgress, 5)
+    val deposit6 = createDeposit(State.archived, 6)
+    val deposit7 = createDeposit(State.archived, 6, user = "user002") // this one should not show up in the listing!
 
     // copy from draft to submit directory: deposit5's state will be read out of the submit directory
-    copyDepositToSubmitArea("foo", deposit5.id)
+    copyDepositToSubmitArea(deposit5.id)
 
-    inside(app.getDeposits("foo")) {
+    inside(app.getDeposits(defaultUser)) {
       case Success(sortedDeposits) =>
         sortedDeposits should contain inOrderOnly(
           // first rejected deposits (newest to oldest)
@@ -62,12 +65,15 @@ class EasyDepositApiAppSpec extends TestSupportFixture {
           deposit6,
           deposit2,
         )
+
+        sortedDeposits should not contain deposit7
     }
   }
 
-  private def createDeposit(user: String, title: String, state: State, creationTimestamp: DateTime): DepositInfo = {
+  private def createDeposit(state: State, createdDaysAgo: Int, user: String = defaultUser, title: String = "my-title") = {
     val depositId = UUID.randomUUID()
     val deposit = (testDir / "drafts" / user / depositId.toString).createDirectories()
+    val creationTimestamp = DateTime.now.minusDays(createdDaysAgo).withZone(UTC)
 
     val datasetJson =
       s"""{
@@ -89,7 +95,7 @@ class EasyDepositApiAppSpec extends TestSupportFixture {
     DepositInfo(depositId, title, state, "my-description", creationTimestamp)
   }
 
-  private def copyDepositToSubmitArea(user: String, depositId: UUID): Unit = {
+  private def copyDepositToSubmitArea(depositId: UUID, user: String = defaultUser): Unit = {
     testDir / "drafts" / user / depositId.toString copyTo testDir / "easy-ingest-flow-inbox" / depositId.toString
   }
 }
