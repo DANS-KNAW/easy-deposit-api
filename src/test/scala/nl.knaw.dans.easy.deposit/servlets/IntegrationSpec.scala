@@ -359,8 +359,8 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
       val updatesProps = new PropertiesConfiguration((depositDir / "deposit.properties").toJava)
       updatesProps.containsKey("bag-store.bag-id") shouldBe true
 
-      // +3 is difference in number of files in metadata directory: json versus xml's
-      (depositDir.walk().size + 3) shouldBe
+      // +4 is the difference in the number of files (and directories) in the metadata directory: json versus xml's
+      (depositDir.walk().size + 4) shouldBe
         (testDir / "easy-ingest-flow-inbox" / updatesProps.getString("bag-store.bag-id")).walk().size
     }
     uuid

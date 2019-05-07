@@ -58,6 +58,8 @@ class Submitter(stagingBaseDir: File,
     }
   }
   val srcProvider: FileSystemProvider = stagingBaseDir.fileSystem.provider()
+  private val depositorInfoDirectoryName = "depositor-info"
+
   StartupValidation.sameMounts(srcProvider, stagingBaseDir, submitToBaseDir)
 
   /**
@@ -96,8 +98,8 @@ class Submitter(stagingBaseDir: File,
       _ = if (submitDir.exists) throw AlreadySubmittedException(draftDeposit.id)
       _ = (draftBag.baseDir.parent / propsFileName).copyTo(stageDir / propsFileName)
       // EASY-1464 3.3.5.b: write files to metadata
-      _ = stageBag.addMetadataFile(msg, "message-from-depositor.txt")
-      _ <- stageBag.addMetadataFile(agreementsXml, "agreements.xml")
+      _ = stageBag.addMetadataFile(msg, s"$depositorInfoDirectoryName/message-from-depositor.txt")
+      _ <- stageBag.addMetadataFile(agreementsXml, s"$depositorInfoDirectoryName/agreements.xml")
       _ <- stageBag.addMetadataFile(datasetXml, "dataset.xml")
       _ <- stageBag.addMetadataFile(filesXml, "files.xml")
       _ <- workerActions(draftDeposit.id, draftBag, stageBag, submitDir)
@@ -148,7 +150,7 @@ class Submitter(stagingBaseDir: File,
   type ManifestItems = Map[File, String]
   type ManifestMap = Map[ChecksumAlgorithm, ManifestItems]
 
-  private def sameFiles(payloadManifests: ManifestMap, dataDir: File) = {
+  private def sameFiles(payloadManifests: ManifestMap, dataDir: File): Try[Unit] = {
     val files = dataDir.walk().filter(!_.isDirectory).toSet
     payloadManifests.values.map(_.keySet)
       .find(_ != files)
@@ -175,7 +177,7 @@ class Submitter(stagingBaseDir: File,
     }.toSet
   }
 
-  private def isValid(stageBag: DansBag) = stageBag.isValid match {
+  private def isValid(stageBag: DansBag): Try[Unit] = stageBag.isValid match {
     case Left(msg) => Failure(new Exception(msg))
     case Right(_) => Success(())
   }
