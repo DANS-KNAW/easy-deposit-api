@@ -48,7 +48,10 @@
     }
   ],
   "accessRights": "REQUEST_PERMISSION",
-  "license": "http://creativecommons.org/publicdomain/zero/1.0",
+  "license": {
+    "scheme": "dcterms:URI",
+    "value": "http://creativecommons.org/publicdomain/zero/1.0"
+  },
   "privacySensitiveDataPresent": "yes",
   "acceptDepositAgreement": false
 }

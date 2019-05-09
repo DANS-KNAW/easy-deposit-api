@@ -536,7 +536,7 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
             </Envelope>
           </boundedBy>
         </dcx-gml:spatial>
-        <dcterms:license>http://creativecommons.org/publicdomain/zero/1.0</dcterms:license>
+        <dcterms:license xsi:type="dcterms:URI">http://creativecommons.org/publicdomain/zero/1.0</dcterms:license>
       </ddm:dcmiMetadata>
   )
 
