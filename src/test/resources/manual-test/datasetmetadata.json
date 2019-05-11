@@ -117,7 +117,10 @@
     "string"
   ],
   "accessRights": "OPEN_ACCESS",
-  "license": "string",
+  "license": {
+    "scheme": "dcterms:URI",
+    "value": "string"
+  },
   "types": [
     {
       "scheme": "dcterms:DCMIType",
