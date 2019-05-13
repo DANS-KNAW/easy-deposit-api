@@ -79,8 +79,7 @@ class DepositDirSpec extends TestSupportFixture with MockFactory {
   }
 
   "list" should """show no deposits of "user001" user""" in {
-    val tryDeposits = DepositDir.list(draftsDir, "user001")
-    tryDeposits shouldBe empty
+    DepositDir.list(draftsDir, "user001") shouldBe empty
   }
 
   it should """show one deposit of "user001" user""" in {
