@@ -139,8 +139,8 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
    */
   def getDeposits(user: String): Try[Seq[DepositInfo]] = {
     implicit val timestampOrdering: Ordering[DateTime] = Ordering.fromLessThan[DateTime](_ isBefore _)
+    val deposits = DepositDir.list(draftBase, user)
     for {
-      deposits <- DepositDir.list(draftBase, user)
       infos <- deposits.map(_.getDepositInfo(submitBase, easyHome)).collectResults
       sortedInfos = infos.sortBy(deposit => (deposit.state, deposit.date))
     } yield sortedInfos
