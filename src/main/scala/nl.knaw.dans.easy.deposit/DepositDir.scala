@@ -176,10 +176,11 @@ object DepositDir {
     if (userDir.exists)
       userDir
         .list
-        .filter(_.isDirectory)
+        .withFilter(_.isDirectory)
         .map(deposit => Try {
           DepositDir(draftDir, user, UUID.fromString(deposit.name))
         }.recoverWith { case t: Throwable => Failure(CorruptDepositException(user, deposit.name, t)) })
+        .withFilter(_.isSuccess)// CorruptDepositException logged itself
         .toSeq
         .collectResults
     else Try { Seq.empty }
