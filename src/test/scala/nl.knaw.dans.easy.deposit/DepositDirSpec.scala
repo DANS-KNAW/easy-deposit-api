@@ -80,28 +80,17 @@ class DepositDirSpec extends TestSupportFixture with MockFactory {
 
   "list" should """show no deposits of "user001" user""" in {
     val tryDeposits = DepositDir.list(draftsDir, "user001")
-    tryDeposits shouldBe a[Success[_]]
-    inside(tryDeposits) {
-      case Success(list) => list shouldBe empty
-    }
+    tryDeposits shouldBe empty
   }
 
   it should """show one deposit of "user001" user""" in {
     DepositDir.create(draftsDir, "user001")
-    val tryDeposits = DepositDir.list(draftsDir, "user001")
-    tryDeposits shouldBe a[Success[_]]
-    inside(tryDeposits) {
-      case Success(list) => list should have length 1
-    }
+    DepositDir.list(draftsDir, "user001") should have length 1
   }
 
   it should """show more than two deposits of "user001" user""" in {
     for (_ <- 1 to 3) DepositDir.create(draftsDir, "user001")
-    val tryDeposits = DepositDir.list(draftsDir, "user001")
-    tryDeposits shouldBe a[Success[_]]
-    inside(tryDeposits) {
-      case Success(list) => list should have length 3
-    }
+    DepositDir.list(draftsDir, "user001") should have length 3
   }
 
   "get" should """return a specified deposit""" in {

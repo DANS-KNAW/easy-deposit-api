@@ -26,7 +26,6 @@ import nl.knaw.dans.easy.deposit.Errors._
 import nl.knaw.dans.easy.deposit.PidRequesterComponent.{ PidRequester, PidType }
 import nl.knaw.dans.easy.deposit.docs.JsonUtil.toJson
 import nl.knaw.dans.easy.deposit.docs._
-import nl.knaw.dans.lib.error._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.apache.commons.configuration.PropertiesConfiguration
 import org.joda.time.DateTime
@@ -171,7 +170,7 @@ object DepositDir {
    * @param user     the user name
    * @return a list of [[DepositDir]] objects
    */
-  def list(draftDir: File, user: String): Try[Seq[DepositDir]] = {
+  def list(draftDir: File, user: String): Seq[DepositDir] = {
     val userDir = draftDir / user
     if (userDir.exists)
       userDir
@@ -180,10 +179,9 @@ object DepositDir {
         .map(deposit => Try {
           DepositDir(draftDir, user, UUID.fromString(deposit.name))
         }.recoverWith { case t: Throwable => Failure(CorruptDepositException(user, deposit.name, t)) })
-        .withFilter(_.isSuccess)// CorruptDepositException logged itself
+        .collect { case Success(deposit: DepositDir) => deposit }
         .toSeq
-        .collectResults
-    else Try { Seq.empty }
+    else Seq.empty
   }
 
   /**
