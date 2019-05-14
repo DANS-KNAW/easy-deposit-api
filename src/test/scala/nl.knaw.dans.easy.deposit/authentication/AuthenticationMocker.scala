@@ -17,7 +17,7 @@ package nl.knaw.dans.easy.deposit.authentication
 
 import nl.knaw.dans.easy.deposit.authentication.AuthUser.UserState
 import nl.knaw.dans.easy.deposit.authentication.AuthUser.UserState.UserState
-import org.scalamock.handlers.{ CallHandler1, CallHandler2 }
+import org.scalamock.handlers.CallHandler2
 import org.scalamock.scalatest.MockFactory
 
 import scala.util.{ Success, Try }

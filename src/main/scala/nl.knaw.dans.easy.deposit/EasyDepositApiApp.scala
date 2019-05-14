@@ -193,7 +193,7 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
 
   private def getFullName(user: String): Try[String] = {
     getUser(user)
-      .map(_("displayName").headOption.getOrElse(throw CorruptUserException(s"$user has no displayName")))
+      .map(_ ("displayName").headOption.getOrElse(throw CorruptUserException(s"$user has no displayName")))
   }
 
 
