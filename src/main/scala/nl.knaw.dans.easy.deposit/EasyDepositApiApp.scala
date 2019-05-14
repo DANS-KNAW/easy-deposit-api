@@ -23,7 +23,7 @@ import java.util.UUID
 
 import better.files.File.temporaryDirectory
 import better.files.{ Dispose, File }
-import nl.knaw.dans.easy.deposit.Errors.{ ConfigurationException, InvalidContentTypeException, OverwriteException, PendingUploadException }
+import nl.knaw.dans.easy.deposit.Errors.{ ConfigurationException, CorruptUserException, InvalidContentTypeException, OverwriteException, PendingUploadException }
 import nl.knaw.dans.easy.deposit.PidRequesterComponent.PidRequester
 import nl.knaw.dans.easy.deposit.authentication.LdapAuthentication
 import nl.knaw.dans.easy.deposit.docs.StateInfo.State
@@ -185,9 +185,18 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
     stateManager = deposit.getStateManager(submitBase, easyHome)
     _ <- stateManager.canChangeState(newStateInfo)
     _ <- if (newStateInfo.state == State.submitted)
-           submitter.submit(deposit, stateManager) // also changes the state
+           getFullName(user).flatMap(
+             submitter.submit(deposit, stateManager, _) // also changes the state
+           )
          else stateManager.changeState(newStateInfo)
   } yield ()
+
+  private def getFullName(user: String): Try[String] = {
+    authentication
+      .getUser(user)
+      .map(_("displayName").headOption.getOrElse(throw CorruptUserException(s"$user has no displayName")))
+  }
+
 
   /**
    * Deletes the deposit from the user's draft area.
