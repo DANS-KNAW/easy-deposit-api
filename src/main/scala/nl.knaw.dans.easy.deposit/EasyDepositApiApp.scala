@@ -25,7 +25,7 @@ import better.files.File.temporaryDirectory
 import better.files.{ Dispose, File }
 import nl.knaw.dans.easy.deposit.Errors.{ ConfigurationException, CorruptUserException, InvalidContentTypeException, OverwriteException, PendingUploadException }
 import nl.knaw.dans.easy.deposit.PidRequesterComponent.PidRequester
-import nl.knaw.dans.easy.deposit.authentication.LdapAuthentication
+import nl.knaw.dans.easy.deposit.authentication.{ AuthenticationProvider, LdapAuthentication }
 import nl.knaw.dans.easy.deposit.docs.StateInfo.State
 import nl.knaw.dans.easy.deposit.docs.{ DatasetMetadata, DepositInfo, StateInfo }
 import nl.knaw.dans.easy.deposit.servlets.contentTypeZipPattern
@@ -48,7 +48,7 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
     override val applicationVersion: String = configuration.version
     logger.info(s"pids.generator-service = $pidGeneratorService")
   }
-  override val authentication: Authentication = new Authentication {
+  override val authentication: AuthenticationProvider = new Authentication {
     override val ldapUserIdAttrName: String = properties.getString("users.ldap-user-id-attr-name")
     override val ldapParentEntry: String = properties.getString("users.ldap-parent-entry")
     override val ldapProviderUrl: String = properties.getString("users.ldap-url")
@@ -192,8 +192,7 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
   } yield ()
 
   private def getFullName(user: String): Try[String] = {
-    authentication
-      .getUser(user)
+    getUser(user)
       .map(_("displayName").headOption.getOrElse(throw CorruptUserException(s"$user has no displayName")))
   }
 

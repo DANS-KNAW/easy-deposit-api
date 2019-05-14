@@ -39,11 +39,6 @@ trait AuthenticationMocker extends MockFactory {
       Success(Some(AuthUser("foo", state = userState)))
   }
 
-  def expectsUserFooWithDisplayName(displayName: String): CallHandler1[String, Try[Map[String, Seq[String]]]] = {
-    (mockedAuthenticationProvider.getUser(_: String)) expects "foo" returning
-      Success(Map(("foo",Seq(displayName))))
-  }
-
   def expectsNoUser: CallHandler2[String, String, Try[Option[AuthUser]]] = {
     (mockedAuthenticationProvider.authenticate(_: String, _: String)) expects(*, *) never()
   }
