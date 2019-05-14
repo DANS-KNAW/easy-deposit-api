@@ -27,7 +27,7 @@ import org.apache.commons.configuration.PropertiesConfiguration
 import org.eclipse.jetty.http.HttpStatus._
 import org.scalatra.test.scalatest.ScalatraSuite
 
-import scala.util.Success
+import scala.util.{ Success, Try }
 
 class IntegrationSpec extends TestSupportFixture with ServletFixture with ScalatraSuite {
 
@@ -42,6 +42,10 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
 
   private val app: EasyDepositApiApp = new EasyDepositApiApp(minimalAppConfig) {
     override val pidRequester: PidRequester = mockPidRequester
+
+    override def getUser(user: String): Try[Map[String, Seq[String]]] = {
+      Success(Map(("displayName", Seq("F. Bar"))))
+    }
   }
   mountServlets(app, authMocker.mockedAuthenticationProvider)
 
