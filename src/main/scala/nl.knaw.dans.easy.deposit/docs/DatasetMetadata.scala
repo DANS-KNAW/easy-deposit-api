@@ -48,7 +48,6 @@ case class DatasetMetadata(private val identifiers: Option[Seq[SchemedValue]] = 
                            publishers: Option[Seq[String]] = None,
                            accessRights: Option[AccessRights] = None,
                            license: Option[SchemedValue] = None,
-                           private val typesDcmi: Option[Seq[String]] = None,
                            private val types: Option[Seq[SchemedValue]] = None,
                            formats: Option[Seq[SchemedValue]] = None,
                            temporalCoverages: Option[Seq[SchemedKeyValue]] = None,
@@ -80,10 +79,7 @@ case class DatasetMetadata(private val identifiers: Option[Seq[SchemedValue]] = 
 
   lazy val allIdentifiers: Seq[SchemedValue] = identifiers.getOrElse(Seq()) ++ alternativeIdentifiers.getOrElse(Seq())
 
-  lazy val allTypes: Seq[SchemedValue] = types.getOrElse(Seq()) ++
-    typesDcmi
-      .getOrElse(Seq())
-      .map(SchemedValue("dcterms:DCMIType", _))
+  lazy val allTypes: Seq[SchemedValue] = types.getOrElse(Seq())
 
   //// doi
   lazy val doi: Option[String] = identifiers.flatMap(_.collectFirst {
