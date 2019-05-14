@@ -33,7 +33,8 @@ class AgreementsSpec extends TestSupportFixture {
       DatasetMetadata().copy(
         acceptDepositAgreement = false,
         privacySensitiveDataPresent = PrivacySensitiveDataPresent.no
-      )
+      ),
+      ""
     ) should matchPattern {
       case Failure(e: InvalidDocumentException) if e.getMessage == "invalid DatasetMetadata: Please set AcceptDepositAgreement" =>
     }
@@ -45,7 +46,8 @@ class AgreementsSpec extends TestSupportFixture {
       DatasetMetadata().copy(
         acceptDepositAgreement = true,
         privacySensitiveDataPresent = PrivacySensitiveDataPresent.unspecified
-      )
+      ),
+      ""
     ) should matchPattern {
       case Failure(e: InvalidDocumentException) if e.getMessage == "invalid DatasetMetadata: Please set PrivacySensitiveDataPresent" =>
     }
@@ -61,7 +63,8 @@ class AgreementsSpec extends TestSupportFixture {
       DatasetMetadata().copy(
         acceptDepositAgreement = true,
         privacySensitiveDataPresent = PrivacySensitiveDataPresent.no
-      )
+      ),
+      ""
     ).flatMap(triedSchema.validate) shouldBe a[Success[_]]
   }
 

@@ -24,7 +24,7 @@ object AgreementsXml extends SchemedXml {
   override val schemaNameSpace = "http://easy.dans.knaw.nl/schemas/bag/metadata/agreements/"
   override val schemaLocation = "https://easy.dans.knaw.nl/schemas/bag/metadata/agreements/2019/01/agreements.xsd"
 
-  def apply(userId: String, dateSubmitted: DateTime, dm: DatasetMetadata, fullname: String = ""): Try[Elem] = {
+  def apply(userId: String, dateSubmitted: DateTime, dm: DatasetMetadata, fullname: String): Try[Elem] = {
     for {
       _ <- dm.depositAgreementAccepted
       privacy <- dm.hasPrivacySensitiveData
