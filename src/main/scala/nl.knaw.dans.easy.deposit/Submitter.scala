@@ -69,7 +69,7 @@ class Submitter(stagingBaseDir: File,
    * @param draftDeposit the deposit object to submit
    * @return the UUID of the deposit in the submit area (easy-ingest-flow-inbox)
    */
-  def submit(draftDeposit: DepositDir, stateManager: StateManager): Try[UUID] = {
+  def submit(draftDeposit: DepositDir, stateManager: StateManager, fullName: String): Try[UUID] = {
     val propsFileName = "deposit.properties"
     for {
       // EASY-1464 step 3.3.4 validation
@@ -80,7 +80,7 @@ class Submitter(stagingBaseDir: File,
       // EASY-1464 3.3.5.a: generate (with some implicit validation) content for metadata files
       draftBag <- draftDeposit.getDataFiles.map(_.bag)
       datasetMetadata <- draftDeposit.getDatasetMetadata
-      agreementsXml <- AgreementsXml(draftDeposit.user, DateTime.now, datasetMetadata)
+      agreementsXml <- AgreementsXml(draftDeposit.user, DateTime.now, datasetMetadata, fullName)
       _ = datasetMetadata.doi.getOrElse(throw InvalidDoiException(draftDeposit.id))
       _ <- draftDeposit.sameDOIs(datasetMetadata)
       datasetXml <- DDM(datasetMetadata)

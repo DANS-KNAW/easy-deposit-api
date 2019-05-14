@@ -33,7 +33,8 @@ class AgreementsSpec extends TestSupportFixture {
       DatasetMetadata().copy(
         acceptDepositAgreement = false,
         privacySensitiveDataPresent = PrivacySensitiveDataPresent.no
-      )
+      ),
+      ""
     ) should matchPattern {
       case Failure(e: InvalidDocumentException) if e.getMessage == "invalid DatasetMetadata: Please set AcceptDepositAgreement" =>
     }
@@ -45,7 +46,8 @@ class AgreementsSpec extends TestSupportFixture {
       DatasetMetadata().copy(
         acceptDepositAgreement = true,
         privacySensitiveDataPresent = PrivacySensitiveDataPresent.unspecified
-      )
+      ),
+      ""
     ) should matchPattern {
       case Failure(e: InvalidDocumentException) if e.getMessage == "invalid DatasetMetadata: Please set PrivacySensitiveDataPresent" =>
     }
@@ -53,7 +55,7 @@ class AgreementsSpec extends TestSupportFixture {
 
   private lazy val triedSchema: Try[Schema] = AgreementsXml.loadSchema
 
-  "schema validation" should "succeed" in {
+  "schema validation" should "succeed with an empty full name" in {
     assume(triedSchema.isAvailable)
     AgreementsXml(
       "user",
@@ -61,21 +63,21 @@ class AgreementsSpec extends TestSupportFixture {
       DatasetMetadata().copy(
         acceptDepositAgreement = true,
         privacySensitiveDataPresent = PrivacySensitiveDataPresent.no
-      )
+      ),
+      ""
     ).flatMap(triedSchema.validate) shouldBe a[Success[_]]
   }
 
-  it should "complain about missing user" in {
+  it should "succeed without fullname" in {
     assume(triedSchema.isAvailable)
     AgreementsXml(
-      null,
-      DateTime.now,
+      null, // the attribute is omitted from <signerId easy-account={userId}>{fullname}</signerId>
+      null, // the schema is happy with <dateSigned></dateSigned>
       DatasetMetadata().copy(
         acceptDepositAgreement = true,
         privacySensitiveDataPresent = PrivacySensitiveDataPresent.no
-      )
-    ).flatMap(triedSchema.validate) should matchPattern {
-      case Failure(e: SAXParseException) if e.getMessage.contains("is not a valid value for 'NCName'") =>
-    }
+      ),
+      null, // the schema is happy with <signerId></signerId>
+    ).flatMap(triedSchema.validate) shouldBe a[Success[_]]
   }
 }

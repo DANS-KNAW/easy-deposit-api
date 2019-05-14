@@ -61,6 +61,9 @@ object Errors extends DebugEnhancedLogging {
     logger.error(cause.getMessage, cause)
   }
 
+  case class CorruptUserException(msg: String)
+    extends ServletResponseException(INTERNAL_SERVER_ERROR_500, msg)
+
   class PropertyException(msg: String)
     extends ServletResponseException(INTERNAL_SERVER_ERROR_500, msg)
 

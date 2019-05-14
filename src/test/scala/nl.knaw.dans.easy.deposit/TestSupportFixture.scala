@@ -81,7 +81,7 @@ trait TestSupportFixture extends FlatSpec with Matchers with Inside with BeforeA
       addProperty("deposits.submit-to", testSubDir("easy-ingest-flow-inbox").toString())
       addProperty("deposit.permissions.group", userGroup)
       addProperty("pids.generator-service", "http://pidHostDoesNotExist.dans.knaw.nl")
-      addProperty("users.ldap-url", "http://ldapHostDoesNotExist.dans.knaw.nl")
+      addProperty("users.ldap-url", "ldap://ldapHostDoesNotExist.dans.knaw.nl")
       addProperty("users.ldap-parent-entry", "-")
       addProperty("users.ldap-admin-principal", "-")
       addProperty("users.ldap-admin-password", "-")

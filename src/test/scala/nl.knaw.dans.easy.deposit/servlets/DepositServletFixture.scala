@@ -36,6 +36,7 @@ trait DepositServletFixture extends TestSupportFixture with ServletFixture with 
       new AuthenticationMocker() {
         override val mockedAuthenticationProvider: AuthenticationProvider = mock[AuthenticationProvider]
         expectsUserFooBar anyNumberOfTimes()
+        expectsUserFooWithDisplayName("F.Bar") anyNumberOfTimes()
       }.mockedAuthenticationProvider
     }
   }
