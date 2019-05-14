@@ -104,33 +104,33 @@ class DoiSpec extends DepositServletFixture {
     put(s"/deposit/$uuid/metadata", headers = Seq(fooBarBasicAuthHeader), body = "{}") { shouldReturnBadRequest(uuid) }
   }
 
-  "PUT /deposit/{id}/state" should "succeed when DOI's are equal" in pendingUntilFixed {
+  "PUT /deposit/{id}/state" should "succeed when DOI's are equal" in {
     val uuid = createDeposit
     propsFile(uuid).append(doiProperty)
     jsonFile(uuid).write(s"""{$doiForJson,$mandatoryOnSubmit}""")
     put(s"/deposit/$uuid/state", headers = Seq(fooBarBasicAuthHeader), body = submit) { status shouldBe NO_CONTENT_204 }
   }
 
-  it should "fail without any DOI" in pendingUntilFixed {
+  it should "fail without any DOI" in {
     val uuid = createDeposit
     jsonFile(uuid).write(s"""{$mandatoryOnSubmit}""")
     put(s"/deposit/$uuid/state", headers = Seq(fooBarBasicAuthHeader), body = submit) { shouldReturnBadRequest(uuid) }
   }
 
-  it should "fail when DOI's are different" in pendingUntilFixed {
+  it should "fail when DOI's are different" in {
     val uuid = createDeposit
     propsFile(uuid).append(doiProperty + "xyz")
     jsonFile(uuid).write(s"""{$doiForJson,$mandatoryOnSubmit}""")
     put(s"/deposit/$uuid/state", headers = Seq(fooBarBasicAuthHeader), body = submit) { shouldReturnBadRequest(uuid) }
   }
 
-  it should "fail when json has a DOI but properties not" in pendingUntilFixed {
+  it should "fail when json has a DOI but properties not" in {
     val uuid = createDeposit
     jsonFile(uuid).write(s"""{$doiForJson,$mandatoryOnSubmit}""")
     put(s"/deposit/$uuid/state", headers = Seq(fooBarBasicAuthHeader), body = submit) { shouldReturnBadRequest(uuid) }
   }
 
-  it should "fail when properties has a DOI but json not" in pendingUntilFixed {
+  it should "fail when properties has a DOI but json not" in {
     val uuid = createDeposit
     jsonFile(uuid).write(s"""{$mandatoryOnSubmit}""")
     propsFile(uuid).append(doiProperty)

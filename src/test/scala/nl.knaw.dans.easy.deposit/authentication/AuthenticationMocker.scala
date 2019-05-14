@@ -17,7 +17,7 @@ package nl.knaw.dans.easy.deposit.authentication
 
 import nl.knaw.dans.easy.deposit.authentication.AuthUser.UserState
 import nl.knaw.dans.easy.deposit.authentication.AuthUser.UserState.UserState
-import org.scalamock.handlers.{ CallHandler1, CallHandler2 }
+import org.scalamock.handlers.CallHandler2
 import org.scalamock.scalatest.MockFactory
 
 import scala.util.{ Success, Try }
@@ -37,11 +37,6 @@ trait AuthenticationMocker extends MockFactory {
   def expectsUserFooBarWithStatus(userState: UserState): CallHandler2[String, String, Try[Option[AuthUser]]] = {
     (mockedAuthenticationProvider.authenticate(_: String, _: String)) expects("foo", "bar") returning
       Success(Some(AuthUser("foo", state = userState)))
-  }
-
-  def expectsUserFooWithDisplayName(displayName: String): CallHandler1[String, Try[Map[String, Seq[String]]]] = {
-    (mockedAuthenticationProvider.getUser(_: String)) expects "foo" returning
-      Success(Map(("foo",Seq(displayName))))
   }
 
   def expectsNoUser: CallHandler2[String, String, Try[Option[AuthUser]]] = {

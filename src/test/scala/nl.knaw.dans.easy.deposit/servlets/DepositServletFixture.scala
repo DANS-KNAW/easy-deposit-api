@@ -30,13 +30,16 @@ import scala.util.{ Success, Try }
 trait DepositServletFixture extends TestSupportFixture with ServletFixture with ScalatraSuite with MockFactory {
   private val app: EasyDepositApiApp = new EasyDepositApiApp(minimalAppConfig) {
     override val pidRequester: PidRequester = mockPidRequester
+
+    override def getUser(user: String): Try[Map[String, Seq[String]]] = {
+      Success(Map(("displayName", Seq("F. Bar"))))
+    }
   }
   private val depositServlet = new DepositServlet(app) with UndoMasking {
     override def getAuthenticationProvider: AuthenticationProvider = {
       new AuthenticationMocker() {
         override val mockedAuthenticationProvider: AuthenticationProvider = mock[AuthenticationProvider]
         expectsUserFooBar anyNumberOfTimes()
-        expectsUserFooWithDisplayName("F.Bar") anyNumberOfTimes()
       }.mockedAuthenticationProvider
     }
   }

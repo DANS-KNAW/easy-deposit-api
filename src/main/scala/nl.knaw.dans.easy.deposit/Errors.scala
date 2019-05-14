@@ -68,7 +68,7 @@ object Errors extends DebugEnhancedLogging {
     extends ServletResponseException(INTERNAL_SERVER_ERROR_500, msg)
 
   case class PropertyNotFoundException(key: String, props: PropertiesConfiguration)
-    extends PropertyException( s"'$key' not found in ${ props.getFile }")
+    extends PropertyException(s"'$key' not found in ${ props.getFile }")
 
   case class InvalidPropertyException(key: String, value: String, props: PropertiesConfiguration)
     extends PropertyException(s"Not expected value '$value' for '$key' in ${ props.getFile }")

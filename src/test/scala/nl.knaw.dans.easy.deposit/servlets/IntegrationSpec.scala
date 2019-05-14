@@ -27,7 +27,7 @@ import org.apache.commons.configuration.PropertiesConfiguration
 import org.eclipse.jetty.http.HttpStatus._
 import org.scalatra.test.scalatest.ScalatraSuite
 
-import scala.util.Success
+import scala.util.{ Success, Try }
 
 class IntegrationSpec extends TestSupportFixture with ServletFixture with ScalatraSuite {
 
@@ -42,6 +42,10 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
 
   private val app: EasyDepositApiApp = new EasyDepositApiApp(minimalAppConfig) {
     override val pidRequester: PidRequester = mockPidRequester
+
+    override def getUser(user: String): Try[Map[String, Seq[String]]] = {
+      Success(Map(("displayName", Seq("F. Bar"))))
+    }
   }
   mountServlets(app, authMocker.mockedAuthenticationProvider)
 
@@ -165,7 +169,7 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
     }
   }
 
-  "scenario: POST /deposit; PUT /deposit/:uuid/state; PUT /deposit/$uuid/file/..." should "return forbidden cannot update SUBMITTED deposit" in pendingUntilFixed {
+  "scenario: POST /deposit; PUT /deposit/:uuid/state; PUT /deposit/$uuid/file/..." should "return forbidden cannot update SUBMITTED deposit" in {
     val uuid: String = setupSubmittedDeposit
     authMocker.expectsUserFooBar
     put(
@@ -204,7 +208,7 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
     }
   }
 
-  "scenario: create - ... - sumbit" should "create submitted dataset copied from a draft" in pendingUntilFixed {
+  "scenario: create - ... - sumbit" should "create submitted dataset copied from a draft" in {
     val uuid: String = setupSubmittedDeposit
 
     // resubmit succeeds
@@ -237,7 +241,7 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
     }
   }
 
-  "scenario: create - sumbit" should "refuse a submit without DOI" in pendingUntilFixed {
+  "scenario: create - sumbit" should "refuse a submit without DOI" in {
     (testDir / "stage").createDirectories()
     (testDir / "easy-ingest-flow-inbox").createDirectories()
     val metadataWithoutDOI = JsonUtil.toJson(

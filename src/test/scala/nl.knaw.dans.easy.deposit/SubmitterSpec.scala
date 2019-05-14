@@ -56,7 +56,7 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
     val stateManager = depositDir.getStateManager(testDir / "submitted", easyHome)
     addDoiToDepositProperties(getBag(depositDir))
 
-    createSubmitter(unrelatedGroup).submit(depositDir, stateManager,"fullName") should matchPattern {
+    createSubmitter(unrelatedGroup).submit(depositDir, stateManager, "fullName") should matchPattern {
       case Failure(e: IOException) if e.getMessage matches
         ".*Probably the current user .* is not part of this group.*" =>
     }
