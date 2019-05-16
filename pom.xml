@@ -70,7 +70,7 @@
         <dependency>
             <groupId>nl.knaw.dans.lib</groupId>
             <artifactId>dans-bag-lib_2.12</artifactId>
-            <version>1.0.0-beta-3</version>
+            <version>1.0.0c-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>com.jsuereth</groupId>
@@ -108,6 +108,7 @@
         <dependency>
             <groupId>com.github.pathikrit</groupId>
             <artifactId>better-files_2.12</artifactId>
+            <version>3.8.0</version>
         </dependency>
         <dependency>
             <groupId>com.pauldijou</groupId>

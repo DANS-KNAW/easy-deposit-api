@@ -23,7 +23,7 @@ import java.nio.file.spi.FileSystemProvider
 import java.util.UUID
 
 import better.files.File
-import better.files.File.VisitOptions
+import better.files.File.{ CopyOptions, VisitOptions }
 import nl.knaw.dans.bag.ChecksumAlgorithm.ChecksumAlgorithm
 import nl.knaw.dans.bag.DansBag
 import nl.knaw.dans.bag.v0.DansV0Bag
@@ -118,7 +118,7 @@ class Submitter(stagingBaseDir: File,
     _ <- setRightsRecursively(draftDepositDir)
     // EASY-1464 step 3.3.9 Move copy to submit-to area
     _ = logger.info(s"moving $draftDepositDir to $submitDir")
-    _ <- Try(srcProvider.move(draftDepositDir.path, submitDir.path, StandardCopyOption.ATOMIC_MOVE)).recoverWith {
+    _ <- Try(draftDepositDir.moveTo(submitDir)(CopyOptions.atomically)).recoverWith {
       case _: FileAlreadyExistsException => Failure(AlreadySubmittedException(id))
     }
   } yield ()
