@@ -77,7 +77,6 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
   }
   private val draftBase: File = getConfiguredDirectory("deposits.drafts")
   private val submitBase: File = getConfiguredDirectory("deposits.submit-to")
-  private val uploadProvider: FileSystemProvider = uploadStagingDir.fileSystem.provider()
   StartupValidation.allowsAtomicMove(srcDir = uploadStagingDir, targetDir = draftBase)
 
   val multipartConfig: MultipartConfig = {
