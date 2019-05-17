@@ -18,32 +18,49 @@ package nl.knaw.dans.easy.deposit
 import javax.servlet.ServletContext
 import nl.knaw.dans.easy.deposit.servlets._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
-import org.eclipse.jetty.server.Server
+import org.eclipse.jetty.server.{ NCSARequestLog, Server }
+import org.eclipse.jetty.server.handler.{ DefaultHandler, HandlerCollection, RequestLogHandler }
 import org.eclipse.jetty.servlet.ServletContextHandler
 import org.scalatra._
 import org.scalatra.servlet.ScalatraListener
 
 import scala.util.Try
 
+
 class EasyDepositApiService(serverPort: Int, app: EasyDepositApiApp) extends DebugEnhancedLogging {
 
   import logger._
 
-  private val server = new Server(serverPort)
-  private val context = new ServletContextHandler(ServletContextHandler.NO_SESSIONS & ServletContextHandler.SECURITY)
-  context.addEventListener(new ScalatraListener() {
-    override def probeForCycleClass(classLoader: ClassLoader): (String, LifeCycle) = {
-      ("anonymous", new LifeCycle {
-        override def init(context: ServletContext): Unit = {
-          context.mount(new EasyDepositApiServlet(app), "/*")
-          context.mount(new DepositServlet(app), "/deposit/*")
-          context.mount(new UserServlet(app), "/user/*")
-          context.mount(new AuthServlet(app), "/auth/*")
+  private val server: Server = new Server(serverPort) {
+    private val context = new ServletContextHandler(ServletContextHandler.NO_SESSIONS & ServletContextHandler.SECURITY) {
+      addEventListener(new ScalatraListener() {
+        override def probeForCycleClass(classLoader: ClassLoader): (String, LifeCycle) = {
+          ("anonymous", new LifeCycle {
+            override def init(context: ServletContext): Unit = {
+              context.mount(new EasyDepositApiServlet(app), "/*")
+              context.mount(new DepositServlet(app), "/deposit/*")
+              context.mount(new UserServlet(app), "/user/*")
+              context.mount(new AuthServlet(app), "/auth/*")
+            }
+          })
         }
       })
     }
-  })
-  server.setHandler(context)
+    // TODO https://logback.qos.ch/recipes/captureHttp.html
+    //  for now bottom of https://wiki.eclipse.org/Jetty/Tutorial/RequestLog#Configuring_Request_Log
+    private val requestLogHandler = new RequestLogHandler {
+      setRequestLog(new NCSARequestLog(app.properties.getString("deposits.jetty-logs", ".")) {
+        setRetainDays(90)
+        setAppend(true)
+        setExtended(false)
+        setLogTimeZone("GMT")
+      })
+    }
+    setHandler(new HandlerCollection {
+      setHandlers(Array(context, new DefaultHandler(), requestLogHandler))
+    })
+  }
+
   info(s"HTTP port is ${ serverPort }")
 
   def start(): Try[Unit] = Try {
