@@ -17,7 +17,7 @@ package nl.knaw.dans.easy.deposit
 
 import java.io.EOFException
 import java.nio.charset.Charset
-import java.nio.file.{ Files, StandardCopyOption }
+import java.nio.file.Files
 import java.util.UUID
 import java.util.zip.{ ZipEntry, ZipException, ZipInputStream }
 

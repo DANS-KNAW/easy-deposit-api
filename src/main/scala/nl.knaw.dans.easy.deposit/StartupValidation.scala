@@ -16,7 +16,6 @@
 package nl.knaw.dans.easy.deposit
 
 import java.io.IOException
-import java.nio.file.spi.FileSystemProvider
 
 import better.files.File
 import better.files.File.CopyOptions

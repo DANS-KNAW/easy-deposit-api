@@ -21,12 +21,12 @@ import nl.knaw.dans.easy.deposit.authentication.{ AuthenticationMocker, Authenti
 import nl.knaw.dans.easy.deposit.docs.DepositInfo
 import nl.knaw.dans.easy.deposit.{ EasyDepositApiApp, TestSupportFixture }
 import nl.knaw.dans.lib.error._
+import org.eclipse.jetty.http.HttpStatus._
 import org.scalamock.handlers.CallHandler1
 import org.scalamock.scalatest.MockFactory
 import org.scalatra.test.scalatest.ScalatraSuite
 
 import scala.util.{ Success, Try }
-import org.eclipse.jetty.http.HttpStatus._
 
 trait DepositServletFixture extends TestSupportFixture with ServletFixture with ScalatraSuite with MockFactory {
   private val app: EasyDepositApiApp = new EasyDepositApiApp(minimalAppConfig) {
