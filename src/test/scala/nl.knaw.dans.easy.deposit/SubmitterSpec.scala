@@ -19,7 +19,7 @@ import java.io.IOException
 import java.net.URL
 import java.nio.file.Paths
 
-import better.files.StringOps
+import better.files.StringExtensions
 import nl.knaw.dans.bag.DansBag
 import nl.knaw.dans.easy.deposit.docs._
 import nl.knaw.dans.lib.error._

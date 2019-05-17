@@ -17,7 +17,7 @@ package nl.knaw.dans.easy
 
 import java.nio.file.Paths
 
-import better.files.StringOps
+import better.files.StringExtensions
 import nl.knaw.dans.bag.DansBag
 
 import scala.util.{ Failure, Try }

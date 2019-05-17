@@ -60,7 +60,7 @@ class Submitter(stagingBaseDir: File,
   val srcProvider: FileSystemProvider = stagingBaseDir.fileSystem.provider()
   private val depositorInfoDirectoryName = "depositor-info"
 
-  StartupValidation.allowsAtomicMove(srcProvider, srcDir = stagingBaseDir, targetDir = submitToBaseDir)
+  StartupValidation.allowsAtomicMove(srcDir = stagingBaseDir, targetDir = submitToBaseDir)
 
   /**
    * Submits `depositDir` by writing the file metadata, updating the bag checksums, staging a copy

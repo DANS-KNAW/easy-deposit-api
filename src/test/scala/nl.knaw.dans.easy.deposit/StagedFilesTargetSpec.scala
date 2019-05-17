@@ -18,7 +18,7 @@ package nl.knaw.dans.easy.deposit
 import java.net.{ URL, UnknownHostException }
 import java.nio.file.Paths
 
-import better.files.StringOps
+import better.files.StringExtensions
 import nl.knaw.dans.bag.v0.DansV0Bag
 import nl.knaw.dans.easy.deposit.Errors.OverwriteException
 import nl.knaw.dans.lib.error._

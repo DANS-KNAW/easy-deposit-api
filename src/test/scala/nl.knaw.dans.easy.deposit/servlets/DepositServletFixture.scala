@@ -26,6 +26,7 @@ import org.scalamock.scalatest.MockFactory
 import org.scalatra.test.scalatest.ScalatraSuite
 
 import scala.util.{ Success, Try }
+import org.eclipse.jetty.http.HttpStatus._
 
 trait DepositServletFixture extends TestSupportFixture with ServletFixture with ScalatraSuite with MockFactory {
   private val app: EasyDepositApiApp = new EasyDepositApiApp(minimalAppConfig) {
@@ -47,7 +48,10 @@ trait DepositServletFixture extends TestSupportFixture with ServletFixture with 
 
   /** @return uuid of the created deposit */
   def createDeposit: String = {
-    val responseBody = post(s"/deposit/", headers = Seq(fooBarBasicAuthHeader)) { body }
+    val responseBody = post(s"/deposit/", headers = Seq(fooBarBasicAuthHeader)) {
+      status shouldBe CREATED_201
+      body
+    }
     DepositInfo(responseBody).map(_.id.toString).getOrRecover(e => fail(e.toString, e))
   }
 
