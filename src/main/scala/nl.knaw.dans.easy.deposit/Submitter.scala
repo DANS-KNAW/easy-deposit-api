@@ -57,7 +57,6 @@ class Submitter(stagingBaseDir: File,
       case NonFatal(e) => throw new IOException(s"unexpected error occured on $stagingBaseDir", e)
     }
   }
-  val srcProvider: FileSystemProvider = stagingBaseDir.fileSystem.provider()
   private val depositorInfoDirectoryName = "depositor-info"
 
   StartupValidation.allowsAtomicMove(srcDir = stagingBaseDir, targetDir = submitToBaseDir)

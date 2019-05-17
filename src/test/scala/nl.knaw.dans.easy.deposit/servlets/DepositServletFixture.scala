@@ -48,11 +48,12 @@ trait DepositServletFixture extends TestSupportFixture with ServletFixture with 
 
   /** @return uuid of the created deposit */
   def createDeposit: String = {
-    val responseBody = post(s"/deposit/", headers = Seq(fooBarBasicAuthHeader)) {
-      status shouldBe CREATED_201
-      body
+    post("/deposit/", headers = Seq(fooBarBasicAuthHeader)) {
+      status shouldBe CREATED_201 // prevents json to interpret a stack trace
+
+      // allow caller to extract DOI, UUID or whatever from the response
+      DepositInfo(body).map(_.id.toString).getOrRecover(e => fail(e.toString, e))
     }
-    DepositInfo(responseBody).map(_.id.toString).getOrRecover(e => fail(e.toString, e))
   }
 
   def mockDoiRequest(doi: String): CallHandler1[PidType, Try[String]] =
