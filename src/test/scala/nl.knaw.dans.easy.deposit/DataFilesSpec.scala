@@ -21,7 +21,7 @@ import java.nio.file.attribute.PosixFilePermission
 import java.nio.file.{ AccessDeniedException, Paths }
 import java.util.UUID
 
-import better.files.StringOps
+import better.files.StringExtensions
 import nl.knaw.dans.bag.v0.DansV0Bag
 import nl.knaw.dans.easy.deposit.Errors.NoSuchFileInDepositException
 import nl.knaw.dans.easy.deposit.docs.FileInfo

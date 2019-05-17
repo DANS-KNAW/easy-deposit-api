@@ -16,10 +16,9 @@
 package nl.knaw.dans.easy.deposit
 
 import java.io.IOException
-import java.nio.file.StandardCopyOption
-import java.nio.file.spi.FileSystemProvider
 
 import better.files.File
+import better.files.File.CopyOptions
 import nl.knaw.dans.lib.error._
 
 import scala.util.Try
@@ -27,13 +26,13 @@ import scala.util.Try
 object StartupValidation {
 
   @throws[IOException]("when files can not be moved atomically from src to target")
-  def allowsAtomicMove(srcProvider: FileSystemProvider, srcDir: File, targetDir: File): Unit = {
+  def allowsAtomicMove(srcDir: File, targetDir: File): Unit = {
     val fileName = "same-mount-check"
     val srcFile = srcDir / fileName
     val targetFile = targetDir / fileName
     Try {
       if (srcFile.notExists) srcFile.createFile()
-      srcProvider.move(srcFile.path, targetFile.path, StandardCopyOption.ATOMIC_MOVE)
+      srcFile.moveTo(targetFile)(CopyOptions.atomically)
       targetFile.delete()
     }.doIfFailure { case _ => srcFile.delete() }
       .unsafeGetOrThrow

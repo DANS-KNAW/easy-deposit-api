@@ -77,13 +77,12 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
   }
   private val draftBase: File = getConfiguredDirectory("deposits.drafts")
   private val submitBase: File = getConfiguredDirectory("deposits.submit-to")
-  private val uploadProvider: FileSystemProvider = uploadStagingDir.fileSystem.provider()
-  StartupValidation.allowsAtomicMove(uploadProvider, srcDir = uploadStagingDir, targetDir = draftBase)
+  StartupValidation.allowsAtomicMove(srcDir = uploadStagingDir, targetDir = draftBase)
 
   val multipartConfig: MultipartConfig = {
     val multipartLocation = getConfiguredDirectory("multipart.location")
     logger.info(s"Uploads are received at multipart.location: $multipartLocation")
-    StartupValidation.allowsAtomicMove(uploadProvider, srcDir = multipartLocation, targetDir = uploadStagingDir)
+    StartupValidation.allowsAtomicMove(srcDir = multipartLocation, targetDir = uploadStagingDir)
     MultipartConfig(
       location = Some(multipartLocation.toString()),
       maxFileSize = Option(properties.getLong("multipart.max-file-size", null)),

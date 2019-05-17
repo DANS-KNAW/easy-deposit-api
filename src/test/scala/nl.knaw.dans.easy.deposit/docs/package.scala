@@ -17,7 +17,7 @@ package nl.knaw.dans.easy.deposit
 
 import java.net.UnknownHostException
 
-import better.files.StringOps
+import better.files.StringExtensions
 import javax.xml.XMLConstants
 import javax.xml.transform.Source
 import javax.xml.transform.stream.StreamSource

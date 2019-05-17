@@ -22,6 +22,7 @@ import java.util.UUID
 import java.util.zip.{ ZipEntry, ZipException, ZipInputStream }
 
 import better.files.File
+import better.files.File.CopyOptions
 import nl.knaw.dans.easy.deposit.Errors.{ ConfigurationException, MalformedZipException, ZipMustBeOnlyFileException }
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.scalatra.servlet.{ FileItem, MultipartConfig }
@@ -125,7 +126,7 @@ package object servlets extends DebugEnhancedLogging {
         srcItem.part.write(f)
 
         // now we can move the upload to the location we really want
-        (location / f).moveTo(targetDir / srcItem.name, overwrite = true)
+        (location / f).moveTo(targetDir / srcItem.name)(CopyOptions.atomically)
       }
     }
   }

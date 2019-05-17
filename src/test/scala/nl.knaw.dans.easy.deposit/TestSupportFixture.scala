@@ -92,9 +92,9 @@ trait TestSupportFixture extends FlatSpec with Matchers with Inside with BeforeA
     })
   }
 
-  private def testSubDir(drafts: String) = {
+  private def testSubDir(drafts: String): File = {
     (testDir / drafts)
-      .delete(true)
+      .delete(swallowIOExceptions = true)
       .createIfNotExists(asDirectory = true, createParents = true)
   }
   private class TokenSupportImpl() extends TokenSupport with AuthConfig {
