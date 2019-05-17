@@ -29,6 +29,7 @@ import org.scalatest._
 import org.scalatest.enablers.Existence
 
 import scala.util.Properties
+import scala.language.existentials
 
 trait TestSupportFixture extends FlatSpec with Matchers with Inside with BeforeAndAfterEach with MockFactory {
   implicit def existenceOfFile[FILE <: better.files.File]: Existence[FILE] = _.exists
