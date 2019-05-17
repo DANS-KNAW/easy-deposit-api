@@ -46,13 +46,16 @@ trait DepositServletFixture extends TestSupportFixture with ServletFixture with 
   }
   addServlet(depositServlet, "/deposit/*")
 
-  /** @return uuid of the created deposit */
+  /** @return UUID of the created deposit */
   def createDeposit: String = {
     post("/deposit/", headers = Seq(fooBarBasicAuthHeader)) {
-      status shouldBe CREATED_201 // prevents json to interpret a stack trace
+      // prevent json to interpret a stack trace
+      status shouldBe CREATED_201
 
-      // allow caller to extract DOI, UUID or whatever from the response
-      DepositInfo(body).map(_.id.toString).getOrRecover(e => fail(e.toString, e))
+      // return the new UUID
+      DepositInfo(body)
+        .map(_.id.toString)
+        .getOrRecover(e => fail(e.toString, e))
     }
   }
 
