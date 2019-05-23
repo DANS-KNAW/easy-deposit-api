@@ -63,7 +63,6 @@ trait AuthenticationSupport extends ScentrySupport[AuthUser] {
       httpOnly = true // JavaScript can't get the cookie
       // version = 0 // obsolete? https://stackoverflow.com/questions/29124177/recommended-set-cookie-version-used-by-web-servers-0-1-or-2#29143128
     )
-    logger.info(s"authCookieOptions: $cookieConfig")
     scentry.store = new CookieAuthStore(self)(cookieConfig)
   }
 

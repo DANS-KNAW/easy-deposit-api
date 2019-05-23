@@ -19,7 +19,7 @@ import javax.servlet.ServletContext
 import nl.knaw.dans.easy.deposit.servlets._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.eclipse.jetty.server.handler.{ DefaultHandler, HandlerCollection, RequestLogHandler }
-import org.eclipse.jetty.server.{ Server, Slf4jRequestLog }
+import org.eclipse.jetty.server.{ HttpConnectionFactory, MultiPartFormDataCompliance, Server, Slf4jRequestLog }
 import org.eclipse.jetty.servlet.ServletContextHandler
 import org.scalatra._
 import org.scalatra.servlet.ScalatraListener
@@ -32,9 +32,15 @@ class EasyDepositApiService(serverPort: Int, app: EasyDepositApiApp) extends Deb
   import logger._
 
   private val server: Server = new Server(serverPort) {
+    getConnectors.foreach(_
+      .getConnectionFactory(classOf[HttpConnectionFactory])
+      .getHttpConfiguration
+      .setMultiPartFormDataCompliance(MultiPartFormDataCompliance.RFC7578)
+    )
     private val context = new ServletContextHandler(ServletContextHandler.NO_SESSIONS & ServletContextHandler.SECURITY) {
       addEventListener(new ScalatraListener() {
         override def probeForCycleClass(classLoader: ClassLoader): (String, LifeCycle) = {
+
           ("anonymous", new LifeCycle {
             override def init(context: ServletContext): Unit = {
               context.mount(new EasyDepositApiServlet(app), "/*")
@@ -53,7 +59,6 @@ class EasyDepositApiService(serverPort: Int, app: EasyDepositApiApp) extends Deb
     private val requestLogHandler = new RequestLogHandler {
       setRequestLog(new Slf4jRequestLog() {
         setExtended(true)
-        setLogTimeZone("GMT")
         setDumpAfterStart(true)
         setLogCookies(false)
         setLogServer(true)
