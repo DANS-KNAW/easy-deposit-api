@@ -18,8 +18,8 @@ package nl.knaw.dans.easy.deposit
 import javax.servlet.ServletContext
 import nl.knaw.dans.easy.deposit.servlets._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
-import org.eclipse.jetty.server.{ NCSARequestLog, Server }
 import org.eclipse.jetty.server.handler.{ DefaultHandler, HandlerCollection, RequestLogHandler }
+import org.eclipse.jetty.server.{ Server, Slf4jRequestLog }
 import org.eclipse.jetty.servlet.ServletContextHandler
 import org.scalatra._
 import org.scalatra.servlet.ScalatraListener
@@ -47,13 +47,16 @@ class EasyDepositApiService(serverPort: Int, app: EasyDepositApiApp) extends Deb
       })
     }
     // TODO https://logback.qos.ch/recipes/captureHttp.html
-    //  for now bottom of https://wiki.eclipse.org/Jetty/Tutorial/RequestLog#Configuring_Request_Log
+    //  see also
+    //  https://logback.qos.ch/access.html#jetty
+    //  https://www.eclipse.org/jetty/documentation/current/configuring-jetty-request-logs.html
     private val requestLogHandler = new RequestLogHandler {
-      setRequestLog(new NCSARequestLog(app.properties.getString("deposits.jetty-logs", ".")) {
-        setRetainDays(90)
-        setAppend(true)
-        setExtended(false)
+      setRequestLog(new Slf4jRequestLog() {
+        //setExtended(false)
         setLogTimeZone("GMT")
+        setDumpAfterStart(true)
+        setLogCookies(false)
+        setLogServer(true)
       })
     }
     setHandler(new HandlerCollection {
