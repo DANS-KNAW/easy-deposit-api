@@ -52,7 +52,7 @@ class EasyDepositApiService(serverPort: Int, app: EasyDepositApiApp) extends Deb
     //  https://www.eclipse.org/jetty/documentation/current/configuring-jetty-request-logs.html
     private val requestLogHandler = new RequestLogHandler {
       setRequestLog(new Slf4jRequestLog() {
-        //setExtended(false)
+        setExtended(true)
         setLogTimeZone("GMT")
         setDumpAfterStart(true)
         setLogCookies(false)
