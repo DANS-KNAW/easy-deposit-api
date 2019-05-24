@@ -70,7 +70,7 @@ class EasyDepositApiAppSpec extends TestSupportFixture {
     }
   }
 
-  private def createDeposit(state: State, createdDaysAgo: Int, user: String = defaultUser, title: String = "my-title") = {
+  private def createDeposit(state: State, createdDaysAgo: Int, user: String = defaultUser, title: String = "my-title"): DepositInfo = {
     val depositId = UUID.randomUUID()
     val deposit = (testDir / "drafts" / user / depositId.toString).createDirectories()
     val creationTimestamp = DateTime.now.minusDays(createdDaysAgo).withZone(UTC)

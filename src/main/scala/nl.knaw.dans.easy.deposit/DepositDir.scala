@@ -77,12 +77,12 @@ case class DepositDir private(draftBase: File, user: String, id: UUID) extends D
     case t => corruptDepositFailure(t)
   }
 
-  private def getDatasetTitle = {
+  private def getDatasetTitle: Try[String] = {
     getDatasetMetadata
       .map(_.titles.flatMap(_.headOption).getOrElse(""))
   }
 
-  private def getDepositProps = Try {
+  private def getDepositProps: Try[PropertiesConfiguration] = Try {
     new PropertiesConfiguration(depositPropertiesFile.toJava)
   }.flatMap {
     case props if props.getKeys.hasNext => Success(props)
@@ -229,6 +229,7 @@ object DepositDir {
       addProperty("curation.performed", "no")
       addProperty("identifier.dans-doi.registered", "no")
       addProperty("identifier.dans-doi.action", "create")
+      addProperty("bag-store.bag-name", "bag")
     }.save(depositDir.depositPropertiesFile.toJava)
   }
 }

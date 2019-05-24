@@ -74,6 +74,7 @@ class DepositDirSpec extends TestSupportFixture with MockFactory {
           "creation.timestamp" -> "2018-03-22T20:43:01.000Z",
           "state.description" -> "Deposit is open for changes.",
           "identifier.dans-doi.action" -> "create",
+          "bag-store.bag-name" -> "bag",
         )
     }
   }
