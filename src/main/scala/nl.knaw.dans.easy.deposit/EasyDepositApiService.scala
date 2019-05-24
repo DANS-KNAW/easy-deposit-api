@@ -44,11 +44,16 @@ class EasyDepositApiService(serverPort: Int, app: EasyDepositApiApp) extends Deb
           })
       })
     }
-    // TODO https://logback.qos.ch/recipes/captureHttp.html
-    //  see also
-    //  https://logback.qos.ch/access.html#jetty
-    //  https://www.eclipse.org/jetty/documentation/current/configuring-jetty-request-logs.html
     private val requestLogHandler = new RequestLogHandler {
+      // TODO hook for our own response logging at the proper moment
+      //  See https://www.eclipse.org/jetty/documentation/current/configuring-jetty-request-logs.html
+      //  ...If neither of these options meets your needs...
+      //  ...Latency...
+      //  ...NCSA format...webalyzer...
+      //  Perhaps  two log handlers? NCSA + our own and configure the final choice in logback-service.xml
+      // see also
+      //  https://logback.qos.ch/recipes/captureHttp.html
+      //  https://logback.qos.ch/access.html#jetty
       setRequestLog(new Slf4jRequestLog() {
         setExtended(true)
         setLogCookies(false)

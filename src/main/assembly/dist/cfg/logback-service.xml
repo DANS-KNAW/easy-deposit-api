@@ -12,8 +12,8 @@
         </encoder>
     </appender>
     <root level="warn">
-        <appender-ref ref="FILE" />
+        <appender-ref ref="FILE"/>
     </root>
-    <logger name="nl.knaw.dans.easy" level="info" />
-    <logger name="org.eclipse.jetty.server.RequestLog" level="info" />
+    <logger name="nl.knaw.dans.easy" level="info"/>
+    <logger name="org.eclipse.jetty.server.RequestLog" level="info"/>
 </configuration>

@@ -18,16 +18,12 @@ package nl.knaw.dans.easy.deposit.servlets
 import nl.knaw.dans.easy.deposit.EasyDepositApiApp
 import nl.knaw.dans.easy.deposit.authentication._
 import nl.knaw.dans.lib.error._
-import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import nl.knaw.dans.lib.logging.servlet._
 import org.apache.commons.configuration.PropertiesConfiguration
-import org.scalatra.ScalatraServlet
 
-abstract class AbstractAuthServlet(app: EasyDepositApiApp) extends ScalatraServlet
+abstract class AbstractAuthServlet(app: EasyDepositApiApp) extends AbstractServlet
   with ServletLogger
-  with MaskedLogFormatter
   with LogResponseBodyOnError
-  with DebugEnhancedLogging
   with AuthenticationSupport
   with TokenSupport
   with AuthConfig {

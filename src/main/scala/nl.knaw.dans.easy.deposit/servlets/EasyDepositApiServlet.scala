@@ -20,7 +20,7 @@ import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import nl.knaw.dans.lib.logging.servlet._
 import org.scalatra._
 
-class EasyDepositApiServlet(app: EasyDepositApiApp) extends ScalatraServlet
+class EasyDepositApiServlet(app: EasyDepositApiApp) extends AbstractServlet
   with ServletLogger
   with MaskedLogFormatter
   with LogResponseBodyOnError
