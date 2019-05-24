@@ -26,21 +26,14 @@ import org.scalatra.servlet.ScalatraListener
 
 import scala.util.Try
 
-
 class EasyDepositApiService(serverPort: Int, app: EasyDepositApiApp) extends DebugEnhancedLogging {
 
   import logger._
 
   private val server: Server = new Server(serverPort) {
-    getConnectors.foreach(_
-      .getConnectionFactory(classOf[HttpConnectionFactory])
-      .getHttpConfiguration
-      .setMultiPartFormDataCompliance(MultiPartFormDataCompliance.RFC7578)
-    )
     private val context = new ServletContextHandler(ServletContextHandler.NO_SESSIONS & ServletContextHandler.SECURITY) {
       addEventListener(new ScalatraListener() {
-        override def probeForCycleClass(classLoader: ClassLoader): (String, LifeCycle) = {
-
+        override def probeForCycleClass(classLoader: ClassLoader): (String, LifeCycle) =
           ("anonymous", new LifeCycle {
             override def init(context: ServletContext): Unit = {
               context.mount(new EasyDepositApiServlet(app), "/*")
@@ -49,7 +42,6 @@ class EasyDepositApiService(serverPort: Int, app: EasyDepositApiApp) extends Deb
               context.mount(new AuthServlet(app), "/auth/*")
             }
           })
-        }
       })
     }
     // TODO https://logback.qos.ch/recipes/captureHttp.html
@@ -59,14 +51,20 @@ class EasyDepositApiService(serverPort: Int, app: EasyDepositApiApp) extends Deb
     private val requestLogHandler = new RequestLogHandler {
       setRequestLog(new Slf4jRequestLog() {
         setExtended(true)
-        setDumpAfterStart(true)
         setLogCookies(false)
         setLogServer(true)
+        setLogDateFormat("yyyy-MM-dd HH:mm:ss") // gets surrounded with: "[]"
       })
     }
+    setDumpAfterStart(true) // jetty debug logging
     setHandler(new HandlerCollection {
       setHandlers(Array(context, new DefaultHandler(), requestLogHandler))
     })
+    getConnectors.foreach(_
+      .getConnectionFactory(classOf[HttpConnectionFactory])
+      .getHttpConfiguration
+      .setMultiPartFormDataCompliance(MultiPartFormDataCompliance.RFC7578)
+    )
   }
 
   info(s"HTTP port is ${ serverPort }")
