@@ -21,7 +21,7 @@ import org.eclipse.jetty.http.HttpStatus._
 class DoiSpec extends DepositServletFixture {
   private def propsFile(uuid: String): File = testDir / "drafts/foo" / uuid / "deposit.properties"
 
-  private def jsonFile(uuid: String): File = testDir / "drafts/foo" / uuid / s"$bagDirName/metadata/dataset.json"
+  private def jsonFile(uuid: String): File = testDir / "drafts/foo" / uuid / bagDirName / "metadata" / "dataset.json"
 
   private val submit = """{"state":"SUBMITTED","stateDescription":"blabla"}"""
   private val doi = "10.17632/DANS.6wg5xccnjd.1"

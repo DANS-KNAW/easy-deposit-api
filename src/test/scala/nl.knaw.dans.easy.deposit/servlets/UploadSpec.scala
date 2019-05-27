@@ -93,7 +93,7 @@ class UploadSpec extends DepositServletFixture {
     ))
     val uuid = createDeposit
     val relativeTarget = "path/to/dir"
-    val absoluteTarget = testDir / "drafts" / "foo" / uuid.toString / s"$bagDirName/data" / relativeTarget
+    val absoluteTarget = testDir / "drafts" / "foo" / uuid.toString / bagDirName / "data" / relativeTarget
     absoluteTarget
       .createDirectories()
       .removePermission(PosixFilePermission.OWNER_WRITE)
@@ -117,7 +117,7 @@ class UploadSpec extends DepositServletFixture {
     ))
     val uuid = createDeposit
     val relativeTarget = "path/to/dir"
-    val absoluteTarget = (testDir / "drafts" / "foo" / uuid.toString / s"$bagDirName/data" / relativeTarget).createDirectories()
+    val absoluteTarget = (testDir / "drafts" / "foo" / uuid.toString / bagDirName / "data" / relativeTarget).createDirectories()
     post(
       uri = s"/deposit/$uuid/file/$relativeTarget",
       params = Iterable(),
@@ -137,7 +137,7 @@ class UploadSpec extends DepositServletFixture {
     ))
     val uuid = createDeposit
     val relativeTarget = "path/to/dir"
-    val absoluteTarget = (testDir / "drafts" / "foo" / uuid.toString / s"$bagDirName/data" / relativeTarget).createDirectories()
+    val absoluteTarget = (testDir / "drafts" / "foo" / uuid.toString / bagDirName / "data" / relativeTarget).createDirectories()
     post(
       uri = s"/deposit/$uuid/file/$relativeTarget",
       params = Iterable(),
@@ -154,7 +154,7 @@ class UploadSpec extends DepositServletFixture {
     val bodyParts = createBodyParts(Seq(("some", "1.zip", "invalid zip content")))
     val uuid = createDeposit
     val relativeTarget = "path/to/dir"
-    val absoluteTarget = (testDir / "drafts" / "foo" / uuid.toString / s"$bagDirName/data" / relativeTarget).createDirectories()
+    val absoluteTarget = (testDir / "drafts" / "foo" / uuid.toString / bagDirName / "data" / relativeTarget).createDirectories()
     post(
       uri = s"/deposit/$uuid/file/$relativeTarget",
       params = Iterable(),
@@ -171,7 +171,7 @@ class UploadSpec extends DepositServletFixture {
     val bodyParts = Seq(("some", new java.io.File("src/test/resources/manual-test/invalid.zip")))
     val uuid = createDeposit
     val relativeTarget = "path/to/dir"
-    val absoluteTarget = (testDir / "drafts" / "foo" / uuid.toString / s"$bagDirName/data" / relativeTarget).createDirectories()
+    val absoluteTarget = (testDir / "drafts" / "foo" / uuid.toString / bagDirName / "data" / relativeTarget).createDirectories()
     post(
       uri = s"/deposit/$uuid/file/$relativeTarget",
       params = Iterable(),
@@ -188,7 +188,7 @@ class UploadSpec extends DepositServletFixture {
     val bodyParts = Seq(("some", new java.io.File("src/test/resources/manual-test/empty.zip")))
     val uuid = createDeposit
     val relativeTarget = "path/to/dir"
-    val absoluteTarget = (testDir / "drafts" / "foo" / uuid.toString / s"$bagDirName/data" / relativeTarget).createDirectories()
+    val absoluteTarget = (testDir / "drafts" / "foo" / uuid.toString / bagDirName / "data" / relativeTarget).createDirectories()
     post(
       uri = s"/deposit/$uuid/file/$relativeTarget",
       params = Iterable(),
@@ -338,7 +338,7 @@ class UploadSpec extends DepositServletFixture {
     ))
     val uuid = createDeposit
     val relativeTarget = "some"
-    val absoluteTarget = (testDir / "drafts" / "foo" / uuid.toString / s"$bagDirName/data" / relativeTarget).createDirectories()
+    val absoluteTarget = (testDir / "drafts" / "foo" / uuid.toString / bagDirName / "data" / relativeTarget).createDirectories()
     (absoluteTarget / "2.txt").createFile()
     (absoluteTarget / "3.txt").createFile()
     post(

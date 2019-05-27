@@ -54,12 +54,12 @@ class DepositDirSpec extends TestSupportFixture with MockFactory {
         dir should exist
         (dir / "deposit.properties") should exist
         (dir / bagDirName) should exist
-        (dir / s"$bagDirName/bag-info.txt") should exist
-        (dir / s"$bagDirName/bagit.txt") should exist
-        (dir / s"$bagDirName/manifest-sha1.txt") should exist
-        (dir / s"$bagDirName/tagmanifest-sha1.txt") should exist
-        (dir / s"$bagDirName/data") should exist
-        (dir / s"$bagDirName/metadata") should exist
+        (dir / bagDirName / "bag-info.txt") should exist
+        (dir / bagDirName / "bagit.txt") should exist
+        (dir / bagDirName / "manifest-sha1.txt") should exist
+        (dir / bagDirName / "tagmanifest-sha1.txt") should exist
+        (dir / bagDirName / "data") should exist
+        (dir / bagDirName / "metadata") should exist
 
         val props = new PropertiesConfiguration() {
           load((dir / "deposit.properties").toJava)
