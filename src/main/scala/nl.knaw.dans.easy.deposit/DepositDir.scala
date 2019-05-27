@@ -42,7 +42,7 @@ import scala.util.{ Failure, Success, Try }
  * @param id        the ID of the deposit
  */
 case class DepositDir private(draftBase: File, user: String, id: UUID) extends DebugEnhancedLogging {
-  val bagDir: File = draftBase / user / id.toString / "bag"
+  val bagDir: File = draftBase / user / id.toString / badDirName
   private val metadataDir = bagDir / "metadata"
   private val depositPropertiesFile = bagDir.parent / "deposit.properties"
   private val datasetMetadataJsonFile = metadataDir / "dataset.json"
@@ -211,7 +211,7 @@ object DepositDir {
     val depositDir = deposit.draftBase / user / depositInfo.id.toString
     for {
       _ <- Try { depositDir.createDirectories }
-      bag <- DansV0Bag.empty(depositDir / "bag")
+      bag <- DansV0Bag.empty(depositDir / badDirName)
       _ = bag.withEasyUserAccount(deposit.user)
       _ <- bag.addTagFile("{}".inputStream, Paths.get("metadata/dataset.json"))
       _ <- bag.save()
@@ -229,7 +229,7 @@ object DepositDir {
       addProperty("curation.performed", "no")
       addProperty("identifier.dans-doi.registered", "no")
       addProperty("identifier.dans-doi.action", "create")
-      addProperty("bag-store.bag-name", "bag")
+      addProperty("bag-store.bag-name", badDirName)
     }.save(depositDir.depositPropertiesFile.toJava)
   }
 }

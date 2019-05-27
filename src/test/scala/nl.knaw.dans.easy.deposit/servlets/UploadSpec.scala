@@ -50,7 +50,7 @@ class UploadSpec extends DepositServletFixture {
     ) {
       body shouldBe ""
       status shouldBe CREATED_201
-      val bagDir = testDir / "drafts/foo" / uuid.toString / "bag"
+      val bagDir = testDir / "drafts/foo" / uuid.toString / bagDirName
       val uploaded = (bagDir / "data" / relativeTarget).list
       uploaded.size shouldBe bodyParts.size
       uploaded.foreach(file =>
@@ -78,7 +78,7 @@ class UploadSpec extends DepositServletFixture {
     ) {
       status shouldBe CONFLICT_409
       body shouldBe "Another upload is pending. Please try again later."
-      val bagDir = testDir / "drafts/foo" / uuid.toString / "bag"
+      val bagDir = testDir / "drafts/foo" / uuid.toString / bagDirName
       (bagDir / "data").list.size shouldBe 0
       (bagDir / "manifest-sha1.txt").lines.size shouldBe 0
       (testDir / "stage-zips").list.size shouldBe 1
@@ -93,7 +93,7 @@ class UploadSpec extends DepositServletFixture {
     ))
     val uuid = createDeposit
     val relativeTarget = "path/to/dir"
-    val absoluteTarget = testDir / "drafts" / "foo" / uuid.toString / "bag/data" / relativeTarget
+    val absoluteTarget = testDir / "drafts" / "foo" / uuid.toString / s"$bagDirName/data" / relativeTarget
     absoluteTarget
       .createDirectories()
       .removePermission(PosixFilePermission.OWNER_WRITE)
@@ -137,7 +137,7 @@ class UploadSpec extends DepositServletFixture {
     ))
     val uuid = createDeposit
     val relativeTarget = "path/to/dir"
-    val absoluteTarget = (testDir / "drafts" / "foo" / uuid.toString / "bag/data" / relativeTarget).createDirectories()
+    val absoluteTarget = (testDir / "drafts" / "foo" / uuid.toString / s"$bagDirName/data" / relativeTarget).createDirectories()
     post(
       uri = s"/deposit/$uuid/file/$relativeTarget",
       params = Iterable(),
@@ -154,7 +154,7 @@ class UploadSpec extends DepositServletFixture {
     val bodyParts = createBodyParts(Seq(("some", "1.zip", "invalid zip content")))
     val uuid = createDeposit
     val relativeTarget = "path/to/dir"
-    val absoluteTarget = (testDir / "drafts" / "foo" / uuid.toString / "bag/data" / relativeTarget).createDirectories()
+    val absoluteTarget = (testDir / "drafts" / "foo" / uuid.toString / s"$bagDirName/data" / relativeTarget).createDirectories()
     post(
       uri = s"/deposit/$uuid/file/$relativeTarget",
       params = Iterable(),
@@ -171,7 +171,7 @@ class UploadSpec extends DepositServletFixture {
     val bodyParts = Seq(("some", new java.io.File("src/test/resources/manual-test/invalid.zip")))
     val uuid = createDeposit
     val relativeTarget = "path/to/dir"
-    val absoluteTarget = (testDir / "drafts" / "foo" / uuid.toString / "bag/data" / relativeTarget).createDirectories()
+    val absoluteTarget = (testDir / "drafts" / "foo" / uuid.toString / s"$bagDirName/data" / relativeTarget).createDirectories()
     post(
       uri = s"/deposit/$uuid/file/$relativeTarget",
       params = Iterable(),
@@ -188,7 +188,7 @@ class UploadSpec extends DepositServletFixture {
     val bodyParts = Seq(("some", new java.io.File("src/test/resources/manual-test/empty.zip")))
     val uuid = createDeposit
     val relativeTarget = "path/to/dir"
-    val absoluteTarget = (testDir / "drafts" / "foo" / uuid.toString / "bag/data" / relativeTarget).createDirectories()
+    val absoluteTarget = (testDir / "drafts" / "foo" / uuid.toString / s"$bagDirName/data" / relativeTarget).createDirectories()
     post(
       uri = s"/deposit/$uuid/file/$relativeTarget",
       params = Iterable(),
@@ -205,7 +205,7 @@ class UploadSpec extends DepositServletFixture {
     File("src/test/resources/manual-test/Archive.zip").copyTo(testDir / "input" / "1.zip")
     val uuid = createDeposit
     val relativeTarget = "path/to/dir"
-    val bagDir = testDir / "drafts" / "foo" / uuid.toString / "bag"
+    val bagDir = testDir / "drafts" / "foo" / uuid.toString / bagDirName
     val absoluteTarget = (bagDir / "data" / relativeTarget).createDirectories()
     absoluteTarget.list.size shouldBe 0 // precondition
     post(
@@ -242,7 +242,7 @@ class UploadSpec extends DepositServletFixture {
     File("src/test/resources/manual-test/nested.zip").copyTo(testDir / "input" / "2.zip")
     val uuid = createDeposit
     val relativeTarget = "path/to/dir"
-    val bagDir = testDir / "drafts" / "foo" / uuid.toString / "bag"
+    val bagDir = testDir / "drafts" / "foo" / uuid.toString / bagDirName
     val absoluteTarget = (bagDir / "data" / relativeTarget).createDirectories()
     absoluteTarget.list.size shouldBe 0 // precondition
     post(
@@ -279,7 +279,7 @@ class UploadSpec extends DepositServletFixture {
     File("src/test/resources/manual-test/Archive.tar.gz").copyTo(testDir / "input" / "1.tar.gz")
     val uuid = createDeposit
     val relativeTarget = "path/to/dir"
-    val bagDir = testDir / "drafts" / "foo" / uuid.toString / "bag"
+    val bagDir = testDir / "drafts" / "foo" / uuid.toString / bagDirName
     val absoluteTarget = (bagDir / "data" / relativeTarget).createDirectories()
     absoluteTarget.list.size shouldBe 0 // precondition
     post(
@@ -296,7 +296,7 @@ class UploadSpec extends DepositServletFixture {
   it should "extract all ZIP to root of data dir in the bag" in {
     File("src/test/resources/manual-test/Archive.zip").copyTo(testDir / "input" / "1.zip")
     val uuid = createDeposit
-    val bagDir = testDir / "drafts" / "foo" / uuid.toString / "bag"
+    val bagDir = testDir / "drafts" / "foo" / uuid.toString / bagDirName
     val absoluteTarget = (bagDir / "data").createDirectories()
     absoluteTarget.list.size shouldBe 0 // precondition
     post(
@@ -338,7 +338,7 @@ class UploadSpec extends DepositServletFixture {
     ))
     val uuid = createDeposit
     val relativeTarget = "some"
-    val absoluteTarget = (testDir / "drafts" / "foo" / uuid.toString / "bag/data" / relativeTarget).createDirectories()
+    val absoluteTarget = (testDir / "drafts" / "foo" / uuid.toString / s"$bagDirName/data" / relativeTarget).createDirectories()
     (absoluteTarget / "2.txt").createFile()
     (absoluteTarget / "3.txt").createFile()
     post(

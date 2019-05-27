@@ -81,7 +81,7 @@ class EasyDepositApiAppSpec extends TestSupportFixture {
          |    "$title"
          |  ]
          |}""".stripMargin
-    ((deposit / "bag" / "metadata").createDirectories() / "dataset.json").writeText(datasetJson)
+    ((deposit / bagDirName / "metadata").createDirectories() / "dataset.json").writeText(datasetJson)
 
     new PropertiesConfiguration() {
       setProperty("state.label", state)
