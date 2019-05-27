@@ -53,13 +53,13 @@ class DepositDirSpec extends TestSupportFixture with MockFactory {
         val dir = draftsDir / "user001" / d.id.toString
         dir should exist
         (dir / "deposit.properties") should exist
-        (dir / "bag") should exist
-        (dir / "bag/bag-info.txt") should exist
-        (dir / "bag/bagit.txt") should exist
-        (dir / "bag/manifest-sha1.txt") should exist
-        (dir / "bag/tagmanifest-sha1.txt") should exist
-        (dir / "bag/data") should exist
-        (dir / "bag/metadata") should exist
+        (dir / bagDirName) should exist
+        (dir / bagDirName / "bag-info.txt") should exist
+        (dir / bagDirName / "bagit.txt") should exist
+        (dir / bagDirName / "manifest-sha1.txt") should exist
+        (dir / bagDirName / "tagmanifest-sha1.txt") should exist
+        (dir / bagDirName / "data") should exist
+        (dir / bagDirName / "metadata") should exist
 
         val props = new PropertiesConfiguration() {
           load((dir / "deposit.properties").toJava)
@@ -74,6 +74,7 @@ class DepositDirSpec extends TestSupportFixture with MockFactory {
           "creation.timestamp" -> "2018-03-22T20:43:01.000Z",
           "state.description" -> "Deposit is open for changes.",
           "identifier.dans-doi.action" -> "create",
+          "bag-store.bag-name" -> bagDirName,
         )
     }
   }
@@ -106,7 +107,7 @@ class DepositDirSpec extends TestSupportFixture with MockFactory {
     val user = "user001"
     val doi = "12345"
     val deposit = createDepositAsPreparation(user)
-    val mdFile = deposit.draftBase / user / deposit.id.toString / "bag" / "metadata" / "dataset.json"
+    val mdFile = deposit.draftBase / user / deposit.id.toString / bagDirName / "metadata" / "dataset.json"
     val depositPropertiesFile = deposit.draftBase / user / deposit.id.toString / "deposit.properties"
     val oldDepositProperties = depositPropertiesFile.lines.toSeq
 
@@ -128,7 +129,7 @@ class DepositDirSpec extends TestSupportFixture with MockFactory {
     val user = "user001"
     val doi = "12345"
     val deposit = createDepositAsPreparation(user)
-    (deposit.draftBase / user / deposit.id.toString / "bag" / "metadata" / "dataset.json").writeText(s"""{"doi":"$doi"}""")
+    (deposit.draftBase / user / deposit.id.toString / bagDirName / "metadata" / "dataset.json").writeText(s"""{"doi":"$doi"}""")
 
     deposit.getDOI(null) should matchPattern { case Failure(CorruptDepositException(_, _, _)) => }
   }
@@ -138,13 +139,13 @@ class DepositDirSpec extends TestSupportFixture with MockFactory {
     val doi = "12345"
     val deposit = createDepositAsPreparation(user)
     val dd = deposit.draftBase / user / deposit.id.toString
-    (dd / "bag" / "metadata" / "dataset.json").writeText(s"""{"identifiers":[{"scheme":"id-type:DOI","value":"12345"}]}""")
+    (dd / bagDirName / "metadata" / "dataset.json").writeText(s"""{"identifiers":[{"scheme":"id-type:DOI","value":"12345"}]}""")
     (dd / "deposit.properties").writeText(s"identifier.doi = $doi")
 
     deposit.getDOI(null) shouldBe Success(doi)
   }
 
-  private def createDepositAsPreparation(user: String) = {
+  private def createDepositAsPreparation(user: String): DepositDir = {
     DepositDir.create(draftsDir, user).getOrRecover(e => fail(e.toString, e))
   }
 }

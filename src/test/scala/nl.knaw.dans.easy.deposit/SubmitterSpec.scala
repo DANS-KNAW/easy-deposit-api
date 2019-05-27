@@ -85,7 +85,7 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
     (testDir / "stage-for-submit").children.size shouldBe 0
     (bagDir / "metadata" / "dataset.json").size shouldBe mdOldSize
     // no DOI added
-    val submittedBagDir = testDir / "submitted" / bagStoreBagID / "bag"
+    val submittedBagDir = testDir / "submitted" / bagStoreBagID / bagDirName
     (submittedBagDir / "metadata" / "depositor-info" / "message-from-depositor.txt").contentAsString shouldBe customMessage
     (submittedBagDir / "metadata" / "depositor-info" / "agreements.xml").lineIterator.next() shouldBe prologue
     (submittedBagDir / "metadata" / "dataset.xml").lineIterator.next() shouldBe prologue
@@ -107,7 +107,7 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
 
     val bagStoreBagId = succeedingSubmit(depositDir)
 
-    (testDir / "submitted" / bagStoreBagId / "bag" / "metadata" / "depositor-info" / "message-from-depositor.txt")
+    (testDir / "submitted" / bagStoreBagId / bagDirName / "metadata" / "depositor-info" / "message-from-depositor.txt")
       .contentAsString shouldBe ""
   }
 

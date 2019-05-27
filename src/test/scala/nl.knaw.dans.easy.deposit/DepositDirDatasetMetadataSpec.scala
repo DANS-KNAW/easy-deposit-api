@@ -24,7 +24,7 @@ import scala.util.{ Failure, Success }
 
 class DepositDirDatasetMetadataSpec extends TestSupportFixture {
   private val dd = DepositDir(testDir / "drafts", "foo", uuid)
-  private val metadataFile = dd.draftBase / "foo" / uuid.toString / "bag" / "metadata" / "dataset.json"
+  private val metadataFile = dd.draftBase / "foo" / uuid.toString / bagDirName / "metadata" / "dataset.json"
 
   override def beforeEach(): Unit = {
     super.beforeEach()
