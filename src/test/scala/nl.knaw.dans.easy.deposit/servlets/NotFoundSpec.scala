@@ -108,7 +108,7 @@ class NotFoundSpec extends DepositServletFixture {
 
   private def propsFile(uuid: String): File = testDir / "drafts/foo" / uuid / "deposit.properties"
 
-  private def jsonFile(uuid: String): File = testDir / "drafts/foo" / uuid / "bag/metadata/dataset.json"
+  private def jsonFile(uuid: String): File = testDir / "drafts/foo" / uuid / s"$bagDirName/metadata/dataset.json"
 
   "500 on missing metadata" should "be returned by GET /deposit/{id}/state (no file)" in {
     val uuid = createDeposit

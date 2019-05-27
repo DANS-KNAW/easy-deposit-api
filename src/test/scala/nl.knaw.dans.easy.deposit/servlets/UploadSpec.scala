@@ -117,7 +117,7 @@ class UploadSpec extends DepositServletFixture {
     ))
     val uuid = createDeposit
     val relativeTarget = "path/to/dir"
-    val absoluteTarget = (testDir / "drafts" / "foo" / uuid.toString / "bag/data" / relativeTarget).createDirectories()
+    val absoluteTarget = (testDir / "drafts" / "foo" / uuid.toString / s"$bagDirName/data" / relativeTarget).createDirectories()
     post(
       uri = s"/deposit/$uuid/file/$relativeTarget",
       params = Iterable(),
