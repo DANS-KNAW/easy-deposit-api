@@ -411,6 +411,8 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
         <dc:title xml:lang="nld">title2</dc:title>
         <dcterms:description xml:lang="nld">description1</dcterms:description>
         <dcterms:description xml:lang="nld">description2</dcterms:description>
+        <ddm:description descriptionType="TechnicalInfo">remark1</ddm:description>
+        <ddm:description descriptionType="TechnicalInfo">remark2</ddm:description>
         <dcx-dai:creatorDetails>
           <dcx-dai:author>
             <dcx-dai:titles xml:lang="nld">Drs.</dcx-dai:titles>

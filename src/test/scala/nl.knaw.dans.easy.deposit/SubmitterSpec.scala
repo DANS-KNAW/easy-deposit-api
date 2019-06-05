@@ -63,7 +63,6 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
   }
 
   it should "write all files" in {
-
     // preparations
     val depositDir = createDeposit(datasetMetadata.copy(messageForDataManager = Some(customMessage)))
     val bag = getBag(depositDir)
@@ -101,7 +100,6 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
   }
 
   it should "write empty message-from-depositor file" in {
-
     val depositDir = createDeposit(datasetMetadata.copy(messageForDataManager = None))
     addDoiToDepositProperties(getBag(depositDir))
 
@@ -112,7 +110,6 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
   }
 
   it should "overwrite a previous bag-store.bag-id at resubmit" in {
-
     val depositDir = createDeposit(datasetMetadata.copy(messageForDataManager = None))
     addDoiToDepositProperties(getBag(depositDir))
 
@@ -181,7 +178,7 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
     }
   }
 
-  private def createSubmitter(group: String) = {
+  private def createSubmitter(group: String): Submitter = {
     new Submitter(
       (testDir / "stage-for-submit").createDirectories(),
       (testDir / "submitted").createDirectories(),
@@ -193,14 +190,14 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
     (bag.baseDir.parent / "deposit.properties").append(s"identifier.doi=$doi")
   }
 
-  private def getBag(depositDir: DepositDir) = {
+  private def getBag(depositDir: DepositDir): DansBag = {
     depositDir
       .getDataFiles
       .getOrRecover(e => fail(e.toString, e))
       .bag
   }
 
-  private def createDeposit(metadata: DatasetMetadata) = {
+  private def createDeposit(metadata: DatasetMetadata): DepositDir = {
     val depositDir = DepositDir.create(testDir / "drafts", "user").getOrRecover(e => fail(e.toString, e))
     depositDir.writeDatasetMetadataJson(metadata)
     depositDir
