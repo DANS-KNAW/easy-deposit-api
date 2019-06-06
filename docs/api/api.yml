@@ -329,8 +329,6 @@ paths:
           $ref: "#/components/responses/ForbiddenUpdate"
         404:
           $ref: "#/components/responses/NotFound"
-        409:
-          $ref: "#/components/responses/AlreadySubmitted"
         500:
           $ref: "#/components/responses/InternalServerError"
       security:
@@ -396,7 +394,7 @@ paths:
     post:
       tags:
       - directory
-      summary: Adds one or more files.
+      summary: Adds or overwrites one or more files.
       description: |
         The `Content-Type` must always be `multipart/form-data`, which means the body is formatted using the
         [multipart media type](https://tools.ietf.org/html/rfc2046.html#section-5.1); each part contains one file.
@@ -407,8 +405,8 @@ paths:
         unzipped in `dir_path`. For each file in the ZIP file, the path in the deposit will be `dir_path`/`path_in_zip`.
         The ZIP file may contain `nested ZIP files`, which will **not** be extracted, but stored as ZIP file.
 
-        Concurrent POST calls to the same deposit are not allowed. The result of concurrent PUT and POST calls is
-        undefined.
+        Existing files at the same location will be overwritten. Concurrent POST or PUT calls to the same deposit are not allowed.
+
       parameters:
       - $ref: "#/components/parameters/DepositId"
       - $ref: "#/components/parameters/DirPath"
@@ -437,9 +435,7 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         404:
           $ref: "#/components/responses/NotFound"
-        409.1:
-          $ref: "#/components/responses/ConflictOverwritesFilesOnServer"
-        409.2:
+        409:
           $ref: "#/components/responses/ConflictConcurrentPostNotAllowed"
         500:
           $ref: "#/components/responses/InternalServerError"
@@ -500,6 +496,7 @@ paths:
       description: |
         If any of `file_path`'s parent do not yet exist, they are first created. The parameter `file_path` must not refer
         to an existing directory. The Content-Type may be not be `application/zip` nor `multipart`.
+        Concurrent POST or PUT calls to the same deposit are not allowed.
       operationId: writeFile
       requestBody:
         description: file data
@@ -533,8 +530,10 @@ paths:
           $ref: "#/components/responses/ForbiddenUpdate"
         404:
           $ref: "#/components/responses/NotFound"
-        409:
-          $ref: "#components/responses/ConflictAttemptToOverwriteDirectoryWithFile"
+        409.1:
+          $ref: "#/components/responses/ConflictConcurrentPostNotAllowed"
+        409.2:
+          $ref: "#/components/responses/ConflictAttemptToOverwriteDirectoryWithFile"
         500:
           $ref: "#/components/responses/InternalServerError"
       security:
@@ -642,10 +641,6 @@ components:
       description: |
         Forbidden. Illegal state transition. (Only allowed to transition from DRAFT to SUBMITTED and from REJECTED to DRAFT.)
 
-    AlreadySubmitted:
-      description: |
-        Conflict. The deposit already exists in the submit area. Possibly due to a resubmit.
-
     NotFound:
       description: Not found. The body specifies if the deposit or something in the deposit is not found.
 
@@ -656,7 +651,7 @@ components:
       description: Conflict. The following file(s) already exist on the server
 
     ConflictConcurrentPostNotAllowed:
-      description: Conflict. Concurrent POSTs to the same deposit are not allowed.
+      description: Conflict. Concurrent POSTs and PUTs to the same deposit are not allowed.
 
     ConflictAttemptToOverwriteDirectoryWithFile:
       description: Conflict. Attempt to overwrite a directory with a file.
