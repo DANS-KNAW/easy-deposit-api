@@ -436,7 +436,7 @@ paths:
         404:
           $ref: "#/components/responses/NotFound"
         409:
-          $ref: "#/components/responses/ConflictConcurrentPostNotAllowed"
+          $ref: "#/components/responses/ConflictConcurrentUploadsNotAllowed"
         500:
           $ref: "#/components/responses/InternalServerError"
       security:
