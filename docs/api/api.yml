@@ -531,7 +531,7 @@ paths:
         404:
           $ref: "#/components/responses/NotFound"
         409.1:
-          $ref: "#/components/responses/ConflictConcurrentPostNotAllowed"
+          $ref: "#/components/responses/ConflictConcurrentUploadsNotAllowed"
         409.2:
           $ref: "#/components/responses/ConflictAttemptToOverwriteDirectoryWithFile"
         500:
@@ -650,8 +650,8 @@ components:
     ConflictOverwritesFilesOnServer:
       description: Conflict. The following file(s) already exist on the server
 
-    ConflictConcurrentPostNotAllowed:
-      description: Conflict. Concurrent POSTs and PUTs to the same deposit are not allowed.
+    ConflictConcurrentUploadsNotAllowed":
+      description: Conflict. Concurrent file uploads to the same deposit are not allowed.
 
     ConflictAttemptToOverwriteDirectoryWithFile:
       description: Conflict. Attempt to overwrite a directory with a file.
