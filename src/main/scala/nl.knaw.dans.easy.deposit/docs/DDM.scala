@@ -76,13 +76,13 @@ object DDM extends SchemedXml with DebugEnhancedLogging {
     case e: IllegalArgumentException => Failure(InvalidDocumentException("DatasetMetadata", e))
   }
 
-  private def details(point: SpatialPoint) = {
+  private def details(point: SpatialPoint): Elem = {
     <Point xmlns="http://www.opengis.net/gml">
         <pos>{ point.pos }</pos>
     </Point>
   }
 
-  private def details(box: SpatialBox) = {
+  private def details(box: SpatialBox): Elem = {
     <boundedBy xmlns="http://www.opengis.net/gml">
         <Envelope srsName={ box.srsName }>
             <lowerCorner>{ box.lower }</lowerCorner>
