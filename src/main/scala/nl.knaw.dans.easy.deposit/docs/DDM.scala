@@ -69,7 +69,7 @@ object DDM extends SchemedXml with DebugEnhancedLogging {
         { dm.spatialPoints.withNonEmpty.map(point => <dcx-gml:spatial srsName={ point.srsName }>{ details(point) }</dcx-gml:spatial>) }
         { dm.spatialBoxes.withNonEmpty.map(point => <dcx-gml:spatial>{ details(point) }</dcx-gml:spatial>) }
         { dm.license.withNonEmpty.map(src => <dcterms:license xsi:type={ src.scheme.nonBlankOrNull }>{ src.value.nonBlankOrEmpty }</dcterms:license>) }
-        { dm.languagesOfFiles.withNonEmpty.map(lang => <dcterms:language xsi:type ={ lang.scheme.nonBlankOrNull  }>{ lang }</dcterms:language>)}
+        { dm.languagesOfFiles.withNonEmpty.flatMap(lang => lang.value.map(value => <dcterms:language xsi:type ={ lang.scheme.nonBlankOrNull  }>{ value }</dcterms:language>)) }
       </ddm:dcmiMetadata>
     </ddm:DDM>
   }.recoverWith {

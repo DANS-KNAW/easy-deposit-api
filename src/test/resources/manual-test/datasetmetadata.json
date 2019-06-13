@@ -90,9 +90,9 @@
   ],
   "languagesOfFiles": [
     {
-      "scheme": "string",
-      "value": "string",
-      "key": "string"
+      "scheme": "dcterms:ISO639-2",
+      "value": "nld",
+      "key": "Dutch"
     }
   ],
   "dates": [
