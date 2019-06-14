@@ -271,6 +271,20 @@ paths:
       security:
         - BearerAuth: []
 
+  /deposit/{id}/agreement:
+    get:
+      tags:
+      - "deposit"
+      parameters:
+      - $ref: "#/components/parameters/DepositId"
+      responses:
+        200:
+          description: OK
+          content:
+            'application/pdf': {}
+        500:
+          $ref: "#/components/responses/InternalServerError"
+
   /deposit/{id}/state:
     get:
       tags:
