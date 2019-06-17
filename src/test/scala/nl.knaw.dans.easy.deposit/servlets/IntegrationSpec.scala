@@ -176,7 +176,7 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
       uri = s"/deposit/$uuid/file/path/to/test.txt", headers = Seq(fooBarBasicAuthHeader, ("Content-Type", "application/json")),
       body = "Lorum ipsum"
     ) {
-      body shouldBe "Deposit has state SUBMITTED, can only update deposits with one of the states: DRAFT, REJECTED"
+      body shouldBe "Deposit has state SUBMITTED, can only update deposits with one of the states: DRAFT"
       status shouldBe FORBIDDEN_403
     }
   }
