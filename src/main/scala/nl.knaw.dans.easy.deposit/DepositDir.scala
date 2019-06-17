@@ -141,10 +141,18 @@ case class DepositDir private(draftBase: File, user: String, id: UUID) extends D
     _ <- dm.doi.map(_ => doisMatch(dm, maybeDOI)).getOrElse(Success(()))
     maybeTriedDOI = maybeDOI.map(Success(_))
     doi <- maybeTriedDOI.getOrElse(pidRequester.requestPid(PidType.doi))
-    _ = props.addProperty("identifier.doi", doi)
-    _ <- maybeTriedDOI.getOrElse(Try { props.save(depositPropertiesFile.toJava) })
-    _ <- maybeTriedDOI.getOrElse(writeDatasetMetadataJson(dm.setDoi(doi)))
+    _ <- maybeTriedDOI.getOrElse(saveDoiProperty(doi, dm, props))
   } yield doi
+
+  private def saveDoiProperty(doi: String, dm: DatasetMetadata, props: PropertiesConfiguration): Try[Unit] = {
+    // submitter won't change a draft state to anything else if there is no (valid) DOI
+    // so we don't need to call StateInfo.canUpdate
+    props.addProperty("identifier.doi", doi)
+    for {
+      _ <- Try { props.save(depositPropertiesFile.toJava) }
+      _ <- writeDatasetMetadataJson(dm.setDoi(doi))
+    } yield ()
+  }
 
   def sameDOIs(dm: DatasetMetadata): Try[Unit] = for {
     props <- getDepositProps

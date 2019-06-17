@@ -333,6 +333,7 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
   def stageFiles(userId: String, id: UUID, destination: Path): Try[(Dispose[File], StagedFilesTarget)] = {
     val prefix = s"$userId-$id-"
     for {
+      _ <- canUpdate(userId, id)
       deposit <- DepositDir.get(draftBase, userId, id)
       dataFiles <- deposit.getDataFiles
       stagingDir <- createManagedTempDir(prefix)
