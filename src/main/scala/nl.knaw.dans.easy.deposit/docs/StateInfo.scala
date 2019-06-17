@@ -36,7 +36,7 @@ case class StateInfo(state: State, stateDescription: String) {
 
 object StateInfo {
   val deletableStates: Seq[State] = Seq(State.draft, State.archived, State.rejected)
-  val updatableStates: Seq[State] = Seq(State.draft, State.rejected)
+  val updatableStates: Seq[State] = Seq(State.draft)
 
   object State extends Enumeration {
     type State = Value
