@@ -17,7 +17,6 @@ package nl.knaw.dans.easy.deposit
 
 import java.io.InputStream
 import java.net.{ URI, URL }
-import java.nio.file.spi.FileSystemProvider
 import java.nio.file.{ FileAlreadyExistsException, Path }
 import java.util.UUID
 
@@ -64,25 +63,22 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
     configuration.version
   }
 
-  private val uploadStagingDir = {
-    val dir = getConfiguredDirectory("deposits.stage-zips")
-    logger.info(s"Uploads are staged in $dir")
-    if (dir.nonEmpty) {
-      // TODO move to Validation and/or new Uploader class for DepositServlet post("/:uuid/file/*")
-      throw new FileAlreadyExistsException(
-        s"Upload staging area [$dir] should be empty unless force shutdown during an upload request. Check logging related to 'POST /deposit/{id}/file/{dir_path}'."
-      )
-    }
+  private val stagedDir = {
+    val dir = getConfiguredDirectory("deposits.staged")
+    logger.info(s"Uploads/submits are staged in $dir")
+    if (dir.nonEmpty) throw new FileAlreadyExistsException(
+      s"Staging area [$dir] should be empty unless force shutdown during an upload/submit request."
+    )
     dir
   }
   private val draftBase: File = getConfiguredDirectory("deposits.drafts")
   private val submitBase: File = getConfiguredDirectory("deposits.submit-to")
-  StartupValidation.allowsAtomicMove(srcDir = uploadStagingDir, targetDir = draftBase)
+  StartupValidation.allowsAtomicMove(srcDir = stagedDir, targetDir = draftBase)
 
   val multipartConfig: MultipartConfig = {
     val multipartLocation = getConfiguredDirectory("multipart.location")
     logger.info(s"Uploads are received at multipart.location: $multipartLocation")
-    StartupValidation.allowsAtomicMove(srcDir = multipartLocation, targetDir = uploadStagingDir)
+    StartupValidation.allowsAtomicMove(srcDir = multipartLocation, targetDir = stagedDir)
     MultipartConfig(
       location = Some(multipartLocation.toString()),
       maxFileSize = Option(properties.getLong("multipart.max-file-size", null)),
@@ -91,18 +87,14 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
     )
   }
 
-  private val submitter = new Submitter(
-    getConfiguredDirectory("deposits.stage-for-submit"),
-    submitBase,
-    configuration.properties.getString("deposit.permissions.group"),
-  )
+  private val submitter = new Submitter(stagedDir, submitBase, properties.getString("deposit.permissions.group"))
 
   // possible trailing slash is dropped
-  private val easyHome: URL = new URL(configuration.properties.getString("easy.home").replaceAll("/?$", ""))
+  private val easyHome: URL = new URL(properties.getString("easy.home").replaceAll("/?$", ""))
 
   @throws[ConfigurationException]("when no existing readable directory is configured")
   private def getConfiguredDirectory(key: String): File = {
-    val str = Option(configuration.properties.getString(key))
+    val str = Option(properties.getString(key))
       .getOrElse(throw ConfigurationException(s"No configuration value for $key"))
     val dir = File(str)
 
@@ -342,12 +334,12 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
 
   // the directory is dropped when the resource is released
   private def createManagedTempDir(prefix: String): Try[Dispose[File]] = Try {
-    temporaryDirectory(prefix, Some(uploadStagingDir.createDirectories()))
+    temporaryDirectory(prefix, Some(stagedDir.createDirectories()))
   }
 
   // prevents concurrent uploads, requires explicit cleanup of interrupted uploads
   private def atMostOneTempDir(prefix: String): Try[Unit] = {
-    if (uploadStagingDir.list.count(_.name.startsWith(prefix)) > 1)
+    if (stagedDir.list.count(_.name.startsWith(prefix)) > 1)
       Failure(PendingUploadException())
     else Success(())
   }

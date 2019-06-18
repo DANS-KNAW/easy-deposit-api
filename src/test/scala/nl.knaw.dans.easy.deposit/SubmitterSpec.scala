@@ -81,7 +81,7 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
     val bagStoreBagID = succeedingSubmit(depositDir)
 
     // post conditions
-    (testDir / "stage-for-submit").children.size shouldBe 0
+    (testDir / "staged").children.size shouldBe 0
     (bagDir / "metadata" / "dataset.json").size shouldBe mdOldSize
     // no DOI added
     val submittedBagDir = testDir / "submitted" / bagStoreBagID / bagDirName
@@ -180,7 +180,7 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
 
   private def createSubmitter(group: String): Submitter = {
     new Submitter(
-      (testDir / "stage-for-submit").createDirectories(),
+      (testDir / "staged").createDirectories(),
       (testDir / "submitted").createDirectories(),
       group,
     )
