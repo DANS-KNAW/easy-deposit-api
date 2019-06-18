@@ -301,9 +301,11 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
       dataFiles <- getDataFiles(user, id)
       _ <- canUpdate(user, id)
       _ <- pathNotADirectory(path, dataFiles)
+      lockDir <- getStagedDir(user,id)
       _ = logger.info(s"uploading to [${ dataFiles.bag.baseDir }] of [$path]")
       created <- dataFiles.write(is, path)
       _ = logger.info(s"created=$created $user/$id/$path")
+      _ = lockDir.get() // not used but prevents too early delete of the directory
     } yield created
   }
 
@@ -327,9 +329,18 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
     for {
       deposit <- DepositDir.get(draftBase, userId, id)
       dataFiles <- deposit.getDataFiles
+      stagingDir <- getStagedDir(userId,id)
+    } yield (stagingDir, StagedFilesTarget(dataFiles.bag, destination))
+  }
+
+  private def getStagedDir(userId: String, id: UUID): Try[Dispose[File]] = {
+    // side effect: optimistic lock for a deposit
+    val prefix = s"$userId-$id-"
+    for {
       stagingDir <- createManagedTempDir(prefix)
       _ <- atMostOneTempDir(prefix).doIfFailure { case _ => stagingDir.get() }
-    } yield (stagingDir, StagedFilesTarget(dataFiles.bag, destination))
+    } yield stagingDir
+
   }
 
   // the directory is dropped when the resource is released
