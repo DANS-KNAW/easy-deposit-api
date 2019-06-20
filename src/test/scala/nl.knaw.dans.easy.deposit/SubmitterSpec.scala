@@ -56,7 +56,7 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
     val stateManager = depositDir.getStateManager(testDir / "submitted", easyHome)
     addDoiToDepositProperties(getBag(depositDir))
 
-    createSubmitter(unrelatedGroup).submit(depositDir, stateManager, "fullName") should matchPattern {
+    createSubmitter(unrelatedGroup).submit(depositDir, stateManager, "fullName", testDir / "staged") should matchPattern {
       case Failure(e: IOException) if e.getMessage matches
         ".*Probably the current user .* is not part of this group.*" =>
     }
@@ -81,7 +81,7 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
     val bagStoreBagID = succeedingSubmit(depositDir)
 
     // post conditions
-    (testDir / "staged").children.size shouldBe 0
+    (testDir / "staged") should not (exist)
     (bagDir / "metadata" / "dataset.json").size shouldBe mdOldSize
     // no DOI added
     val submittedBagDir = testDir / "submitted" / bagStoreBagID / bagDirName
@@ -136,7 +136,7 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
   private def succeedingSubmit(deposit: DepositDir): String = {
     val stateManager = deposit.getStateManager(testDir / "submitted", easyHome)
 
-    val triedBagStoreBagID = createSubmitter(userGroup).submit(deposit, stateManager, "fullName")
+    val triedBagStoreBagID = createSubmitter(userGroup).submit(deposit, stateManager, "fullName", testDir / "staged")
     triedBagStoreBagID shouldBe a[Success[_]]
     triedBagStoreBagID
       .map(_.toString)
@@ -154,7 +154,7 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
     // add file to manifest that does not exist
     (bag.baseDir / "manifest-sha1.txt").append("chk file")
 
-    createSubmitter(userGroup).submit(depositDir, stateManager, "fullName") should matchPattern {
+    createSubmitter(userGroup).submit(depositDir, stateManager, "fullName", testDir / "staged") should matchPattern {
       case Failure(e) if e.getMessage == s"invalid bag, missing [files, checksums]: [Set($testDir/drafts/user/${ depositDir.id }/bag/file), Set()]" =>
     }
   }
@@ -172,7 +172,7 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
     manifest.write(manifest.contentAsString.replaceAll(" +", "xxx  "))
 
     val checksum = "a57ec0c3239f30b29f1e9270581be50a70c74c04"
-    createSubmitter(userGroup).submit(depositDir, stateManager, "fullName") should matchPattern {
+    createSubmitter(userGroup).submit(depositDir, stateManager, "fullName", testDir / "staged") should matchPattern {
       case Failure(e)
         if e.getMessage == s"staged and draft bag [${ bag.baseDir.parent }] have different payload manifest elements: (Set((data/file.txt,$checksum)),Set((data/file.txt,${ checksum }xxx)))" =>
     }

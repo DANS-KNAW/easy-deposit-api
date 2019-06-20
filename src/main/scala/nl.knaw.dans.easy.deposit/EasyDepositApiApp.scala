@@ -172,16 +172,24 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
    * @param newStateInfo the state to transition to
    * @return
    */
-  def setDepositState(newStateInfo: StateInfo, user: String, id: UUID): Try[Unit] = for {
-    deposit <- getDeposit(user, id)
-    stateManager = deposit.getStateManager(submitBase, easyHome)
-    _ <- stateManager.canChangeState(newStateInfo)
-    _ <- if (newStateInfo.state == State.submitted)
-           getFullName(user).flatMap(
-             submitter.submit(deposit, stateManager, _) // also changes the state
-           )
-         else stateManager.changeState(newStateInfo)
-  } yield ()
+  def setDepositState(newStateInfo: StateInfo, user: String, id: UUID): Try[Unit] = {
+    def submit(deposit: DepositDir, stateManager: StateManager) = {
+      for {
+        fullName <- getFullName(user)
+        sd <- getStagedDir(user, id)
+        _ <- sd.apply(submitter.submit(deposit, stateManager, fullName, _))
+      } yield ()
+    }
+
+    for {
+      deposit <- getDeposit(user, id)
+      stateManager = deposit.getStateManager(submitBase, easyHome)
+      _ <- stateManager.canChangeState(newStateInfo)
+      _ <- if (newStateInfo.state == State.submitted)
+             submit(deposit, stateManager) // also changes the state
+           else stateManager.changeState(newStateInfo)
+    } yield ()
+  }
 
   private def getFullName(user: String): Try[String] = {
     getUser(user)
@@ -301,7 +309,7 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
       dataFiles
         .write(is, path)
         .doIfFailure { case _ => releaseLock(lockDir) }
-        .recoverWith { case e: EofException => Failure(ClientAbortedUploadException(s"$user/$id/$path")) }
+        .recoverWith { case _: EofException => Failure(ClientAbortedUploadException(s"$user/$id/$path")) }
     }
 
     for {

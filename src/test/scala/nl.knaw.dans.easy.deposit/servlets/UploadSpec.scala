@@ -77,7 +77,7 @@ class UploadSpec extends DepositServletFixture {
       files = bodyParts
     ) {
       status shouldBe CONFLICT_409
-      body shouldBe "Another upload is pending. Please try again later."
+      body shouldBe "Another upload or submit is pending."
       val bagDir = testDir / "drafts/foo" / uuid.toString / bagDirName
       (bagDir / "data").list.size shouldBe 0
       (bagDir / "manifest-sha1.txt").lines.size shouldBe 0

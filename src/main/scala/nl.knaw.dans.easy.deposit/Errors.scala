@@ -109,7 +109,7 @@ object Errors extends DebugEnhancedLogging {
     extends ServletResponseException(BAD_REQUEST_400, s"ZIP file is malformed. $msgAboutEntry")
 
   case class PendingUploadException()
-    extends ServletResponseException(CONFLICT_409, "Another upload is pending. Please try again later.")
+    extends ServletResponseException(CONFLICT_409, "Another upload or submit is pending.")
 
   case class NoStagingDirException(file: File)
     extends ServletResponseException(INTERNAL_SERVER_ERROR_500, s"staging directory was not created: $file")

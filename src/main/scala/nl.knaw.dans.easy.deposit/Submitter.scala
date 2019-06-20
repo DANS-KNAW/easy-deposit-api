@@ -22,7 +22,7 @@ import java.nio.file.attribute.{ PosixFileAttributeView, UserPrincipalNotFoundEx
 import java.nio.file.spi.FileSystemProvider
 import java.util.UUID
 
-import better.files.File
+import better.files.{ Dispose, File }
 import better.files.File.{ CopyOptions, VisitOptions }
 import nl.knaw.dans.bag.ChecksumAlgorithm.ChecksumAlgorithm
 import nl.knaw.dans.bag.DansBag
@@ -68,7 +68,7 @@ class Submitter(stagingBaseDir: File,
    * @param draftDeposit the deposit object to submit
    * @return the UUID of the deposit in the submit area (easy-ingest-flow-inbox)
    */
-  def submit(draftDeposit: DepositDir, stateManager: StateManager, fullName: String): Try[UUID] = {
+  def submit(draftDeposit: DepositDir, stateManager: StateManager, fullName: String, stagedDir: File): Try[UUID] = {
     val propsFileName = "deposit.properties"
     for {
       // EASY-1464 step 3.3.4 validation
@@ -88,14 +88,13 @@ class Submitter(stagingBaseDir: File,
       _ <- sameFiles(draftBag.payloadManifests, draftBag.baseDir / "data")
       // from now on no more user errors but internal errors
       // EASY-1464 3.3.8.a create empty staged bag to take a copy of the deposit
-      stageDir = (stagingBaseDir / draftDeposit.id.toString).createDirectories()
-      stageBag <- DansV0Bag.empty(stageDir / bagDirName).map(_.withCreated())
+      stageBag <- DansV0Bag.empty(stagedDir / bagDirName).map(_.withCreated())
       // EASY-1464 3.3.6 change state and copy with the rest of the deposit properties to staged dir
       _ <- stateManager.changeState(StateInfo(State.submitted, "Deposit is ready for processing."))
       submittedId <- stateManager.getSubmittedBagId // created by changeState
       submitDir = submitToBaseDir / submittedId.toString
       _ = if (submitDir.exists) throw AlreadySubmittedException(draftDeposit.id)
-      _ = (draftBag.baseDir.parent / propsFileName).copyTo(stageDir / propsFileName)
+      _ = (draftBag.baseDir.parent / propsFileName).copyTo(stagedDir / propsFileName)
       // EASY-1464 3.3.5.b: write files to metadata
       _ = stageBag.addMetadataFile(msg, s"$depositorInfoDirectoryName/message-from-depositor.txt")
       _ <- stageBag.addMetadataFile(agreementsXml, s"$depositorInfoDirectoryName/agreements.xml")
