@@ -55,7 +55,7 @@ object DDM extends SchemedXml with DebugEnhancedLogging {
       <ddm:dcmiMetadata>
         { dm.allIdentifiers.map(id => <dcterms:identifier xsi:type={ id.scheme.nonBlankOrNull }>{ id.value.nonBlankOrEmpty }</dcterms:identifier>) }
         { dm.alternativeTitles.withNonEmpty.map(str => <dcterms:alternative xml:lang={ lang }>{ str }</dcterms:alternative>) }
-        { dm.relations.withNonEmpty.map(src => details(src, lang)) }
+        { dm.relations.withNonEmpty.map(details(_, lang)) }
         { dm.contributors.withNonEmpty.map(author => <dcx-dai:contributorDetails>{ details(author, lang) }</dcx-dai:contributorDetails>) }
         { dm.rightsHolders.map(str => <dcterms:rightsHolder>{ str }</dcterms:rightsHolder>) }
         { dm.publishers.withNonEmpty.map(str => <dcterms:publisher xml:lang={ lang }>{ str }</dcterms:publisher>) }
@@ -69,11 +69,19 @@ object DDM extends SchemedXml with DebugEnhancedLogging {
         { dm.spatialPoints.withNonEmpty.map(point => <dcx-gml:spatial srsName={ point.srsName }>{ details(point) }</dcx-gml:spatial>) }
         { dm.spatialBoxes.withNonEmpty.map(point => <dcx-gml:spatial>{ details(point) }</dcx-gml:spatial>) }
         { dm.license.withNonEmpty.map(src => <dcterms:license xsi:type={ src.scheme.nonBlankOrNull }>{ src.value.nonBlankOrEmpty }</dcterms:license>) }
-        { dm.languagesOfFiles.withNonEmpty.flatMap(lang => lang.value.map(value => <dcterms:language xsi:type ={ lang.scheme.nonBlankOrNull  }>{ value }</dcterms:language>)) }
+        { dm.languagesOfFiles.withNonEmpty.flatMap(languageDetails) }
       </ddm:dcmiMetadata>
     </ddm:DDM>
   }.recoverWith {
     case e: IllegalArgumentException => Failure(InvalidDocumentException("DatasetMetadata", e))
+  }
+
+  private def languageDetails(source: SchemedKeyValue): NodeSeq = {
+    source match {
+      case SchemedKeyValue(Some(_), Some(key), _) => <dcterms:language xsi:type ={ source.scheme.nonBlankOrNull  }>{ key }</dcterms:language>
+      case SchemedKeyValue(_, _, Some(value)) => <dcterms:language xsi:type ={ source.scheme.nonBlankOrNull  }>{ value }</dcterms:language>
+      case _ => NodeSeq.Empty
+    }
   }
 
   private def details(point: SpatialPoint): Elem = {
