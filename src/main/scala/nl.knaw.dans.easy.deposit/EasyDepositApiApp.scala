@@ -22,7 +22,7 @@ import java.util.UUID
 
 import better.files.File.temporaryDirectory
 import better.files.{ Dispose, File }
-import nl.knaw.dans.easy.deposit.Errors.{ ConfigurationException, CorruptUserException, InvalidContentTypeException, OverwriteException, PendingUploadException }
+import nl.knaw.dans.easy.deposit.Errors.{ ClientAbortedUploadException, ConfigurationException, CorruptUserException, InvalidContentTypeException, NoStagingDirException, OverwriteException, PendingUploadException }
 import nl.knaw.dans.easy.deposit.PidRequesterComponent.PidRequester
 import nl.knaw.dans.easy.deposit.authentication.{ AuthenticationProvider, LdapAuthentication }
 import nl.knaw.dans.easy.deposit.docs.StateInfo.State
@@ -31,6 +31,7 @@ import nl.knaw.dans.easy.deposit.servlets.contentTypeZipPattern
 import nl.knaw.dans.lib.error._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.apache.commons.configuration.PropertiesConfiguration
+import org.eclipse.jetty.io.EofException
 import org.joda.time.DateTime
 import org.scalatra.servlet.MultipartConfig
 
@@ -296,17 +297,28 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
    * @return `true` if a new file was created, `false` otherwise
    */
   def writeDepositFile(is: => InputStream, user: String, id: UUID, path: Path, contentType: Option[String]): Try[Boolean] = {
+    def writeDataFile(dataFiles: DataFiles, lockDir: Dispose[File]): Try[Boolean] = {
+      dataFiles
+        .write(is, path)
+        .doIfFailure { case _ => releaseLock(lockDir) }
+        .recoverWith { case e: EofException => Failure(ClientAbortedUploadException(s"$user/$id/$path")) }
+    }
+
     for {
       _ <- contentTypeAnythingBut(contentType)
       dataFiles <- getDataFiles(user, id)
       _ <- canUpdate(user, id)
       _ <- pathNotADirectory(path, dataFiles)
-      lockDir <- getStagedDir(user,id)
+      lockDir <- getStagedDir(user, id)
       _ = logger.info(s"uploading to [${ dataFiles.bag.baseDir }] of [$path]")
-      created <- dataFiles.write(is, path)
+      created <- writeDataFile(dataFiles, lockDir)
       _ = logger.info(s"created=$created $user/$id/$path")
-      _ = lockDir.get() // not used but prevents too early delete of the directory
+      _ = releaseLock(lockDir)
     } yield created
+  }
+
+  private def releaseLock(lockDir: Dispose[File]) = {
+    lockDir.get().delete(swallowIOExceptions = true)
   }
 
   private def pathNotADirectory(path: Path, dataFiles: DataFiles): Try[Unit] = {
@@ -325,11 +337,10 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
   }
 
   def stageFiles(userId: String, id: UUID, destination: Path): Try[(Dispose[File], StagedFilesTarget)] = {
-    val prefix = s"$userId-$id-"
     for {
       deposit <- DepositDir.get(draftBase, userId, id)
       dataFiles <- deposit.getDataFiles
-      stagingDir <- getStagedDir(userId,id)
+      stagingDir <- getStagedDir(userId, id)
     } yield (stagingDir, StagedFilesTarget(dataFiles.bag, destination))
   }
 
@@ -350,9 +361,11 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
 
   // prevents concurrent uploads, requires explicit cleanup of interrupted uploads
   private def atMostOneTempDir(prefix: String): Try[Unit] = {
-    if (stagedDir.list.count(_.name.startsWith(prefix)) > 1)
-      Failure(PendingUploadException())
-    else Success(())
+    stagedDir.list.count(_.name.startsWith(prefix)) match {
+      case 0 => Failure(NoStagingDirException(stagedDir / prefix))
+      case 1 => Success(())
+      case _ => Failure(PendingUploadException())
+    }
   }
 
   /**

@@ -111,6 +111,14 @@ object Errors extends DebugEnhancedLogging {
   case class PendingUploadException()
     extends ServletResponseException(CONFLICT_409, "Another upload is pending. Please try again later.")
 
+  case class NoStagingDirException(file: File)
+    extends ServletResponseException(INTERNAL_SERVER_ERROR_500, s"staging directory was not created: $file")
+
+  case class ClientAbortedUploadException(path: String)
+    extends ServletResponseException(OK_200, s"Client aborted upload of path $path") {
+    logger.info(getMessage)
+  }
+
   case class InvalidContentTypeException(contentType: Option[String], requirement: String)
     extends ServletResponseException(BAD_REQUEST_400, contentType
       .map(s => s"Content-Type $requirement Got: $s")
