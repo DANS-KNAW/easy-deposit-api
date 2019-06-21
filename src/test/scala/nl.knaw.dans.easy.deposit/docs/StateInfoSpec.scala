@@ -36,18 +36,20 @@ class StateInfoSpec extends TestSupportFixture {
 
   it should "fail if the state is submitted" in {
     new StateInfo(StateInfo.State.submitted, "submitted").canDelete should matchPattern {
-      case Failure(ise: IllegalDepositStateException) if ise.getMessage == s"Deposit has state SUBMITTED, can only delete deposits with one of the states: ${ StateInfo.deletableStates.mkString(", ") }" =>
+      case Failure(ise: IllegalDepositStateException) if ise.getMessage == s"Deposit has state SUBMITTED, can only delete deposits with one of the states: DRAFT, ARCHIVED, REJECTED" =>
     }
   }
 
   it should "fail if the state is in progress" in {
     new StateInfo(StateInfo.State.inProgress, "IN_PROGRESS").canDelete should matchPattern {
-      case Failure(ise: IllegalDepositStateException) if ise.getMessage == s"Deposit has state IN_PROGRESS, can only delete deposits with one of the states: ${ StateInfo.deletableStates.mkString(", ") }" =>
+      case Failure(ise: IllegalDepositStateException) if ise.getMessage == s"Deposit has state IN_PROGRESS, can only delete deposits with one of the states: DRAFT, ARCHIVED, REJECTED" =>
     }
   }
 
-  "canUpdate" should "succeed if the state is rejected" in {
-    new StateInfo(StateInfo.State.rejected, "rejected").canUpdate shouldBe a[Success[_]]
+  "canUpdate" should "fail if the state is rejected" in {
+    new StateInfo(StateInfo.State.rejected, "rejected").canUpdate should matchPattern{
+      case Failure(ise: IllegalDepositStateException) if ise.getMessage == s"Deposit has state REJECTED, can only update deposits with one of the states: DRAFT" =>
+    }
   }
 
   it should "succeed if the state is draft" in {
@@ -56,19 +58,19 @@ class StateInfoSpec extends TestSupportFixture {
 
   it should "fail if the state is submitted" in {
     new StateInfo(StateInfo.State.submitted, "submitted").canUpdate should matchPattern {
-      case Failure(ise: IllegalDepositStateException) if ise.getMessage == s"Deposit has state SUBMITTED, can only update deposits with one of the states: ${ StateInfo.updatableStates.mkString(", ") }" =>
+      case Failure(ise: IllegalDepositStateException) if ise.getMessage == s"Deposit has state SUBMITTED, can only update deposits with one of the states: DRAFT" =>
     }
   }
 
   it should "fail if the state is in progress" in {
     new StateInfo(StateInfo.State.inProgress, "IN_PROGRESS").canUpdate should matchPattern {
-      case Failure(ise: IllegalDepositStateException) if ise.getMessage == s"Deposit has state IN_PROGRESS, can only update deposits with one of the states: ${ StateInfo.updatableStates.mkString(", ") }" =>
+      case Failure(ise: IllegalDepositStateException) if ise.getMessage == s"Deposit has state IN_PROGRESS, can only update deposits with one of the states: DRAFT" =>
     }
   }
 
   it should "fail if the state is archived" in {
     new StateInfo(StateInfo.State.archived, "archived").canUpdate should matchPattern {
-      case Failure(ise: IllegalDepositStateException) if ise.getMessage == s"Deposit has state ARCHIVED, can only update deposits with one of the states: ${ StateInfo.updatableStates.mkString(", ") }" =>
+      case Failure(ise: IllegalDepositStateException) if ise.getMessage == s"Deposit has state ARCHIVED, can only update deposits with one of the states: DRAFT" =>
     }
   }
 }

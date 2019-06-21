@@ -164,7 +164,7 @@ class DatasetMetadataSpec extends TestSupportFixture {
 
   "DatasetMetadata.*" should "only report the item in the list that are invalid" in {
     val alteredData = createCorruptMetadataJsonString(""""scheme": "string"""", """"invalid": "property"""")
-    expectErrorMessage(alteredData,"""invalid DatasetMetadata: don't recognize {"languageOfDescription":{"invalid":"property"},"audiences":{"invalid":"property"},"subjects":{"invalid":"property"},"languagesOfFiles":{"invalid":"property"},"temporalCoverages":{"invalid":"property"}}""")
+    expectErrorMessage(alteredData,"""invalid DatasetMetadata: don't recognize {"languageOfDescription":{"invalid":"property"},"audiences":{"invalid":"property"},"subjects":{"invalid":"property"},"temporalCoverages":{"invalid":"property"}}""")
   }
 
   "DatasetMetadata.spatialBoxes" should "only report spatial points of the box that are invalid" in {
