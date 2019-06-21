@@ -539,6 +539,10 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
           </boundedBy>
         </dcx-gml:spatial>
         <dcterms:license xsi:type="dcterms:URI">http://creativecommons.org/publicdomain/zero/1.0</dcterms:license>
+        <dcterms:language xsi:type="dcterms:ISO639-2">eng</dcterms:language>
+        <dcterms:language xsi:type="dcterms:ISO639-2">nld</dcterms:language>
+        <dcterms:language>Flakkees</dcterms:language>
+        <dcterms:language>Goerees</dcterms:language>
       </ddm:dcmiMetadata>
   )
 
@@ -554,7 +558,6 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
   private def parseTestResource(file: String) = Try {
     getManualTestResource(file)
   }.flatMap(DatasetMetadata(_))
-
 }
 
 trait DdmBehavior {
