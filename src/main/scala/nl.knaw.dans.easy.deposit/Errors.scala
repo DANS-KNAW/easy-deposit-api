@@ -15,7 +15,7 @@
  */
 package nl.knaw.dans.easy.deposit
 
-import java.nio.file.Path
+import java.nio.file.{ FileAlreadyExistsException, Path }
 import java.util.UUID
 
 import better.files.File
@@ -33,6 +33,13 @@ import scala.util.Try
 object Errors extends DebugEnhancedLogging {
 
   case class ConfigurationException(msg: String) extends IllegalArgumentException(s"Configuration error: $msg")
+
+  case class LeftoversOfForcedShutdownException(dir: File)
+    extends FileAlreadyExistsException(
+      s"Staging area [$dir] should be empty unless force shutdown during an upload/submit request." +
+        " Directories containing bags are aborted submits, somehow (allow) resubmit if indeed not in fedora." +
+        " Other directories contain files of uploads not yet moved into the bag."
+    )
 
   abstract sealed class ServletResponseException(status: Int, httpResponseBody: String)
     extends Exception(httpResponseBody) {

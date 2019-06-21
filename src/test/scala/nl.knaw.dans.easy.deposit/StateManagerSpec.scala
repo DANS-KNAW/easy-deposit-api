@@ -18,7 +18,7 @@ package nl.knaw.dans.easy.deposit
 import java.net.URL
 
 import better.files.File
-import nl.knaw.dans.easy.deposit.Errors.{ IllegalStateTransitionException, PropertyNotFoundException }
+import nl.knaw.dans.easy.deposit.Errors.IllegalStateTransitionException
 import nl.knaw.dans.easy.deposit.docs.StateInfo
 import nl.knaw.dans.easy.deposit.docs.StateInfo.State
 
@@ -49,29 +49,26 @@ class StateManagerSpec extends TestSupportFixture {
     }
   }
 
-  it should "require a bag-store.bag-id for state SUBMITTED" in {
+  it should "not stumble on missing draft property bag-store.bag-id for state SUBMITTED" in {
+    // the problem will be logged
     draftPropsFile.writeText(
       s"""state.label = SUBMITTED
          |state.description = The dataset is ready for processing
       """.stripMargin)
     StateManager(draftDeposit, File("does-not-exist"), easyHome).getStateInfo should matchPattern {
-      case Failure(e: PropertyNotFoundException) if e.getMessage ==
-        s"'bag-store.bag-id' not found in $draftDeposit/deposit.properties" =>
+      case Success(StateInfo(State.submitted, "The dataset is ready for processing")) =>
     }
   }
 
-  it should "require submit properties for state SUBMITTED" in {
+  it should "not stumble on missing ingest-flow-inbox state property for state SUBMITTED" in {
+    // the problem will be logged
     draftPropsFile.writeText(
       s"""state.label = SUBMITTED
          |state.description = The dataset is ready for processing
          |bag-store.bag-id = $uuid
       """.stripMargin)
     StateManager(draftDeposit, testDir / "does-not-exist", easyHome).getStateInfo should matchPattern {
-      case Failure(e: PropertyNotFoundException) if e.getMessage ==
-        s"'state.label' not found in $testDir/does-not-exist/$uuid/deposit.properties" =>
-      // actually the submitted deposit does not exist
-      // for example due to lack of space to create a copy in the staging area
-      // or removed by some ignorant clean-up action
+      case Success(StateInfo(State.submitted, "The dataset is ready for processing")) =>
     }
   }
 

@@ -17,12 +17,12 @@ package nl.knaw.dans.easy.deposit
 
 import java.io.InputStream
 import java.net.{ URI, URL }
-import java.nio.file.{ FileAlreadyExistsException, Path }
+import java.nio.file.Path
 import java.util.UUID
 
 import better.files.File.temporaryDirectory
 import better.files.{ Dispose, File }
-import nl.knaw.dans.easy.deposit.Errors.{ ClientAbortedUploadException, ConfigurationException, CorruptUserException, InvalidContentTypeException, NoStagingDirException, OverwriteException, PendingUploadException }
+import nl.knaw.dans.easy.deposit.Errors.{ ClientAbortedUploadException, ConfigurationException, CorruptUserException, InvalidContentTypeException, LeftoversOfForcedShutdownException, NoStagingDirException, OverwriteException, PendingUploadException }
 import nl.knaw.dans.easy.deposit.PidRequesterComponent.PidRequester
 import nl.knaw.dans.easy.deposit.authentication.{ AuthenticationProvider, LdapAuthentication }
 import nl.knaw.dans.easy.deposit.docs.StateInfo.State
@@ -66,10 +66,8 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
 
   private val stagedDir = {
     val dir = getConfiguredDirectory("deposits.staged")
+    if (dir.nonEmpty) throw LeftoversOfForcedShutdownException(dir)
     logger.info(s"Uploads/submits are staged in $dir")
-    if (dir.nonEmpty) throw new FileAlreadyExistsException(
-      s"Staging area [$dir] should be empty unless force shutdown during an upload/submit request."
-    )
     dir
   }
   private val draftBase: File = getConfiguredDirectory("deposits.drafts")
