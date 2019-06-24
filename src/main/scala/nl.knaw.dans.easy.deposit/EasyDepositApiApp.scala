@@ -86,7 +86,10 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
     )
   }
 
-  private val submitter = new Submitter(stagedDir, submitBase, properties.getString("deposit.permissions.group"))
+  private val submitter = {
+    val groupName = properties.getString("deposit.permissions.group")
+    new Submitter(stagedDir, submitBase, groupName)
+  }
 
   // possible trailing slash is dropped
   private val easyHome: URL = new URL(properties.getString("easy.home").replaceAll("/?$", ""))
