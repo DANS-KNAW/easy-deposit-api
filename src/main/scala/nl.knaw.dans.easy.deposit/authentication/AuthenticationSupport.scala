@@ -30,7 +30,7 @@ trait AuthenticationSupport extends ScentrySupport[AuthUser] {
   override protected def fromSession: PartialFunction[String, AuthUser] = {
     case token: String => decodeJWT(token)
       .doIfSuccess { user => scentry.store.set(encodeJWT(user)) } // refresh cookie
-      .doIfFailure { case t => logger.info(s"invalid authentication: $t") }
+      .doIfFailure { case t => logger.info(s"invalid authentication: ${ t.getMessage }") }
       .getOrElse(null)
   }
 
