@@ -43,6 +43,7 @@ object StateInfo {
     // order of these declarations is important: this is the ordering used for sorting the deposits
     val rejected: State = Value("REJECTED")
     val draft: State = Value("DRAFT")
+    val finalizing: State = Value("FINALIZING")
     val submitted: State = Value("SUBMITTED")
     val inProgress: State = Value("IN_PROGRESS")
     val archived: State = Value("ARCHIVED")
