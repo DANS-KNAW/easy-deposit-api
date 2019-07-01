@@ -123,7 +123,7 @@ object Errors extends DebugEnhancedLogging {
 
   case class ClientAbortedUploadException(path: String)
     extends ServletResponseException(OK_200, s"Client aborted upload of path $path") {
-    logger.info(getMessage)
+    logger.info(getMessage) // logging the body explains why the request did not log new payloads
   }
 
   case class InvalidContentTypeException(contentType: Option[String], requirement: String)

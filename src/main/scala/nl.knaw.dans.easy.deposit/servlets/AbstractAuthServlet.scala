@@ -25,8 +25,7 @@ import org.scalatra.ScalatraServlet
 
 abstract class AbstractAuthServlet(app: EasyDepositApiApp) extends ScalatraServlet
   with ServletLogger
-  //with MaskedLogFormatter
-  with PlainLogFormatter
+  with MaskedLogFormatter
   with LogResponseBodyOnError
   with DebugEnhancedLogging
   with AuthenticationSupport

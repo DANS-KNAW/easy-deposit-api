@@ -64,7 +64,7 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
     configuration.version
   }
 
-  private val stagedDir = {
+  private val stagedBaseDir = {
     val dir = getConfiguredDirectory("deposits.staged")
     if (dir.nonEmpty) throw LeftoversOfForcedShutdownException(dir)
     logger.info(s"Uploads/submits are staged in $dir")
@@ -72,12 +72,12 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
   }
   private val draftBase: File = getConfiguredDirectory("deposits.drafts")
   private val submitBase: File = getConfiguredDirectory("deposits.submit-to")
-  StartupValidation.allowsAtomicMove(srcDir = stagedDir, targetDir = draftBase)
+  StartupValidation.allowsAtomicMove(srcDir = stagedBaseDir, targetDir = draftBase)
 
   val multipartConfig: MultipartConfig = {
     val multipartLocation = getConfiguredDirectory("multipart.location")
     logger.info(s"Uploads are received at multipart.location: $multipartLocation")
-    StartupValidation.allowsAtomicMove(srcDir = multipartLocation, targetDir = stagedDir)
+    StartupValidation.allowsAtomicMove(srcDir = multipartLocation, targetDir = stagedBaseDir)
     MultipartConfig(
       location = Some(multipartLocation.toString()),
       maxFileSize = Option(properties.getLong("multipart.max-file-size", null)),
@@ -88,7 +88,7 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
 
   private val submitter = {
     val groupName = properties.getString("deposit.permissions.group")
-    new Submitter(stagedDir, submitBase, groupName)
+    new Submitter(stagedBaseDir, submitBase, groupName)
   }
 
   // possible trailing slash is dropped
@@ -177,8 +177,8 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
     def submit(deposit: DepositDir, stateManager: StateManager) = {
       for {
         fullName <- getFullName(user)
-        sd <- getStagedDir(user, id)
-        _ <- sd.apply(submitter.submit(deposit, stateManager, fullName, _))
+        dispoableStagedDir <- getStagedDir(user, id)
+        _ <- dispoableStagedDir.apply(submitter.submit(deposit, stateManager, fullName, _))
       } yield ()
     }
 
@@ -318,11 +318,11 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
       dataFiles <- getDataFiles(user, id)
       _ <- canUpdate(user, id)
       _ <- pathNotADirectory(path, dataFiles)
-      lockDir <- getStagedDir(user, id)
+      disposableLockDir <- getStagedDir(user, id)
       _ = logger.info(s"uploading to [${ dataFiles.bag.baseDir }] of [$path]")
-      created <- writeDataFile(dataFiles, lockDir)
+      created <- writeDataFile(dataFiles, disposableLockDir)
       _ = logger.info(s"created=$created $user/$id/$path")
-      _ = releaseLock(lockDir)
+      _ = releaseLock(disposableLockDir)
     } yield created
   }
 
@@ -350,29 +350,30 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
       _ <- canUpdate(userId, id)
       deposit <- DepositDir.get(draftBase, userId, id)
       dataFiles <- deposit.getDataFiles
-      stagingDir <- getStagedDir(userId, id)
-    } yield (stagingDir, StagedFilesTarget(dataFiles.bag, destination))
+      disposableStagingDir <- getStagedDir(userId, id)
+    } yield (disposableStagingDir, StagedFilesTarget(dataFiles.bag, destination))
   }
 
   private def getStagedDir(userId: String, id: UUID): Try[Dispose[File]] = {
     // side effect: optimistic lock for a deposit
     val prefix = s"$userId-$id-"
     for {
-      stagingDir <- createManagedTempDir(prefix)
-      _ <- atMostOneTempDir(prefix).doIfFailure { case _ => stagingDir.get() }
-    } yield stagingDir
+      disposableStagingDir <- createManagedTempDir(prefix)
+      _ <- atMostOneTempDir(prefix).doIfFailure { case _ => disposableStagingDir.get() }
+    } yield disposableStagingDir
 
   }
 
-  // the directory is dropped when the resource is released
+  // the temporary directory is dropped on when the disposable resource is released on completion of the request,
+  // unless the directory was moved away before to ingest-flow-inbox
   private def createManagedTempDir(prefix: String): Try[Dispose[File]] = Try {
-    temporaryDirectory(prefix, Some(stagedDir.createDirectories()))
+    temporaryDirectory(prefix, Some(stagedBaseDir.createDirectories()))
   }
 
-  // prevents concurrent uploads, requires explicit cleanup of interrupted uploads
+  // prevents concurrent uploads to a single draft deposit, requires explicit cleanup of interrupted uploads
   private def atMostOneTempDir(prefix: String): Try[Unit] = {
-    stagedDir.list.count(_.name.startsWith(prefix)) match {
-      case 0 => Failure(NoStagingDirException(stagedDir / prefix))
+    stagedBaseDir.list.count(_.name.startsWith(prefix)) match {
+      case 0 => Failure(NoStagingDirException(stagedBaseDir / prefix))
       case 1 => Success(())
       case _ => Failure(PendingUploadException())
     }
