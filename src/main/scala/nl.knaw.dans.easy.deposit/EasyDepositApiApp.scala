@@ -177,8 +177,8 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
     def submit(deposit: DepositDir, stateManager: StateManager) = {
       for {
         fullName <- getFullName(user)
-        dispoableStagedDir <- getStagedDir(user, id)
-        _ <- dispoableStagedDir.apply(submitter.submit(deposit, stateManager, fullName, _))
+        disposableStagedDir <- getStagedDir(user, id)
+        _ <- disposableStagedDir.apply(submitter.submit(deposit, stateManager, fullName, _))
       } yield ()
     }
 
