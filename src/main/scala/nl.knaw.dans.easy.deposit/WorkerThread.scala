@@ -27,7 +27,7 @@ import scala.util.Try
 
 object WorkerThread extends DebugEnhancedLogging {
 
-  val stagedBaseDir = File("target")
+  val stagedBaseDir = File("target") // TODO allow inject/config to unit-test takeLoop
 
   def main(args: Array[String]): Unit = {
 
@@ -35,11 +35,11 @@ object WorkerThread extends DebugEnhancedLogging {
     //  close it as last action in EasyDepositApiService.stop
     stagedBaseDir.watchService.apply { watchService =>
       stagedBaseDir.register(watchService, Seq(ENTRY_CREATE, ENTRY_DELETE))
-      takeLoop(watchService) // TODO in a sub-thread created by EasyDepositApiService.start
+      handleWatchService(watchService) // TODO in a sub-thread created by EasyDepositApiService.start
     }
   }
 
-  def takeLoop(watchService: WatchService): Unit = {
+  def handleWatchService(watchService: WatchService): Unit = {
     // https://howtodoinjava.com/java8/java-8-watchservice-api-tutorial/
     // take, because polling skips staged-upload-dirs created and deleted within a single cycle
     handleAbortedByHardShutdown()
@@ -56,11 +56,11 @@ object WorkerThread extends DebugEnhancedLogging {
   }
 
   private def handleWatchKey(watchKey: WatchKey): Boolean = {
-    watchKey.pollEvents.stream.forEach(handleEvent(_)) // does just one event
+    watchKey.pollEvents.stream.forEach(handleWatchEvent(_)) // does just one event
     watchKey.reset() // next pending event
   }
 
-  private def handleEvent(event: WatchEvent[_]): Unit = {
+  private def handleWatchEvent(event: WatchEvent[_]): Unit = {
     val stagedDepositDir = stagedBaseDir / event.context.toString
     (event.kind(), getDepositState(stagedDepositDir.name)) match {
       case (ENTRY_CREATE, State.finalizing) => finalizeSubmit(stagedDepositDir)
