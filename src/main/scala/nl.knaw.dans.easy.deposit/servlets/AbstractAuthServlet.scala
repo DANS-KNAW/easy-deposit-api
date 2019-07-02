@@ -35,7 +35,7 @@ abstract class AbstractAuthServlet(app: EasyDepositApiApp) extends ScalatraServl
   override protected def fromSession: PartialFunction[String, AuthUser] = {
     // prevents refreshing a cookie on logout
     case token: String => decodeJWT(token)
-      .doIfFailure { case t => logger.info(s"invalid authentication: $t") }
+      .doIfFailure { case t => logger.info(s"invalid authentication: ${ t.getMessage }") }
       .getOrElse(null)
   }
 

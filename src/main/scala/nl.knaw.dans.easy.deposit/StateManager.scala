@@ -47,9 +47,9 @@ case class StateManager(depositDir: File, submitBase: File, easyHome: URL) exten
    *          unless more recent values might be available in SUBMITTED/UUID/deposit.properties
    */
   def getStateInfo: Try[StateInfo] = Try {
-    getDraftState match {
-      case draftState @ (State.submitted | State.inProgress) =>
-        val newState: StateInfo = Try(getProp(stateLabelKey, submittedProps)) match {
+    getStateInDraftDeposit match {
+      case stateInDraftDeposit @ (State.submitted | State.inProgress) =>
+        val stateInSubmittedDeposit: StateInfo = Try(getProp(stateLabelKey, submittedProps)) match {
           case Success("SUBMITTED") => StateInfo(State.submitted, getStateDescription(draftProps))
           case Success("REJECTED") => StateInfo(State.rejected, getStateDescription(submittedProps))
           case Success("FAILED") => StateInfo(State.inProgress, s"The deposit is in progress.")
@@ -61,10 +61,10 @@ case class StateManager(depositDir: File, submitBase: File, easyHome: URL) exten
             StateInfo(State.inProgress, s"The deposit is in progress.")
           case Failure(e) =>
             logger.error(e.getMessage, e)
-            StateInfo(draftState, getStateDescription(draftProps))
+            StateInfo(stateInDraftDeposit, getStateDescription(draftProps))
         }
-        saveNewState(newState)
-        newState
+        saveNewStateInDraftDeposit(stateInSubmittedDeposit)
+        stateInSubmittedDeposit
       case draftState @ (State.draft | State.rejected | State.archived) =>
         StateInfo(draftState, getStateDescription(draftProps))
     }
@@ -90,11 +90,11 @@ case class StateManager(depositDir: File, submitBase: File, easyHome: URL) exten
         // probably properly saved without toString but getSubmittedBagId would throw
         // ConversionException: 'bag-store.bag-id' doesn't map to a String object
         draftProps.setProperty(bagIdKey, bagStoreBagId.toString)
-        saveNewState(newStateInfo)
+        saveNewStateInDraftDeposit(newStateInfo)
         Success(())
       case (State.rejected, State.draft) =>
         draftProps.clearProperty(bagIdKey)
-        saveNewState(newStateInfo)
+        saveNewStateInDraftDeposit(newStateInfo)
         Success(())
       case (oldState, newState) =>
         Failure(IllegalStateTransitionException(oldState, newState))
@@ -121,14 +121,14 @@ case class StateManager(depositDir: File, submitBase: File, easyHome: URL) exten
       .getOrElse(s"$easyHome/mydatasets") // fall back
   }
 
-  private def saveNewState(newStateInfo: StateInfo): Unit = {
+  private def saveNewStateInDraftDeposit(newStateInfo: StateInfo): Unit = {
     draftProps.setProperty(stateLabelKey, newStateInfo.state.toString)
     draftProps.setProperty(stateDescriptionKey, newStateInfo.stateDescription)
     draftProps.save()
   }
 
   @throws[InvalidPropertyException](s"when stateLabelKey is not found in draftProps")
-  private def getDraftState: State.Value = {
+  private def getStateInDraftDeposit: State.Value = {
     val str = getProp(stateLabelKey, draftProps)
     Try { State.withName(str) }
       .getOrElse(throw InvalidPropertyException(stateLabelKey, str, draftProps))
