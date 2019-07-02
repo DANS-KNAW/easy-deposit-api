@@ -94,7 +94,7 @@ class RichFileItemsSpec extends TestSupportFixture with MockFactory {
     ).buffered
 
     createMultipartConfig.moveNonZips(fileItems, createStageDir) shouldBe a[Success[_]]
-    (testDir / "stage-upload").list should have size 0
+    (testDir / "staged").list should have size 0
   }
 
   it should "refuse a zip" in {
@@ -112,8 +112,8 @@ class RichFileItemsSpec extends TestSupportFixture with MockFactory {
       // that's out of scope for this unit test but is the (fall back) rationale for the "but ..."
       // of the message returned to the client
     }
-    (testDir / "stage-upload" / "some.txt").contentAsString shouldBe contentOfStagedUpload
-    (testDir / "stage-upload").list should have size 1 // the file after the zip is not processed
+    (testDir / "staged" / "some.txt").contentAsString shouldBe contentOfStagedUpload
+    (testDir / "staged").list should have size 1 // the file after the zip is not processed
   }
 
   private val multipartLocation: File = testDir / "mulitpart-location"
@@ -124,7 +124,7 @@ class RichFileItemsSpec extends TestSupportFixture with MockFactory {
   }
 
   private def createStageDir = {
-    (testDir / "stage-upload").createDirectories()
+    (testDir / "staged").createDirectories()
   }
 
   private def mockFileItem(fileName: String, contentType: String = null, content: String = "") = {

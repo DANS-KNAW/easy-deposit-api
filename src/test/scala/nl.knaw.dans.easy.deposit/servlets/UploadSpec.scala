@@ -57,7 +57,7 @@ class UploadSpec extends DepositServletFixture {
         file.contentAsString shouldBe (testDir / "input" / file.name).contentAsString
       )
       (bagDir / "manifest-sha1.txt").lines.size shouldBe bodyParts.size
-      (testDir / "stage-zips").list.size shouldBe 0
+      (testDir / "staged").list.size shouldBe 0
     }
   }
 
@@ -69,7 +69,7 @@ class UploadSpec extends DepositServletFixture {
       ("more", "4.txt", "Ut enim ad minim veniam"),
     ))
     val uuid = createDeposit
-    (testDir / s"stage-zips/foo-$uuid-XYZ").createDirectories() // mocks a concurrent post
+    (testDir / s"staged/foo-$uuid-XYZ").createDirectories() // mocks a concurrent post
     post(
       uri = s"/deposit/$uuid/file/path/to/dir",
       params = Iterable(),
@@ -77,11 +77,11 @@ class UploadSpec extends DepositServletFixture {
       files = bodyParts
     ) {
       status shouldBe CONFLICT_409
-      body shouldBe "Another upload is pending. Please try again later."
+      body shouldBe "Another upload or submit is pending."
       val bagDir = testDir / "drafts/foo" / uuid.toString / bagDirName
       (bagDir / "data").list.size shouldBe 0
       (bagDir / "manifest-sha1.txt").lines.size shouldBe 0
-      (testDir / "stage-zips").list.size shouldBe 1
+      (testDir / "staged").list.size shouldBe 1
     }
   }
 

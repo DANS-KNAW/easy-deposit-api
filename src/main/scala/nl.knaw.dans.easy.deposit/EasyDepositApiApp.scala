@@ -17,13 +17,12 @@ package nl.knaw.dans.easy.deposit
 
 import java.io.InputStream
 import java.net.{ URI, URL }
-import java.nio.file.spi.FileSystemProvider
-import java.nio.file.{ FileAlreadyExistsException, Path }
+import java.nio.file.Path
 import java.util.UUID
 
 import better.files.File.temporaryDirectory
 import better.files.{ Dispose, File }
-import nl.knaw.dans.easy.deposit.Errors.{ ConfigurationException, CorruptUserException, InvalidContentTypeException, OverwriteException, PendingUploadException }
+import nl.knaw.dans.easy.deposit.Errors.{ ClientAbortedUploadException, ConfigurationException, CorruptUserException, InvalidContentTypeException, LeftoversOfForcedShutdownException, NoStagingDirException, OverwriteException, PendingUploadException }
 import nl.knaw.dans.easy.deposit.PidRequesterComponent.PidRequester
 import nl.knaw.dans.easy.deposit.authentication.{ AuthenticationProvider, LdapAuthentication }
 import nl.knaw.dans.easy.deposit.docs.StateInfo.State
@@ -32,6 +31,7 @@ import nl.knaw.dans.easy.deposit.servlets.contentTypeZipPattern
 import nl.knaw.dans.lib.error._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.apache.commons.configuration.PropertiesConfiguration
+import org.eclipse.jetty.io.EofException
 import org.joda.time.DateTime
 import org.scalatra.servlet.MultipartConfig
 
@@ -64,25 +64,20 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
     configuration.version
   }
 
-  private val uploadStagingDir = {
-    val dir = getConfiguredDirectory("deposits.stage-zips")
-    logger.info(s"Uploads are staged in $dir")
-    if (dir.nonEmpty) {
-      // TODO move to Validation and/or new Uploader class for DepositServlet post("/:uuid/file/*")
-      throw new FileAlreadyExistsException(
-        s"Upload staging area [$dir] should be empty unless force shutdown during an upload request. Check logging related to 'POST /deposit/{id}/file/{dir_path}'."
-      )
-    }
+  private val stagedBaseDir = {
+    val dir = getConfiguredDirectory("deposits.staged")
+    if (dir.nonEmpty) throw LeftoversOfForcedShutdownException(dir)
+    logger.info(s"Uploads/submits will be staged in $dir")
     dir
   }
   private val draftBase: File = getConfiguredDirectory("deposits.drafts")
   private val submitBase: File = getConfiguredDirectory("deposits.submit-to")
-  StartupValidation.allowsAtomicMove(srcDir = uploadStagingDir, targetDir = draftBase)
+  StartupValidation.allowsAtomicMove(srcDir = stagedBaseDir, targetDir = draftBase)
 
   val multipartConfig: MultipartConfig = {
     val multipartLocation = getConfiguredDirectory("multipart.location")
     logger.info(s"Uploads are received at multipart.location: $multipartLocation")
-    StartupValidation.allowsAtomicMove(srcDir = multipartLocation, targetDir = uploadStagingDir)
+    StartupValidation.allowsAtomicMove(srcDir = multipartLocation, targetDir = stagedBaseDir)
     MultipartConfig(
       location = Some(multipartLocation.toString()),
       maxFileSize = Option(properties.getLong("multipart.max-file-size", null)),
@@ -91,18 +86,17 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
     )
   }
 
-  private val submitter = new Submitter(
-    getConfiguredDirectory("deposits.stage-for-submit"),
-    submitBase,
-    configuration.properties.getString("deposit.permissions.group"),
-  )
+  private val submitter = {
+    val groupName = properties.getString("deposit.permissions.group")
+    new Submitter(stagedBaseDir, submitBase, groupName)
+  }
 
   // possible trailing slash is dropped
-  private val easyHome: URL = new URL(configuration.properties.getString("easy.home").replaceAll("/?$", ""))
+  private val easyHome: URL = new URL(properties.getString("easy.home").replaceAll("/?$", ""))
 
   @throws[ConfigurationException]("when no existing readable directory is configured")
   private def getConfiguredDirectory(key: String): File = {
-    val str = Option(configuration.properties.getString(key))
+    val str = Option(properties.getString(key))
       .getOrElse(throw ConfigurationException(s"No configuration value for $key"))
     val dir = File(str)
 
@@ -179,16 +173,24 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
    * @param newStateInfo the state to transition to
    * @return
    */
-  def setDepositState(newStateInfo: StateInfo, user: String, id: UUID): Try[Unit] = for {
-    deposit <- getDeposit(user, id)
-    stateManager = deposit.getStateManager(submitBase, easyHome)
-    _ <- stateManager.canChangeState(newStateInfo)
-    _ <- if (newStateInfo.state == State.submitted)
-           getFullName(user).flatMap(
-             submitter.submit(deposit, stateManager, _) // also changes the state
-           )
-         else stateManager.changeState(newStateInfo)
-  } yield ()
+  def setDepositState(newStateInfo: StateInfo, user: String, id: UUID): Try[Unit] = {
+    def submit(deposit: DepositDir, stateManager: StateManager) = {
+      for {
+        fullName <- getFullName(user)
+        dispoableStagedDir <- getStagedDir(user, id)
+        _ <- dispoableStagedDir.apply(submitter.submit(deposit, stateManager, fullName, _))
+      } yield ()
+    }
+
+    for {
+      deposit <- getDeposit(user, id)
+      stateManager = deposit.getStateManager(submitBase, easyHome)
+      _ <- stateManager.canChangeState(newStateInfo)
+      _ <- if (newStateInfo.state == State.submitted)
+             submit(deposit, stateManager) // also changes the state
+           else stateManager.changeState(newStateInfo)
+    } yield ()
+  }
 
   private def getFullName(user: String): Try[String] = {
     getUser(user)
@@ -304,15 +306,28 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
    * @return `true` if a new file was created, `false` otherwise
    */
   def writeDepositFile(is: => InputStream, user: String, id: UUID, path: Path, contentType: Option[String]): Try[Boolean] = {
+    def writeDataFile(dataFiles: DataFiles, lockDir: Dispose[File]): Try[Boolean] = {
+      dataFiles
+        .write(is, path)
+        .doIfFailure { case _ => releaseLock(lockDir) }
+        .recoverWith { case _: EofException => Failure(ClientAbortedUploadException(s"$user/$id/$path")) }
+    }
+
     for {
       _ <- contentTypeAnythingBut(contentType)
       dataFiles <- getDataFiles(user, id)
       _ <- canUpdate(user, id)
       _ <- pathNotADirectory(path, dataFiles)
+      disposableLockDir <- getStagedDir(user, id)
       _ = logger.info(s"uploading to [${ dataFiles.bag.baseDir }] of [$path]")
-      created <- dataFiles.write(is, path)
+      created <- writeDataFile(dataFiles, disposableLockDir)
       _ = logger.info(s"created=$created $user/$id/$path")
+      _ = releaseLock(disposableLockDir)
     } yield created
+  }
+
+  private def releaseLock(lockDir: Dispose[File]) = {
+    lockDir.get().delete(swallowIOExceptions = true)
   }
 
   private def pathNotADirectory(path: Path, dataFiles: DataFiles): Try[Unit] = {
@@ -331,26 +346,37 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
   }
 
   def stageFiles(userId: String, id: UUID, destination: Path): Try[(Dispose[File], StagedFilesTarget)] = {
-    val prefix = s"$userId-$id-"
     for {
       _ <- canUpdate(userId, id)
       deposit <- DepositDir.get(draftBase, userId, id)
       dataFiles <- deposit.getDataFiles
-      stagingDir <- createManagedTempDir(prefix)
-      _ <- atMostOneTempDir(prefix).doIfFailure { case _ => stagingDir.get() }
-    } yield (stagingDir, StagedFilesTarget(dataFiles.bag, destination))
+      disposableStagingDir <- getStagedDir(userId, id)
+    } yield (disposableStagingDir, StagedFilesTarget(dataFiles.bag, destination))
   }
 
-  // the directory is dropped when the resource is released
+  private def getStagedDir(userId: String, id: UUID): Try[Dispose[File]] = {
+    // side effect: optimistic lock for a deposit
+    val prefix = s"$userId-$id-"
+    for {
+      disposableStagingDir <- createManagedTempDir(prefix)
+      _ <- atMostOneTempDir(prefix).doIfFailure { case _ => disposableStagingDir.get() }
+    } yield disposableStagingDir
+
+  }
+
+  // the temporary directory is dropped when the disposable resource is released on completion of the request,
+  // unless the directory was moved away before to ingest-flow-inbox
   private def createManagedTempDir(prefix: String): Try[Dispose[File]] = Try {
-    temporaryDirectory(prefix, Some(uploadStagingDir.createDirectories()))
+    temporaryDirectory(prefix, Some(stagedBaseDir.createDirectories()))
   }
 
-  // prevents concurrent uploads, requires explicit cleanup of interrupted uploads
+  // prevents concurrent uploads to a single draft deposit, requires explicit cleanup of interrupted uploads
   private def atMostOneTempDir(prefix: String): Try[Unit] = {
-    if (uploadStagingDir.list.count(_.name.startsWith(prefix)) > 1)
-      Failure(PendingUploadException())
-    else Success(())
+    stagedBaseDir.list.count(_.name.startsWith(prefix)) match {
+      case 0 => Failure(NoStagingDirException(stagedBaseDir / prefix))
+      case 1 => Success(())
+      case _ => Failure(PendingUploadException())
+    }
   }
 
   /**

@@ -47,20 +47,24 @@ case class StateManager(depositDir: File, submitBase: File, easyHome: URL) exten
    *          unless more recent values might be available in SUBMITTED/UUID/deposit.properties
    */
   def getStateInfo: Try[StateInfo] = Try {
-    toDraftState(getProp(stateLabelKey, draftProps)) match {
-      case State.submitted | State.inProgress =>
-        val newState: StateInfo = getProp(stateLabelKey, submittedProps) match {
-          case "SUBMITTED" => StateInfo(State.submitted, getStateDescription(draftProps))
-          case "REJECTED" => StateInfo(State.rejected, getStateDescription(submittedProps))
-          case "FAILED" => StateInfo(State.inProgress, s"The deposit is in progress.")
-          case "IN_REVIEW" => StateInfo(State.inProgress, s"The deposit is available at $landingPage")
-          case "FEDORA_ARCHIVED" | "ARCHIVED" => StateInfo(State.archived, s"The dataset is published at $landingPage")
-          case str: String =>
+    getStateInDraftDeposit match {
+      case stateInDraftDeposit @ (State.submitted | State.inProgress) =>
+        val stateInSubmittedDeposit: StateInfo = Try(getProp(stateLabelKey, submittedProps)) match {
+          case Success("SUBMITTED") => StateInfo(State.submitted, getStateDescription(draftProps))
+          case Success("REJECTED") => StateInfo(State.rejected, getStateDescription(submittedProps))
+          case Success("FAILED") => StateInfo(State.inProgress, s"The deposit is in progress.")
+          case Success("IN_REVIEW") => StateInfo(State.inProgress, s"The deposit is available at $landingPage")
+          case Success("FEDORA_ARCHIVED") |
+               Success("ARCHIVED") => StateInfo(State.archived, s"The dataset is published at $landingPage")
+          case Success(str: String) =>
             logger.error(InvalidPropertyException(stateLabelKey, str, submittedProps).getMessage)
             StateInfo(State.inProgress, s"The deposit is in progress.")
+          case Failure(e) =>
+            logger.error(e.getMessage, e)
+            StateInfo(stateInDraftDeposit, getStateDescription(draftProps))
         }
-        saveNewState(newState)
-        newState
+        saveNewStateInDraftDeposit(stateInSubmittedDeposit)
+        stateInSubmittedDeposit
       case draftState @ (State.draft | State.rejected | State.archived) =>
         StateInfo(draftState, getStateDescription(draftProps))
     }
@@ -86,11 +90,11 @@ case class StateManager(depositDir: File, submitBase: File, easyHome: URL) exten
         // probably properly saved without toString but getSubmittedBagId would throw
         // ConversionException: 'bag-store.bag-id' doesn't map to a String object
         draftProps.setProperty(bagIdKey, bagStoreBagId.toString)
-        saveNewState(newStateInfo)
+        saveNewStateInDraftDeposit(newStateInfo)
         Success(())
       case (State.rejected, State.draft) =>
         draftProps.clearProperty(bagIdKey)
-        saveNewState(newStateInfo)
+        saveNewStateInDraftDeposit(newStateInfo)
         Success(())
       case (oldState, newState) =>
         Failure(IllegalStateTransitionException(oldState, newState))
@@ -117,20 +121,21 @@ case class StateManager(depositDir: File, submitBase: File, easyHome: URL) exten
       .getOrElse(s"$easyHome/mydatasets") // fall back
   }
 
-  private def saveNewState(newStateInfo: StateInfo): Unit = {
+  private def saveNewStateInDraftDeposit(newStateInfo: StateInfo): Unit = {
     draftProps.setProperty(stateLabelKey, newStateInfo.state.toString)
     draftProps.setProperty(stateDescriptionKey, newStateInfo.stateDescription)
     draftProps.save()
   }
 
-  @throws[InvalidPropertyException](s"when $stateLabelKey has an invalid value")
-  private def toDraftState(str: String): State.Value = Try {
-    State.withName(str)
-  }.getOrElse(throw InvalidPropertyException(stateLabelKey, str, draftProps))
+  @throws[InvalidPropertyException](s"when stateLabelKey is not found in draftProps")
+  private def getStateInDraftDeposit: State.Value = {
+    val str = getProp(stateLabelKey, draftProps)
+    Try { State.withName(str) }
+      .getOrElse(throw InvalidPropertyException(stateLabelKey, str, draftProps))
+  }
 
-  @throws[PropertyNotFoundException](s"when $stateDescriptionKey is not found in props")
-  private def getStateDescription(props: PropertiesConfiguration): String = {
-    getProp(stateDescriptionKey, props)
+  private def getStateDescription(props: PropertiesConfiguration, default: String =""): String = {
+    Try(getProp(stateDescriptionKey, props)).getOrElse(default)
   }
 
   @throws[PropertyNotFoundException]("when key is not found in props")
