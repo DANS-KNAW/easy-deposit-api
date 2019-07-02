@@ -53,9 +53,9 @@ case class StateManager(depositDir: File, submitBase: File, easyHome: URL) exten
           case Success("SUBMITTED") => StateInfo(State.submitted, getStateDescription(draftProps))
           case Success("REJECTED") => StateInfo(State.rejected, getStateDescription(submittedProps))
           case Success("FAILED") => StateInfo(State.inProgress, s"The deposit is in progress.")
-          case Success("IN_REVIEW") => StateInfo(State.inProgress, s"The deposit is available at $landingPage")
+          case Success("IN_REVIEW") => StateInfo(State.inProgress, s"""The deposit is available at <a href="$landingPage" target="_blank">$landingPage</a>""")
           case Success("FEDORA_ARCHIVED") |
-               Success("ARCHIVED") => StateInfo(State.archived, s"The dataset is published at $landingPage")
+               Success("ARCHIVED") => StateInfo(State.archived, s"""The dataset is published at <a href="$landingPage" target="_blank">$landingPage</a>""")
           case Success(str: String) =>
             logger.error(InvalidPropertyException(stateLabelKey, str, submittedProps).getMessage)
             StateInfo(State.inProgress, s"The deposit is in progress.")

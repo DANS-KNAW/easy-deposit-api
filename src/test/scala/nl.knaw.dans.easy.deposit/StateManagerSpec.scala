@@ -83,7 +83,7 @@ class StateManagerSpec extends TestSupportFixture {
          |state.description = rabarbera
       """.stripMargin)
     StateManager(draftDeposit, submitBase, easyHome).getStateInfo should matchPattern {
-      case Success(StateInfo(State.inProgress, "The deposit is available at https://easy.dans.knaw.nl/ui/mydatasets")) =>
+      case Success(StateInfo(State.inProgress, """The deposit is available at <a href="https://easy.dans.knaw.nl/ui/mydatasets" target="_blank">https://easy.dans.knaw.nl/ui/mydatasets</a>""")) =>
     }
   }
 
@@ -100,7 +100,7 @@ class StateManagerSpec extends TestSupportFixture {
          |identifier.fedora = easy-dataset:1239
       """.stripMargin)
     StateManager(draftDeposit, submitBase, easyHome).getStateInfo should matchPattern {
-      case Success(StateInfo(State.inProgress, "The deposit is available at https://easy.dans.knaw.nl/ui/datasets/id/easy-dataset:1239")) =>
+      case Success(StateInfo(State.inProgress, """The deposit is available at <a href="https://easy.dans.knaw.nl/ui/datasets/id/easy-dataset:1239" target="_blank">https://easy.dans.knaw.nl/ui/datasets/id/easy-dataset:1239</a>""")) =>
     }
   }
 
@@ -116,7 +116,7 @@ class StateManagerSpec extends TestSupportFixture {
          |state.description = rabarbeara
       """.stripMargin)
     StateManager(draftDeposit, submitBase, easyHome).getStateInfo should matchPattern {
-      case Success(StateInfo(State.archived, "The dataset is published at https://easy.dans.knaw.nl/ui/mydatasets")) =>
+      case Success(StateInfo(State.archived, """The dataset is published at <a href="https://easy.dans.knaw.nl/ui/mydatasets" target="_blank">https://easy.dans.knaw.nl/ui/mydatasets</a>""")) =>
     }
   }
 
