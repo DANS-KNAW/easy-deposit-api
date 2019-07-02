@@ -364,7 +364,7 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
 
   }
 
-  // the temporary directory is dropped on when the disposable resource is released on completion of the request,
+  // the temporary directory is dropped when the disposable resource is released on completion of the request,
   // unless the directory was moved away before to ingest-flow-inbox
   private def createManagedTempDir(prefix: String): Try[Dispose[File]] = Try {
     temporaryDirectory(prefix, Some(stagedBaseDir.createDirectories()))

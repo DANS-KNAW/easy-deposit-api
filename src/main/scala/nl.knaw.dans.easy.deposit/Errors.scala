@@ -36,9 +36,9 @@ object Errors extends DebugEnhancedLogging {
 
   case class LeftoversOfForcedShutdownException(dir: File)
     extends FileAlreadyExistsException(
-      s"Staging area [$dir] should be empty unless force shutdown during an upload/submit request." +
+      s"Staging area [$dir] should be empty unless a forced shutdown occurred during an upload/submit request." +
         " Directories containing bags are aborted submits, somehow (allow) resubmit if indeed not in fedora." +
-        " Other directories contain files of uploads not yet moved into the bag."
+        " Other directories contain files of uploads that are not yet moved into the bag."
     )
 
   abstract sealed class ServletResponseException(status: Int, httpResponseBody: String)
@@ -119,7 +119,7 @@ object Errors extends DebugEnhancedLogging {
     extends ServletResponseException(CONFLICT_409, "Another upload or submit is pending.")
 
   case class NoStagingDirException(file: File)
-    extends ServletResponseException(INTERNAL_SERVER_ERROR_500, s"staging directory was not created: $file")
+    extends ServletResponseException(INTERNAL_SERVER_ERROR_500, s"Staging directory was not created: $file")
 
   case class ClientAbortedUploadException(path: String)
     extends ServletResponseException(OK_200, s"Client aborted upload of path $path") {
