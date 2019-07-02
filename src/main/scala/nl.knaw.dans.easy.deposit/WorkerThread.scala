@@ -82,7 +82,12 @@ object WorkerThread extends DebugEnhancedLogging {
 
   private def abortedSubmit(stagedSubmitDir: File): Unit = {
     logger.info(s"Found submit aborted by hard shutdown: $stagedSubmitDir")
+
     deleteContent(stagedSubmitDir) // clean up for a fresh submit
+
+    // delete and create the directory again could trigger the watchService to perform the submit
+    // but a new hard shutdown could happen between the two actions
+    // then the submit would no longer be noticed
     finalizeSubmit(stagedSubmitDir)
   }
 
@@ -95,16 +100,14 @@ object WorkerThread extends DebugEnhancedLogging {
   }
 
   private def abortedUpload(stagedUploadDir: File): Unit = {
-    logger.info(s"Found upload aborted by hard shutdown: $stagedUploadDir")
-    // * the last multipart file may be incomplete,
-    //   delete all to keep it simple (the target is no longer known anyway)
-    // * some multipart files may have been moved into the draft bag
-    //   a running watchService can pick up the delete of the staged directory for SHA calculations
+    // * some uploaded files may have been moved into the draft bag
     // * not completed SHA calculations for completed uploads won't be detected at restart
-    stagedUploadDir
-      .list
-      .filter(_.name.toLowerCase.startsWith("multipart"))
-      .foreach(_.delete())
+    logger.info(s"Found upload aborted by hard shutdown: $stagedUploadDir")
+
+    // we don't know the location in the bag any more for the remaining uploaded files
+    deleteContent(stagedUploadDir)
+
+    // create an event that triggers a running watchService to perform SHA calculations
     stagedUploadDir.delete()
   }
 
