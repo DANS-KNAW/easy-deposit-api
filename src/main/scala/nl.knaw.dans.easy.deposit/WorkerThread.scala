@@ -20,8 +20,8 @@ import java.nio.file.{ WatchEvent, WatchKey, WatchService }
 
 import better.files.File
 import nl.knaw.dans.easy.deposit.docs.StateInfo.State
-import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import nl.knaw.dans.lib.error._
+import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 
 import scala.util.Try
 
@@ -35,15 +35,15 @@ object WorkerThread extends DebugEnhancedLogging {
     //  close it as last action in EasyDepositApiService.stop
     stagedBaseDir.watchService.apply { watchService =>
       stagedBaseDir.register(watchService, Seq(ENTRY_CREATE, ENTRY_DELETE))
-      takeLoop(watchService)// TODO in a sub-thread created by EasyDepositApiService.start
+      takeLoop(watchService) // TODO in a sub-thread created by EasyDepositApiService.start
     }
   }
 
   def takeLoop(watchService: WatchService): Unit = {
+    // https://howtodoinjava.com/java8/java-8-watchservice-api-tutorial/
+    // take, because polling skips staged-upload-dirs created and deleted within a single cycle
     handleAbortedByHardShutdown()
-    while ( {
-      // https://howtodoinjava.com/java8/java-8-watchservice-api-tutorial/
-      // take, because polling skips staged-upload-dirs created and deleted within a single cycle
+    Iterator.continually(()).foreach { _ =>
       Try(watchService.take())
         .map(handleWatchKey)
         .doIfFailure { case e =>
@@ -52,7 +52,7 @@ object WorkerThread extends DebugEnhancedLogging {
           logger.error(s"terminating ${ e.getMessage }")
         }
         .getOrElse(false)
-    }) {}
+    }
   }
 
   private def handleWatchKey(watchKey: WatchKey): Boolean = {
