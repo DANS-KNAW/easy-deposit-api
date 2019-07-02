@@ -16,7 +16,7 @@
 package nl.knaw.dans.easy.deposit
 
 import java.nio.file.StandardWatchEventKinds.{ ENTRY_CREATE, ENTRY_DELETE }
-import java.nio.file.{ WatchEvent, WatchKey }
+import java.nio.file.{ WatchEvent, WatchKey, WatchService }
 
 import better.files.File
 import nl.knaw.dans.easy.deposit.docs.StateInfo.State
@@ -35,32 +35,36 @@ object WorkerThread extends DebugEnhancedLogging {
     //  close it as last action in EasyDepositApiService.stop
     stagedBaseDir.watchService.apply { watchService =>
       stagedBaseDir.register(watchService, Seq(ENTRY_CREATE, ENTRY_DELETE))
-      handleAbortedByHardShutdown() // between register and take of watchService!
-      while ( { // TODO in a sub-thread (possibly with handleAbortedByHardShutdown, for a quick start)
-        // https://howtodoinjava.com/java8/java-8-watchservice-api-tutorial/
-        // take, because polling skips staged-upload-dirs created and deleted within a single cycle
-        Try(watchService.take())
-          .map(handleEvents)
-          .doIfFailure { case e =>
-            // does not get here on SIGINT despite InterruptedException thrown by take
-            // TODO would it get a ClosedWatchServiceException when the parent thread is the culprit?
-            logger.error(s"terminating ${ e.getMessage }")
-          }
-          .getOrElse(false)
-      }) {}
+      takeLoop(watchService)// TODO in a sub-thread created by EasyDepositApiService.start
     }
   }
 
-  private def handleEvents(watchKey: WatchKey): Boolean = {
-    watchKey.pollEvents.stream.forEach(handleEvent(_))
+  def takeLoop(watchService: WatchService): Unit = {
+    handleAbortedByHardShutdown()
+    while ( {
+      // https://howtodoinjava.com/java8/java-8-watchservice-api-tutorial/
+      // take, because polling skips staged-upload-dirs created and deleted within a single cycle
+      Try(watchService.take())
+        .map(handleWatchKey)
+        .doIfFailure { case e =>
+          // does not get here on SIGINT despite InterruptedException thrown by take
+          // TODO would it get a ClosedWatchServiceException when the parent thread is the culprit?
+          logger.error(s"terminating ${ e.getMessage }")
+        }
+        .getOrElse(false)
+    }) {}
+  }
+
+  private def handleWatchKey(watchKey: WatchKey): Boolean = {
+    watchKey.pollEvents.stream.forEach(handleEvent(_)) // does just one event
     watchKey.reset() // next pending event
   }
 
   private def handleEvent(event: WatchEvent[_]): Unit = {
-    val stagedDir = stagedBaseDir / event.context().toString
-    (event.kind(), getDepositState(stagedDir.name)) match {
-      case (ENTRY_CREATE, State.finalizing) => finalizeSubmit(stagedDir)
-      case (ENTRY_DELETE, State.draft) => calculateShas(stagedDir)
+    val stagedDepositDir = stagedBaseDir / event.context.toString
+    (event.kind(), getDepositState(stagedDepositDir.name)) match {
+      case (ENTRY_CREATE, State.finalizing) => finalizeSubmit(stagedDepositDir)
+      case (ENTRY_DELETE, State.draft) => calculateShas(stagedDepositDir)
       case _ => // either completed finalizeSubmit or started upload
     }
   }
