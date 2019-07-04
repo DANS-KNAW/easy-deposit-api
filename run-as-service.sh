@@ -15,16 +15,19 @@
 # limitations under the License.
 #
 
+ARGS=$@
+APPHOME=home
 
-TEMPDIR=data
-HOMEDIR=home
-echo -n "Pre-creating log..."
-touch $TEMPDIR/easy-deposit-api.log
-echo
-mkdir $TEMPDIR/multi-part
-mkdir $TEMPDIR/drafts
-mkdir $TEMPDIR/staged
-mkdir $TEMPDIR/easy-ingest-flow-inbox
-cp src/test/resources/debug-config/* $HOMEDIR/cfg/
-echo '"System preferences" -> "Users&Groups" -> "+" (as if you were adding new account) -> Under "New account" select "Group" -> Type in group name: deposits -> "Create group"'
-echo "OK"
+mvn exec:java \
+  -Dapp.home=$APPHOME \
+  -Dlogback.configurationFile=$APPHOME/cfg/logback.xml \
+  -Dexec.args=run-service
+
+# When you didn't note the process number when started in the background,
+# you can find the process number to kill with: ps -A|grep deposit-api
+#
+# TODO mount servlets: compare EasyDepositApiService with ServiceStarter
+# The only possible request is
+#   curl -i "http://localhost:20190"
+# which responds with
+#   EASY Deposit API Service running
