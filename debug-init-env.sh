@@ -25,6 +25,7 @@ mkdir $TEMPDIR/multi-part
 mkdir $TEMPDIR/drafts
 mkdir $TEMPDIR/staged
 mkdir $TEMPDIR/easy-ingest-flow-inbox
-cp src/test/resources/debug-config/* $HOMEDIR/cfg/
-echo '"System preferences" -> "Users&Groups" -> "+" (as if you were adding new account) -> Under "New account" select "Group" -> Type in group name: deposits -> "Create group"'
+echo '# replace the value of deposit.permissions.group in home/cfg/application.properties'
+echo '# with a group found on a MAC with "dscl . list /groups" or create a group:'
+echo '# "System preferences" -> "Users&Groups" -> "+" (as if you were adding new account) -> Under "New account" select "Group" -> Type in group name: deposits -> "Create group"'
 echo "OK"
