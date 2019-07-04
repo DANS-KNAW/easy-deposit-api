@@ -27,12 +27,12 @@ import scala.util.Try
 
 object WorkerThread extends DebugEnhancedLogging {
 
-  val stagedBaseDir = File("target") // TODO allow inject/config to unit-test takeLoop
+  val stagedBaseDir = File("target") // TODO make flexible for unit tests / use EasyDepositApiApp.stagedBaseDir
 
   def main(args: Array[String]): Unit = {
 
-    // TODO create watchService as first action in ServiceStarter.start
-    //  close it as last action in ServiceStarter.stop
+    // TODO create watchService as first action in EasyDepositApiService.start
+    //  close it as last action in EasyDepositApiService.stop
     stagedBaseDir.watchService.apply { watchService =>
       stagedBaseDir.register(watchService, Seq(ENTRY_CREATE, ENTRY_DELETE))
       handleWatchService(watchService) // TODO in a sub-thread created by ServiceStarter.start
@@ -49,10 +49,11 @@ object WorkerThread extends DebugEnhancedLogging {
         .doIfFailure { case e =>
           // does not get here on SIGINT despite InterruptedException thrown by take
           // TODO would it get a ClosedWatchServiceException when the parent thread is the culprit?
-          logger.error(s"terminating ${ e.getMessage }")
+          logger.error(s"terminating WorkerThread ${ e.getMessage }")
         }
         .getOrElse(false)
     }
+    logger.info("WorkerThread terminated")
   }
 
   private def handleWatchKey(watchKey: WatchKey): Boolean = {
@@ -140,7 +141,7 @@ object WorkerThread extends DebugEnhancedLogging {
     // TODO implement submit stub: https://drivenbydata.atlassian.net/browse/EASY-2158
     //
     // replace https://github.com/DANS-KNAW/easy-deposit-api/blob/ea0abe91ce9474ca3de6a171501257b5b1827439/src/main/scala/nl.knaw.dans.easy.deposit/EasyDepositApiApp.scala#L181
-    // with _ <- stateManager.changeState(StateInfo(State.finalizing, "Worker thread will completed the staged deposit and move it to ingest-flow-inbox."))
+    // with _ <- stateManager.changeState(StateInfo(State.finalizing, "Preparing deposit for submission."))
     // note that the disposableStagedDir should not get deleted at successful completion of the request
     //
     // call Submitter.submit in this stub and make a few changes:

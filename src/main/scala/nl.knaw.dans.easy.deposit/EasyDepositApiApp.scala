@@ -64,7 +64,7 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
     configuration.version
   }
 
-  private val stagedBaseDir = {
+  val stagedBaseDir: File = {
     val dir = getConfiguredDirectory("deposits.staged")
     if (dir.nonEmpty) throw LeftoversOfForcedShutdownException(dir)
     logger.info(s"Uploads/submits will be staged in $dir")
