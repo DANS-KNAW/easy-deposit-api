@@ -31,11 +31,11 @@ object WorkerThread extends DebugEnhancedLogging {
 
   def main(args: Array[String]): Unit = {
 
-    // TODO create watchService as first action in EasyDepositApiService.start
-    //  close it as last action in EasyDepositApiService.stop
+    // TODO create watchService as first action in ServiceStarter.start
+    //  close it as last action in ServiceStarter.stop
     stagedBaseDir.watchService.apply { watchService =>
       stagedBaseDir.register(watchService, Seq(ENTRY_CREATE, ENTRY_DELETE))
-      handleWatchService(watchService) // TODO in a sub-thread created by EasyDepositApiService.start
+      handleWatchService(watchService) // TODO in a sub-thread created by ServiceStarter.start
     }
   }
 
@@ -126,11 +126,26 @@ object WorkerThread extends DebugEnhancedLogging {
 
   private def calculateShas(stagedUploadDir: File): Unit = {
     logger.info(s"Calculate missing SHA's for: $stagedUploadDir")
-    // TODO implement SHA stub
+    // TODO implement SHA stub: https://drivenbydata.atlassian.net/browse/EASY-2157
+    //
+    // add methods to dans-bag-lib
+    // - add payload files without checksums
+    // - calculate missing checksums
+    // call the first by the servlet, the latter in this stub
+    // the deposit-ui should present missing checksums as ???
   }
 
   private def finalizeSubmit(stagedSubmitDir: File): Unit = {
     logger.info(s"Prepare and move to ingest-flow-inbox: $stagedSubmitDir")
-    // TODO implement submit stub
+    // TODO implement submit stub: https://drivenbydata.atlassian.net/browse/EASY-2158
+    //
+    // replace https://github.com/DANS-KNAW/easy-deposit-api/blob/ea0abe91ce9474ca3de6a171501257b5b1827439/src/main/scala/nl.knaw.dans.easy.deposit/EasyDepositApiApp.scala#L181
+    // with _ <- stateManager.changeState(StateInfo(State.finalizing, "Worker thread will completed the staged deposit and move it to ingest-flow-inbox."))
+    // note that the disposableStagedDir should not get deleted at successful completion of the request
+    //
+    // call Submitter.submit in this stub and make a few changes:
+    // drop https://github.com/DANS-KNAW/easy-deposit-api/blob/b8a80248f95a8441553822b9888ac98a5251618a/src/main/scala/nl.knaw.dans.easy.deposit/Submitter.scala#L93
+    // set state in staged deposit to SUBMITTED before moving
+    // set state in draft deposit to SUBMITTED after moving
   }
 }
