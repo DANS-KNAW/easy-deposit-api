@@ -42,7 +42,7 @@ object WorkerThread extends DebugEnhancedLogging {
 
   def handleWatchService(watchService: WatchService): Unit = {
     // https://howtodoinjava.com/java8/java-8-watchservice-api-tutorial/
-    // take, because polling skips staged-upload-dirs created and deleted within a single cycle
+    // used take instead, because polling skips staged-upload-dirs created and deleted within a single cycle
     handleAbortedByHardShutdown()
     Iterator.continually(()).foreach { _ =>
       Try(watchService.take())
@@ -75,36 +75,21 @@ object WorkerThread extends DebugEnhancedLogging {
   private def handleAbortedByHardShutdown(): Unit = {
     stagedBaseDir.list.foreach { abortedDir =>
       getDepositState(abortedDir.name) match {
-        case State.draft => abortedUpload(abortedDir)
-        case State.finalizing => abortedSubmit(abortedDir)
-        case state => logger.error(s"Staged garbage : $state $abortedDir")
+        case State.draft =>
+          logger.info(s"Found upload aborted by hard shutdown: $abortedDir")
+          // Ignore uploaded files not yet moved into a bag. They may be incomplete and we don't know the target anymore.
+          abortedDir.delete() // triggers a running watchService to perform SHA calculations
+        case State.finalizing =>
+          logger.info(s"Found submit aborted by hard shutdown: $abortedDir")
+          // Don't delete and create the directory again to trigger the watch service.
+          // Another hard shutdown could occur in between.
+          abortedDir.list.foreach { _.delete()}
+          finalizeSubmit(abortedDir)
+        case state =>
+          logger.error(s"Staged garbage : $state $abortedDir")
       }
     }
     logger.info(s"So far what was found at startup in $stagedBaseDir")
-  }
-
-  private def abortedSubmit(stagedSubmitDir: File): Unit = {
-    logger.info(s"Found submit aborted by hard shutdown: $stagedSubmitDir")
-
-    // delete and create the directory again could trigger the watchService to perform the submit
-    // but a new hard shutdown could happen between the two actions
-    // then the submit would no longer be noticed
-    // to keep it simple we delete intermediate results of the previous attempt and restart
-    stagedSubmitDir.list.foreach { _.delete()}
-    finalizeSubmit(stagedSubmitDir)
-  }
-
-
-  private def abortedUpload(stagedUploadDir: File): Unit = {
-    // * either some uploaded files may have been moved into the draft bag
-    //   or the last uploaded file may be incomplete
-    //   anyhow we don't know the location in the bag any more for remaining uploaded files
-    // * not completed SHA calculations for completed uploads won't be detected at restart
-    //   unless we would scan all drafts for missing SHA's
-    logger.info(s"Found upload aborted by hard shutdown: $stagedUploadDir")
-
-    // create an event that triggers a running watchService to perform SHA calculations
-    stagedUploadDir.delete()
   }
 
   /**
