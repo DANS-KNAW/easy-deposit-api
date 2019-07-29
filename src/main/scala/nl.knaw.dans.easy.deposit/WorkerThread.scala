@@ -18,24 +18,27 @@ package nl.knaw.dans.easy.deposit
 import java.io.IOException
 import java.nio.file.StandardWatchEventKinds.{ ENTRY_CREATE, ENTRY_DELETE }
 import java.nio.file.{ WatchEvent, WatchKey, WatchService }
+import java.util.UUID
 
 import better.files.File
 import nl.knaw.dans.easy.deposit.docs.StateInfo.State
 import nl.knaw.dans.lib.error._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 
-import scala.util.Try
+import scala.util.{ Failure, Success, Try }
 
 object WorkerThread extends DebugEnhancedLogging {
 
-  val stagedBaseDir = File("target") // TODO make flexible for unit tests / use EasyDepositApiApp.stagedBaseDir
+  // TODO make flexible for unit tests / use EasyDepositApiApp.stagedBaseDir
+  val configuration = Configuration(File(System.getProperty("app.home")))
+  val apiApp = new EasyDepositApiApp(configuration)
 
   def main(args: Array[String]): Unit = {
 
     // TODO create watchService as first action in EasyDepositApiService.start
     //  close it as last action in EasyDepositApiService.stop
-    stagedBaseDir.watchService.apply { watchService =>
-      stagedBaseDir.register(watchService, Seq(ENTRY_CREATE, ENTRY_DELETE))
+    apiApp.stagedBaseDir.watchService.apply { watchService =>
+      apiApp.stagedBaseDir.register(watchService, Seq(ENTRY_CREATE, ENTRY_DELETE))
       handleWatchService(watchService) // TODO in a sub-thread created by ServiceStarter.start
     }
   }
@@ -43,7 +46,7 @@ object WorkerThread extends DebugEnhancedLogging {
   def handleWatchService(watchService: WatchService): Unit = {
     // https://howtodoinjava.com/java8/java-8-watchservice-api-tutorial/
     // used take instead, because polling skips staged-upload-dirs created and deleted within a single cycle
-    handleAbortedByHardShutdown()
+    handleAbortedByHardShutdown() // TODO before starting the thread
     Iterator.continually(()).foreach { _ =>
       Try(watchService.take())
         .map(handleWatchKey)
@@ -63,45 +66,52 @@ object WorkerThread extends DebugEnhancedLogging {
   }
 
   private def handleWatchEvent(event: WatchEvent[_]): Unit = {
-    val stagedDepositDir = stagedBaseDir / event.context.toString
-    (event.kind(), getDepositState(stagedDepositDir.name)) match {
-      case (ENTRY_CREATE, State.finalizing) => finalizeSubmit(stagedDepositDir)
-      case (ENTRY_DELETE, State.draft) => calculateShas(stagedDepositDir)
+    val stagedDepositDir = apiApp.stagedBaseDir / event.context.toString
+    (event.kind(), getDepositState(stagedDepositDir)) match {
+      case (ENTRY_CREATE, Success(State.finalizing)) =>
+        logger.info(s"Detected submit event: $stagedDepositDir")
+        finalizeSubmit(stagedDepositDir)
+      case (ENTRY_DELETE, Success(State.draft)) =>
+        logger.info(s"Detected upload event: $stagedDepositDir")
+        calculateShas(stagedDepositDir)
+      case (_, Success(state)) => logger.warn(s"Not expected deposit state: $state $stagedDepositDir")
+      case (_, Failure(e)) => logger.warn(e.getMessage)
       case _ => // either completed finalizeSubmit or started upload
     }
   }
 
   @throws[IOException]("when files or directories can not be deleted")
   private def handleAbortedByHardShutdown(): Unit = {
-    stagedBaseDir.list.foreach { abortedDir =>
-      getDepositState(abortedDir.name) match {
-        case State.draft =>
-          logger.info(s"Found upload aborted by hard shutdown: $abortedDir")
+    apiApp.stagedBaseDir.list.foreach { abortedDir =>
+      getDepositState(abortedDir) match {
+        case Success(State.draft) => logger.info(s"Found upload aborted by hard shutdown: $abortedDir")
           // Ignore uploaded files not yet moved into a bag. They may be incomplete and we don't know the target anymore.
           abortedDir.delete() // triggers a running watchService to perform SHA calculations
-        case State.finalizing =>
-          logger.info(s"Found submit aborted by hard shutdown: $abortedDir")
+        case Success(State.finalizing) => logger.info(s"Found submit aborted by hard shutdown: $abortedDir")
           // Don't delete and create the directory again to trigger the watch service.
           // Another hard shutdown could occur in between.
-          abortedDir.list.foreach { _.delete()}
+          abortedDir.list.foreach { _.delete() }
           finalizeSubmit(abortedDir)
-        case state =>
-          logger.error(s"Staged garbage : $state $abortedDir")
+        case Success(state) => logger.warn(s"Not expected deposit state: $state $abortedDir")
+        case Failure(e: Exception) => logger.warn(e.getMessage)
       }
     }
-    logger.info(s"So far what was found at startup in $stagedBaseDir")
+    logger.info(s"So far what was found at startup in ${ apiApp.stagedBaseDir }")
   }
 
   /**
    * @param stagedDir created with EasyDepositApiApp.getStagedDir
    *                  format: [user-id]-[UUID]-[temp-name]
    */
-  private def getDepositState(stagedDir: String) = {
-    // TODO implement stub: get state from <drafts>/<user>/<UUID>/deposit.properties
-    stagedDir.toString match {
-      case "delete-me" => State.draft
-      case "submit-me" => State.finalizing
-      case _ => State.rejected
+  private def getDepositState(stagedDir: File) = {
+    val name = stagedDir.name.replaceAll("-[^-]+$", "") // trim [temp-name]
+    lazy val failure = Failure(new Exception(s"Expecting [user-id]-[UUID]-[temp-name], got $stagedDir"))
+    name.indexOf('-') match {
+      case -1 => failure
+      case i => Try { UUID.fromString(name.substring(i + 1)) }
+        .recoverWith { case _ => failure }
+        .flatMap(apiApp.getDepositState(name.substring(0, i), _))
+        .map(_.state)
     }
   }
 
