@@ -15,6 +15,7 @@
  */
 package nl.knaw.dans.easy.deposit
 
+import java.io.IOException
 import java.nio.file.StandardWatchEventKinds.{ ENTRY_CREATE, ENTRY_DELETE }
 import java.nio.file.{ WatchEvent, WatchKey, WatchService }
 
@@ -70,6 +71,7 @@ object WorkerThread extends DebugEnhancedLogging {
     }
   }
 
+  @throws[IOException]("when files or directories can not be deleted")
   private def handleAbortedByHardShutdown(): Unit = {
     stagedBaseDir.list.foreach { abortedDir =>
       getDepositState(abortedDir.name) match {
@@ -84,29 +86,22 @@ object WorkerThread extends DebugEnhancedLogging {
   private def abortedSubmit(stagedSubmitDir: File): Unit = {
     logger.info(s"Found submit aborted by hard shutdown: $stagedSubmitDir")
 
-    deleteContent(stagedSubmitDir) // clean up for a fresh submit
-
     // delete and create the directory again could trigger the watchService to perform the submit
     // but a new hard shutdown could happen between the two actions
     // then the submit would no longer be noticed
+    // to keep it simple we delete intermediate results of the previous attempt and restart
+    stagedSubmitDir.list.foreach { _.delete()}
     finalizeSubmit(stagedSubmitDir)
   }
 
-  def deleteContent(dir: File): Unit = {
-    dir.list.foreach { f =>
-      println(s"deleting $f")
-      if (f.isDirectory) deleteContent(f)
-      f.delete()
-    }
-  }
 
   private def abortedUpload(stagedUploadDir: File): Unit = {
-    // * some uploaded files may have been moved into the draft bag
+    // * either some uploaded files may have been moved into the draft bag
+    //   or the last uploaded file may be incomplete
+    //   anyhow we don't know the location in the bag any more for remaining uploaded files
     // * not completed SHA calculations for completed uploads won't be detected at restart
+    //   unless we would scan all drafts for missing SHA's
     logger.info(s"Found upload aborted by hard shutdown: $stagedUploadDir")
-
-    // we don't know the location in the bag any more for the remaining uploaded files
-    deleteContent(stagedUploadDir)
 
     // create an event that triggers a running watchService to perform SHA calculations
     stagedUploadDir.delete()
