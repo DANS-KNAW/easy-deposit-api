@@ -65,7 +65,7 @@ case class StateManager(depositDir: File, submitBase: File, easyHome: URL) exten
         }
         saveNewStateInDraftDeposit(stateInSubmittedDeposit)
         stateInSubmittedDeposit
-      case draftState @ (State.draft | State.rejected | State.archived) =>
+      case draftState =>
         StateInfo(draftState, getStateDescription(draftProps))
     }
   }

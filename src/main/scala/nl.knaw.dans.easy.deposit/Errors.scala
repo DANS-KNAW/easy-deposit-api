@@ -15,6 +15,7 @@
  */
 package nl.knaw.dans.easy.deposit
 
+import java.io.IOException
 import java.nio.file.{ FileAlreadyExistsException, Path }
 import java.util.UUID
 
@@ -33,6 +34,10 @@ import scala.util.Try
 object Errors extends DebugEnhancedLogging {
 
   case class ConfigurationException(msg: String) extends IllegalArgumentException(s"Configuration error: $msg")
+
+  case class InvalidStagedDirException()
+    extends IOException(s"Expecting a directory [user-id]-[UUID]-[temp-name]") {
+  }
 
   case class LeftoversOfForcedShutdownException(dir: File)
     extends FileAlreadyExistsException(
