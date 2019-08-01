@@ -16,7 +16,7 @@
 package nl.knaw.dans.easy.deposit
 
 import java.nio.file.StandardWatchEventKinds.{ ENTRY_CREATE, ENTRY_DELETE }
-import java.nio.file.{ WatchEvent, WatchKey, WatchService }
+import java.nio.file.{ WatchEvent, WatchKey }
 import java.util.UUID
 
 import better.files.File
@@ -30,25 +30,26 @@ import scala.util.{ Failure, Success, Try }
 
 case class WorkerThread(apiApp: EasyDepositApiApp) extends Thread with DebugEnhancedLogging {
 
+  setDaemon(false) // when the parent shuts down, all pending events should be completed
+  setName("deposit-api-worker-thread")
   private val watchedDir = apiApp.stagedBaseDir
+  private val watchService = watchedDir.newWatchService // TODO how to close?
+  watchedDir.register(watchService, Seq(ENTRY_CREATE, ENTRY_DELETE))
 
-  logger.info("creating worker thread - processing uploads/submits aborted by hard shut down")
-  watchedDir.list.foreach { handleAbortedByHardShutdown }
-  logger.info("created worker thread")
+  // don't delay startup (so process in run) nor interfere with new events (so get all before run)
+  private val aborted = watchedDir.list.toArray
 
-  // TODO call as first action in EasyDepositApiService.start
-  //  Close watchService as last action in EasyDepositApiService.stop, but how?
+  // otherwise early events (by users or handleAbortedByHardShutdown) are not picked up
+  Thread.sleep(50) // TODO How to check the file system is ready to detect/notify watched events?
+
+  // TODO start the thread as first action in EasyDepositApiService.start
+  //  Close watchService as last action in EasyDepositApiService.stop, but how/when?
+  //  How to detect no events are pending and the service can be stopped?
+  //  We can count directories for submissions. The delete events that trigger SHA calculation
+  //  might still be pending but directories are gone.
   //  How to terminate the caller in case of a not expected fatal error?
   override def run(): Unit = {
-
-    watchedDir.watchService.apply { watchService =>
-      watchedDir.register(watchService, Seq(ENTRY_CREATE, ENTRY_DELETE))
-      logger.info(s"registered to WatchService $watchedDir")
-      handleWatchService(watchService)
-    }
-  }
-
-  def handleWatchService(watchService: WatchService): Unit = {
+    aborted.foreach { handleAbortedByHardShutdown }
     // https://howtodoinjava.com/java8/java-8-watchservice-api-tutorial/
     // used take instead, because polling skips staged-upload-dirs created and deleted within a single cycle
     Iterator.continually(()).foreach { _ =>
@@ -57,7 +58,7 @@ case class WorkerThread(apiApp: EasyDepositApiApp) extends Thread with DebugEnha
         .doIfFailure { case e =>
           // does not get here on SIGINT despite take claiming to throw InterruptedException
           // TODO would it get a ClosedWatchServiceException when the parent thread is the culprit?
-          logger.error(s"terminating WatchService ${ e.getMessage }")
+          logger.error(s"terminating WatchService ${ e.getMessage }".toString)
         }
         .getOrElse(false)
     }
@@ -73,14 +74,14 @@ case class WorkerThread(apiApp: EasyDepositApiApp) extends Thread with DebugEnha
     val stagedDepositDir = watchedDir / event.context.toString
     (event.kind(), getDepositState(stagedDepositDir)) match {
       case (ENTRY_CREATE, Success(State.draft)) =>
-        logger.info(s"Detected upload started event: $stagedDepositDir")
+        logger.info(s"Detected upload started event: $stagedDepositDir".toString)
       case (ENTRY_DELETE, Success(State.finalizing)) =>
-        logger.info(s"Detected submit completed event: $stagedDepositDir")
+        logger.info(s"Detected submit completed event: $stagedDepositDir".toString)
       case (ENTRY_DELETE, Success(State.draft)) =>
-        logger.info(s"Detected upload completed event: $stagedDepositDir")
+        logger.info(s"Detected upload completed event: $stagedDepositDir".toString)
         calculateShas(stagedDepositDir)
       case (ENTRY_CREATE, Success(State.finalizing)) =>
-        logger.info(s"Detected submit started event: $stagedDepositDir")
+        logger.info(s"Detected submit started event: $stagedDepositDir".toString)
         finalizeSubmit(stagedDepositDir)
       case (_, Success(state)) => logNotExpectedState(stagedDepositDir, state)
       case (_, Failure(e)) => logger.warn(e.getMessage)
@@ -90,10 +91,12 @@ case class WorkerThread(apiApp: EasyDepositApiApp) extends Thread with DebugEnha
 
   private def handleAbortedByHardShutdown(abortedDir: File) = {
     getDepositState(abortedDir) match {
-      case Success(State.draft) => logger.info(s"Found upload aborted by hard shutdown: $abortedDir")
+      case Success(State.draft) =>
+        logger.info(s"Found upload aborted by hard shutdown: ${ abortedDir.toString() }".toString)
         // Ignore uploaded files not yet moved into a bag. They may be incomplete and we don't know the target anymore.
-        abortedDir.delete() // triggers a running watchService to perform SHA calculations
-      case Success(State.finalizing) => logger.info(s"Found submit aborted by hard shutdown: $abortedDir")
+        abortedDir.delete() // triggers a running watchService
+      case Success(State.finalizing) =>
+        logger.info(s"Found submit aborted by hard shutdown: $abortedDir".toString)
         // Don't delete and create the directory again to trigger the watch service.
         // Another hard shutdown could occur in between.
         abortedDir.list.foreach { _.delete() }
@@ -103,13 +106,13 @@ case class WorkerThread(apiApp: EasyDepositApiApp) extends Thread with DebugEnha
                 Failure(NoSuchDepositException(_, _, _)) |
                 Failure(InvalidPropertyException(_, _, _)) |
                 Failure(PropertyNotFoundException(_, _))) =>
-        logger.warn(s"$abortedDir : $f")
-      case Failure(e: Throwable) => logger.warn(s"$abortedDir", e)
+        logger.warn(s"$abortedDir : ${ f.toString }".toString)
+      case Failure(e: Throwable) => logger.warn(s"$abortedDir".toString, e)
     }
   }
 
   private def logNotExpectedState(abortedDir: File, state: State): Unit = {
-    logger.warn(s"Not expected deposit state: $state $abortedDir")
+    logger.warn(s"Not expected deposit state: $state $abortedDir".toString)
   }
 
   /**
@@ -133,7 +136,7 @@ case class WorkerThread(apiApp: EasyDepositApiApp) extends Thread with DebugEnha
   }
 
   private def calculateShas(stagedUploadDir: File): Unit = {
-    logger.info(s"STUB: Calculate missing SHA's for: $stagedUploadDir")
+    logger.info(s"STUB: Calculate missing SHA's for: $stagedUploadDir".toString)
     // TODO implement SHA stub: https://drivenbydata.atlassian.net/browse/EASY-2157
     //
     // add methods to dans-bag-lib
@@ -144,7 +147,7 @@ case class WorkerThread(apiApp: EasyDepositApiApp) extends Thread with DebugEnha
   }
 
   private def finalizeSubmit(stagedSubmitDir: File): Unit = {
-    logger.info(s"STUB: Prepare and move to ingest-flow-inbox: $stagedSubmitDir")
+    logger.info(s"STUB: Prepare and move to ingest-flow-inbox: $stagedSubmitDir".toString)
     // TODO implement submit stub: https://drivenbydata.atlassian.net/browse/EASY-2158
     //
     // replace https://github.com/DANS-KNAW/easy-deposit-api/blob/ea0abe91ce9474ca3de6a171501257b5b1827439/src/main/scala/nl.knaw.dans.easy.deposit/EasyDepositApiApp.scala#L181
