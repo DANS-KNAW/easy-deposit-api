@@ -334,7 +334,7 @@ class UploadSpec extends DepositServletFixture {
       ("some", "1.txt", "rababera"),
       ("some", "2.txt", "rababera"),
       ("some", "3.txt", "rababera"),
-      ("some", "4.txt", "rababera"),
+      ("some", "4.txt", "rababera")
     ))
     val uuid = createDeposit
     val relativeTarget = "some"
@@ -349,7 +349,8 @@ class UploadSpec extends DepositServletFixture {
     ) {
       absoluteTarget.list.size shouldBe 2
       status shouldBe CONFLICT_409
-      body shouldBe s"The following file(s) already exist on the server: some/3.txt, some/2.txt"
+      val prefix = "The following file(s) already exist on the server:"
+      body should (equal(s"$prefix some/3.txt, some/2.txt") or equal(s"$prefix some/2.txt, some/3.txt"))
     }
   }
 

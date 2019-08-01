@@ -47,7 +47,7 @@ class WorkerThreadSpec extends TestSupportFixture with MockFactory with DebugEnh
 
     val mockedLogger = mock[Underlying] // TODO needed s"...".toString to avoid not expected WrappedArray
     (mockedLogger.warn(_: String)) expects where { s: String => isInvalidDir(s, "staged/foo-") } once()
-    (mockedLogger.warn(_: String)) expects where { s: String => s.contains("NoSuchDepositException","") && s.contains("staged/bar-") } once()
+    (mockedLogger.warn(_: String)) expects where { s: String => s.contains("NoSuchDepositException") && s.contains("staged/bar-") } once()
     (mockedLogger.info(_: String)) expects where { s: String => s.startsWith("STUB: Calculate")&& s.contains("staged/somebody-") } once()
     (mockedLogger.info(_: String)) expects where { s: String => s.startsWith("STUB: Prepare")&& s.contains("staged/someone-") } once()
     notSignificantLogExpectations(mockedLogger)
