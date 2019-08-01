@@ -17,12 +17,11 @@ package nl.knaw.dans.easy.deposit
 
 import java.io.IOException
 import java.nio.file._
-import java.nio.file.attribute.PosixFilePermission.GROUP_WRITE
+import java.nio.file.attribute.PosixFilePermission._
 import java.nio.file.attribute.{ PosixFileAttributeView, UserPrincipalNotFoundException }
-import java.nio.file.spi.FileSystemProvider
 import java.util.UUID
 
-import better.files.{ Dispose, File }
+import better.files.File
 import better.files.File.{ CopyOptions, VisitOptions }
 import nl.knaw.dans.bag.ChecksumAlgorithm.ChecksumAlgorithm
 import nl.knaw.dans.bag.DansBag
@@ -131,7 +130,11 @@ class Submitter(stagingBaseDir: File,
   private def setRights(path: Path): Try[Unit] = Try {
     trace(path)
     // EASY-1932, variant of https://github.com/DANS-KNAW/easy-split-multi-deposit/blob/73189001217c2bf31b487eb8356f76ea4e9ffc31/src/main/scala/nl.knaw.dans.easy.multideposit/actions/SetDepositPermissions.scala#L72-L90
-    File(path).addPermission(GROUP_WRITE)
+    val file = File(path)
+    file.addPermission(GROUP_WRITE)
+    file.addPermission(GROUP_READ)
+    if (file.isDirectory)
+      file.addPermission(GROUP_EXECUTE)
     // tried File(path).setGroup(groupPrincipal) but it causes "java.io.IOException: 'owner' parameter can't be a group"
     Files.getFileAttributeView(
       path,
