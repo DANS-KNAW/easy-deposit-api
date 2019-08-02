@@ -61,7 +61,7 @@ class StateManagerSpec extends TestSupportFixture {
          |state.description = The dataset is ready for processing
       """.stripMargin)
     StateManager(draftDeposit, File("does-not-exist"), easyHome).getStateInfo should matchPattern {
-      case Success(StateInfo(State.submitted, """Something went wrong while processing this deposit. Please <a href="mailto:info@dans.knaw.nl?subject=%20%28reference%20nr:%20DRAFT/foo/7fa835ce-0987-4064-90ca-a7b75ce78a16%29&body=Hello%0A%0ACould%20you%20please%20figure%20out%20what%20went%20wrong%20with%20my%20deposit?%0A%0AIt%20has%20title:%20%0Aand%20reference:%20DRAFT/foo/7fa835ce-0987-4064-90ca-a7b75ce78a16">contact DANS</a>""")) =>
+      case Success(StateInfo(State.submitted, """Something went wrong while processing this deposit. Please <a href="mailto:info@dans.knaw.nl?subject=%20%28reference%20nr:%20DRAFT/foo/7fa835ce-0987-4064-90ca-a7b75ce78a16%29&body=Hello%0A%0ACould%20you%20please%20figure%20out%20what%20went%20wrong%20with%20my%20deposit?%0A%0AIt%20has%20reference:%0A%20%20%20DRAFT/foo/7fa835ce-0987-4064-90ca-a7b75ce78a16%0Aand%20title:%0A%20%20%20%0A">contact DANS</a>""")) =>
     }
   }
 
@@ -73,7 +73,7 @@ class StateManagerSpec extends TestSupportFixture {
          |bag-store.bag-id = $submittedUuid
       """.stripMargin)
     StateManager(draftDeposit, testDir / "does-not-exist", easyHome).getStateInfo should matchPattern {
-      case Success(StateInfo(State.submitted, """Something went wrong while processing this deposit. Please <a href="mailto:info@dans.knaw.nl?subject=%20%28reference%20nr:%20a890ad74-872b-4f21-81a8-f3ef88b944ba%29&body=Hello%0A%0ACould%20you%20please%20figure%20out%20what%20went%20wrong%20with%20my%20deposit?%0A%0AIt%20has%20title:%20%0Aand%20reference:%20a890ad74-872b-4f21-81a8-f3ef88b944ba">contact DANS</a>""")) =>
+      case Success(StateInfo(State.submitted, """Something went wrong while processing this deposit. Please <a href="mailto:info@dans.knaw.nl?subject=%20%28reference%20nr:%20a890ad74-872b-4f21-81a8-f3ef88b944ba%29&body=Hello%0A%0ACould%20you%20please%20figure%20out%20what%20went%20wrong%20with%20my%20deposit?%0A%0AIt%20has%20reference:%0A%20%20%20a890ad74-872b-4f21-81a8-f3ef88b944ba%0Aand%20title:%0A%20%20%20%0A">contact DANS</a>""")) =>
     }
   }
 
@@ -121,7 +121,7 @@ class StateManagerSpec extends TestSupportFixture {
          |identifier.fedora = easy-dataset:1239
       """.stripMargin)
     StateManager(draftDeposit, submitBase, easyHome).getStateInfo should matchPattern {
-      case Success(StateInfo(State.submitted, """Something went wrong while processing this deposit. Please <a href="mailto:info@dans.knaw.nl?subject=%20%28reference%20nr:%20DRAFT/foo/7fa835ce-0987-4064-90ca-a7b75ce78a16%29&body=Hello%0A%0ACould%20you%20please%20figure%20out%20what%20went%20wrong%20with%20my%20deposit?%0A%0AIt%20has%20title:%20%0Aand%20reference:%20DRAFT/foo/7fa835ce-0987-4064-90ca-a7b75ce78a16">contact DANS</a>""")) =>
+      case Success(StateInfo(State.submitted, """Something went wrong while processing this deposit. Please <a href="mailto:info@dans.knaw.nl?subject=%20%28reference%20nr:%20DRAFT/foo/7fa835ce-0987-4064-90ca-a7b75ce78a16%29&body=Hello%0A%0ACould%20you%20please%20figure%20out%20what%20went%20wrong%20with%20my%20deposit?%0A%0AIt%20has%20reference:%0A%20%20%20DRAFT/foo/7fa835ce-0987-4064-90ca-a7b75ce78a16%0Aand%20title:%0A%20%20%20%0A">contact DANS</a>""")) =>
     }
   }
 

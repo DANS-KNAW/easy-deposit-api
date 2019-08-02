@@ -60,7 +60,7 @@ class EasyDepositApiAppSpec extends TestSupportFixture {
           // then draft deposits
           deposit4,
           // then in-progress deposits
-          deposit5.copy(stateDescription = s"""Something went wrong while processing this deposit. Please <a href="mailto:info@dans.knaw.nl?subject=my-title%20%28reference%20nr:%20${deposit5.id}%29&body=Hello%0A%0ACould%20you%20please%20figure%20out%20what%20went%20wrong%20with%20my%20deposit?%0A%0AIt%20has%20title:%20my-title%0Aand%20reference:%20${deposit5.id}">contact DANS</a>"""),
+          deposit5.copy(stateDescription = s"""Something went wrong while processing this deposit. Please <a href="mailto:info@dans.knaw.nl?subject=my-title%20%28reference%20nr:%20${deposit5.id}%29&body=Hello%0A%0ACould%20you%20please%20figure%20out%20what%20went%20wrong%20with%20my%20deposit?%0A%0AIt%20has%20reference:%0A%20%20%20${deposit5.id}%0Aand%20title:%0A%20%20%20my-title%0A">contact DANS</a>"""),
           // and finally archived deposits (newest to oldest)
           deposit6,
           deposit2,
