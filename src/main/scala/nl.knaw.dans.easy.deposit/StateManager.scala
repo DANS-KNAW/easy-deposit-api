@@ -125,16 +125,21 @@ case class StateManager(draftDeposit: DepositDir, submitBase: File, easyHome: UR
     val title: String = (draftDeposit.getDatasetMetadata.map(_.titles) match {
       case Success(Some(titles: Seq[String])) => titles.headOption
       case _ => None
-    }).getOrElse("") //.replace("<","&lt").replace(">","&gt")
+    }).getOrElse("").trim()
+    val shortTitle = title.substring(0, Math.min(42, title.length)).replaceAll("[\r\n]+", " ")
+    val mediumTitle = title.substring(0, Math.min(1000, title.length))
     val ref = getSubmittedBagId.map(_.toString).getOrElse(s"DRAFT/$relativeDraftDir")
-    val subject = queryPartEncode(s"${ title.substring(0, Math.min(42, title.length)) } (reference nr: $ref)")
+    val subject = queryPartEncode(s"${ shortTitle } (reference nr: $ref)")
     val body = queryPartEncode(
       s"""Hello
          |
          |Could you please figure out what went wrong with my deposit?
          |
-         |It has title: ${ title.substring(0, Math.min(1000, title.length)) }
-         |and reference: $ref""".stripMargin
+         |It has reference:
+         |   $ref
+         |and title:
+         |   $mediumTitle
+         |""".stripMargin
     )
     s"""Something went wrong while processing this deposit. Please <a href="mailto:info@dans.knaw.nl?subject=$subject&body=$body">contact DANS</a>"""
   }
