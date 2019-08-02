@@ -23,7 +23,7 @@ import nl.knaw.dans.easy.deposit.Errors.{ IllegalStateTransitionException, Inval
 import nl.knaw.dans.easy.deposit.docs.StateInfo
 import nl.knaw.dans.easy.deposit.docs.StateInfo.State
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
-import org.apache.commons.configuration.PropertiesConfiguration
+import org.apache.commons.configuration.{ ConfigurationException, PropertiesConfiguration }
 import org.scalatra.util.UrlCodingUtils.queryPartEncode
 
 import scala.util.{ Failure, Success, Try }
@@ -39,10 +39,11 @@ case class StateManager(draftDeposit: DepositDir, submitBase: File, easyHome: UR
   private val bagIdKey = "bag-store.bag-id"
 
   /** Available as side effect for properties not related to fetching or updating the state of the deposit. */
+  @throws[ConfigurationException]
   val draftProps = new PropertiesConfiguration(
     (depositDir / "deposit.properties").toJava
   )
-  private lazy val submittedProps = Try(getProp(bagIdKey, draftProps))
+  private lazy val submittedProps = getProp(bagIdKey, draftProps)
     .map(submittedId =>
       new PropertiesConfiguration((submitBase / submittedId.toString / "deposit.properties").toJava)
     ).getOrElse(new PropertiesConfiguration)
@@ -50,32 +51,28 @@ case class StateManager(draftDeposit: DepositDir, submitBase: File, easyHome: UR
   /** @return the state-label/description from drafts/USER/UUID/deposit.properties
    *          unless more recent values might be available in SUBMITTED/UUID/deposit.properties
    */
-  def getStateInfo: Try[StateInfo] = Try {
-    getStateInDraftDeposit match {
-      case stateInDraftDeposit @ (State.submitted | State.inProgress) =>
-        val stateInSubmittedDeposit: StateInfo = Try(getProp(stateLabelKey, submittedProps)) match {
-          case Success("SUBMITTED") => StateInfo(State.submitted, getStateDescription(draftProps))
-          case Success("REJECTED") => Try { getProp("curation.performed", submittedProps) } match {
-            case Success("yes") => StateInfo(State.inProgress, getStateDescription(submittedProps))
-            case _ => StateInfo(State.inProgress, mailToDans)
-          }
-          case Success("FAILED") => StateInfo(State.inProgress, mailToDans)
-          case Success("IN_REVIEW") => StateInfo(State.inProgress, landingPage("deposit is available"))
-          case Success("FEDORA_ARCHIVED") |
-               Success("ARCHIVED") => StateInfo(State.archived, landingPage("dataset is published"))
-          case Success(str: String) =>
-            logger.error(InvalidPropertyException(stateLabelKey, str, submittedProps).getMessage)
-            StateInfo(State.inProgress, mailToDans)
-          case Failure(e) =>
-            logger.error(s"Could not find state of submitted deposit [draft = $relativeDraftDir]: ${e.getMessage}")
-            // return as we don't want to change anything anymore when we are in such deep trouble
-            return Success(StateInfo(stateInDraftDeposit, mailToDans))
+  def getStateInfo: Try[StateInfo] = getStateInDraftDeposit.map {
+    case draftState @ (State.draft | State.rejected | State.archived) =>
+      StateInfo(draftState, getStateDescription(draftProps))
+    case stateInDraftDeposit @ (State.submitted | State.inProgress) =>
+      getProp(stateLabelKey, submittedProps) match {
+        case Success("SUBMITTED") => StateInfo(stateInDraftDeposit, getStateDescription(draftProps))
+        case Success("REJECTED") => getProp("curation.performed", submittedProps) match {
+          case Success("yes") => saveNewStateInDraftDeposit(StateInfo(State.inProgress, getStateDescription(submittedProps)))
+          case _ => StateInfo(stateInDraftDeposit, mailToDansMessage)
         }
-        saveNewStateInDraftDeposit(stateInSubmittedDeposit)
-        stateInSubmittedDeposit
-      case draftState @ (State.draft | State.rejected | State.archived) =>
-        StateInfo(draftState, getStateDescription(draftProps))
-    }
+        case Success("FAILED") => StateInfo(State.inProgress, mailToDansMessage)
+        case Success("IN_REVIEW") => saveNewStateInDraftDeposit(StateInfo(State.inProgress, landingPage("deposit is available")))
+        case Success("FEDORA_ARCHIVED") |
+             Success("ARCHIVED") => saveNewStateInDraftDeposit(StateInfo(State.archived, landingPage("dataset is published")))
+        case Success(str: String) =>
+          logger.error(InvalidPropertyException(stateLabelKey, str, submittedProps).getMessage)
+          StateInfo(stateInDraftDeposit, mailToDansMessage)
+        case Failure(e) =>
+          logger.error(s"Could not find state of submitted deposit [draft = $relativeDraftDir]: ${ e.getMessage }")
+          // return as we don't want to change anything anymore when we are in such deep trouble
+          StateInfo(stateInDraftDeposit, mailToDansMessage)
+      }
   }
 
   def canChangeState(newStateInfo: StateInfo): Try[Unit] = getStateInfo.flatMap { oldStateInfo =>
@@ -123,12 +120,12 @@ case class StateManager(draftDeposit: DepositDir, submitBase: File, easyHome: UR
     UUID.fromString(draftProps.getString(bagIdKey))
   }
 
-  private def mailToDans: String = {
+  private def mailToDansMessage: String = {
 
     val title: String = (draftDeposit.getDatasetMetadata.map(_.titles) match {
       case Success(Some(titles: Seq[String])) => titles.headOption
       case _ => None
-    }).getOrElse("")
+    }).getOrElse("") //.replace("<","&lt").replace(">","&gt")
     val ref = getSubmittedBagId.map(_.toString).getOrElse(s"DRAFT/$relativeDraftDir")
     val subject = queryPartEncode(s"${ title.substring(0, Math.min(42, title.length)) } (reference nr: $ref)")
     val body = queryPartEncode(
@@ -136,38 +133,39 @@ case class StateManager(draftDeposit: DepositDir, submitBase: File, easyHome: UR
          |
          |Could you please figure out what went wrong with my deposit?
          |
-         |It has title: $title
+         |It has title: ${ title.substring(0, Math.min(1000, title.length)) }
          |and reference: $ref""".stripMargin
     )
     s"""Something went wrong while processing this deposit. Please <a href="mailto:info@dans.knaw.nl?subject=$subject&body=$body">contact DANS</a>"""
   }
 
   private def landingPage(how: String): String = {
-    val url = Try { getProp("identifier.fedora", submittedProps) }
+    val url = getProp("identifier.fedora", submittedProps)
       .map(id => s"$easyHome/datasets/id/$id")
       .getOrElse(s"$easyHome/mydatasets") // fall back
     s"""The $how at <a href="$url" target="_blank">$url</a>"""
   }
 
-  private def saveNewStateInDraftDeposit(newStateInfo: StateInfo): Unit = {
+  private def saveNewStateInDraftDeposit(newStateInfo: StateInfo): StateInfo = {
     draftProps.setProperty(stateLabelKey, newStateInfo.state.toString)
     draftProps.setProperty(stateDescriptionKey, newStateInfo.stateDescription)
     draftProps.save()
+    newStateInfo
   }
 
   @throws[InvalidPropertyException](s"when stateLabelKey is not found in draftProps")
-  private def getStateInDraftDeposit: State.Value = {
-    val str = getProp(stateLabelKey, draftProps)
-    Try { State.withName(str) }
-      .getOrElse(throw InvalidPropertyException(stateLabelKey, str, draftProps))
+  private def getStateInDraftDeposit: Try[State.Value] = {
+    for {
+      str <- getProp(stateLabelKey, draftProps)
+      state = State.withName(str)
+    } yield state
   }
 
   private def getStateDescription(props: PropertiesConfiguration, default: String = ""): String = {
-    Try(getProp(stateDescriptionKey, props)).getOrElse(default)
+    getProp(stateDescriptionKey, props).getOrElse(default)
   }
 
-  @throws[PropertyNotFoundException]("when key is not found in props")
-  private def getProp(key: String, props: PropertiesConfiguration): String = {
+  private def getProp(key: String, props: PropertiesConfiguration): Try[String] = Try {
     Option(props.getString(key, null))
       .getOrElse(throw PropertyNotFoundException(key, props))
   }

@@ -138,7 +138,7 @@ class StateManagerSpec extends TestSupportFixture {
     ((draftDeposit.bagDir / "metadata").createDirectories() / "dataset.json")
       .write("""{"titles":["Ground hog weather report"]}""")
     StateManager(draftDeposit, submitBase, easyHome).getStateInfo should matchPattern {
-      case Success(StateInfo(State.inProgress, """Something went wrong while processing this deposit. Please <a href="mailto:info@dans.knaw.nl?subject=Ground%20hog%20weather%20report%20%28reference%20nr:%20a890ad74-872b-4f21-81a8-f3ef88b944ba%29&body=Hello%0A%0ACould%20you%20please%20figure%20out%20what%20went%20wrong%20with%20my%20deposit?%0A%0AIt%20has%20title:%20Ground%20hog%20weather%20report%0Aand%20reference:%20a890ad74-872b-4f21-81a8-f3ef88b944ba">contact DANS</a>""")) =>
+      case Success(StateInfo(State.submitted, """Something went wrong while processing this deposit. Please <a href="mailto:info@dans.knaw.nl?subject=Ground%20hog%20weather%20report%20%28reference%20nr:%20a890ad74-872b-4f21-81a8-f3ef88b944ba%29&body=Hello%0A%0ACould%20you%20please%20figure%20out%20what%20went%20wrong%20with%20my%20deposit?%0A%0AIt%20has%20title:%20Ground%20hog%20weather%20report%0Aand%20reference:%20a890ad74-872b-4f21-81a8-f3ef88b944ba">contact DANS</a>""")) =>
     }
   }
 
