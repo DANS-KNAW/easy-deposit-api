@@ -350,7 +350,7 @@ class UploadSpec extends DepositServletFixture {
       absoluteTarget.list.size shouldBe 2
       status shouldBe CONFLICT_409
       val prefix = "The following file(s) already exist on the server:"
-      body should (equal(s"$prefix some/3.txt, some/2.txt".toString) or equal(s"$prefix some/3.txt, some/2.txt".toString))
+      body should (equal(s"$prefix some/3.txt, some/2.txt".toString) or equal(s"$prefix some/2.txt, some/3.txt".toString))
     }
   }
 
