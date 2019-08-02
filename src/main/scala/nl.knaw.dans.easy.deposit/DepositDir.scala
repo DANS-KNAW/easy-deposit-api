@@ -52,7 +52,7 @@ case class DepositDir private(draftBase: File, user: String, id: UUID) extends D
    * @return the `StateManager` for this deposit
    */
   def getStateManager(submitBase: File, easyHome: URL): StateManager = {
-    StateManager(bagDir.parent, submitBase, easyHome)
+    StateManager(this, submitBase, easyHome)
   }
 
   /**

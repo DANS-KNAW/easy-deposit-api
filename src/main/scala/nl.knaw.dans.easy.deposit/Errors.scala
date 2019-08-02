@@ -65,7 +65,7 @@ object Errors extends DebugEnhancedLogging {
 
   case class CorruptDepositException(user: String, id: String, cause: Throwable)
     extends ServletResponseException(INTERNAL_SERVER_ERROR_500, s"Invalid deposit uuid $id for user $user: ${ cause.getMessage }") {
-    logger.error(cause.getMessage, cause)
+    logger.error(cause.getMessage)
   }
 
   case class CorruptUserException(msg: String)
@@ -75,7 +75,7 @@ object Errors extends DebugEnhancedLogging {
     extends ServletResponseException(INTERNAL_SERVER_ERROR_500, msg)
 
   case class PropertyNotFoundException(key: String, props: PropertiesConfiguration)
-    extends PropertyException(s"'$key' not found in ${ props.getFile }")
+    extends PropertyException(s"no value for '$key' in ${ Option(props.getFile).getOrElse("not found properties file") }")
 
   case class InvalidPropertyException(key: String, value: String, props: PropertiesConfiguration)
     extends PropertyException(s"Not expected value '$value' for '$key' in ${ props.getFile }")
