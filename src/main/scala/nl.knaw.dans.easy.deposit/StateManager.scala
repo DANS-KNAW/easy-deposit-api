@@ -34,7 +34,6 @@ case class StateManager(depositDir: File, submitBase: File, easyHome: URL) exten
 
   /** created/destroyed when the state changes, needed to peek into SUBMITTED/UUID/deposit.properties */
   private val bagIdKey = "bag-store.bag-id"
-  private val depositSourceKey = "deposit.source"
 
   /** Available as side effect for properties not related to fetching or updating the state of the deposit. */
   val draftProps = new PropertiesConfiguration(
@@ -91,12 +90,10 @@ case class StateManager(depositDir: File, submitBase: File, easyHome: URL) exten
         // probably properly saved without toString but getSubmittedBagId would throw
         // ConversionException: 'bag-store.bag-id' doesn't map to a String object
         draftProps.setProperty(bagIdKey, bagStoreBagId.toString)
-        draftProps.setProperty(depositSourceKey, "API")
         saveNewStateInDraftDeposit(newStateInfo)
         Success(())
       case (State.rejected, State.draft) =>
         draftProps.clearProperty(bagIdKey)
-        draftProps.clearProperty(depositSourceKey)
         saveNewStateInDraftDeposit(newStateInfo)
         Success(())
       case (oldState, newState) =>
