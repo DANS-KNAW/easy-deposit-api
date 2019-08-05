@@ -16,7 +16,7 @@
 package nl.knaw.dans.easy.deposit.docs
 
 import javax.xml.validation.Schema
-import nl.knaw.dans.easy.deposit.Errors.InvalidDocumentException
+import nl.knaw.dans.easy.deposit.Errors.{ CorruptUserException, InvalidDocumentException }
 import nl.knaw.dans.easy.deposit.TestSupportFixture
 import nl.knaw.dans.easy.deposit.docs.dm.DateScheme.W3CDTF
 import nl.knaw.dans.easy.deposit.docs.dm._
@@ -66,11 +66,11 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
   )
 
   "minimal with multiple descriptions" should behave like validDatasetMetadata(
-    input = Try(new MinimalDatasetMetadata(descriptions = Some(Seq("Lorum", "ipsum")))),
+    input = Try(new MinimalDatasetMetadata(descriptions = Some(Seq("Lorum <a href='mailto:info@dans.knaw.nl'>ipsum</a>", "ipsum")))),
     subset = actualDDM => profileElements(actualDDM, "description"),
     expectedDdmContent =
       <ddm:profile>
-        <dcterms:description>Lorum</dcterms:description>
+        <dcterms:description>Lorum &lt;a href='mailto:info@dans.knaw.nl'&gt;ipsum&lt;/a&gt;</dcterms:description>
         <dcterms:description>ipsum</dcterms:description>
       </ddm:profile>
   )
