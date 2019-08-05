@@ -238,6 +238,7 @@ object DepositDir {
       addProperty("identifier.dans-doi.registered", "no")
       addProperty("identifier.dans-doi.action", "create")
       addProperty("bag-store.bag-name", bagDirName)
+      addProperty("deposit.origin", "API")
     }.save(depositDir.depositPropertiesFile.toJava)
   }
 }
