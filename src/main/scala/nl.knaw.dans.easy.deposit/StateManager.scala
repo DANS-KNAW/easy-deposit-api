@@ -62,9 +62,9 @@ case class StateManager(draftDeposit: DepositDir, submitBase: File, easyHome: UR
           case _ => StateInfo(stateInDraftDeposit, mailToDansMessage)
         }
         case "FAILED" => StateInfo(stateInDraftDeposit, mailToDansMessage)
-        case "IN_REVIEW" => saveNewStateInDraftDeposit(StateInfo(State.inProgress, landingPage("deposit is available")))
+        case "IN_REVIEW" => saveNewStateInDraftDeposit(StateInfo(State.inProgress, landingPage("The deposit is available at")))
         case "FEDORA_ARCHIVED" |
-             "ARCHIVED" => saveNewStateInDraftDeposit(StateInfo(State.archived, landingPage("dataset is published")))
+             "ARCHIVED" => saveNewStateInDraftDeposit(StateInfo(State.archived, landingPage("The dataset is published at")))
         case str =>
           logger.error(InvalidPropertyException(stateLabelKey, str, submittedProps).getMessage)
           StateInfo(stateInDraftDeposit, mailToDansMessage)
@@ -145,11 +145,11 @@ case class StateManager(draftDeposit: DepositDir, submitBase: File, easyHome: UR
     s"""Something went wrong while processing this deposit. Please <a href="mailto:info@dans.knaw.nl?subject=$subject&body=$body">contact DANS</a>"""
   }
 
-  private def landingPage(how: String): String = {
+  private def landingPage(msgStart: String): String = {
     val url = getProp("identifier.fedora", submittedProps)
       .map(id => s"$easyHome/datasets/id/$id")
       .getOrElse(s"$easyHome/mydatasets") // fall back
-    s"""The $how at <a href="$url" target="_blank">$url</a>"""
+    s"""$msgStart <a href="$url" target="_blank">$url</a>"""
   }
 
   private def saveNewStateInDraftDeposit(newStateInfo: StateInfo): StateInfo = {
