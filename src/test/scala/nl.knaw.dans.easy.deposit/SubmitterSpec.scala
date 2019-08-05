@@ -54,7 +54,7 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
   "submit" should "fail if the user is not part of the given group" in {
     val depositDir = createDeposit(datasetMetadata)
     val stateManager = depositDir.getStateManager(testDir / "submitted", easyHome)
-        .getOrRecover(e => (fail(s"could not get stateManager of test deposit $e")))
+      .getOrRecover(e => (fail(s"could not get stateManager of test deposit $e")))
     addDoiToDepositProperties(getBag(depositDir))
 
     createSubmitter(unrelatedGroup).submit(depositDir, stateManager, "fullName", testDir / "staged") should matchPattern {
@@ -82,7 +82,7 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
     val bagStoreBagID = succeedingSubmit(depositDir)
 
     // post conditions
-    (testDir / "staged") should not (exist)
+    (testDir / "staged") should not(exist)
     (bagDir / "metadata" / "dataset.json").size shouldBe mdOldSize
     // no DOI added
     val submittedBagDir = testDir / "submitted" / bagStoreBagID / bagDirName

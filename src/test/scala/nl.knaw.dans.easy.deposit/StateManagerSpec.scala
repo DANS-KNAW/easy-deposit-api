@@ -36,6 +36,7 @@ class StateManagerSpec extends TestSupportFixture {
   private val easyHome: URL = new URL("https://easy.dans.knaw.nl/ui")
 
   private def submittedPropsFile: File = (submitBase / submittedUuid.toString).createDirectories() / "deposit.properties"
+
   private def draftPropsFile: File = draftDeposit.bagDir.createDirectories().parent / "deposit.properties"
 
   override def beforeEach(): Unit = {

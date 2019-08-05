@@ -16,7 +16,7 @@
 package nl.knaw.dans.easy.deposit.docs
 
 import javax.xml.validation.Schema
-import nl.knaw.dans.easy.deposit.Errors.{ CorruptUserException, InvalidDocumentException }
+import nl.knaw.dans.easy.deposit.Errors.InvalidDocumentException
 import nl.knaw.dans.easy.deposit.TestSupportFixture
 import nl.knaw.dans.easy.deposit.docs.dm.DateScheme.W3CDTF
 import nl.knaw.dans.easy.deposit.docs.dm._

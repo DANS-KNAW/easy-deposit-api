@@ -68,7 +68,7 @@ case class StateManager(draftDeposit: DepositDir, submitBase: File, easyHome: UR
         case str =>
           logger.error(InvalidPropertyException(stateLabelKey, str, submittedProps).getMessage)
           StateInfo(stateInDraftDeposit, mailToDansMessage)
-      }.recoverWith{case e =>
+      }.recoverWith { case e =>
         logger.error(s"Could not find state of submitted deposit [draft = $relativeDraftDir]: ${ e.getMessage }")
         Success(StateInfo(stateInDraftDeposit, mailToDansMessage))
       }
@@ -139,7 +139,7 @@ case class StateManager(draftDeposit: DepositDir, submitBase: File, easyHome: UR
          |   $mediumTitle
          |
          |Kind regards,
-         |${draftDeposit.user}
+         |${ draftDeposit.user }
          |""".stripMargin
     )
     s"""Something went wrong while processing this deposit. Please <a href="mailto:info@dans.knaw.nl?subject=$subject&body=$body">contact DANS</a>"""
