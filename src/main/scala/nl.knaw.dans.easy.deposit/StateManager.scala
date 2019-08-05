@@ -124,19 +124,20 @@ case class StateManager(draftDeposit: DepositDir, submitBase: File, easyHome: UR
       case Success(Some(titles)) => titles.headOption
       case _ => None
     }).getOrElse("").trim()
-    val shortTitle = title.substring(0, Math.min(42, title.length)).replaceAll("[\r\n]+", " ")
-    val mediumTitle = title.substring(0, Math.min(1000, title.length))
+    val shortTitle = title.substring(0, Math.min(42, title.length))
+      .replaceAll("[\r\n]+", " ") // wrap a multiline title into a single line
+      .replaceAll("<.*", "") // avoid html tags in subject and body
     val ref = getSubmittedBagId.map(_.toString).getOrElse(s"DRAFT/$relativeDraftDir")
-    val subject = queryPartEncode(s"$shortTitle (reference: $ref)")
+    val subject = queryPartEncode(s"Deposit processing error: $shortTitle reference $ref")
     val body = queryPartEncode(
       s"""Dear data manager,
          |
-         |Something went wrong while processing my deposit. Could you please look into what went wrong with it?
+         |Something went wrong while processing my deposit. Could you please investigate the issue?
          |
          |It has reference:
          |   $ref
-         |and title:
-         |   $mediumTitle
+         |The title starts with:
+         |   $shortTitle
          |
          |Kind regards,
          |${ draftDeposit.user }
