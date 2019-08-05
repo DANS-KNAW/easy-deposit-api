@@ -61,7 +61,7 @@ case class StateManager(draftDeposit: DepositDir, submitBase: File, easyHome: UR
           case Success("yes") => saveNewStateInDraftDeposit(StateInfo(State.inProgress, getStateDescription(submittedProps)))
           case _ => StateInfo(stateInDraftDeposit, mailToDansMessage)
         }
-        case Success("FAILED") => StateInfo(State.inProgress, mailToDansMessage)
+        case Success("FAILED") => StateInfo(stateInDraftDeposit, mailToDansMessage)
         case Success("IN_REVIEW") => saveNewStateInDraftDeposit(StateInfo(State.inProgress, landingPage("deposit is available")))
         case Success("FEDORA_ARCHIVED") |
              Success("ARCHIVED") => saveNewStateInDraftDeposit(StateInfo(State.archived, landingPage("dataset is published")))
@@ -70,7 +70,6 @@ case class StateManager(draftDeposit: DepositDir, submitBase: File, easyHome: UR
           StateInfo(stateInDraftDeposit, mailToDansMessage)
         case Failure(e) =>
           logger.error(s"Could not find state of submitted deposit [draft = $relativeDraftDir]: ${ e.getMessage }")
-          // return as we don't want to change anything anymore when we are in such deep trouble
           StateInfo(stateInDraftDeposit, mailToDansMessage)
       }
   }
