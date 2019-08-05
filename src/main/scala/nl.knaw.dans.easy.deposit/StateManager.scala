@@ -51,26 +51,26 @@ case class StateManager(draftDeposit: DepositDir, submitBase: File, easyHome: UR
   /** @return the state-label/description from drafts/USER/UUID/deposit.properties
    *          unless more recent values might be available in SUBMITTED/UUID/deposit.properties
    */
-  def getStateInfo: Try[StateInfo] = getStateInDraftDeposit.map {
+  def getStateInfo: Try[StateInfo] = getStateInDraftDeposit.flatMap {
     case draftState @ (State.draft | State.rejected | State.archived) =>
-      StateInfo(draftState, getStateDescription(draftProps))
+      Success(StateInfo(draftState, getStateDescription(draftProps)))
     case stateInDraftDeposit @ (State.submitted | State.inProgress) =>
-      getProp(stateLabelKey, submittedProps) match {
-        case Success("SUBMITTED") => StateInfo(stateInDraftDeposit, getStateDescription(draftProps))
-        case Success("REJECTED") => getProp("curation.performed", submittedProps) match {
-          case Success("yes") => saveNewStateInDraftDeposit(StateInfo(State.inProgress, getStateDescription(submittedProps)))
+      getProp(stateLabelKey, submittedProps).map {
+        case "SUBMITTED" => StateInfo(stateInDraftDeposit, getStateDescription(draftProps))
+        case "REJECTED" => getProp("curation.performed", submittedProps) match {
+          case Success("yes") => saveNewStateInDraftDeposit(StateInfo(State.rejected, getStateDescription(submittedProps)))
           case _ => StateInfo(stateInDraftDeposit, mailToDansMessage)
         }
-        case Success("FAILED") => StateInfo(stateInDraftDeposit, mailToDansMessage)
-        case Success("IN_REVIEW") => saveNewStateInDraftDeposit(StateInfo(State.inProgress, landingPage("deposit is available")))
-        case Success("FEDORA_ARCHIVED") |
-             Success("ARCHIVED") => saveNewStateInDraftDeposit(StateInfo(State.archived, landingPage("dataset is published")))
-        case Success(str: String) =>
+        case "FAILED" => StateInfo(stateInDraftDeposit, mailToDansMessage)
+        case "IN_REVIEW" => saveNewStateInDraftDeposit(StateInfo(State.inProgress, landingPage("deposit is available")))
+        case "FEDORA_ARCHIVED" |
+             "ARCHIVED" => saveNewStateInDraftDeposit(StateInfo(State.archived, landingPage("dataset is published")))
+        case str =>
           logger.error(InvalidPropertyException(stateLabelKey, str, submittedProps).getMessage)
           StateInfo(stateInDraftDeposit, mailToDansMessage)
-        case Failure(e) =>
-          logger.error(s"Could not find state of submitted deposit [draft = $relativeDraftDir]: ${ e.getMessage }")
-          StateInfo(stateInDraftDeposit, mailToDansMessage)
+      }.recoverWith{case e =>
+        logger.error(s"Could not find state of submitted deposit [draft = $relativeDraftDir]: ${ e.getMessage }")
+        Success(StateInfo(stateInDraftDeposit, mailToDansMessage))
       }
   }
 
@@ -120,24 +120,26 @@ case class StateManager(draftDeposit: DepositDir, submitBase: File, easyHome: UR
   }
 
   private def mailToDansMessage: String = {
-
     val title: String = (draftDeposit.getDatasetMetadata.map(_.titles) match {
-      case Success(Some(titles: Seq[String])) => titles.headOption
+      case Success(Some(titles)) => titles.headOption
       case _ => None
     }).getOrElse("").trim()
     val shortTitle = title.substring(0, Math.min(42, title.length)).replaceAll("[\r\n]+", " ")
     val mediumTitle = title.substring(0, Math.min(1000, title.length))
     val ref = getSubmittedBagId.map(_.toString).getOrElse(s"DRAFT/$relativeDraftDir")
-    val subject = queryPartEncode(s"${ shortTitle } (reference nr: $ref)")
+    val subject = queryPartEncode(s"$shortTitle (reference: $ref)")
     val body = queryPartEncode(
-      s"""Hello
+      s"""Dear data manager,
          |
-         |Could you please figure out what went wrong with my deposit?
+         |Something went wrong while processing my deposit. Could you please look into what went wrong with it?
          |
          |It has reference:
          |   $ref
          |and title:
          |   $mediumTitle
+         |
+         |Kind regards,
+         |${draftDeposit.user}
          |""".stripMargin
     )
     s"""Something went wrong while processing this deposit. Please <a href="mailto:info@dans.knaw.nl?subject=$subject&body=$body">contact DANS</a>"""
@@ -157,12 +159,8 @@ case class StateManager(draftDeposit: DepositDir, submitBase: File, easyHome: UR
     newStateInfo
   }
 
-  @throws[InvalidPropertyException](s"when stateLabelKey is not found in draftProps")
   private def getStateInDraftDeposit: Try[State.Value] = {
-    for {
-      str <- getProp(stateLabelKey, draftProps)
-      state = State.withName(str)
-    } yield state
+    getProp(stateLabelKey, draftProps).map(State.withName)
   }
 
   private def getStateDescription(props: PropertiesConfiguration, default: String = ""): String = {
