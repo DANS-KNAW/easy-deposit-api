@@ -51,7 +51,11 @@ class EasyDepositApiAppSpec extends TestSupportFixture {
     // copy from draft to submit directory: deposit5's state will be read out of the submit directory
     copyDepositToSubmitArea(deposit5.id)
 
-    inside(app.getDeposits(defaultUser)) {
+    // the state is required for the pattern match but the description is error prone and beyond the scope of the test
+    val expectedState = app.getDepositState(defaultUser,deposit5.id).getOrElse(fail())
+
+    val testResult = app.getDeposits(defaultUser)
+    inside(testResult) {
       case Success(sortedDeposits) =>
         sortedDeposits should contain inOrderOnly(
           // first rejected deposits (newest to oldest)
@@ -60,7 +64,7 @@ class EasyDepositApiAppSpec extends TestSupportFixture {
           // then draft deposits
           deposit4,
           // then in-progress deposits
-          deposit5.copy(stateDescription = s"""Something went wrong while processing this deposit. Please <a href="mailto:info@dans.knaw.nl?subject=Deposit%20processing%20error:%20my-title%20reference%20${ deposit5.id }&body=Dear%20data%20manager%2C%0A%0ASomething%20went%20wrong%20while%20processing%20my%20deposit.%20Could%20you%20please%20investigate%20the%20issue?%0A%0AIt%20has%20reference:%0A%20%20%20${ deposit5.id }%0AThe%20title%20starts%20with:%0A%20%20%20my-title%0A%0AKind%20regards%2C%0Auser001%0A">contact DANS</a>""".stripMargin),
+          deposit5.copy(state = expectedState.state, stateDescription = expectedState.stateDescription),
           // and finally archived deposits (newest to oldest)
           deposit6,
           deposit2,

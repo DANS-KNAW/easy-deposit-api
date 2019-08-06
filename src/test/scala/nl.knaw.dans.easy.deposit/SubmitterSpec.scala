@@ -54,7 +54,7 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
   "submit" should "fail if the user is not part of the given group" in {
     val depositDir = createDeposit(datasetMetadata)
     val stateManager = depositDir.getStateManager(testDir / "submitted", easyHome)
-      .getOrRecover(e => (fail(s"could not get stateManager of test deposit $e")))
+      .getOrRecover(e => fail(s"could not get stateManager of test deposit $e"))
     addDoiToDepositProperties(getBag(depositDir))
 
     createSubmitter(unrelatedGroup).submit(depositDir, stateManager, "fullName", testDir / "staged") should matchPattern {
@@ -136,7 +136,7 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
 
   private def succeedingSubmit(deposit: DepositDir): String = {
     val stateManager = deposit.getStateManager(testDir / "submitted", easyHome)
-      .getOrRecover(e => (fail(s"could not get stateManager of test deposit $e")))
+      .getOrRecover(e => fail(s"could not get stateManager of test deposit $e"))
 
     val triedBagStoreBagID = createSubmitter(userGroup).submit(deposit, stateManager, "fullName", testDir / "staged")
     triedBagStoreBagID shouldBe a[Success[_]]
@@ -148,7 +148,7 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
   it should "report a file missing in the draft" in {
     val depositDir = createDeposit(datasetMetadata)
     val stateManager = depositDir.getStateManager(testDir / "submitted", easyHome)
-      .getOrRecover(e => (fail(s"could not get stateManager of test deposit $e")))
+      .getOrRecover(e => fail(s"could not get stateManager of test deposit $e"))
     val bag = getBag(depositDir)
     addDoiToDepositProperties(bag)
     bag.addPayloadFile("lorum ipsum".inputStream, Paths.get("file.txt"))
@@ -165,7 +165,7 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
   it should "report an invalid checksum" in {
     val depositDir = createDeposit(datasetMetadata)
     val stateManager = depositDir.getStateManager(testDir / "submitted", easyHome)
-      .getOrRecover(e => (fail(s"could not get stateManager of test deposit $e")))
+      .getOrRecover(e => fail(s"could not get stateManager of test deposit $e"))
     val bag = getBag(depositDir)
     addDoiToDepositProperties(bag)
     bag.addPayloadFile("lorum ipsum".inputStream, Paths.get("file.txt"))
