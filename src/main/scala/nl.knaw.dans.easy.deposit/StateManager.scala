@@ -131,17 +131,18 @@ case class StateManager(draftDeposit: DepositDir, submitBase: File, easyHome: UR
     val shortTitle = title.substring(0, Math.min(42, title.length))
       .replaceAll("[\r\n]+", " ") // wrap a multiline title into a single line
       .replaceAll("<.*", "") // avoid html tags in subject and body
+    val ellipsis = if(shortTitle == title) "" else "…"
     val ref = getSubmittedBagId.map(_.toString).getOrElse(s"DRAFT/$relativeDraftDir")
-    val subject = queryPartEncode(s"Deposit processing error: $shortTitle reference $ref")
+    val subject = queryPartEncode(s"Deposit processing error: $shortTitle$ellipsis reference $ref")
     val body = queryPartEncode(
       s"""Dear data manager,
          |
          |Something went wrong while processing my deposit. Could you please investigate the issue?
          |
-         |It has reference:
+         |Dataset reference:
          |   $ref
-         |The title starts with:
-         |   $shortTitle
+         |Title:
+         |   $shortTitle$ellipsis
          |
          |Kind regards,
          |${ draftDeposit.user }

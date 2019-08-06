@@ -63,7 +63,7 @@ class StateManagerSpec extends TestSupportFixture {
       """.stripMargin)
     checkMailtoMessage(
       testResult = StateManager(draftDeposit, File("does-not-exist"), easyHome).getStateInfo,
-      expectedURL = s"""mailto:info@dans.knaw.nl?subject=Deposit%20processing%20error:%20%20reference%20DRAFT/foo/7fa835ce-0987-4064-90ca-a7b75ce78a16&body=Dear%20data%20manager%2C%0A%0ASomething%20went%20wrong%20while%20processing%20my%20deposit.%20Could%20you%20please%20investigate%20the%20issue?%0A%0AIt%20has%20reference:%0A%20%20%20DRAFT/foo/7fa835ce-0987-4064-90ca-a7b75ce78a16%0AThe%20title%20starts%20with:%0A%20%20%20%0A%0AKind%20regards%2C%0Afoo%0A"""
+      expectedURL = s"""mailto:info@dans.knaw.nl?subject=Deposit%20processing%20error:%20%20reference%20DRAFT/foo/7fa835ce-0987-4064-90ca-a7b75ce78a16&body=Dear%20data%20manager%2C%0A%0ASomething%20went%20wrong%20while%20processing%20my%20deposit.%20Could%20you%20please%20investigate%20the%20issue?%0A%0ADataset%20reference:%0A%20%20%20DRAFT/foo/7fa835ce-0987-4064-90ca-a7b75ce78a16%0ATitle:%0A%20%20%20%0A%0AKind%20regards%2C%0Afoo%0A""".stripMargin
     )
   }
 
@@ -76,7 +76,7 @@ class StateManagerSpec extends TestSupportFixture {
       """.stripMargin)
     checkMailtoMessage(
       testResult = StateManager(draftDeposit, testDir / "does-not-exist", easyHome).getStateInfo,
-      expectedURL = s"""mailto:info@dans.knaw.nl?subject=Deposit%20processing%20error:%20%20reference%20a890ad74-872b-4f21-81a8-f3ef88b944ba&body=Dear%20data%20manager%2C%0A%0ASomething%20went%20wrong%20while%20processing%20my%20deposit.%20Could%20you%20please%20investigate%20the%20issue?%0A%0AIt%20has%20reference:%0A%20%20%20a890ad74-872b-4f21-81a8-f3ef88b944ba%0AThe%20title%20starts%20with:%0A%20%20%20%0A%0AKind%20regards%2C%0Afoo%0A"""
+      expectedURL = s"""mailto:info@dans.knaw.nl?subject=Deposit%20processing%20error:%20%20reference%20a890ad74-872b-4f21-81a8-f3ef88b944ba&body=Dear%20data%20manager%2C%0A%0ASomething%20went%20wrong%20while%20processing%20my%20deposit.%20Could%20you%20please%20investigate%20the%20issue?%0A%0ADataset%20reference:%0A%20%20%20a890ad74-872b-4f21-81a8-f3ef88b944ba%0ATitle:%0A%20%20%20%0A%0AKind%20regards%2C%0Afoo%0A""".stripMargin
     )
   }
 
@@ -133,7 +133,7 @@ class StateManagerSpec extends TestSupportFixture {
       .write("""{"titles":["A test with a title longer than forty-two characters."]}""")
     checkMailtoMessage(
       testResult = StateManager(draftDeposit, submitBase, easyHome).getStateInfo,
-      expectedURL = """mailto:info@dans.knaw.nl?subject=Deposit%20processing%20error:%20A%20test%20with%20a%20title%20longer%20than%20forty-two%20%20reference%20DRAFT/foo/7fa835ce-0987-4064-90ca-a7b75ce78a16&body=Dear%20data%20manager%2C%0A%0ASomething%20went%20wrong%20while%20processing%20my%20deposit.%20Could%20you%20please%20investigate%20the%20issue?%0A%0AIt%20has%20reference:%0A%20%20%20DRAFT/foo/7fa835ce-0987-4064-90ca-a7b75ce78a16%0AThe%20title%20starts%20with:%0A%20%20%20A%20test%20with%20a%20title%20longer%20than%20forty-two%20%0A%0AKind%20regards%2C%0Afoo%0A"""
+      expectedURL = """mailto:info@dans.knaw.nl?subject=Deposit%20processing%20error:%20A%20test%20with%20a%20title%20longer%20than%20forty-two%20%E2%80%A6%20reference%20DRAFT/foo/7fa835ce-0987-4064-90ca-a7b75ce78a16&body=Dear%20data%20manager%2C%0A%0ASomething%20went%20wrong%20while%20processing%20my%20deposit.%20Could%20you%20please%20investigate%20the%20issue?%0A%0ADataset%20reference:%0A%20%20%20DRAFT/foo/7fa835ce-0987-4064-90ca-a7b75ce78a16%0ATitle:%0A%20%20%20A%20test%20with%20a%20title%20longer%20than%20forty-two%20%E2%80%A6%0A%0AKind%20regards%2C%0Afoo%0A""".stripMargin
     )
   }
 
@@ -156,7 +156,7 @@ class StateManagerSpec extends TestSupportFixture {
           | "]}""".stripMargin)
     checkMailtoMessage(
       testResult = StateManager(draftDeposit, submitBase, easyHome).getStateInfo,
-      expectedURL = """mailto:info@dans.knaw.nl?subject=Deposit%20processing%20error:%20A%20test%20with%20%20new%20lines%20and%20html%20%20reference%20a890ad74-872b-4f21-81a8-f3ef88b944ba&body=Dear%20data%20manager%2C%0A%0ASomething%20went%20wrong%20while%20processing%20my%20deposit.%20Could%20you%20please%20investigate%20the%20issue?%0A%0AIt%20has%20reference:%0A%20%20%20a890ad74-872b-4f21-81a8-f3ef88b944ba%0AThe%20title%20starts%20with:%0A%20%20%20A%20test%20with%20%20new%20lines%20and%20html%20%0A%0AKind%20regards%2C%0Afoo%0A"""
+      expectedURL = """mailto:info@dans.knaw.nl?subject=Deposit%20processing%20error:%20A%20test%20with%20%20new%20lines%20and%20html%20%E2%80%A6%20reference%20a890ad74-872b-4f21-81a8-f3ef88b944ba&body=Dear%20data%20manager%2C%0A%0ASomething%20went%20wrong%20while%20processing%20my%20deposit.%20Could%20you%20please%20investigate%20the%20issue?%0A%0ADataset%20reference:%0A%20%20%20a890ad74-872b-4f21-81a8-f3ef88b944ba%0ATitle:%0A%20%20%20A%20test%20with%20%20new%20lines%20and%20html%20%E2%80%A6%0A%0AKind%20regards%2C%0Afoo%0A""".stripMargin
     )
   }
 
