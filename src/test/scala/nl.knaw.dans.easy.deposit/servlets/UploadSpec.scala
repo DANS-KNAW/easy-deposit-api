@@ -217,12 +217,12 @@ class UploadSpec extends DepositServletFixture {
       body shouldBe ""
       status shouldBe CREATED_201
       absoluteTarget.walk().map(_.name).toList should contain theSameElementsAs List(
-        "dir", "login.html", "readme.md", "__MACOSX", "._login.html", "upload.html"
+        "dir", "login.html", "readme.md", "upload.html"
       )
       (bagDir / "manifest-sha1.txt")
         .lines
         .map(_.replaceAll(".* +", "")) should contain theSameElementsAs List(
-        "login.html", "readme.md", "__MACOSX/._login.html", "upload.html"
+        "login.html", "readme.md", "upload.html"
       ).map("data/path/to/dir/" + _)
     }
     // get should show uploaded files
@@ -232,7 +232,6 @@ class UploadSpec extends DepositServletFixture {
     ) {
       status shouldBe OK_200
       body should include("""{"filename":"readme.md","dirpath":"path/to/dir",""")
-      body should include("""{"filename":"._login.html","dirpath":"path/to/dir/__MACOSX",""")
       body should include("""{"filename":"upload.html","dirpath":"path/to/dir",""")
       body should include("""{"filename":"login.html","dirpath":"path/to/dir",""")
     }
@@ -308,12 +307,12 @@ class UploadSpec extends DepositServletFixture {
       body shouldBe ""
       status shouldBe CREATED_201
       absoluteTarget.walk().map(_.name).toList should contain theSameElementsAs List(
-        "data", "login.html", "readme.md", "__MACOSX", "._login.html", "upload.html"
+        "data", "login.html", "readme.md", "upload.html"
       )
       (bagDir / "manifest-sha1.txt")
         .lines
         .map(_.replaceAll(".* +", "")) should contain theSameElementsAs List(
-        "login.html", "readme.md", "__MACOSX/._login.html", "upload.html"
+        "login.html", "readme.md", "upload.html"
       ).map("data/" + _)
     }
     // get should show uploaded files
@@ -323,7 +322,6 @@ class UploadSpec extends DepositServletFixture {
     ) {
       status shouldBe OK_200
       body should include("""{"filename":"readme.md","dirpath":"",""")
-      body should include("""{"filename":"._login.html","dirpath":"__MACOSX",""")
       body should include("""{"filename":"upload.html","dirpath":"",""")
       body should include("""{"filename":"login.html","dirpath":"",""")
     }

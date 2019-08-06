@@ -45,6 +45,6 @@ class RichZipInputStreamSpec extends TestSupportFixture {
     managed(File("src/test/resources/manual-test/Archive.zip").newZipInputStream).apply(
       _.unzipPlainEntriesTo(stagingDir.createDirectories()) shouldBe Success(()))
     stagingDir.walk().map(_.name).toList should contain theSameElementsAs
-      List("staging", "login.html", "readme.md", "__MACOSX", "._login.html", "upload.html")
+      List("staging", "login.html", "readme.md", "upload.html")
   }
 }

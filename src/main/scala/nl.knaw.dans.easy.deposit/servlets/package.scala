@@ -61,6 +61,11 @@ package object servlets extends DebugEnhancedLogging {
   }
 
   implicit class RichZipInputStream(val zipInputStream: ZipInputStream) extends AnyVal {
+
+    private def skip(file: File): Boolean = {
+      file.isDirectory && file.name == "__MACOSX"
+    }
+
     def unzipPlainEntriesTo(dir: File): Try[Unit] = {
       def extract(entry: ZipEntry): Try[Unit] = {
         if (entry.isDirectory)
@@ -83,6 +88,7 @@ package object servlets extends DebugEnhancedLogging {
             .takeWhile(Option(_).nonEmpty)
             .map(extract)
             .failFastOr(Success(()))
+          _ = dir.list(skip).foreach(_.delete())
         } yield ()
         case Success(None) | Failure(_: EOFException) => Failure(MalformedZipException(s"No entries found."))
         case Failure(e) => Failure(e)
