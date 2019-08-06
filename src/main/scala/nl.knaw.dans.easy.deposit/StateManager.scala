@@ -119,6 +119,10 @@ case class StateManager(draftDeposit: DepositDir, submitBase: File, easyHome: UR
     UUID.fromString(draftProps.getString(bagIdKey))
   }
 
+  /**
+   * @return a message that overrides the status message of a technical problem
+   *         in easy-ingest-flow or with the preparation of its input
+   */
   private def mailToDansMessage: String = {
     val title: String = (draftDeposit.getDatasetMetadata.map(_.titles) match {
       case Success(Some(titles)) => titles.headOption

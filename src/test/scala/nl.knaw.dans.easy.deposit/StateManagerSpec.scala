@@ -23,14 +23,15 @@ import nl.knaw.dans.easy.deposit.Errors.IllegalStateTransitionException
 import nl.knaw.dans.easy.deposit.docs.StateInfo
 import nl.knaw.dans.easy.deposit.docs.StateInfo.State
 
-import scala.util.{ Failure, Success }
+import scala.util.{ Failure, Success, Try }
 
 class StateManagerSpec extends TestSupportFixture {
 
-  // need a hard coded value for a pattern match and to manually try the expected mailto href value
-  private val draftDeposit: DepositDir = DepositDir(testDir / "draft", "foo", uuid)
+  // need hard coded UUIDs to manually try the expectedURL-s in a browser
+  override lazy val uuid: UUID = UUID.fromString("7fa835ce-0987-4064-90ca-a7b75ce78a16")
+  private val submittedUuid = UUID.fromString("a890ad74-872b-4f21-81a8-f3ef88b944ba")
 
-  private val submittedUuid = UUID.randomUUID
+  private val draftDeposit: DepositDir = DepositDir(testDir / "draft", "foo", uuid)
   private val submitBase = testDir / "submitted"
   private val easyHome: URL = new URL("https://easy.dans.knaw.nl/ui")
 
@@ -60,12 +61,10 @@ class StateManagerSpec extends TestSupportFixture {
       s"""state.label = SUBMITTED
          |state.description = The dataset is ready for processing
       """.stripMargin)
-    val testResult = StateManager(draftDeposit, File("does-not-exist"), easyHome).getStateInfo
-    testResult should matchPattern {
-      case Success(StateInfo(State.submitted, _)) =>
-    }
-    testResult.getOrElse(fail()).stateDescription shouldBe
-      s"""Something went wrong while processing this deposit. Please <a href="mailto:info@dans.knaw.nl?subject=Deposit%20processing%20error:%20%20reference%20DRAFT/foo/$uuid&body=Dear%20data%20manager%2C%0A%0ASomething%20went%20wrong%20while%20processing%20my%20deposit.%20Could%20you%20please%20investigate%20the%20issue?%0A%0AIt%20has%20reference:%0A%20%20%20DRAFT/foo/$uuid%0AThe%20title%20starts%20with:%0A%20%20%20%0A%0AKind%20regards%2C%0Afoo%0A">contact DANS</a>"""
+    checkMailtoMessage(
+      testResult = StateManager(draftDeposit, File("does-not-exist"), easyHome).getStateInfo,
+      expectedURL = s"""mailto:info@dans.knaw.nl?subject=Deposit%20processing%20error:%20%20reference%20DRAFT/foo/7fa835ce-0987-4064-90ca-a7b75ce78a16&body=Dear%20data%20manager%2C%0A%0ASomething%20went%20wrong%20while%20processing%20my%20deposit.%20Could%20you%20please%20investigate%20the%20issue?%0A%0AIt%20has%20reference:%0A%20%20%20DRAFT/foo/7fa835ce-0987-4064-90ca-a7b75ce78a16%0AThe%20title%20starts%20with:%0A%20%20%20%0A%0AKind%20regards%2C%0Afoo%0A"""
+    )
   }
 
   it should "not stumble on missing ingest-flow-inbox state property for state SUBMITTED" in {
@@ -75,12 +74,10 @@ class StateManagerSpec extends TestSupportFixture {
          |state.description = The dataset is ready for processing
          |bag-store.bag-id = $submittedUuid
       """.stripMargin)
-    val testResult = StateManager(draftDeposit, testDir / "does-not-exist", easyHome).getStateInfo
-    testResult should matchPattern {
-      case Success(StateInfo(State.submitted, _)) =>
-    }
-    testResult.getOrElse(fail()).stateDescription shouldBe
-      s"""Something went wrong while processing this deposit. Please <a href="mailto:info@dans.knaw.nl?subject=Deposit%20processing%20error:%20%20reference%20$submittedUuid&body=Dear%20data%20manager%2C%0A%0ASomething%20went%20wrong%20while%20processing%20my%20deposit.%20Could%20you%20please%20investigate%20the%20issue?%0A%0AIt%20has%20reference:%0A%20%20%20$submittedUuid%0AThe%20title%20starts%20with:%0A%20%20%20%0A%0AKind%20regards%2C%0Afoo%0A">contact DANS</a>"""
+    checkMailtoMessage(
+      testResult = StateManager(draftDeposit, testDir / "does-not-exist", easyHome).getStateInfo,
+      expectedURL = s"""mailto:info@dans.knaw.nl?subject=Deposit%20processing%20error:%20%20reference%20a890ad74-872b-4f21-81a8-f3ef88b944ba&body=Dear%20data%20manager%2C%0A%0ASomething%20went%20wrong%20while%20processing%20my%20deposit.%20Could%20you%20please%20investigate%20the%20issue?%0A%0AIt%20has%20reference:%0A%20%20%20a890ad74-872b-4f21-81a8-f3ef88b944ba%0AThe%20title%20starts%20with:%0A%20%20%20%0A%0AKind%20regards%2C%0Afoo%0A"""
+    )
   }
 
   it should "change SUBMITTED to IN_PROGRESS" in {
@@ -134,12 +131,10 @@ class StateManagerSpec extends TestSupportFixture {
       """.stripMargin)
     ((draftDeposit.bagDir / "metadata").createDirectories() / "dataset.json")
       .write("""{"titles":["A test with a title longer than forty-two characters."]}""")
-    val testResult = StateManager(draftDeposit, submitBase, easyHome).getStateInfo
-    testResult should matchPattern {
-      case Success(StateInfo(State.submitted, _)) =>
-    }
-    testResult.getOrElse(fail()).stateDescription shouldBe
-      s"""Something went wrong while processing this deposit. Please <a href="mailto:info@dans.knaw.nl?subject=Deposit%20processing%20error:%20A%20test%20with%20a%20title%20longer%20than%20forty-two%20%20reference%20DRAFT/foo/$uuid&body=Dear%20data%20manager%2C%0A%0ASomething%20went%20wrong%20while%20processing%20my%20deposit.%20Could%20you%20please%20investigate%20the%20issue?%0A%0AIt%20has%20reference:%0A%20%20%20DRAFT/foo/$uuid%0AThe%20title%20starts%20with:%0A%20%20%20A%20test%20with%20a%20title%20longer%20than%20forty-two%20%0A%0AKind%20regards%2C%0Afoo%0A">contact DANS</a>"""
+    checkMailtoMessage(
+      testResult = StateManager(draftDeposit, submitBase, easyHome).getStateInfo,
+      expectedURL = """mailto:info@dans.knaw.nl?subject=Deposit%20processing%20error:%20A%20test%20with%20a%20title%20longer%20than%20forty-two%20%20reference%20DRAFT/foo/7fa835ce-0987-4064-90ca-a7b75ce78a16&body=Dear%20data%20manager%2C%0A%0ASomething%20went%20wrong%20while%20processing%20my%20deposit.%20Could%20you%20please%20investigate%20the%20issue?%0A%0AIt%20has%20reference:%0A%20%20%20DRAFT/foo/7fa835ce-0987-4064-90ca-a7b75ce78a16%0AThe%20title%20starts%20with:%0A%20%20%20A%20test%20with%20a%20title%20longer%20than%20forty-two%20%0A%0AKind%20regards%2C%0Afoo%0A"""
+    )
   }
 
   it should "mail the submitted uuid" in {
@@ -159,12 +154,18 @@ class StateManagerSpec extends TestSupportFixture {
           | new lines and html <a href='http://user.hack.dans.knaw.nl'>link</a>.
           |
           | "]}""".stripMargin)
-    val testResult = StateManager(draftDeposit, submitBase, easyHome).getStateInfo
+    checkMailtoMessage(
+      testResult = StateManager(draftDeposit, submitBase, easyHome).getStateInfo,
+      expectedURL = """mailto:info@dans.knaw.nl?subject=Deposit%20processing%20error:%20A%20test%20with%20%20new%20lines%20and%20html%20%20reference%20a890ad74-872b-4f21-81a8-f3ef88b944ba&body=Dear%20data%20manager%2C%0A%0ASomething%20went%20wrong%20while%20processing%20my%20deposit.%20Could%20you%20please%20investigate%20the%20issue?%0A%0AIt%20has%20reference:%0A%20%20%20a890ad74-872b-4f21-81a8-f3ef88b944ba%0AThe%20title%20starts%20with:%0A%20%20%20A%20test%20with%20%20new%20lines%20and%20html%20%0A%0AKind%20regards%2C%0Afoo%0A"""
+    )
+  }
+
+  private def checkMailtoMessage(testResult: Try[StateInfo], expectedURL: String) = {
     testResult should matchPattern {
       case Success(StateInfo(State.submitted, _)) =>
     }
     testResult.getOrElse(fail()).stateDescription shouldBe
-      s"""Something went wrong while processing this deposit. Please <a href="mailto:info@dans.knaw.nl?subject=Deposit%20processing%20error:%20A%20test%20with%20%20new%20lines%20and%20html%20%20reference%20$submittedUuid&body=Dear%20data%20manager%2C%0A%0ASomething%20went%20wrong%20while%20processing%20my%20deposit.%20Could%20you%20please%20investigate%20the%20issue?%0A%0AIt%20has%20reference:%0A%20%20%20$submittedUuid%0AThe%20title%20starts%20with:%0A%20%20%20A%20test%20with%20%20new%20lines%20and%20html%20%0A%0AKind%20regards%2C%0Afoo%0A">contact DANS</a>"""
+      s"""Something went wrong while processing this deposit. Please <a href="$expectedURL">contact DANS</a>"""
   }
 
   it should "return the curators message" in {
