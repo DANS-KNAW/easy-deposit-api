@@ -149,7 +149,8 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
   def getDepositState(user: String, id: UUID): Try[StateInfo] = {
     for {
       deposit <- getDeposit(user, id)
-      state <- deposit.getStateManager(submitBase, easyHome).getStateInfo
+      stateManager <- deposit.getStateManager(submitBase, easyHome)
+      state <- stateManager.getStateInfo
     } yield state
   }
 
@@ -184,7 +185,7 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
 
     for {
       deposit <- getDeposit(user, id)
-      stateManager = deposit.getStateManager(submitBase, easyHome)
+      stateManager <- deposit.getStateManager(submitBase, easyHome)
       _ <- stateManager.canChangeState(newStateInfo)
       _ <- if (newStateInfo.state == State.submitted)
              submit(deposit, stateManager) // also changes the state
@@ -207,7 +208,8 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
    */
   def deleteDeposit(user: String, id: UUID): Try[Unit] = for {
     deposit <- getDeposit(user, id)
-    state <- deposit.getStateManager(submitBase, easyHome).getStateInfo
+    stateManager <- deposit.getStateManager(submitBase, easyHome)
+    state <- stateManager.getStateInfo
     _ <- state.canDelete
     _ = deposit.bagDir.parent.delete()
   } yield ()

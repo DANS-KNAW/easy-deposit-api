@@ -51,8 +51,8 @@ case class DepositDir private(draftBase: File, user: String, id: UUID) extends D
    * @param submitBase the base directory with submitted deposits to extract the actual state
    * @return the `StateManager` for this deposit
    */
-  def getStateManager(submitBase: File, easyHome: URL): StateManager = {
-    StateManager(bagDir.parent, submitBase, easyHome)
+  def getStateManager(submitBase: File, easyHome: URL): Try[StateManager] = Try {
+    StateManager(this, submitBase, easyHome)
   }
 
   /**
@@ -62,7 +62,7 @@ case class DepositDir private(draftBase: File, user: String, id: UUID) extends D
   def getDepositInfo(submitBase: File, easyHome: URL): Try[DepositInfo] = {
     for {
       title <- getDatasetTitle
-      stateManager = getStateManager(submitBase, easyHome)
+      stateManager <- getStateManager(submitBase, easyHome)
       stateInfo <- stateManager.getStateInfo
       created = new DateTime(stateManager.draftProps.getString("creation.timestamp")).withZone(UTC)
     } yield DepositInfo(
@@ -72,7 +72,7 @@ case class DepositDir private(draftBase: File, user: String, id: UUID) extends D
       stateInfo.stateDescription,
       created
     )
-  }.recoverWith {
+    }.recoverWith {
     case t: CorruptDepositException => Failure(t)
     case t => corruptDepositFailure(t)
   }
