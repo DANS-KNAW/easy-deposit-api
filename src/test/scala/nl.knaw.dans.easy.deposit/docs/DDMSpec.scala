@@ -468,8 +468,8 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
         </dcx-dai:contributorDetails>
         <dcx-dai:contributorDetails>
           <dcx-dai:organization>
-            <dcx-dai:role>RightsHolder</dcx-dai:role>
             <dcx-dai:name xml:lang="nld">rightsHolder1</dcx-dai:name>
+            <dcx-dai:role>RightsHolder</dcx-dai:role>
           </dcx-dai:organization>
         </dcx-dai:contributorDetails>
         <dcx-dai:contributorDetails>
