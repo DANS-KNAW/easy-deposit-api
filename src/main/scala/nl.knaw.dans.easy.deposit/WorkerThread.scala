@@ -28,12 +28,10 @@ import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 
 import scala.util.{ Failure, Success, Try }
 
-case class WorkerThread(apiApp: EasyDepositApiApp) extends Thread with DebugEnhancedLogging {
+case class WorkerThread(apiApp: EasyDepositApiApp) extends Runnable with AutoCloseable with DebugEnhancedLogging {
 
-  setDaemon(false) // when the parent shuts down, all pending events should be completed
-  setName("deposit-api-worker-thread")
   private val watchedDir = apiApp.stagedBaseDir
-  private val watchService = watchedDir.newWatchService // TODO how to close?
+  private val watchService = watchedDir.newWatchService // TODO https://github.com/pathikrit/better-files#file-monitoring
   watchedDir.register(watchService, Seq(ENTRY_CREATE, ENTRY_DELETE))
 
   // don't delay startup (so process in run) nor interfere with new events (so get all before run)
@@ -159,4 +157,6 @@ case class WorkerThread(apiApp: EasyDepositApiApp) extends Thread with DebugEnha
     // set state in staged deposit to SUBMITTED before moving
     // set state in draft deposit to SUBMITTED after moving
   }
+
+  override def close(): Unit = watchService.close()
 }

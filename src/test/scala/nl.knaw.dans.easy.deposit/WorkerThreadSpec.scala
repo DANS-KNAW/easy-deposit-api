@@ -40,7 +40,7 @@ class WorkerThreadSpec extends TestSupportFixture with MockFactory with DebugEnh
 
     implicit val apiApp: EasyDepositApiApp = createApiApp
     val watchedDir = apiApp.stagedBaseDir.createDirectories()
-    (watchedDir / s"foo-${randomUUID().toString.replaceAll("-","X")}-4").createDirectories()
+    (watchedDir / s"foo-${ randomUUID().toString.replaceAll("-", "X") }-4").createDirectories()
     (watchedDir / s"bar-${ randomUUID() }-5").createDirectories()
     (watchedDir / s"somebody-${ createDraftDeposit("somebody") }-6").createDirectories()
     (watchedDir / s"someone-${ createFinalizingDeposit("someone") }-7").createDirectories()
@@ -48,12 +48,14 @@ class WorkerThreadSpec extends TestSupportFixture with MockFactory with DebugEnh
     val mockedLogger = mock[Underlying] // TODO needed s"...".toString to avoid not expected WrappedArray
     (mockedLogger.warn(_: String)) expects where { s: String => isInvalidDir(s, "staged/foo-") } once()
     (mockedLogger.warn(_: String)) expects where { s: String => s.contains("NoSuchDepositException") && s.contains("staged/bar-") } once()
-    (mockedLogger.info(_: String)) expects where { s: String => s.startsWith("STUB: Calculate")&& s.contains("staged/somebody-") } once()
-    (mockedLogger.info(_: String)) expects where { s: String => s.startsWith("STUB: Prepare")&& s.contains("staged/someone-") } once()
+    (mockedLogger.info(_: String)) expects where { s: String => s.startsWith("STUB: Calculate") && s.contains("staged/somebody-") } once()
+    (mockedLogger.info(_: String)) expects where { s: String => s.startsWith("STUB: Prepare") && s.contains("staged/someone-") } once()
     notSignificantLogExpectations(mockedLogger)
 
-    val thread = new WorkerThread(apiApp) {
-      override protected lazy val logger: Logger = Logger(mockedLogger)
+    val worker = createWorker(apiApp, mockedLogger)
+    val thread = new Thread(worker) {
+      setDaemon(false) // when the parent shuts down, all pending events should be completed
+      setName("deposit-api-worker-thread")
     }
     thread.start()
     Thread.sleep(10000) // TODO is this some file system dependent delay to pick up the delete event for SHA calculation?
@@ -70,12 +72,12 @@ class WorkerThreadSpec extends TestSupportFixture with MockFactory with DebugEnh
     val watchedDir = apiApp.stagedBaseDir.createDirectories()
 
     val mockedLogger = mock[Underlying] // TODO needed s"...".toString in WorkerThread to avoid not expected WrappedArray
-    (mockedLogger.info(_: String)) expects where { s: String => s.startsWith("STUB: Calculate")&& s.contains("staged/somebody-") } once()
-    (mockedLogger.info(_: String)) expects where { s: String => s.startsWith("STUB: Prepare")&& s.contains("staged/someone-") } once()
+    (mockedLogger.info(_: String)) expects where { s: String => s.startsWith("STUB: Calculate") && s.contains("staged/somebody-") } once()
+    (mockedLogger.info(_: String)) expects where { s: String => s.startsWith("STUB: Prepare") && s.contains("staged/someone-") } once()
     notSignificantLogExpectations(mockedLogger)
 
-    val thread = new WorkerThread(apiApp) {
-      override protected lazy val logger: Logger = Logger(mockedLogger)
+    val worker = createWorker(apiApp, mockedLogger)
+    val thread = new Thread(worker) {
       setUncaughtExceptionHandler( // TODO terminate api when worker-thread terminates unexpectedly
         (t: Thread, e: Throwable) =>
           throw new Exception(s"${ t.getId } threw", e)
@@ -91,6 +93,12 @@ class WorkerThreadSpec extends TestSupportFixture with MockFactory with DebugEnh
     Thread.sleep(5000)
     (watchedDir / s"someone-${ createFinalizingDeposit("someone") }-7").createDirectories()
     Thread.sleep(5000)
+  }
+
+  private def createWorker(apiApp: EasyDepositApiApp, mockedLogger: Underlying) = {
+    new WorkerThread(apiApp) { // TODO make Disposable
+      override protected lazy val logger: Logger = Logger(mockedLogger)
+    }
   }
 
   private def createApiApp: EasyDepositApiApp = {
