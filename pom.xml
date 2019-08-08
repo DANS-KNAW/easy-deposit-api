@@ -113,6 +113,11 @@
             <version>3.8.0</version>
         </dependency>
         <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-compress</artifactId>
+            <version>1.18</version>
+        </dependency>
+        <dependency>
             <groupId>com.pauldijou</groupId>
             <artifactId>jwt-core_2.12</artifactId>
             <version>0.16.0</version>
