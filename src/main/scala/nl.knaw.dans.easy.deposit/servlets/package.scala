@@ -112,8 +112,14 @@ package object servlets extends DebugEnhancedLogging {
 
     def getZipInputStream: Try[resource.ManagedResource[ZipArchiveInputStream]] = Try {
       fileItem.charset
-        .map(charSet => managed(new ZipArchiveInputStream(fileItem.getInputStream, charSet, true, true)))
-        .getOrElse(managed(new ZipArchiveInputStream(fileItem.getInputStream)))
+        .map(toZipInputStream)
+        .getOrElse(toZipInputStream("UTF8"))
+    }
+
+    private def toZipInputStream(charSet: String): ManagedResource[ZipArchiveInputStream] = {
+      val useUnicodeExtraFields = true
+      val allowStoredEntriesWithDataDescriptor = true
+      managed(new ZipArchiveInputStream(fileItem.getInputStream, charSet, useUnicodeExtraFields, allowStoredEntriesWithDataDescriptor))
     }
   }
 
