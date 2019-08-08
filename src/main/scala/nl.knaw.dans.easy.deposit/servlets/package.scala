@@ -90,7 +90,7 @@ package object servlets extends DebugEnhancedLogging {
           _ <- Stream
             .continually(zipInputStream.getNextEntry)
             .takeWhile(Option(_).nonEmpty)
-            .map { x => extract(x) }
+            .map(extract)
             .failFastOr(Success(()))
           _ = dir.list(skip).foreach(_.delete())
         } yield ()
