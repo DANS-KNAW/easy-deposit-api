@@ -74,7 +74,7 @@ package object servlets extends DebugEnhancedLogging {
           logger.info(s"Extracting ${ entry.getName } size=${ entry.getSize } compressedSize=${ entry.getCompressedSize } CRC=${ entry.getCrc }")
           Try {
             (dir / entry.getName).parent.createDirectories() // in case a directory was not specified separately
-            Files.copy(zipInputStream, (dir / entry.getName).path);
+            Files.copy(zipInputStream, (dir / entry.getName).path)
             ()
           }.recoverWith { case e: ZipException =>
             logger.error(e.getMessage, e)

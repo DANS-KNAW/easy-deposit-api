@@ -47,4 +47,15 @@ class RichZipInputStreamSpec extends TestSupportFixture {
     stagingDir.walk().map(_.name).toList should contain theSameElementsAs
       List("staging", "login.html", "readme.md", "upload.html")
   }
+
+  it should "not throw ZipException: only DEFLATED entries can have EXT descriptor" in {
+    val stagingDir = testDir / "staging"
+    managed(File("src/test/resources/manual-test/ruimtereis-bag.zip")
+      .newZipInputStream)
+      .apply { stream =>
+        val triedUnit = stream.unzipPlainEntriesTo(stagingDir.createDirectories())
+        triedUnit shouldBe Success(())
+      }
+    (stagingDir / "data" / "ruimtereis01_verklaring.txt") should exist
+  }
 }
