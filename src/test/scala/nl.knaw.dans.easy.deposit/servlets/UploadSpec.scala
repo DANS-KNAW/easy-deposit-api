@@ -287,7 +287,7 @@ class UploadSpec extends DepositServletFixture {
       headers = Seq(fooBarBasicAuthHeader),
       files = Seq(("formFieldName", (testDir / "input/1.tar.gz").toJava))
     ) {
-      body shouldBe "ZIP file is malformed. No entries found."
+      body shouldBe "ZIP file is malformed. Unexpected record signature: 0X88B1F"
       status shouldBe BAD_REQUEST_400
     }
   }

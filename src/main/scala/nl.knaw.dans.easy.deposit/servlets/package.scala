@@ -94,6 +94,7 @@ package object servlets extends DebugEnhancedLogging {
             .failFastOr(Success(()))
           _ = dir.list(skip).foreach(_.delete())
         } yield ()
+        case Failure(e: ZipException) => Failure(MalformedZipException(e.getMessage))
         case Success(None) | Failure(_: EOFException) => Failure(MalformedZipException(s"No entries found."))
         case Failure(e) => Failure(e)
       }
