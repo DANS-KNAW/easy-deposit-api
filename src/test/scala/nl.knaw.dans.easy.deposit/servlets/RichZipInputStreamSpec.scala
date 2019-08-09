@@ -35,21 +35,31 @@ class RichZipInputStreamSpec extends TestSupportFixture {
   }
 
   "unzipPlainEntriesTo" should "report invalid content" in {
-    managedZipStream(new ByteArrayInputStream("Lorem ipsum est".getBytes(StandardCharsets.UTF_8))).apply(
+    mockRichFileItemGetZipInputStream(new ByteArrayInputStream("Lorem ipsum est".getBytes(StandardCharsets.UTF_8))).apply(
       unzip(_) shouldBe Failure(MalformedZipException("No entries found."))
     )
   }
 
   it should "extract all files from the zip" in {
-    managedZipStream(new FileInputStream("src/test/resources/manual-test/Archive.zip")).apply(
+    // zipped on a mac from some files (that used to live) in src/test/resources/manual-test
+    mockRichFileItemGetZipInputStream(new FileInputStream("src/test/resources/manual-test/Archive.zip")).apply(
       unzip(_) shouldBe Success(())
     )
     stagingDir.walk().map(_.name).toList should contain theSameElementsAs
       List("staging", "login.html", "readme.md", "upload.html")
   }
 
+  it should "create parent directories not explicitly listed in the zip" in {
+    // https://github.com/Davidhuangwei/TFM/
+    mockRichFileItemGetZipInputStream(new FileInputStream("src/test/resources/manual-test/no-dir.zip")).apply(
+      unzip(_) shouldBe Success(())
+    )
+    stagingDir.walk().map(_.name).toList should contain theSameElementsAs
+    List("staging", "tfm.m", "FMC-copper-wiresFRD.png", "image_domain.m", "license.txt" /* 2-clause BSD */, "copper_wire_example.m")
+  }
+
   it should "not throw ZipException: only DEFLATED entries can have EXT descriptor" in {
-    managedZipStream(new FileInputStream("src/test/resources/manual-test/ruimtereis-bag.zip")).apply(
+    mockRichFileItemGetZipInputStream(new FileInputStream("src/test/resources/manual-test/ruimtereis-bag.zip")).apply(
       unzip(_) shouldBe Success(())
     )
     (stagingDir / "data-test-2" / "data" / "ruimtereis01_verklaring.txt") should exist
@@ -64,10 +74,13 @@ class RichZipInputStreamSpec extends TestSupportFixture {
     stream.unzipPlainEntriesTo(stagingDir.createDirectories())
   }
 
-  private def managedZipStream(inputStream: InputStream): ManagedResource[ZipArchiveInputStream] = {
-    // import better.files._
-    // inputStream.asZipInputStream
-    // would use java.util throwing the tested ZipException, we use apache.commons
-    managed(new ZipArchiveInputStream(inputStream, "utf-8", true, true))
+  private def mockRichFileItemGetZipInputStream(inputStream: InputStream): ManagedResource[ZipArchiveInputStream] = {
+    /*
+     The next example would use java.util throwing the tested ZipException, we use apache.commons
+
+     import better.files._
+     inputStream.asZipInputStream
+     */
+    managed(new ZipArchiveInputStream(inputStream, "UTF8", true, true))
   }
 }

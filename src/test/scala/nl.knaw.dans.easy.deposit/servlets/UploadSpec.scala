@@ -202,7 +202,7 @@ class UploadSpec extends DepositServletFixture {
   }
 
   it should "extract all files from a ZIP" in {
-    File("src/test/resources/manual-test/Archive.zip").copyTo(testDir / "input" / "1.zip")
+    File("src/test/resources/manual-test/no-dir.zip").copyTo(testDir / "input" / "1.zip")
     val uuid = createDeposit
     val relativeTarget = "path/to/dir"
     val bagDir = testDir / "drafts" / "foo" / uuid.toString / bagDirName
@@ -293,7 +293,7 @@ class UploadSpec extends DepositServletFixture {
   }
 
   it should "extract all ZIP to root of data dir in the bag" in {
-    File("src/test/resources/manual-test/Archive.zip").copyTo(testDir / "input" / "1.zip")
+    File("src/test/resources/manual-test/no-dir.zip").copyTo(testDir / "input" / "1.zip")
     val uuid = createDeposit
     val bagDir = testDir / "drafts" / "foo" / uuid.toString / bagDirName
     val absoluteTarget = (bagDir / "data").createDirectories()
