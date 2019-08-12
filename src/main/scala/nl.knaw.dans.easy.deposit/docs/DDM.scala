@@ -27,7 +27,7 @@ import scala.xml._
 
 object DDM extends SchemedXml with DebugEnhancedLogging {
   override val schemaNameSpace: String = "http://easy.dans.knaw.nl/schemas/md/ddm/"
-  override val schemaLocation: String = "https://easy.dans.knaw.nl/schemas/md/2018/05/ddm.xsd"
+  override val schemaLocation: String = "https://easy.dans.knaw.nl/schemas/md/ddm/ddm.xsd"
 
   def apply(dm: DatasetMetadata): Try[Elem] = Try {
     val lang: String = dm.languageOfDescription.flatMap(_.key).nonBlankOrNull
@@ -105,12 +105,20 @@ object DDM extends SchemedXml with DebugEnhancedLogging {
       case Relation(_, Some(url: String), Some(title: String)) => <label xml:lang={ lang } href={ url }>{ title }</label>
       case Relation(_, Some(url: String), None) => <label href={ url }>{ url }</label>
       case Relation(_, None, Some(title: String)) => <label xml:lang={ lang }>{ title }</label>
-      case RelatedIdentifier(scheme, Some(value), _) => <label xsi:type={ scheme.nonBlankOrNull }>{ value }</label>
+      case RelatedIdentifier(Some("id-type:DOI"), Some(value), _) => <label scheme="id-type:DOI" href={ "https://doi.org/" + value }>{ value }</label>
+      case RelatedIdentifier(Some("id-type:URN"), Some(value), _) => <label scheme="id-type:URN" href={ "http://persistent-identifier.nl/" + value }>{ value }</label>
+      case RelatedIdentifier(Some("id-type:URI"), Some(value), _) => <label scheme="id-type:URI" href={ value }>{ value }</label>
+      case RelatedIdentifier(Some("id-type:URL"), Some(value), _) => <label scheme="id-type:URL" href={ value }>{ value }</label>
+      case RelatedIdentifier(scheme, Some(value: String), _) => <label xsi:type={ scheme.nonBlankOrNull }>{ value }</label>
       case RelatedIdentifier(scheme, None, _) => <label xsi:type={ scheme.nonBlankOrNull }></label>
       case _ => throw new IllegalArgumentException("invalid relation " + JsonUtil.toJson(relation))
     }
-  }.withLabel(relation match { // replace the name space in case of an href=URL attribute
+  }.withLabel(relation match { // replace the namespace in case of an href=URL attribute
     case RelatedIdentifier(_, _, None) => throw new IllegalArgumentException("missing qualifier: RelatedIdentifier" + JsonUtil.toJson(relation))
+    case RelatedIdentifier(Some("id-type:URI"), _, Some(qualifier)) => qualifier.toString.replace("dcterms", "ddm")
+    case RelatedIdentifier(Some("id-type:URL"), _, Some(qualifier)) => qualifier.toString.replace("dcterms", "ddm")
+    case RelatedIdentifier(Some("id-type:URN"), _, Some(qualifier)) => qualifier.toString.replace("dcterms", "ddm")
+    case RelatedIdentifier(Some("id-type:DOI"), _, Some(qualifier)) => qualifier.toString.replace("dcterms", "ddm")
     case RelatedIdentifier(_, _, Some(qualifier)) => qualifier.toString
     case Relation(None, _, _) => throw new IllegalArgumentException("missing qualifier: Relation" + JsonUtil.toJson(relation))
     case Relation(Some(qualifier), Some(_), _) => qualifier.toString.replace("dcterms", "ddm")

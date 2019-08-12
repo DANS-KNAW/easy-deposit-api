@@ -453,6 +453,7 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
         <dcterms:isFormatOf xsi:type="id-type:NWO-PROJECTNR">test identifier 2</dcterms:isFormatOf>
         <dcterms:isFormatOf xsi:type="id-type:ARCHIS-ZAAK-IDENTIFICATIE">archis nr. 1</dcterms:isFormatOf>
         <dcterms:isFormatOf xsi:type="id-type:ARCHIS-ZAAK-IDENTIFICATIE">archis nr. 2</dcterms:isFormatOf>
+        <ddm:isFormatOf scheme="id-type:DOI" href="https://doi.org/10.5072/test-doi">10.5072/test-doi</ddm:isFormatOf>
         <dcx-dai:contributorDetails>
           <dcx-dai:author>
             <dcx-dai:titles xml:lang="nld">Dr.</dcx-dai:titles>

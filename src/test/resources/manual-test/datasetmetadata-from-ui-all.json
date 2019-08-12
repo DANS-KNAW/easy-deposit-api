@@ -127,7 +127,12 @@
     {
       "scheme": "id-type:ARCHIS-ZAAK-IDENTIFICATIE",
       "value": "archis nr. 2"
+    },
+    {
+      "scheme": "id-type:DOI",
+      "value": "10.5072/test-doi"
     }
+
   ],
   "relations": [
     {
