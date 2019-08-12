@@ -15,10 +15,11 @@
  */
 package nl.knaw.dans.easy.deposit.servlets
 
+import java.nio.charset.Charset
 import java.nio.file.attribute.PosixFilePermission
 import java.util.UUID
 
-import better.files.File
+import better.files.{ File, UnicodeCharset }
 import nl.knaw.dans.easy.deposit.DepositDir
 import nl.knaw.dans.easy.deposit.docs.DepositInfo
 import nl.knaw.dans.lib.error._
@@ -201,8 +202,15 @@ class UploadSpec extends DepositServletFixture {
     }
   }
 
-  it should "extract all files from a ZIP" in {
-    File("src/test/resources/manual-test/Archive.zip").copyTo(testDir / "input" / "1.zip")
+  it should "extract allowed files from a ZIP" in {
+    val inputZip: File = File("src/test/resources/manual-test/Archive.zip")
+    val preconditionStream = inputZip.newZipInputStream(UnicodeCharset(Charset.defaultCharset()))
+    Stream.continually(preconditionStream.getNextEntry)
+      .takeWhile(Option(_).nonEmpty)
+      .toList
+      .map(_.getName) should contain theSameElementsAs
+      List("login.html", "__MACOSX/", "__MACOSX/._login.html", "readme.md", "upload.html")
+
     val uuid = createDeposit
     val relativeTarget = "path/to/dir"
     val bagDir = testDir / "drafts" / "foo" / uuid.toString / bagDirName
@@ -212,12 +220,15 @@ class UploadSpec extends DepositServletFixture {
       uri = s"/deposit/$uuid/file/$relativeTarget",
       params = Iterable(),
       headers = Seq(fooBarBasicAuthHeader),
-      files = Seq(("formFieldName", (testDir / "input/1.zip").toJava))
+      files = Seq(("formFieldName", inputZip.toJava))
     ) {
       body shouldBe ""
       status shouldBe CREATED_201
       absoluteTarget.walk().map(_.name).toList should contain theSameElementsAs List(
         "dir", "login.html", "readme.md", "upload.html"
+      )
+      absoluteTarget.walk().map(_.name).toList shouldNot contain theSameElementsAs List(
+        "__MACOSX/", "__MACOSX/._login.html"
       )
       (bagDir / "manifest-sha1.txt")
         .lines
@@ -238,7 +249,6 @@ class UploadSpec extends DepositServletFixture {
   }
 
   it should "extract all files from a ZIP, with a nested zip" in {
-    File("src/test/resources/manual-test/nested.zip").copyTo(testDir / "input" / "2.zip")
     val uuid = createDeposit
     val relativeTarget = "path/to/dir"
     val bagDir = testDir / "drafts" / "foo" / uuid.toString / bagDirName
@@ -248,7 +258,7 @@ class UploadSpec extends DepositServletFixture {
       uri = s"/deposit/$uuid/file/$relativeTarget",
       params = Iterable(),
       headers = Seq(fooBarBasicAuthHeader),
-      files = Seq("formFieldName" -> (testDir / "input/2.zip").toJava)
+      files = Seq("formFieldName" -> File("src/test/resources/manual-test/nested.zip").toJava)
     ) {
       body shouldBe empty
       status shouldBe CREATED_201
@@ -275,7 +285,6 @@ class UploadSpec extends DepositServletFixture {
   }
 
   it should "not accept a tar" in {
-    File("src/test/resources/manual-test/Archive.tar.gz").copyTo(testDir / "input" / "1.tar.gz")
     val uuid = createDeposit
     val relativeTarget = "path/to/dir"
     val bagDir = testDir / "drafts" / "foo" / uuid.toString / bagDirName
@@ -285,15 +294,14 @@ class UploadSpec extends DepositServletFixture {
       uri = s"/deposit/$uuid/file/$relativeTarget",
       params = Iterable(),
       headers = Seq(fooBarBasicAuthHeader),
-      files = Seq(("formFieldName", (testDir / "input/1.tar.gz").toJava))
+      files = Seq(("formFieldName", File("src/test/resources/manual-test/Archive.tar.gz").toJava))
     ) {
       body shouldBe "ZIP file is malformed. Unexpected record signature: 0X88B1F"
       status shouldBe BAD_REQUEST_400
     }
   }
 
-  it should "extract all ZIP to root of data dir in the bag" in {
-    File("src/test/resources/manual-test/Archive.zip").copyTo(testDir / "input" / "1.zip")
+  it should "extract ZIP to root of data dir in the bag" in {
     val uuid = createDeposit
     val bagDir = testDir / "drafts" / "foo" / uuid.toString / bagDirName
     val absoluteTarget = (bagDir / "data").createDirectories()
@@ -302,7 +310,7 @@ class UploadSpec extends DepositServletFixture {
       uri = s"/deposit/$uuid/file/",
       params = Iterable(),
       headers = Seq(fooBarBasicAuthHeader),
-      files = Seq(("formFieldName", (testDir / "input/1.zip").toJava))
+      files = Seq(("formFieldName", File("src/test/resources/manual-test/Archive.zip").toJava))
     ) {
       body shouldBe ""
       status shouldBe CREATED_201
