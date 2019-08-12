@@ -107,18 +107,14 @@ object DDM extends SchemedXml with DebugEnhancedLogging {
       case Relation(_, None, Some(title: String)) => <label xml:lang={ lang }>{ title }</label>
       case RelatedIdentifier(Some("id-type:DOI"), Some(value), _) => <label scheme="id-type:DOI" href={ "https://doi.org/" + value }>{ value }</label>
       case RelatedIdentifier(Some("id-type:URN"), Some(value), _) => <label scheme="id-type:URN" href={ "http://persistent-identifier.nl/" + value }>{ value }</label>
-      case RelatedIdentifier(Some("id-type:URI"), Some(value), _) => <label scheme="id-type:URI" href={ value }>{ value }</label>
-      case RelatedIdentifier(Some("id-type:URL"), Some(value), _) => <label scheme="id-type:URL" href={ value }>{ value }</label>
+      case RelatedIdentifier(Some(scheme @ ("id-type:URI" | "id-type:URL")), Some(value), _) => <label scheme={ scheme } href={ value }>{ value }</label>
       case RelatedIdentifier(scheme, Some(value: String), _) => <label xsi:type={ scheme.nonBlankOrNull }>{ value }</label>
       case RelatedIdentifier(scheme, None, _) => <label xsi:type={ scheme.nonBlankOrNull }></label>
       case _ => throw new IllegalArgumentException("invalid relation " + JsonUtil.toJson(relation))
     }
   }.withLabel(relation match { // replace the namespace in case of an href=URL attribute
     case RelatedIdentifier(_, _, None) => throw new IllegalArgumentException("missing qualifier: RelatedIdentifier" + JsonUtil.toJson(relation))
-    case RelatedIdentifier(Some("id-type:URI"), _, Some(qualifier)) => qualifier.toString.replace("dcterms", "ddm")
-    case RelatedIdentifier(Some("id-type:URL"), _, Some(qualifier)) => qualifier.toString.replace("dcterms", "ddm")
-    case RelatedIdentifier(Some("id-type:URN"), _, Some(qualifier)) => qualifier.toString.replace("dcterms", "ddm")
-    case RelatedIdentifier(Some("id-type:DOI"), _, Some(qualifier)) => qualifier.toString.replace("dcterms", "ddm")
+    case RelatedIdentifier(Some("id-type:URI" | "id-type:URL" | "id-type:URN" | "id-type:DOI"), _, Some(qualifier)) => qualifier.toString.replace("dcterms", "ddm")
     case RelatedIdentifier(_, _, Some(qualifier)) => qualifier.toString
     case Relation(None, _, _) => throw new IllegalArgumentException("missing qualifier: Relation" + JsonUtil.toJson(relation))
     case Relation(Some(qualifier), Some(_), _) => qualifier.toString.replace("dcterms", "ddm")

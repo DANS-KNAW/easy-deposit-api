@@ -78,7 +78,8 @@ case class DatasetMetadata(identifiers: Option[Seq[SchemedValue]] = None,
     .map(_.toString)
 
   lazy val allRelations: Seq[RelationType] = relations.getOrElse(Seq()) ++
-    alternativeIdentifiers.getOrElse(Seq()).map(i => RelatedIdentifier(i.scheme, i.value, Option(RelationQualifier.isFormatOf)))
+    alternativeIdentifiers.getOrElse(Seq())
+      .map(i => RelatedIdentifier(i.scheme, i.value, Option(RelationQualifier.isFormatOf)))
 
   //// doi
   lazy val doi: Option[String] = identifiers.flatMap(_.collectFirst {
