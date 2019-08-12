@@ -85,7 +85,7 @@ package object servlets extends DebugEnhancedLogging {
       }
 
       Try(Option(zipInputStream.getNextEntry)) match {
-        case Success(Some(firstEntry: ZipEntry)) => for {
+        case Success(Some(firstEntry: ArchiveEntry)) => for {
           _ <- extract(firstEntry)
           _ <- Stream
             .continually(zipInputStream.getNextEntry)
