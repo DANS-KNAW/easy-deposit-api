@@ -18,7 +18,7 @@ package nl.knaw.dans.easy.deposit
 import java.io.EOFException
 import java.nio.file.Files
 import java.util.UUID
-import java.util.zip.{ ZipEntry, ZipException }
+import java.util.zip.ZipException
 
 import better.files.File
 import better.files.File.CopyOptions
