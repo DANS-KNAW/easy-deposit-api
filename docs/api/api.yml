@@ -649,7 +649,7 @@ components:
 
     ForbiddenUpdate:
       description: |
-        Forbidden. The resource cannot be updated at this point. (Updating is only permitted when the deposit is in one of states: DRAFT, REJECTED.)
+        Forbidden. The resource cannot be updated at this point. (Updating is only permitted when the deposit is in state: DRAFT.)
 
     ForbiddenDelete:
       description: |
@@ -668,7 +668,7 @@ components:
     ConflictOverwritesFilesOnServer:
       description: Conflict. The following file(s) already exist on the server
 
-    ConflictConcurrentUploadsNotAllowed":
+    ConflictConcurrentUploadsNotAllowed:
       description: Conflict. Concurrent file uploads to the same deposit are not allowed.
 
     ConflictAttemptToOverwriteDirectoryWithFile:
