@@ -93,12 +93,13 @@ class HappyRoutesSpec extends TestSupportFixture with ServletFixture with Scalat
       "cn" -> Seq("Jan"),
       "dansPrefixes" -> Seq("van", "den"),
       "sn" -> Seq("Berg"),
+      "displayName" -> Seq("Jan v.d. Berg"),
     ))
     get(
       uri = "/user",
       headers = Seq(fooBarBasicAuthHeader)
     ) {
-      body shouldBe """{"userName":"foo","firstName":"Jan","prefix":"van den","lastName":"Berg"}"""
+      body shouldBe """{"userName":"foo","firstName":"Jan","prefix":"van den","lastName":"Berg","displayName":"Jan v.d. Berg"}"""
       status shouldBe OK_200
     }
   }
@@ -107,14 +108,15 @@ class HappyRoutesSpec extends TestSupportFixture with ServletFixture with Scalat
     authMocker.expectsUserFooBar
     (mockedApp.getUser(_: String)) expects "foo" returning Success(Map(
       "uid" -> Seq("foo"),
-      "sn" -> Seq("Berg")
+      "sn" -> Seq("Berg"),
+      "displayName" -> Seq("Jan v.d. Berg"),
     ))
 
     get(
       uri = "/user",
       headers = Seq(fooBarBasicAuthHeader)
     ) {
-      body shouldBe """{"userName":"foo","lastName":"Berg"}"""
+      body shouldBe """{"userName":"foo","lastName":"Berg","displayName":"Jan v.d. Berg"}"""
       status shouldBe OK_200
     }
   }
