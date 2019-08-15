@@ -108,7 +108,7 @@ object DDM extends SchemedXml with DebugEnhancedLogging {
       case RelatedIdentifier(Some("id-type:DOI"), Some(value), _) => <label scheme="id-type:DOI" href={ "https://doi.org/" + value }>{ value }</label>
       case RelatedIdentifier(Some("id-type:URN"), Some(value), _) => <label scheme="id-type:URN" href={ "http://persistent-identifier.nl/" + value }>{ value }</label>
       case RelatedIdentifier(Some(scheme @ ("id-type:URI" | "id-type:URL")), Some(value), _) => <label scheme={ scheme } href={ value }>{ value }</label>
-      case RelatedIdentifier(scheme, Some(value: String), _) => <label xsi:type={ scheme.nonBlankOrNull }>{ value }</label>
+      case RelatedIdentifier(scheme, Some(value), _) => <label xsi:type={ scheme.nonBlankOrNull }>{ value }</label>
       case RelatedIdentifier(scheme, None, _) => <label xsi:type={ scheme.nonBlankOrNull }></label>
       case _ => throw new IllegalArgumentException("invalid relation " + JsonUtil.toJson(relation))
     }
