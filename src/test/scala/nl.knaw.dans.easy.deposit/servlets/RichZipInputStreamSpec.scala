@@ -42,7 +42,7 @@ class RichZipInputStreamSpec extends TestSupportFixture {
 
   it should "extract all files from the zip" in {
     // zipped on a mac from some files (that used to live) in src/test/resources/manual-test
-    mockRichFileItemGetZipInputStream(new FileInputStream("src/test/resources/manual-test/Archive.zip")).apply(
+    mockRichFileItemGetZipInputStream(new FileInputStream("src/test/resources/manual-test/macosx.zip")).apply(
       unzip(_) shouldBe Success(())
     )
     stagingDir.walk().map(_.name).toList should contain theSameElementsAs

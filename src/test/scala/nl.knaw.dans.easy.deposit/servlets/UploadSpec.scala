@@ -204,7 +204,7 @@ class UploadSpec extends DepositServletFixture {
 
   it should "extract allowed files from a ZIP" in {
     // the POST-URI is different than in the other test with the same zip
-    val inputZip: File = File("src/test/resources/manual-test/Archive.zip")
+    val inputZip: File = File("src/test/resources/manual-test/macosx.zip")
     val preconditionStream = inputZip.newZipInputStream(UnicodeCharset(Charset.defaultCharset()))
     Stream.continually(preconditionStream.getNextEntry)
       .takeWhile(Option(_).nonEmpty)
@@ -238,6 +238,7 @@ class UploadSpec extends DepositServletFixture {
     absoluteTarget.walk().map(_.name).toList shouldNot contain theSameElementsAs List(
       "__MACOSX/", "__MACOSX/._login.html"
     )
+
     // get should show uploaded files
     get(
       uri = s"/deposit/$uuid/file/",
@@ -310,10 +311,10 @@ class UploadSpec extends DepositServletFixture {
     val absoluteTarget = (bagDir / "data").createDirectories()
     absoluteTarget.list.size shouldBe 0 // precondition
     post(
-      uri = s"/deposit/$uuid/file/", // another post-URU tested with the same zip
+      uri = s"/deposit/$uuid/file/", // another post-URI tested with the same zip
       params = Iterable(),
       headers = Seq(fooBarBasicAuthHeader),
-      files = Seq(("formFieldName", File("src/test/resources/manual-test/Archive.zip").toJava))
+      files = Seq(("formFieldName", File("src/test/resources/manual-test/macosx.zip").toJava))
     ) {
       body shouldBe ""
       status shouldBe CREATED_201
