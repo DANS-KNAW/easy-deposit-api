@@ -43,30 +43,29 @@ class RichZipInputStreamSpec extends TestSupportFixture {
 
   it should "extract allowed files from a zip" in {
     val zipFile = "src/test/resources/manual-test/macosx.zip"
-    val saved = List("login.html", "readme.md", "upload.html")
-    val notSaved = List("__MACOSX/", "__MACOSX/._login.html")
 
-    val charset: Charset = UnicodeCharset(Charset.defaultCharset()) // TODO as implicit?
-    File(zipFile).newZipInputStream(charset).mapEntries(_.getName).toList should contain theSameElementsAs
-      saved ::: notSaved
+    // note the presence of "__MACOSX/"
+    val notExpected = List("__MACOSX/", "__MACOSX/._login.html")
+    val expected = List("login.html", "readme.md", "upload.html")
 
-    mockRichFileItemGetZipInputStream(new FileInputStream(zipFile)).apply(
-      unzip(_) shouldBe Success(())
-    )
-    stagingDir.walk().map(_.name).toList should contain theSameElementsAs saved :+ "staging"
-    stagingDir.walk().map(_.name).toList shouldNot contain theSameElementsAs notSaved
+    testUnzipPlainEntries(zipFile, expected, notExpected)
+
   }
 
   it should "create parent directories not explicitly listed in the zip" in {
     // https://github.com/Davidhuangwei/TFM/
-    mockRichFileItemGetZipInputStream(new FileInputStream("src/test/resources/manual-test/no-dir.zip")).apply(
-      unzip(_) shouldBe Success(())
-    )
-    stagingDir.walk().map(_.name).toList should contain theSameElementsAs
-    List("staging", "tfm.m", "FMC-copper-wiresFRD.png", "image_domain.m", "license.txt" /* 2-clause BSD */, "copper_wire_example.m")
+    val zipFile = "src/test/resources/manual-test/no-dir.zip"
+
+    // note the absence of "__MACOSX/"
+    val notExpected = List("__MACOSX/._copper_wire_example.m", "__MACOSX/._image_domain.m", "__MACOSX/._tfm.m")
+    val expected = List("tfm.m", "FMC-copper-wiresFRD.png", "image_domain.m", "license.txt" /* 2-clause BSD */ , "copper_wire_example.m")
+
+    testUnzipPlainEntries(zipFile, expected, notExpected)
   }
 
   it should "not throw ZipException: only DEFLATED entries can have EXT descriptor" in {
+    // this exception was thrown while RichFileItem still used java.util.zip.ZipInputStream
+    // which is replaced by org.apache.commons.compress.archivers.zip.ZipArchiveInputStream
     mockRichFileItemGetZipInputStream(new FileInputStream("src/test/resources/manual-test/ruimtereis-bag.zip")).apply(
       unzip(_) shouldBe Success(())
     )
@@ -78,10 +77,32 @@ class RichZipInputStreamSpec extends TestSupportFixture {
       )
   }
 
+  /** for zips that don't create a directory in staging */
+  private def testUnzipPlainEntries(zipFile: String, expected: List[String], notExpected: List[String]): Any = {
+    entriesOf(zipFile) should contain theSameElementsAs expected ::: notExpected
+
+    mockRichFileItemGetZipInputStream(new FileInputStream(zipFile)).apply(
+      unzip(_) shouldBe Success(())
+    )
+    val actual = stagingDir.walk().map(_.name).toList
+    actual should contain theSameElementsAs expected :+ "staging"
+    actual shouldNot contain theSameElementsAs notExpected
+  }
+
+  /**
+   * Note that not all zips supported by ZipArchiveInputStream (used by the application)
+   * are supported by newZipInputStream used to test preconditions.
+   */
+  private def entriesOf(zipFile: String) = {
+    val charset: Charset = UnicodeCharset(Charset.defaultCharset()) // TODO as implicit?
+    File(zipFile).newZipInputStream(charset).mapEntries(_.getName).toList
+  }
+
   private def unzip(stream: ZipArchiveInputStream): Try[Unit] = {
     stream.unzipPlainEntriesTo(stagingDir.createDirectories())
   }
 
+  /** Mocks how a file item of a http request is processed by the application */
   private def mockRichFileItemGetZipInputStream(inputStream: InputStream): ManagedResource[ZipArchiveInputStream] = {
     /*
      The next example would use java.util throwing the tested ZipException, we use apache.commons
