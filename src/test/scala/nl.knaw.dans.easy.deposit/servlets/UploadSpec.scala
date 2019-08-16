@@ -19,7 +19,7 @@ import java.nio.charset.Charset
 import java.nio.file.attribute.PosixFilePermission
 import java.util.UUID
 
-import better.files.{ File, UnicodeCharset }
+import better.files.{ File, _ }
 import nl.knaw.dans.easy.deposit.DepositDir
 import nl.knaw.dans.easy.deposit.docs.DepositInfo
 import nl.knaw.dans.lib.error._
@@ -202,27 +202,17 @@ class UploadSpec extends DepositServletFixture {
     absoluteTarget.list.size shouldBe 0
   }
 
-  it should "extract allowed files from a ZIP" in {
-    // the POST-URI is different than in the other test with the same zip
-    val inputZip: File = File("src/test/resources/manual-test/macosx.zip")
-    val preconditionStream = inputZip.newZipInputStream(UnicodeCharset(Charset.defaultCharset()))
-    Stream.continually(preconditionStream.getNextEntry)
-      .takeWhile(Option(_).nonEmpty)
-      .toList
-      .map(_.getName) should contain theSameElementsAs
-      List("login.html", "__MACOSX/", "__MACOSX/._login.html", "readme.md", "upload.html")
-
+  it should "extract the files into the relative target" in {
     val uuid = createDeposit
     val relativeTarget = "path/to/dir"
-    val requestURI = s"/deposit/$uuid/file/$relativeTarget"
     val bagDir = testDir / "drafts" / "foo" / uuid.toString / bagDirName
     val absoluteTarget = (bagDir / "data" / relativeTarget).createDirectories()
     absoluteTarget.list.size shouldBe 0 // precondition
     post(
-      uri = requestURI,
+      uri = s"/deposit/$uuid/file/$relativeTarget", // another post-URI tested with the same zip
       params = Iterable(),
       headers = Seq(fooBarBasicAuthHeader),
-      files = Seq(("formFieldName", inputZip.toJava))
+      files = Seq(("formFieldName", File("src/test/resources/manual-test/macosx.zip").toJava))
     ) {
       body shouldBe ""
       status shouldBe CREATED_201
@@ -234,10 +224,7 @@ class UploadSpec extends DepositServletFixture {
       .lines
       .map(_.replaceAll(".* +", "")) should contain theSameElementsAs List(
       "login.html", "readme.md", "upload.html"
-    ).map("data/path/to/dir/" + _)
-    absoluteTarget.walk().map(_.name).toList shouldNot contain theSameElementsAs List(
-      "__MACOSX/", "__MACOSX/._login.html"
-    )
+    ).map(s"data/$relativeTarget/" + _)
 
     // get should show uploaded files
     get(

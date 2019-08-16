@@ -16,8 +16,9 @@
 package nl.knaw.dans.easy.deposit.servlets
 
 import java.io.{ ByteArrayInputStream, FileInputStream, InputStream }
-import java.nio.charset.StandardCharsets
+import java.nio.charset.{ Charset, StandardCharsets }
 
+import better.files.{ File, UnicodeCharset, _ }
 import nl.knaw.dans.easy.deposit.Errors.MalformedZipException
 import nl.knaw.dans.easy.deposit.TestSupportFixture
 import org.apache.commons.compress.archivers.zip.ZipArchiveInputStream
@@ -40,12 +41,20 @@ class RichZipInputStreamSpec extends TestSupportFixture {
     )
   }
 
-  it should "extract all files from the zip" in {
-    mockRichFileItemGetZipInputStream(new FileInputStream("src/test/resources/manual-test/macosx.zip")).apply(
+  it should "extract allowed files from a zip" in {
+    val zipFile = "src/test/resources/manual-test/macosx.zip"
+    val saved = List("login.html", "readme.md", "upload.html")
+    val notSaved = List("__MACOSX/", "__MACOSX/._login.html")
+
+    val charset: Charset = UnicodeCharset(Charset.defaultCharset()) // TODO as implicit?
+    File(zipFile).newZipInputStream(charset).mapEntries(_.getName).toList should contain theSameElementsAs
+      saved ::: notSaved
+
+    mockRichFileItemGetZipInputStream(new FileInputStream(zipFile)).apply(
       unzip(_) shouldBe Success(())
     )
-    stagingDir.walk().map(_.name).toList should contain theSameElementsAs
-      List("staging", "login.html", "readme.md", "upload.html")
+    stagingDir.walk().map(_.name).toList should contain theSameElementsAs saved :+ "staging"
+    stagingDir.walk().map(_.name).toList shouldNot contain theSameElementsAs notSaved
   }
 
   it should "create parent directories not explicitly listed in the zip" in {
