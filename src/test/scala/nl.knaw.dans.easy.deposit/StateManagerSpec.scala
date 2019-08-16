@@ -16,22 +16,28 @@
 package nl.knaw.dans.easy.deposit
 
 import java.net.URL
+import java.util.UUID
 
 import better.files.File
-import nl.knaw.dans.easy.deposit.Errors.{ IllegalStateTransitionException, PropertyNotFoundException }
+import nl.knaw.dans.easy.deposit.Errors.IllegalStateTransitionException
 import nl.knaw.dans.easy.deposit.docs.StateInfo
 import nl.knaw.dans.easy.deposit.docs.StateInfo.State
 
 import scala.util.{ Failure, Success }
 
 class StateManagerSpec extends TestSupportFixture {
-  private val draftDeposit: File = testDir / "draft"
+
+  // need hard coded UUIDs to manually try the expectedURL-s in a browser
+  override lazy val uuid: UUID = UUID.fromString("7fa835ce-0987-4064-90ca-a7b75ce78a16")
+  private val submittedUuid = UUID.fromString("a890ad74-872b-4f21-81a8-f3ef88b944ba")
+
+  private val draftDeposit: DepositDir = DepositDir(testDir / "draft", "foo", uuid)
   private val submitBase = testDir / "submitted"
   private val easyHome: URL = new URL("https://easy.dans.knaw.nl/ui")
 
-  private def submittedPropsFile = (submitBase / uuid.toString).createDirectories() / "deposit.properties"
+  private def submittedPropsFile: File = (submitBase / submittedUuid.toString).createDirectories() / "deposit.properties"
 
-  private def draftPropsFile = draftDeposit.createDirectories() / "deposit.properties"
+  private def draftPropsFile: File = draftDeposit.bagDir.createDirectories().parent / "deposit.properties"
 
   override def beforeEach(): Unit = {
     super.beforeEach()
@@ -44,57 +50,55 @@ class StateManagerSpec extends TestSupportFixture {
       s"""state.label = DRAFT
          |state.description = $message
       """.stripMargin)
-    StateManager(draftDeposit, File("does-not-exist"), easyHome).getStateInfo should matchPattern {
-      case Success(StateInfo(State.draft, `message`)) =>
-    }
+    StateManager(draftDeposit, File("does-not-exist"), easyHome).getStateInfo shouldBe Success(StateInfo(State.draft, message))
   }
 
-  it should "require a bag-store.bag-id for state SUBMITTED" in {
+  it should "not stumble on missing draft property bag-store.bag-id for state SUBMITTED" in {
+    // the problem will be logged
     draftPropsFile.writeText(
       s"""state.label = SUBMITTED
          |state.description = The dataset is ready for processing
       """.stripMargin)
-    StateManager(draftDeposit, File("does-not-exist"), easyHome).getStateInfo should matchPattern {
-      case Failure(e: PropertyNotFoundException) if e.getMessage ==
-        s"'bag-store.bag-id' not found in $draftDeposit/deposit.properties" =>
-    }
+    StateManager(draftDeposit, submitBase, easyHome).getStateInfo shouldBe Success(StateInfo(
+      State.submitted,
+      mailtoMessage(s"""mailto:info@dans.knaw.nl?subject=Deposit%20processing%20error:%20%20reference%20DRAFT/foo/7fa835ce-0987-4064-90ca-a7b75ce78a16&body=Dear%20data%20manager%2C%0A%0ASomething%20went%20wrong%20while%20processing%20my%20deposit.%20Could%20you%20please%20investigate%20the%20issue?%0A%0ADataset%20reference:%0A%20%20%20DRAFT/foo/7fa835ce-0987-4064-90ca-a7b75ce78a16%0ATitle:%0A%20%20%20%0A%0AKind%20regards%2C%0Afoo%0A""")
+    ))
   }
 
-  it should "require submit properties for state SUBMITTED" in {
+  it should "not stumble on missing ingest-flow-inbox state property for state SUBMITTED" in {
+    // the problem will be logged
     draftPropsFile.writeText(
       s"""state.label = SUBMITTED
          |state.description = The dataset is ready for processing
-         |bag-store.bag-id = $uuid
+         |bag-store.bag-id = $submittedUuid
       """.stripMargin)
-    StateManager(draftDeposit, testDir / "does-not-exist", easyHome).getStateInfo should matchPattern {
-      case Failure(e: PropertyNotFoundException) if e.getMessage ==
-        s"'state.label' not found in $testDir/does-not-exist/$uuid/deposit.properties" =>
-      // actually the submitted deposit does not exist
-      // for example due to lack of space to create a copy in the staging area
-      // or removed by some ignorant clean-up action
-    }
+    StateManager(draftDeposit, submitBase, easyHome).getStateInfo shouldBe Success(StateInfo(
+      State.submitted,
+      mailtoMessage(s"""mailto:info@dans.knaw.nl?subject=Deposit%20processing%20error:%20%20reference%20a890ad74-872b-4f21-81a8-f3ef88b944ba&body=Dear%20data%20manager%2C%0A%0ASomething%20went%20wrong%20while%20processing%20my%20deposit.%20Could%20you%20please%20investigate%20the%20issue?%0A%0ADataset%20reference:%0A%20%20%20a890ad74-872b-4f21-81a8-f3ef88b944ba%0ATitle:%0A%20%20%20%0A%0AKind%20regards%2C%0Afoo%0A""")
+    ))
   }
 
   it should "change SUBMITTED to IN_PROGRESS" in {
     draftPropsFile.writeText(
       s"""state.label = SUBMITTED
          |state.description = The deposit is ready for processing
-         |bag-store.bag-id = $uuid
+         |bag-store.bag-id = $submittedUuid
       """.stripMargin)
     submittedPropsFile.writeText(
       s"""state.label = IN_REVIEW
          |state.description = rabarbera
       """.stripMargin)
-    StateManager(draftDeposit, submitBase, easyHome).getStateInfo should matchPattern {
-      case Success(StateInfo(State.inProgress, "The deposit is available at https://easy.dans.knaw.nl/ui/mydatasets")) =>
-    }
+    StateManager(draftDeposit, submitBase, easyHome).getStateInfo shouldBe Success(StateInfo(
+      State.inProgress,
+      """The deposit is available at <a href="https://easy.dans.knaw.nl/ui/mydatasets" target="_blank">https://easy.dans.knaw.nl/ui/mydatasets</a>"""
+    ))
   }
 
   it should "return the fedora landing page" in {
     draftPropsFile.writeText(
       s"""state.label = SUBMITTED
          |state.description = The deposit is ready for processing
-         |bag-store.bag-id = $uuid
+         |bag-store.bag-id = $submittedUuid
          |identifier.doi = 10.5072/dans-zyf-v9sc
       """.stripMargin)
     submittedPropsFile.writeText(
@@ -102,25 +106,88 @@ class StateManagerSpec extends TestSupportFixture {
          |state.description = rabarbera
          |identifier.fedora = easy-dataset:1239
       """.stripMargin)
-    StateManager(draftDeposit, submitBase, easyHome).getStateInfo should matchPattern {
-      case Success(StateInfo(State.inProgress, "The deposit is available at https://easy.dans.knaw.nl/ui/datasets/id/easy-dataset:1239")) =>
-    }
+    val testResult = StateManager(draftDeposit, submitBase, easyHome).getStateInfo
+    testResult shouldBe Success(StateInfo(
+      State.inProgress,
+      """The deposit is available at <a href="https://easy.dans.knaw.nl/ui/datasets/id/easy-dataset:1239" target="_blank">https://easy.dans.knaw.nl/ui/datasets/id/easy-dataset:1239</a>"""
+    ))
+  }
+
+  it should "mail the draft uuid" in {
+    draftPropsFile.writeText(
+      s"""state.label = SUBMITTED
+         |state.description = The deposit is ready for processing
+      """.stripMargin)
+    submittedPropsFile.writeText(
+      s"""state.label = REJECTED
+         |curation.performed = no
+         |state.description = rabarbera
+         |identifier.fedora = easy-dataset:1239
+      """.stripMargin)
+    ((draftDeposit.bagDir / "metadata").createDirectories() / "dataset.json")
+      .write("""{"titles":["A test with a title longer than forty-two characters."]}""")
+    StateManager(draftDeposit, submitBase, easyHome).getStateInfo shouldBe Success(StateInfo(
+      State.submitted,
+      mailtoMessage("""mailto:info@dans.knaw.nl?subject=Deposit%20processing%20error:%20A%20test%20with%20a%20title%20longer%20than%20forty-two%20%E2%80%A6%20reference%20DRAFT/foo/7fa835ce-0987-4064-90ca-a7b75ce78a16&body=Dear%20data%20manager%2C%0A%0ASomething%20went%20wrong%20while%20processing%20my%20deposit.%20Could%20you%20please%20investigate%20the%20issue?%0A%0ADataset%20reference:%0A%20%20%20DRAFT/foo/7fa835ce-0987-4064-90ca-a7b75ce78a16%0ATitle:%0A%20%20%20A%20test%20with%20a%20title%20longer%20than%20forty-two%20%E2%80%A6%0A%0AKind%20regards%2C%0Afoo%0A""")
+    ))
+  }
+
+  it should "mail the submitted uuid" in {
+    draftPropsFile.writeText(
+      s"""state.label = SUBMITTED
+         |state.description = The deposit is ready for processing
+         |bag-store.bag-id = $submittedUuid
+      """.stripMargin)
+    submittedPropsFile.writeText(
+      s"""state.label = REJECTED
+         |curation.performed = no
+      """.stripMargin)
+    ((draftDeposit.bagDir / "metadata").createDirectories() / "dataset.json")
+      .write(
+        """{"titles":["
+          | A test with
+          | new lines and html <a href='http://user.hack.dans.knaw.nl'>link</a>.
+          |
+          | "]}""".stripMargin)
+    StateManager(draftDeposit, submitBase, easyHome).getStateInfo shouldBe Success(StateInfo(
+      State.submitted,
+      mailtoMessage("""mailto:info@dans.knaw.nl?subject=Deposit%20processing%20error:%20A%20test%20with%20%20new%20lines%20and%20html%20%E2%80%A6%20reference%20a890ad74-872b-4f21-81a8-f3ef88b944ba&body=Dear%20data%20manager%2C%0A%0ASomething%20went%20wrong%20while%20processing%20my%20deposit.%20Could%20you%20please%20investigate%20the%20issue?%0A%0ADataset%20reference:%0A%20%20%20a890ad74-872b-4f21-81a8-f3ef88b944ba%0ATitle:%0A%20%20%20A%20test%20with%20%20new%20lines%20and%20html%20%E2%80%A6%0A%0AKind%20regards%2C%0Afoo%0A""")
+    ))
+  }
+
+  private def mailtoMessage(expectedURL: String) = {
+    s"""Something went wrong while processing this deposit. Please <a href="$expectedURL">contact DANS</a>"""
+  }
+
+  it should "return the curators message" in {
+    draftPropsFile.writeText(
+      s"""state.label = SUBMITTED
+         |state.description = The deposit is ready for processing
+         |bag-store.bag-id = $submittedUuid
+      """.stripMargin)
+    submittedPropsFile.writeText(
+      s"""state.label = REJECTED
+         |curation.performed = yes
+         |state.description = rabarbera
+      """.stripMargin)
+    StateManager(draftDeposit, submitBase, easyHome).getStateInfo shouldBe Success(StateInfo(State.rejected, """rabarbera"""))
   }
 
   it should "return a generic landing page when no fedora-id is available" in {
     draftPropsFile.writeText(
       s"""state.label = SUBMITTED
          |state.description = The deposit is ready for processin
-         |bag-store.bag-id = $uuid
+         |bag-store.bag-id = $submittedUuid
          |identifier.doi = 10.5072/dans-zyf-v9sc
       """.stripMargin)
     submittedPropsFile.writeText(
       s"""state.label = FEDORA_ARCHIVED
          |state.description = rabarbeara
       """.stripMargin)
-    StateManager(draftDeposit, submitBase, easyHome).getStateInfo should matchPattern {
-      case Success(StateInfo(State.archived, "The dataset is published at https://easy.dans.knaw.nl/ui/mydatasets")) =>
-    }
+    StateManager(draftDeposit, submitBase, easyHome).getStateInfo shouldBe Success(StateInfo(
+      State.archived,
+      """The dataset is published at <a href="https://easy.dans.knaw.nl/ui/mydatasets" target="_blank">https://easy.dans.knaw.nl/ui/mydatasets</a>"""
+    ))
   }
 
   "setStateInfo" should "result in Success when transitioning from DRAFT to SUBMITTED" in {
@@ -142,7 +209,7 @@ class StateManagerSpec extends TestSupportFixture {
     draftPropsFile.writeText(
       s"""state.label = REJECTED
          |state.description = Something's rotten on the state of ...
-         |bag-store.bag-id = $uuid
+         |bag-store.bag-id = $submittedUuid
          |""".stripMargin)
     StateManager(draftDeposit, submitBase, easyHome)
       .changeState(StateInfo(State.draft, "rabarbera")) shouldBe a[Success[_]]
@@ -156,7 +223,7 @@ class StateManagerSpec extends TestSupportFixture {
     val props =
       s"""state.label = DRAFT
          |state.description = Something's rotten on the state of ...
-         |bag-store.bag-id = $uuid
+         |bag-store.bag-id = $submittedUuid
          |""".stripMargin
     draftPropsFile.writeText(props)
     StateManager(draftDeposit, submitBase, easyHome)

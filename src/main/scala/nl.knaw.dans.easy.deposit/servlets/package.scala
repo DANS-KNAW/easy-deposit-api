@@ -16,15 +16,16 @@
 package nl.knaw.dans.easy.deposit
 
 import java.io.EOFException
-import java.nio.charset.Charset
 import java.nio.file.Files
 import java.util.UUID
-import java.util.zip.{ ZipEntry, ZipException, ZipInputStream }
+import java.util.zip.ZipException
 
 import better.files.File
 import better.files.File.CopyOptions
 import nl.knaw.dans.easy.deposit.Errors.{ ConfigurationException, MalformedZipException, ZipMustBeOnlyFileException }
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
+import org.apache.commons.compress.archivers.ArchiveEntry
+import org.apache.commons.compress.archivers.zip.ZipArchiveInputStream
 import org.scalatra.servlet.{ FileItem, MultipartConfig }
 import org.scalatra.util.RicherString._
 import resource.{ ManagedResource, managed }
@@ -55,38 +56,49 @@ package object servlets extends DebugEnhancedLogging {
   val contentTypeJson: (String, String) = "content-type" -> "application/json;charset=UTF-8"
   val contentTypePlainText: (String, String) = "content-type" -> "text/plain;charset=UTF-8"
 
-  implicit class RichManagedZipInputStream(val zipInputStream: ManagedResource[ZipInputStream]) extends AnyVal {
+  implicit class RichManagedZipInputStream(val zipInputStream: ManagedResource[ZipArchiveInputStream]) extends AnyVal {
     def unzipPlainEntriesTo(dir: File): Try[Unit] = {
       zipInputStream.apply(_.unzipPlainEntriesTo(dir))
     }
   }
 
-  implicit class RichZipInputStream(val zipInputStream: ZipInputStream) extends AnyVal {
+  implicit class RichZipInputStream(val zipInputStream: ZipArchiveInputStream) extends AnyVal {
+
+    private def skip(file: File): Boolean = {
+      file.isDirectory && file.name == "__MACOSX"
+    }
+
     def unzipPlainEntriesTo(dir: File): Try[Unit] = {
-      def extract(entry: ZipEntry): Try[Unit] = {
+      def extract(entry: ArchiveEntry): Try[Unit] = {
         if (entry.isDirectory)
           Try((dir / entry.getName).createDirectories())
         else {
-          logger.info(s"Extracting ${ entry.getName } size=${ entry.getSize } compressedSize=${ entry.getCompressedSize } CRC=${ entry.getCrc }")
-          Try { Files.copy(zipInputStream, (dir / entry.getName).path); () }
-            .recoverWith { case e: ZipException =>
-              logger.error(e.getMessage, e)
-              Failure(MalformedZipException(s"Can't extract ${ entry.getName }"))
-            }
+          logger.info(s"Extracting ${ entry.getName } size=${ entry.getSize } getLastModifiedDate=${ entry.getLastModifiedDate } }")
+          Try {
+            (dir / entry.getName).parent.createDirectories() // in case a directory was not specified separately
+            Files.copy(zipInputStream, (dir / entry.getName).path)
+            ()
+          }.recoverWith { case e: ZipException =>
+            logger.error(e.getMessage, e)
+            Failure(MalformedZipException(s"Can't extract ${ entry.getName }"))
+          }
         }
       }
 
       Try(Option(zipInputStream.getNextEntry)) match {
-        case Success(Some(firstEntry: ZipEntry)) => for {
+        case Success(None) |
+             Failure(_: EOFException) => Failure(MalformedZipException(s"No entries found."))
+        case Failure(e: ZipException) => Failure(MalformedZipException(e.getMessage))
+        case Failure(e) => Failure(e)
+        case Success(Some(firstEntry: ArchiveEntry)) => for {
           _ <- extract(firstEntry)
           _ <- Stream
             .continually(zipInputStream.getNextEntry)
             .takeWhile(Option(_).nonEmpty)
             .map(extract)
             .failFastOr(Success(()))
+          _ = dir.list(skip).foreach(_.delete())
         } yield ()
-        case Success(None) | Failure(_: EOFException) => Failure(MalformedZipException(s"No entries found."))
-        case Failure(e) => Failure(e)
       }
     }
   }
@@ -100,10 +112,16 @@ package object servlets extends DebugEnhancedLogging {
       extensionIsZip || contentTypeIsZip
     }
 
-    def getZipInputStream: Try[resource.ManagedResource[ZipInputStream]] = Try {
+    def getZipInputStream: Try[resource.ManagedResource[ZipArchiveInputStream]] = Try {
       fileItem.charset
-        .map(charSet => managed(new ZipInputStream(fileItem.getInputStream, Charset.forName(charSet))))
-        .getOrElse(managed(new ZipInputStream(fileItem.getInputStream)))
+        .map(toZipInputStream)
+        .getOrElse(toZipInputStream("UTF8"))
+    }
+
+    private def toZipInputStream(charSet: String): ManagedResource[ZipArchiveInputStream] = {
+      val useUnicodeExtraFields = true
+      val allowStoredEntriesWithDataDescriptor = true
+      managed(new ZipArchiveInputStream(fileItem.getInputStream, charSet, useUnicodeExtraFields, allowStoredEntriesWithDataDescriptor))
     }
   }
 
@@ -134,7 +152,7 @@ package object servlets extends DebugEnhancedLogging {
 
   implicit class RichFileItems(val fileItems: BufferedIterator[FileItem]) extends AnyVal {
 
-    def nextAsZipIfOnlyOne: Try[Option[ManagedResource[ZipInputStream]]] = {
+    def nextAsZipIfOnlyOne: Try[Option[ManagedResource[ZipArchiveInputStream]]] = {
       skipLeadingEmptyFormFields()
       if (!fileItems.headOption.exists(_.isZip)) Success(None)
       else {

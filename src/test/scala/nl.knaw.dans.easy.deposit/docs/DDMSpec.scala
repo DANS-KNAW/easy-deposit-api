@@ -66,11 +66,11 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
   )
 
   "minimal with multiple descriptions" should behave like validDatasetMetadata(
-    input = Try(new MinimalDatasetMetadata(descriptions = Some(Seq("Lorum", "ipsum")))),
+    input = Try(new MinimalDatasetMetadata(descriptions = Some(Seq("Lorum <a href='mailto:info@dans.knaw.nl'>ipsum</a>", "ipsum")))),
     subset = actualDDM => profileElements(actualDDM, "description"),
     expectedDdmContent =
       <ddm:profile>
-        <dcterms:description>Lorum</dcterms:description>
+        <dcterms:description>Lorum &lt;a href='mailto:info@dans.knaw.nl'&gt;ipsum&lt;/a&gt;</dcterms:description>
         <dcterms:description>ipsum</dcterms:description>
       </ddm:profile>
   )
@@ -411,6 +411,8 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
         <dc:title xml:lang="nld">title2</dc:title>
         <dcterms:description xml:lang="nld">description1</dcterms:description>
         <dcterms:description xml:lang="nld">description2</dcterms:description>
+        <ddm:description descriptionType="TechnicalInfo">remark1</ddm:description>
+        <ddm:description descriptionType="TechnicalInfo">remark2</ddm:description>
         <dcx-dai:creatorDetails>
           <dcx-dai:author>
             <dcx-dai:titles xml:lang="nld">Drs.</dcx-dai:titles>
@@ -439,10 +441,6 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
       </ddm:profile>
       <ddm:dcmiMetadata>
         <dcterms:identifier xsi:type="id-type:DOI">10.17632/DANS.6wg5xccnjd.1</dcterms:identifier>
-        <dcterms:identifier xsi:type="id-type:ISBN">test identifier 1</dcterms:identifier>
-        <dcterms:identifier xsi:type="id-type:NWO-PROJECTNR">test identifier 2</dcterms:identifier>
-        <dcterms:identifier xsi:type="id-type:ARCHIS-ZAAK-IDENTIFICATIE">archis nr. 1</dcterms:identifier>
-        <dcterms:identifier xsi:type="id-type:ARCHIS-ZAAK-IDENTIFICATIE">archis nr. 2</dcterms:identifier>
         <dcterms:alternative xml:lang="nld">alternative title 1</dcterms:alternative>
         <dcterms:alternative xml:lang="nld">alternative title2</dcterms:alternative>
         <dcterms:isReferencedBy xsi:type="id-type:ISSN">2123-34X</dcterms:isReferencedBy>
@@ -451,6 +449,11 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
         <ddm:isReplacedBy href="http://y">http://y</ddm:isReplacedBy>
         <ddm:relation href="http://z">http://z</ddm:relation>
         <dcterms:relation xml:lang="nld">title3</dcterms:relation>
+        <dcterms:isFormatOf xsi:type="id-type:ISBN">test identifier 1</dcterms:isFormatOf>
+        <dcterms:isFormatOf xsi:type="id-type:NWO-PROJECTNR">test identifier 2</dcterms:isFormatOf>
+        <dcterms:isFormatOf xsi:type="id-type:ARCHIS-ZAAK-IDENTIFICATIE">archis nr. 1</dcterms:isFormatOf>
+        <dcterms:isFormatOf xsi:type="id-type:ARCHIS-ZAAK-IDENTIFICATIE">archis nr. 2</dcterms:isFormatOf>
+        <ddm:isFormatOf scheme="id-type:DOI" href="https://doi.org/10.5072/test-doi">10.5072/test-doi</ddm:isFormatOf>
         <dcx-dai:contributorDetails>
           <dcx-dai:author>
             <dcx-dai:titles xml:lang="nld">Dr.</dcx-dai:titles>
@@ -466,8 +469,8 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
         </dcx-dai:contributorDetails>
         <dcx-dai:contributorDetails>
           <dcx-dai:organization>
-            <dcx-dai:role>RightsHolder</dcx-dai:role>
             <dcx-dai:name xml:lang="nld">rightsHolder1</dcx-dai:name>
+            <dcx-dai:role>RightsHolder</dcx-dai:role>
           </dcx-dai:organization>
         </dcx-dai:contributorDetails>
         <dcx-dai:contributorDetails>
@@ -537,6 +540,10 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
           </boundedBy>
         </dcx-gml:spatial>
         <dcterms:license xsi:type="dcterms:URI">http://creativecommons.org/publicdomain/zero/1.0</dcterms:license>
+        <dcterms:language xsi:type="dcterms:ISO639-2">eng</dcterms:language>
+        <dcterms:language xsi:type="dcterms:ISO639-2">nld</dcterms:language>
+        <dcterms:language>Flakkees</dcterms:language>
+        <dcterms:language>Goerees</dcterms:language>
       </ddm:dcmiMetadata>
   )
 
@@ -552,7 +559,6 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
   private def parseTestResource(file: String) = Try {
     getManualTestResource(file)
   }.flatMap(DatasetMetadata(_))
-
 }
 
 trait DdmBehavior {

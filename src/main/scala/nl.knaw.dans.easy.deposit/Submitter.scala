@@ -17,9 +17,8 @@ package nl.knaw.dans.easy.deposit
 
 import java.io.IOException
 import java.nio.file._
-import java.nio.file.attribute.PosixFilePermission.GROUP_WRITE
+import java.nio.file.attribute.PosixFilePermission._
 import java.nio.file.attribute.{ PosixFileAttributeView, UserPrincipalNotFoundException }
-import java.nio.file.spi.FileSystemProvider
 import java.util.UUID
 
 import better.files.File
@@ -68,7 +67,7 @@ class Submitter(stagingBaseDir: File,
    * @param draftDeposit the deposit object to submit
    * @return the UUID of the deposit in the submit area (easy-ingest-flow-inbox)
    */
-  def submit(draftDeposit: DepositDir, stateManager: StateManager, fullName: String): Try[UUID] = {
+  def submit(draftDeposit: DepositDir, stateManager: StateManager, fullName: String, stagedDir: File): Try[UUID] = {
     val propsFileName = "deposit.properties"
     for {
       // EASY-1464 step 3.3.4 validation
@@ -88,14 +87,13 @@ class Submitter(stagingBaseDir: File,
       _ <- sameFiles(draftBag.payloadManifests, draftBag.baseDir / "data")
       // from now on no more user errors but internal errors
       // EASY-1464 3.3.8.a create empty staged bag to take a copy of the deposit
-      stageDir = (stagingBaseDir / draftDeposit.id.toString).createDirectories()
-      stageBag <- DansV0Bag.empty(stageDir / "bag").map(_.withCreated())
+      stageBag <- DansV0Bag.empty(stagedDir / bagDirName).map(_.withCreated())
       // EASY-1464 3.3.6 change state and copy with the rest of the deposit properties to staged dir
       _ <- stateManager.changeState(StateInfo(State.submitted, "Deposit is ready for processing."))
       submittedId <- stateManager.getSubmittedBagId // created by changeState
       submitDir = submitToBaseDir / submittedId.toString
       _ = if (submitDir.exists) throw AlreadySubmittedException(draftDeposit.id)
-      _ = (draftBag.baseDir.parent / propsFileName).copyTo(stageDir / propsFileName)
+      _ = (draftBag.baseDir.parent / propsFileName).copyTo(stagedDir / propsFileName)
       // EASY-1464 3.3.5.b: write files to metadata
       _ = stageBag.addMetadataFile(msg, s"$depositorInfoDirectoryName/message-from-depositor.txt")
       _ <- stageBag.addMetadataFile(agreementsXml, s"$depositorInfoDirectoryName/agreements.xml")
@@ -132,7 +130,11 @@ class Submitter(stagingBaseDir: File,
   private def setRights(path: Path): Try[Unit] = Try {
     trace(path)
     // EASY-1932, variant of https://github.com/DANS-KNAW/easy-split-multi-deposit/blob/73189001217c2bf31b487eb8356f76ea4e9ffc31/src/main/scala/nl.knaw.dans.easy.multideposit/actions/SetDepositPermissions.scala#L72-L90
-    File(path).addPermission(GROUP_WRITE)
+    val file = File(path)
+    file.addPermission(GROUP_WRITE)
+    file.addPermission(GROUP_READ)
+    if (file.isDirectory)
+      file.addPermission(GROUP_EXECUTE)
     // tried File(path).setGroup(groupPrincipal) but it causes "java.io.IOException: 'owner' parameter can't be a group"
     Files.getFileAttributeView(
       path,

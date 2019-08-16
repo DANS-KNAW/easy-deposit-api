@@ -64,7 +64,7 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
     ) {
       status shouldBe NO_CONTENT_204
     }
-    (testDir / "drafts" / "foo" / uuid.toString / "bag" / "metadata" / "dataset.json") should exist
+    (testDir / "drafts" / "foo" / uuid.toString / bagDirName / "metadata" / "dataset.json") should exist
 
     // get dataset metadata
     authMocker.expectsUserFooBar
@@ -74,7 +74,7 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
     }
 
     // invalidate the metadata and try again
-    (testDir / "drafts" / "foo" / uuid / "bag" / "metadata" / "dataset.json").write("---")
+    (testDir / "drafts" / "foo" / uuid / bagDirName / "metadata" / "dataset.json").write("---")
     authMocker.expectsUserFooBar
     get(metadataURI, headers = Seq(fooBarBasicAuthHeader)) {
       status shouldBe INTERNAL_SERVER_ERROR_500
@@ -176,7 +176,7 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
       uri = s"/deposit/$uuid/file/path/to/test.txt", headers = Seq(fooBarBasicAuthHeader, ("Content-Type", "application/json")),
       body = "Lorum ipsum"
     ) {
-      body shouldBe "Deposit has state SUBMITTED, can only update deposits with one of the states: DRAFT, REJECTED"
+      body shouldBe "Deposit has state SUBMITTED, can only update deposits with one of the states: DRAFT"
       status shouldBe FORBIDDEN_403
     }
   }
@@ -316,7 +316,7 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
     }
 
     // submit did not complain about missing metadata, so the state transition check indeed came first
-    (testDir / "drafts" / "foo" / uuid.toString / "bag" / "metatada") shouldNot exist
+    (testDir / "drafts" / "foo" / uuid.toString / bagDirName / "metatada") shouldNot exist
   }
 
   private def setupSubmittedDeposit: String = {

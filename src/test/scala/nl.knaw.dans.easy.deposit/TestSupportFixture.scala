@@ -35,6 +35,7 @@ trait TestSupportFixture extends FlatSpec with Matchers with Inside with BeforeA
 
   lazy val testDir: File = currentWorkingDirectory / "target" / "test" / getClass.getSimpleName
   lazy val uuid: UUID = UUID.randomUUID()
+  val bagDirName = "bag"
 
   // modification of https://github.com/DANS-KNAW/easy-split-multi-deposit/blob/ea7c2dc3d6/src/test/scala/nl.knaw.dans.easy.multideposit/actions/SetDepositPermissionsSpec.scala#L102
   lazy val (user, userGroup, unrelatedGroup) = {
@@ -75,8 +76,7 @@ trait TestSupportFixture extends FlatSpec with Matchers with Inside with BeforeA
 
   def minimalAppConfig: Configuration = {
     new Configuration("", new PropertiesConfiguration() {
-      addProperty("deposits.stage-zips", testSubDir("stage-zips").toString())
-      addProperty("deposits.stage-for-submit", testSubDir("stage-for-submit").toString())
+      addProperty("deposits.staged", testSubDir("staged").toString())
       addProperty("deposits.drafts", testSubDir("drafts").toString())
       addProperty("deposits.submit-to", testSubDir("easy-ingest-flow-inbox").toString())
       addProperty("deposit.permissions.group", userGroup)

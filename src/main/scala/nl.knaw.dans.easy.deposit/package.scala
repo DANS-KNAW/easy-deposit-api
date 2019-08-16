@@ -26,6 +26,7 @@ import scala.xml._
 package object deposit {
 
   val prologue = """<?xml version='1.0' encoding='UTF-8'?>"""
+  val bagDirName = "bag"
 
   implicit class XmlExtensions(val elem: Elem) extends AnyVal {
 

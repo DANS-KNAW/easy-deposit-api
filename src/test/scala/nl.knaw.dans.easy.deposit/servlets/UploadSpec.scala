@@ -15,10 +15,11 @@
  */
 package nl.knaw.dans.easy.deposit.servlets
 
+import java.nio.charset.Charset
 import java.nio.file.attribute.PosixFilePermission
 import java.util.UUID
 
-import better.files.File
+import better.files.{ File, UnicodeCharset }
 import nl.knaw.dans.easy.deposit.DepositDir
 import nl.knaw.dans.easy.deposit.docs.DepositInfo
 import nl.knaw.dans.lib.error._
@@ -50,14 +51,14 @@ class UploadSpec extends DepositServletFixture {
     ) {
       body shouldBe ""
       status shouldBe CREATED_201
-      val bagDir = testDir / "drafts/foo" / uuid.toString / "bag"
+      val bagDir = testDir / "drafts/foo" / uuid.toString / bagDirName
       val uploaded = (bagDir / "data" / relativeTarget).list
       uploaded.size shouldBe bodyParts.size
       uploaded.foreach(file =>
         file.contentAsString shouldBe (testDir / "input" / file.name).contentAsString
       )
       (bagDir / "manifest-sha1.txt").lines.size shouldBe bodyParts.size
-      (testDir / "stage-zips").list.size shouldBe 0
+      (testDir / "staged").list.size shouldBe 0
     }
   }
 
@@ -69,7 +70,7 @@ class UploadSpec extends DepositServletFixture {
       ("more", "4.txt", "Ut enim ad minim veniam"),
     ))
     val uuid = createDeposit
-    (testDir / s"stage-zips/foo-$uuid-XYZ").createDirectories() // mocks a concurrent post
+    (testDir / s"staged/foo-$uuid-XYZ").createDirectories() // mocks a concurrent post
     post(
       uri = s"/deposit/$uuid/file/path/to/dir",
       params = Iterable(),
@@ -77,11 +78,11 @@ class UploadSpec extends DepositServletFixture {
       files = bodyParts
     ) {
       status shouldBe CONFLICT_409
-      body shouldBe "Another upload is pending. Please try again later."
-      val bagDir = testDir / "drafts/foo" / uuid.toString / "bag"
+      body shouldBe "Another upload or submit is pending."
+      val bagDir = testDir / "drafts/foo" / uuid.toString / bagDirName
       (bagDir / "data").list.size shouldBe 0
       (bagDir / "manifest-sha1.txt").lines.size shouldBe 0
-      (testDir / "stage-zips").list.size shouldBe 1
+      (testDir / "staged").list.size shouldBe 1
     }
   }
 
@@ -93,7 +94,7 @@ class UploadSpec extends DepositServletFixture {
     ))
     val uuid = createDeposit
     val relativeTarget = "path/to/dir"
-    val absoluteTarget = testDir / "drafts" / "foo" / uuid.toString / "bag/data" / relativeTarget
+    val absoluteTarget = testDir / "drafts" / "foo" / uuid.toString / bagDirName / "data" / relativeTarget
     absoluteTarget
       .createDirectories()
       .removePermission(PosixFilePermission.OWNER_WRITE)
@@ -117,7 +118,7 @@ class UploadSpec extends DepositServletFixture {
     ))
     val uuid = createDeposit
     val relativeTarget = "path/to/dir"
-    val absoluteTarget = (testDir / "drafts" / "foo" / uuid.toString / "bag/data" / relativeTarget).createDirectories()
+    val absoluteTarget = (testDir / "drafts" / "foo" / uuid.toString / bagDirName / "data" / relativeTarget).createDirectories()
     post(
       uri = s"/deposit/$uuid/file/$relativeTarget",
       params = Iterable(),
@@ -137,7 +138,7 @@ class UploadSpec extends DepositServletFixture {
     ))
     val uuid = createDeposit
     val relativeTarget = "path/to/dir"
-    val absoluteTarget = (testDir / "drafts" / "foo" / uuid.toString / "bag/data" / relativeTarget).createDirectories()
+    val absoluteTarget = (testDir / "drafts" / "foo" / uuid.toString / bagDirName / "data" / relativeTarget).createDirectories()
     post(
       uri = s"/deposit/$uuid/file/$relativeTarget",
       params = Iterable(),
@@ -154,7 +155,7 @@ class UploadSpec extends DepositServletFixture {
     val bodyParts = createBodyParts(Seq(("some", "1.zip", "invalid zip content")))
     val uuid = createDeposit
     val relativeTarget = "path/to/dir"
-    val absoluteTarget = (testDir / "drafts" / "foo" / uuid.toString / "bag/data" / relativeTarget).createDirectories()
+    val absoluteTarget = (testDir / "drafts" / "foo" / uuid.toString / bagDirName / "data" / relativeTarget).createDirectories()
     post(
       uri = s"/deposit/$uuid/file/$relativeTarget",
       params = Iterable(),
@@ -171,7 +172,7 @@ class UploadSpec extends DepositServletFixture {
     val bodyParts = Seq(("some", new java.io.File("src/test/resources/manual-test/invalid.zip")))
     val uuid = createDeposit
     val relativeTarget = "path/to/dir"
-    val absoluteTarget = (testDir / "drafts" / "foo" / uuid.toString / "bag/data" / relativeTarget).createDirectories()
+    val absoluteTarget = (testDir / "drafts" / "foo" / uuid.toString / bagDirName / "data" / relativeTarget).createDirectories()
     post(
       uri = s"/deposit/$uuid/file/$relativeTarget",
       params = Iterable(),
@@ -188,7 +189,7 @@ class UploadSpec extends DepositServletFixture {
     val bodyParts = Seq(("some", new java.io.File("src/test/resources/manual-test/empty.zip")))
     val uuid = createDeposit
     val relativeTarget = "path/to/dir"
-    val absoluteTarget = (testDir / "drafts" / "foo" / uuid.toString / "bag/data" / relativeTarget).createDirectories()
+    val absoluteTarget = (testDir / "drafts" / "foo" / uuid.toString / bagDirName / "data" / relativeTarget).createDirectories()
     post(
       uri = s"/deposit/$uuid/file/$relativeTarget",
       params = Iterable(),
@@ -201,28 +202,38 @@ class UploadSpec extends DepositServletFixture {
     }
   }
 
-  it should "extract all files from a ZIP" in {
-    File("src/test/resources/manual-test/Archive.zip").copyTo(testDir / "input" / "1.zip")
+  it should "extract allowed files from a ZIP" in {
+    val inputZip: File = File("src/test/resources/manual-test/Archive.zip")
+    val preconditionStream = inputZip.newZipInputStream(UnicodeCharset(Charset.defaultCharset()))
+    Stream.continually(preconditionStream.getNextEntry)
+      .takeWhile(Option(_).nonEmpty)
+      .toList
+      .map(_.getName) should contain theSameElementsAs
+      List("login.html", "__MACOSX/", "__MACOSX/._login.html", "readme.md", "upload.html")
+
     val uuid = createDeposit
     val relativeTarget = "path/to/dir"
-    val bagDir = testDir / "drafts" / "foo" / uuid.toString / "bag"
+    val bagDir = testDir / "drafts" / "foo" / uuid.toString / bagDirName
     val absoluteTarget = (bagDir / "data" / relativeTarget).createDirectories()
     absoluteTarget.list.size shouldBe 0 // precondition
     post(
       uri = s"/deposit/$uuid/file/$relativeTarget",
       params = Iterable(),
       headers = Seq(fooBarBasicAuthHeader),
-      files = Seq(("formFieldName", (testDir / "input/1.zip").toJava))
+      files = Seq(("formFieldName", inputZip.toJava))
     ) {
       body shouldBe ""
       status shouldBe CREATED_201
       absoluteTarget.walk().map(_.name).toList should contain theSameElementsAs List(
-        "dir", "login.html", "readme.md", "__MACOSX", "._login.html", "upload.html"
+        "dir", "login.html", "readme.md", "upload.html"
+      )
+      absoluteTarget.walk().map(_.name).toList shouldNot contain theSameElementsAs List(
+        "__MACOSX/", "__MACOSX/._login.html"
       )
       (bagDir / "manifest-sha1.txt")
         .lines
         .map(_.replaceAll(".* +", "")) should contain theSameElementsAs List(
-        "login.html", "readme.md", "__MACOSX/._login.html", "upload.html"
+        "login.html", "readme.md", "upload.html"
       ).map("data/path/to/dir/" + _)
     }
     // get should show uploaded files
@@ -232,24 +243,22 @@ class UploadSpec extends DepositServletFixture {
     ) {
       status shouldBe OK_200
       body should include("""{"filename":"readme.md","dirpath":"path/to/dir",""")
-      body should include("""{"filename":"._login.html","dirpath":"path/to/dir/__MACOSX",""")
       body should include("""{"filename":"upload.html","dirpath":"path/to/dir",""")
       body should include("""{"filename":"login.html","dirpath":"path/to/dir",""")
     }
   }
 
   it should "extract all files from a ZIP, with a nested zip" in {
-    File("src/test/resources/manual-test/nested.zip").copyTo(testDir / "input" / "2.zip")
     val uuid = createDeposit
     val relativeTarget = "path/to/dir"
-    val bagDir = testDir / "drafts" / "foo" / uuid.toString / "bag"
+    val bagDir = testDir / "drafts" / "foo" / uuid.toString / bagDirName
     val absoluteTarget = (bagDir / "data" / relativeTarget).createDirectories()
     absoluteTarget.list.size shouldBe 0 // precondition
     post(
       uri = s"/deposit/$uuid/file/$relativeTarget",
       params = Iterable(),
       headers = Seq(fooBarBasicAuthHeader),
-      files = Seq("formFieldName" -> (testDir / "input/2.zip").toJava)
+      files = Seq("formFieldName" -> File("src/test/resources/manual-test/nested.zip").toJava)
     ) {
       body shouldBe empty
       status shouldBe CREATED_201
@@ -276,44 +285,42 @@ class UploadSpec extends DepositServletFixture {
   }
 
   it should "not accept a tar" in {
-    File("src/test/resources/manual-test/Archive.tar.gz").copyTo(testDir / "input" / "1.tar.gz")
     val uuid = createDeposit
     val relativeTarget = "path/to/dir"
-    val bagDir = testDir / "drafts" / "foo" / uuid.toString / "bag"
+    val bagDir = testDir / "drafts" / "foo" / uuid.toString / bagDirName
     val absoluteTarget = (bagDir / "data" / relativeTarget).createDirectories()
     absoluteTarget.list.size shouldBe 0 // precondition
     post(
       uri = s"/deposit/$uuid/file/$relativeTarget",
       params = Iterable(),
       headers = Seq(fooBarBasicAuthHeader),
-      files = Seq(("formFieldName", (testDir / "input/1.tar.gz").toJava))
+      files = Seq(("formFieldName", File("src/test/resources/manual-test/Archive.tar.gz").toJava))
     ) {
-      body shouldBe "ZIP file is malformed. No entries found."
+      body shouldBe "ZIP file is malformed. Unexpected record signature: 0X88B1F"
       status shouldBe BAD_REQUEST_400
     }
   }
 
-  it should "extract all ZIP to root of data dir in the bag" in {
-    File("src/test/resources/manual-test/Archive.zip").copyTo(testDir / "input" / "1.zip")
+  it should "extract ZIP to root of data dir in the bag" in {
     val uuid = createDeposit
-    val bagDir = testDir / "drafts" / "foo" / uuid.toString / "bag"
+    val bagDir = testDir / "drafts" / "foo" / uuid.toString / bagDirName
     val absoluteTarget = (bagDir / "data").createDirectories()
     absoluteTarget.list.size shouldBe 0 // precondition
     post(
       uri = s"/deposit/$uuid/file/",
       params = Iterable(),
       headers = Seq(fooBarBasicAuthHeader),
-      files = Seq(("formFieldName", (testDir / "input/1.zip").toJava))
+      files = Seq(("formFieldName", File("src/test/resources/manual-test/Archive.zip").toJava))
     ) {
       body shouldBe ""
       status shouldBe CREATED_201
       absoluteTarget.walk().map(_.name).toList should contain theSameElementsAs List(
-        "data", "login.html", "readme.md", "__MACOSX", "._login.html", "upload.html"
+        "data", "login.html", "readme.md", "upload.html"
       )
       (bagDir / "manifest-sha1.txt")
         .lines
         .map(_.replaceAll(".* +", "")) should contain theSameElementsAs List(
-        "login.html", "readme.md", "__MACOSX/._login.html", "upload.html"
+        "login.html", "readme.md", "upload.html"
       ).map("data/" + _)
     }
     // get should show uploaded files
@@ -323,7 +330,6 @@ class UploadSpec extends DepositServletFixture {
     ) {
       status shouldBe OK_200
       body should include("""{"filename":"readme.md","dirpath":"",""")
-      body should include("""{"filename":"._login.html","dirpath":"__MACOSX",""")
       body should include("""{"filename":"upload.html","dirpath":"",""")
       body should include("""{"filename":"login.html","dirpath":"",""")
     }
@@ -338,7 +344,7 @@ class UploadSpec extends DepositServletFixture {
     ))
     val uuid = createDeposit
     val relativeTarget = "some"
-    val absoluteTarget = (testDir / "drafts" / "foo" / uuid.toString / "bag/data" / relativeTarget).createDirectories()
+    val absoluteTarget = (testDir / "drafts" / "foo" / uuid.toString / bagDirName / "data" / relativeTarget).createDirectories()
     (absoluteTarget / "2.txt").createFile()
     (absoluteTarget / "3.txt").createFile()
     post(
@@ -349,7 +355,8 @@ class UploadSpec extends DepositServletFixture {
     ) {
       absoluteTarget.list.size shouldBe 2
       status shouldBe CONFLICT_409
-      body shouldBe s"The following file(s) already exist on the server: some/3.txt, some/2.txt"
+      val prefix = "The following file(s) already exist on the server:"
+      body should (equal(s"$prefix some/3.txt, some/2.txt".toString) or equal(s"$prefix some/2.txt, some/3.txt".toString))
     }
   }
 

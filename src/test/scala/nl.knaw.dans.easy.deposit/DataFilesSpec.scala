@@ -63,7 +63,7 @@ class DataFilesSpec extends TestSupportFixture {
   }
 
   "delete" should "delete a file" in {
-    val bag = DansV0Bag.empty(testDir / "bag").getOrRecover(e => fail(s"could not create test bag $e"))
+    val bag = DansV0Bag.empty(testDir / bagDirName).getOrRecover(e => fail(s"could not create test bag $e"))
     bag.addPayloadFile("Lorum ipsum est".inputStream, Paths.get("file.txt"))
     bag.save
     (bag.data / "file.txt") should exist
@@ -77,7 +77,7 @@ class DataFilesSpec extends TestSupportFixture {
   }
 
   it should "recursively delete files" in {
-    val bag = DansV0Bag.empty(testDir / "bag").getOrRecover(e => fail(s"could not create test bag $e"))
+    val bag = DansV0Bag.empty(testDir / bagDirName).getOrRecover(e => fail(s"could not create test bag $e"))
     bag.addPayloadFile("Lorum ipsum est".inputStream, Paths.get("file.txt"))
     (0 until 5).foreach { n =>
       bag.addPayloadFile(s"$n Lorum ipsum est".inputStream, Paths.get(s"path/to/file$n.txt"))

@@ -42,7 +42,7 @@ import scala.util.{ Failure, Success, Try }
  * @param id        the ID of the deposit
  */
 case class DepositDir private(draftBase: File, user: String, id: UUID) extends DebugEnhancedLogging {
-  val bagDir: File = draftBase / user / id.toString / "bag"
+  val bagDir: File = draftBase / user / id.toString / bagDirName
   private val metadataDir = bagDir / "metadata"
   private val depositPropertiesFile = bagDir.parent / "deposit.properties"
   private val datasetMetadataJsonFile = metadataDir / "dataset.json"
@@ -51,8 +51,8 @@ case class DepositDir private(draftBase: File, user: String, id: UUID) extends D
    * @param submitBase the base directory with submitted deposits to extract the actual state
    * @return the `StateManager` for this deposit
    */
-  def getStateManager(submitBase: File, easyHome: URL): StateManager = {
-    StateManager(bagDir.parent, submitBase, easyHome)
+  def getStateManager(submitBase: File, easyHome: URL): Try[StateManager] = Try {
+    StateManager(this, submitBase, easyHome)
   }
 
   /**
@@ -62,7 +62,7 @@ case class DepositDir private(draftBase: File, user: String, id: UUID) extends D
   def getDepositInfo(submitBase: File, easyHome: URL): Try[DepositInfo] = {
     for {
       title <- getDatasetTitle
-      stateManager = getStateManager(submitBase, easyHome)
+      stateManager <- getStateManager(submitBase, easyHome)
       stateInfo <- stateManager.getStateInfo
       created = new DateTime(stateManager.draftProps.getString("creation.timestamp")).withZone(UTC)
     } yield DepositInfo(
@@ -72,17 +72,17 @@ case class DepositDir private(draftBase: File, user: String, id: UUID) extends D
       stateInfo.stateDescription,
       created
     )
-  }.recoverWith {
+    }.recoverWith {
     case t: CorruptDepositException => Failure(t)
     case t => corruptDepositFailure(t)
   }
 
-  private def getDatasetTitle = {
+  private def getDatasetTitle: Try[String] = {
     getDatasetMetadata
       .map(_.titles.flatMap(_.headOption).getOrElse(""))
   }
 
-  private def getDepositProps = Try {
+  private def getDepositProps: Try[PropertiesConfiguration] = Try {
     new PropertiesConfiguration(depositPropertiesFile.toJava)
   }.flatMap {
     case props if props.getKeys.hasNext => Success(props)
@@ -141,10 +141,18 @@ case class DepositDir private(draftBase: File, user: String, id: UUID) extends D
     _ <- dm.doi.map(_ => doisMatch(dm, maybeDOI)).getOrElse(Success(()))
     maybeTriedDOI = maybeDOI.map(Success(_))
     doi <- maybeTriedDOI.getOrElse(pidRequester.requestPid(PidType.doi))
-    _ = props.addProperty("identifier.doi", doi)
-    _ <- maybeTriedDOI.getOrElse(Try { props.save(depositPropertiesFile.toJava) })
-    _ <- maybeTriedDOI.getOrElse(writeDatasetMetadataJson(dm.setDoi(doi)))
+    _ <- maybeTriedDOI.getOrElse(saveDoiProperty(doi, dm, props))
   } yield doi
+
+  private def saveDoiProperty(doi: String, dm: DatasetMetadata, props: PropertiesConfiguration): Try[Unit] = {
+    // submitter won't change a draft state to anything else if there is no (valid) DOI
+    // so we don't need to call StateInfo.canUpdate
+    props.addProperty("identifier.doi", doi)
+    for {
+      _ <- Try { props.save(depositPropertiesFile.toJava) }
+      _ <- writeDatasetMetadataJson(dm.setDoi(doi))
+    } yield ()
+  }
 
   def sameDOIs(dm: DatasetMetadata): Try[Unit] = for {
     props <- getDepositProps
@@ -211,7 +219,7 @@ object DepositDir {
     val depositDir = deposit.draftBase / user / depositInfo.id.toString
     for {
       _ <- Try { depositDir.createDirectories }
-      bag <- DansV0Bag.empty(depositDir / "bag")
+      bag <- DansV0Bag.empty(depositDir / bagDirName)
       _ = bag.withEasyUserAccount(deposit.user)
       _ <- bag.addTagFile("{}".inputStream, Paths.get("metadata/dataset.json"))
       _ <- bag.save()
@@ -229,6 +237,8 @@ object DepositDir {
       addProperty("curation.performed", "no")
       addProperty("identifier.dans-doi.registered", "no")
       addProperty("identifier.dans-doi.action", "create")
+      addProperty("bag-store.bag-name", bagDirName)
+      addProperty("deposit.origin", "API")
     }.save(depositDir.depositPropertiesFile.toJava)
   }
 }

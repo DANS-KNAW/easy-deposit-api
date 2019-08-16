@@ -15,7 +15,7 @@
  */
 package nl.knaw.dans.easy.deposit
 
-import java.nio.file.Path
+import java.nio.file.{ FileAlreadyExistsException, Path }
 import java.util.UUID
 
 import better.files.File
@@ -33,6 +33,13 @@ import scala.util.Try
 object Errors extends DebugEnhancedLogging {
 
   case class ConfigurationException(msg: String) extends IllegalArgumentException(s"Configuration error: $msg")
+
+  case class LeftoversOfForcedShutdownException(dir: File)
+    extends FileAlreadyExistsException(
+      s"Staging area [$dir] should be empty unless a forced shutdown occurred during an upload/submit request." +
+        " Directories containing bags are aborted submits, somehow (allow) resubmit if indeed not in fedora." +
+        " Other directories contain files of uploads that are not yet moved into the bag."
+    )
 
   abstract sealed class ServletResponseException(status: Int, httpResponseBody: String)
     extends Exception(httpResponseBody) {
@@ -58,7 +65,7 @@ object Errors extends DebugEnhancedLogging {
 
   case class CorruptDepositException(user: String, id: String, cause: Throwable)
     extends ServletResponseException(INTERNAL_SERVER_ERROR_500, s"Invalid deposit uuid $id for user $user: ${ cause.getMessage }") {
-    logger.error(cause.getMessage, cause)
+    logger.error(cause.getMessage)
   }
 
   case class CorruptUserException(msg: String)
@@ -68,7 +75,7 @@ object Errors extends DebugEnhancedLogging {
     extends ServletResponseException(INTERNAL_SERVER_ERROR_500, msg)
 
   case class PropertyNotFoundException(key: String, props: PropertiesConfiguration)
-    extends PropertyException(s"'$key' not found in ${ props.getFile }")
+    extends PropertyException(s"no value for '$key' in ${ Option(props.getFile).getOrElse("not found properties file") }")
 
   case class InvalidPropertyException(key: String, value: String, props: PropertiesConfiguration)
     extends PropertyException(s"Not expected value '$value' for '$key' in ${ props.getFile }")
@@ -109,7 +116,15 @@ object Errors extends DebugEnhancedLogging {
     extends ServletResponseException(BAD_REQUEST_400, s"ZIP file is malformed. $msgAboutEntry")
 
   case class PendingUploadException()
-    extends ServletResponseException(CONFLICT_409, "Another upload is pending. Please try again later.")
+    extends ServletResponseException(CONFLICT_409, "Another upload or submit is pending.")
+
+  case class NoStagingDirException(file: File)
+    extends ServletResponseException(INTERNAL_SERVER_ERROR_500, s"Staging directory was not created: $file")
+
+  case class ClientAbortedUploadException(path: String)
+    extends ServletResponseException(OK_200, s"Client aborted upload of path $path") {
+    logger.info(getMessage) // logging the body explains why the request did not log new payloads
+  }
 
   case class InvalidContentTypeException(contentType: Option[String], requirement: String)
     extends ServletResponseException(BAD_REQUEST_400, contentType
