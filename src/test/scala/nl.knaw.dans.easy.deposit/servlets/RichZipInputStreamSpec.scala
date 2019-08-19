@@ -51,6 +51,22 @@ class RichZipInputStreamSpec extends TestSupportFixture {
     stagingDir.entries shouldBe empty
   }
 
+  it should "complain about an empty zip" in {
+    val zipFile = "src/test/resources/manual-test/empty.zip"
+    mockRichFileItemGetZipInputStream(new FileInputStream(zipFile)).apply(
+      unzip(_) shouldBe Failure(MalformedZipException("No entries found."))
+    )
+    stagingDir.entries shouldBe empty
+  }
+
+  it should "not accept a tar" in {
+    val zipFile = "src/test/resources/manual-test/Archive.tar.gz"
+    mockRichFileItemGetZipInputStream(new FileInputStream(zipFile)).apply(
+      unzip(_) shouldBe Failure(MalformedZipException("Unexpected record signature: 0X88B1F"))
+    )
+    stagingDir.entries shouldBe empty
+  }
+
   it should "extract allowed files from a zip" in {
     val zipFile = "src/test/resources/manual-test/macosx.zip"
     val notExpected = List("__MACOSX/", "__MACOSX/._login.html")

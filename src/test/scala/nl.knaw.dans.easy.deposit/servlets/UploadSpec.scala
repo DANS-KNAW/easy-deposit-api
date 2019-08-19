@@ -168,40 +168,6 @@ class UploadSpec extends DepositServletFixture with Inspectors {
     absoluteTarget.entries shouldBe empty
   }
 
-  it should "report a ZIP file with a few corrupted bytes" in {
-    val bodyParts = Seq(("some", new java.io.File("src/test/resources/manual-test/invalid.zip")))
-    val uuid = createDeposit
-    val relativeTarget = "path/to/dir"
-    val absoluteTarget = (testDir / "drafts" / "foo" / uuid.toString / bagDirName / "data" / relativeTarget).createDirectories()
-    post(
-      uri = s"/deposit/$uuid/file/$relativeTarget",
-      params = Iterable(),
-      headers = Seq(fooBarBasicAuthHeader),
-      files = bodyParts
-    ) {
-      status shouldBe 400
-      body shouldBe "ZIP file is malformed. No entries found."
-    }
-    absoluteTarget.entries shouldBe empty
-  }
-
-  it should "report an empty ZIP archive" in {
-    val bodyParts = Seq(("some", new java.io.File("src/test/resources/manual-test/empty.zip")))
-    val uuid = createDeposit
-    val relativeTarget = "path/to/dir"
-    val absoluteTarget = (testDir / "drafts" / "foo" / uuid.toString / bagDirName / "data" / relativeTarget).createDirectories()
-    post(
-      uri = s"/deposit/$uuid/file/$relativeTarget",
-      params = Iterable(),
-      headers = Seq(fooBarBasicAuthHeader),
-      files = bodyParts
-    ) {
-      body shouldBe "ZIP file is malformed. No entries found."
-      status shouldBe BAD_REQUEST_400
-    }
-    absoluteTarget.entries shouldBe empty
-  }
-
   it should "extract the files into the relative target" in {
     val uuid = createDeposit
     val relativeTarget = "path/to/dir"
@@ -272,23 +238,6 @@ class UploadSpec extends DepositServletFixture with Inspectors {
       body should include("""{"filename":"test_file.txt","dirpath":"path/to/dir/myCompress",""")
       body should include("""{"filename":".DS_Store","dirpath":"path/to/dir/myCompress",""")
       body should include("""{"filename":"test.txt","dirpath":"path/to/dir/myCompress/secondLayer",""")
-    }
-  }
-
-  it should "not accept a tar" in {
-    val uuid = createDeposit
-    val relativeTarget = "path/to/dir"
-    val bagDir = testDir / "drafts" / "foo" / uuid.toString / bagDirName
-    val absoluteTarget = (bagDir / "data" / relativeTarget).createDirectories()
-    absoluteTarget.entries shouldBe empty // precondition
-    post(
-      uri = s"/deposit/$uuid/file/$relativeTarget",
-      params = Iterable(),
-      headers = Seq(fooBarBasicAuthHeader),
-      files = Seq(("formFieldName", File("src/test/resources/manual-test/Archive.tar.gz").toJava))
-    ) {
-      body shouldBe "ZIP file is malformed. Unexpected record signature: 0X88B1F"
-      status shouldBe BAD_REQUEST_400
     }
   }
 
