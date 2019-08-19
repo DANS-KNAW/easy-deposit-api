@@ -23,8 +23,9 @@ import nl.knaw.dans.easy.deposit.DepositDir
 import nl.knaw.dans.easy.deposit.docs.DepositInfo
 import nl.knaw.dans.lib.error._
 import org.eclipse.jetty.http.HttpStatus._
+import org.scalatest.Inspectors
 
-class UploadSpec extends DepositServletFixture {
+class UploadSpec extends DepositServletFixture with Inspectors {
 
   override def beforeEach(): Unit = {
     super.beforeEach()
@@ -54,11 +55,11 @@ class UploadSpec extends DepositServletFixture {
     val bagDir = testDir / "drafts/foo" / uuid.toString / bagDirName
     val uploaded = (bagDir / "data" / relativeTarget).list
     uploaded.size shouldBe bodyParts.size
-    uploaded.foreach(file =>
+    forEvery(uploaded.toList) { file =>
       file.contentAsString shouldBe (testDir / "input" / file.name).contentAsString
-    )
+    }
     (bagDir / "manifest-sha1.txt").lines.size shouldBe bodyParts.size
-    (testDir / "staged").list.size shouldBe 0
+    (testDir / "staged").list.toList shouldBe empty
   }
 
   it should "refuse concurrent posts" in {
@@ -80,9 +81,9 @@ class UploadSpec extends DepositServletFixture {
       body shouldBe "Another upload or submit is pending."
     }
     val bagDir = testDir / "drafts/foo" / uuid.toString / bagDirName
-    (bagDir / "data").list.size shouldBe 0
-    (bagDir / "manifest-sha1.txt").lines.size shouldBe 0
-    (testDir / "staged").list.size shouldBe 1
+    (bagDir / "data").entries shouldBe empty
+    (bagDir / "manifest-sha1.txt").lines shouldBe empty
+    (testDir / "staged").entries.map(_.name).toList should contain allElementsOf List(s"foo-$uuid-XYZ")
   }
 
   it should "report upload failure" in {
@@ -127,7 +128,7 @@ class UploadSpec extends DepositServletFixture {
       body shouldBe "A multipart/form-data message contained a ZIP part [2.zip] but also other parts."
       status shouldBe BAD_REQUEST_400
     }
-    absoluteTarget.list.size shouldBe 0 // preceding plain file not added to draft bag
+    absoluteTarget.entries shouldBe empty // preceding plain file not added to draft bag
   }
 
   it should "report a ZIP item found without uploading any of the others" in {
@@ -147,7 +148,7 @@ class UploadSpec extends DepositServletFixture {
       body shouldBe "A multipart/form-data message contained a ZIP part [1.zip] but also other parts."
       status shouldBe BAD_REQUEST_400
     }
-    absoluteTarget.list.size shouldBe 0
+    absoluteTarget.entries shouldBe empty
   }
 
   it should "report a malformed ZIP" in {
@@ -164,7 +165,7 @@ class UploadSpec extends DepositServletFixture {
       status shouldBe BAD_REQUEST_400
       body shouldBe "ZIP file is malformed. No entries found."
     }
-    absoluteTarget.list.size shouldBe 0
+    absoluteTarget.entries shouldBe empty
   }
 
   it should "report a ZIP file with a few corrupted bytes" in {
@@ -181,7 +182,7 @@ class UploadSpec extends DepositServletFixture {
       status shouldBe 400
       body shouldBe "ZIP file is malformed. No entries found."
     }
-    absoluteTarget.list.size shouldBe 0
+    absoluteTarget.entries shouldBe empty
   }
 
   it should "report an empty ZIP archive" in {
@@ -198,7 +199,7 @@ class UploadSpec extends DepositServletFixture {
       body shouldBe "ZIP file is malformed. No entries found."
       status shouldBe BAD_REQUEST_400
     }
-    absoluteTarget.list.size shouldBe 0
+    absoluteTarget.entries shouldBe empty
   }
 
   it should "extract the files into the relative target" in {
@@ -206,7 +207,7 @@ class UploadSpec extends DepositServletFixture {
     val relativeTarget = "path/to/dir"
     val bagDir = testDir / "drafts" / "foo" / uuid.toString / bagDirName
     val absoluteTarget = (bagDir / "data" / relativeTarget).createDirectories()
-    absoluteTarget.list.size shouldBe 0 // precondition
+    absoluteTarget.entries shouldBe empty // precondition
     post(
       uri = s"/deposit/$uuid/file/$relativeTarget", // another post-URI tested with the same zip
       params = Iterable(),
@@ -242,7 +243,7 @@ class UploadSpec extends DepositServletFixture {
     val relativeTarget = "path/to/dir"
     val bagDir = testDir / "drafts" / "foo" / uuid.toString / bagDirName
     val absoluteTarget = (bagDir / "data" / relativeTarget).createDirectories()
-    absoluteTarget.list.size shouldBe 0 // precondition
+    absoluteTarget.entries shouldBe empty // precondition
     post(
       uri = s"/deposit/$uuid/file/$relativeTarget",
       params = Iterable(),
@@ -279,7 +280,7 @@ class UploadSpec extends DepositServletFixture {
     val relativeTarget = "path/to/dir"
     val bagDir = testDir / "drafts" / "foo" / uuid.toString / bagDirName
     val absoluteTarget = (bagDir / "data" / relativeTarget).createDirectories()
-    absoluteTarget.list.size shouldBe 0 // precondition
+    absoluteTarget.entries shouldBe empty // precondition
     post(
       uri = s"/deposit/$uuid/file/$relativeTarget",
       params = Iterable(),
@@ -295,7 +296,7 @@ class UploadSpec extends DepositServletFixture {
     val uuid = createDeposit
     val bagDir = testDir / "drafts" / "foo" / uuid.toString / bagDirName
     val absoluteTarget = (bagDir / "data").createDirectories()
-    absoluteTarget.list.size shouldBe 0 // precondition
+    absoluteTarget.entries shouldBe empty // precondition
     post(
       uri = s"/deposit/$uuid/file/", // another post-URI tested with the same zip
       params = Iterable(),
@@ -348,7 +349,7 @@ class UploadSpec extends DepositServletFixture {
       val prefix = "The following file(s) already exist on the server:"
       body should (equal(s"$prefix some/3.txt, some/2.txt".toString) or equal(s"$prefix some/2.txt, some/3.txt".toString))
     }
-    absoluteTarget.list.size shouldBe 2
+    absoluteTarget.entries.map(_.name).toList should contain allElementsOf List("2.txt","3.txt")
   }
 
   it should "report a missing content disposition" in {

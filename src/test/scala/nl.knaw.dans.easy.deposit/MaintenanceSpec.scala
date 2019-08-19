@@ -28,7 +28,7 @@ class MaintenanceSpec extends TestSupportFixture {
       .filter(str => !str.isEmpty && str.endsWith(".zip"))
       .distinct should
       contain allElementsOf File("src/test/resources/manual-test/")
-      .entries
+      .walk()
       .map(_.name)
       .filter(_.endsWith(".zip"))
       .toList
