@@ -83,7 +83,7 @@ class UploadSpec extends DepositServletFixture with Inspectors {
     val bagDir = testDir / "drafts/foo" / uuid.toString / bagDirName
     (bagDir / "data").entries shouldBe empty
     (bagDir / "manifest-sha1.txt").lines shouldBe empty
-    (testDir / "staged").entries.map(_.name).toList should contain allElementsOf List(s"foo-$uuid-XYZ")
+    (testDir / "staged").entries.map(_.name).toList should contain only s"foo-$uuid-XYZ"
   }
 
   it should "report upload failure" in {
@@ -298,7 +298,7 @@ class UploadSpec extends DepositServletFixture with Inspectors {
       val prefix = "The following file(s) already exist on the server:"
       body should (equal(s"$prefix some/3.txt, some/2.txt".toString) or equal(s"$prefix some/2.txt, some/3.txt".toString))
     }
-    absoluteTarget.entries.map(_.name).toList should contain allElementsOf List("2.txt","3.txt")
+    absoluteTarget.entries.map(_.name).toList should contain only("2.txt", "3.txt")
   }
 
   it should "report a missing content disposition" in {
