@@ -17,6 +17,7 @@ package nl.knaw.dans.easy.deposit.servlets
 
 import java.io.{ ByteArrayInputStream, FileInputStream, InputStream }
 import java.nio.charset.{ Charset, StandardCharsets }
+import java.util.zip.ZipException
 
 import better.files.{ File, UnicodeCharset, _ }
 import nl.knaw.dans.easy.deposit.Errors.MalformedZipException
@@ -64,10 +65,10 @@ class RichZipInputStreamSpec extends TestSupportFixture {
      "data-test-2", "tagmanifest-md5.txt", "bagit.txt", "bag-info.txt", "manifest-sha1.txt",
       "data", "ruimtereis01_verklaring.txt", "secret.txt", "rand.2.txt", "metadata", "dataset.xml", "files.xml"
     )
-    // using java.util.zip.ZipInputStream
-    Try {entriesOf(zipFile)} shouldBe a[Failure[_]] // TODO check the DEFLATED message
+    // precondition: test method entriesOf uses java.util.zip.ZipInputStream
+    the[ZipException] thrownBy entriesOf(zipFile) should have message "only DEFLATED entries can have EXT descriptor"
 
-    // using org.apache.commons.compress.archivers.zip.ZipArchiveInputStream
+    // implementation: uses org.apache.commons.compress.archivers.zip.ZipArchiveInputStream
     testUnzipPlainEntries(zipFile, expected, List[String]())
     (stagingDir / "data-test-2" / "data" / "ruimtereis01_verklaring.txt") should exist
   }
