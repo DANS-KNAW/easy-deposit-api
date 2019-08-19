@@ -85,7 +85,8 @@ package object servlets extends DebugEnhancedLogging {
       def cleanup(file: File): Unit = {
         if (file.isDirectory && (file.isEmpty || file.name == "__MACOSX")) {
           logger.info(s"cleaning up $file")
-          file.delete()
+          if (file.exists) // just in case walk returns a parent before its children
+            file.delete()
           if (file.parent != targetDir)
             cleanup(file.parent)
         }
