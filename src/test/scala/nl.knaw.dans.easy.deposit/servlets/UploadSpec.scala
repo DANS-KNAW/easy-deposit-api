@@ -15,11 +15,10 @@
  */
 package nl.knaw.dans.easy.deposit.servlets
 
-import java.nio.charset.Charset
 import java.nio.file.attribute.PosixFilePermission
 import java.util.UUID
 
-import better.files.{ File, _ }
+import better.files.File
 import nl.knaw.dans.easy.deposit.DepositDir
 import nl.knaw.dans.easy.deposit.docs.DepositInfo
 import nl.knaw.dans.lib.error._
