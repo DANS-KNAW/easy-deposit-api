@@ -81,8 +81,25 @@ class RichZipInputStreamSpec extends TestSupportFixture {
     (stagingDir / "data-test-2" / "data" / "ruimtereis01_verklaring.txt") should exist
   }
 
-  it should "not create empty directories in staging" in {
-    val zipFile = "src/test/resources/manual-test/empty-dir.zip"
+  it should "recursively remove empty directories" in {
+    val zipFile = "src/test/resources/manual-test/empty-dir-win.zip"
+    entriesOf(zipFile) should contain theSameElementsAs List(
+      "empty-dir/parent1/",
+      "empty-dir/parent1/parent2/",
+      "empty-dir/parent1/parent2/empty-dir/",
+      "empty-dir/parent1/sibling/",
+      "empty-dir/parent1/sibling/hello.txt"
+    )
+
+    mockRichFileItemGetZipInputStream(new FileInputStream(zipFile)).apply(
+      unzip(_) shouldBe Success(())
+    )
+    (stagingDir / "empty-dir" / "parent1" / "sibling" / "hello.txt") should exist
+    (stagingDir / "empty-dir" / "parent1" / "parent2") shouldNot exist
+  }
+
+  it should "remove empty directory" in {
+    val zipFile = "src/test/resources/manual-test/empty-dir-mac.zip"
 
     entriesOf(zipFile) should contain allElementsOf List(
       "empty-dir/parent1/parent2/empty-dir/",
@@ -95,11 +112,8 @@ class RichZipInputStreamSpec extends TestSupportFixture {
       unzip(_) shouldBe Success(())
     )
     (stagingDir / "empty-dir" / "parent1" / "sibling" / "hello.txt") should exist
-    (stagingDir / "empty-dir" / "parent1" / ".DS_Store") should exist
-    (stagingDir / "empty-dir" / "parent1" / "parent2") shouldNot exist
+    (stagingDir / "empty-dir" / "parent1" / "parent2" / ".DS_Store") should exist
   }
-
-  //TODO for maintenance purpose: a test that checks all zip/gz-files are tested
 
   private def testUnzipPlainEntries(zipFile: String, expectedInStagingDir: List[String], notExpectedInStagingDir: List[String]): Any = {
     mockRichFileItemGetZipInputStream(new FileInputStream(zipFile)).apply(
