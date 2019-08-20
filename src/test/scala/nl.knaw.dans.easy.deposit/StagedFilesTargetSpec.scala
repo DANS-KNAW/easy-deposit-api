@@ -62,7 +62,7 @@ class StagedFilesTargetSpec extends TestSupportFixture {
       .moveAllFrom(stagedDir) shouldBe Success(())
 
     (bag.data / "some.thing").contentAsString shouldBe "new content"
-    bag.fetchFiles.size shouldBe 0
+    bag.fetchFiles shouldBe empty
     stagedDir.walk().filter(!_.isDirectory) shouldBe empty
   }
 
@@ -78,7 +78,7 @@ class StagedFilesTargetSpec extends TestSupportFixture {
     }
     bag.save()
     bag.data.entries shouldBe empty
-    bag.fetchFiles shouldNot be(empty)
+    bag.fetchFiles should not be empty
 
     StagedFilesTarget(bag, Paths.get("path/to"))
       .moveAllFrom(stagedDir) shouldBe a[Success[_]]

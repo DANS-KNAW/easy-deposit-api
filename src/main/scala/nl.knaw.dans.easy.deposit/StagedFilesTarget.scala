@@ -38,23 +38,27 @@ case class StagedFilesTarget(draftBag: DansBag, destination: Path) extends Debug
    */
   def moveAllFrom(stagingDir: File): Try[Unit] = {
     // though currently we don't create fetch files, let us not run into trouble whenever we do
-    val fetchFiles = draftBag.fetchFiles
+    lazy val fetchFiles = draftBag.fetchFiles
       .map(fetchFile =>
         draftBag.data.relativize(fetchFile.file)
       )
+
+    def cleanUp(bagRelativePath: Path) = {
+      if ((draftBag.data / bagRelativePath.toString).exists)
+        draftBag.removePayloadFile(bagRelativePath)
+      else if (fetchFiles.contains(bagRelativePath))
+             draftBag.removeFetchItem(bagRelativePath)
+      else Success(())
+    }
+
     stagingDir.walk()
-      .filter(!_.isDirectory)
+      .withFilter(!_.isDirectory)
       .map { stagedFile =>
         val bagRelativePath = destination.resolve(stagingDir.relativize(stagedFile))
-        val triedCleanup = if ((draftBag.data / bagRelativePath.toString).exists)
-                             draftBag.removePayloadFile(bagRelativePath)
-                           else if (fetchFiles.contains(bagRelativePath))
-                                  draftBag.removeFetchItem(bagRelativePath)
-                           else Success(())
-        // a hard shutdown at this point causes a file being deleted without having been overwritten
-        triedCleanup.flatMap(_ =>
-          draftBag.addPayloadFile(stagedFile, bagRelativePath)(ATOMIC_MOVE)
-        )
+        for {
+          _ <- cleanUp(bagRelativePath)
+          _ <- draftBag.addPayloadFile(stagedFile, bagRelativePath)(ATOMIC_MOVE)
+        } yield ()
       }.failFastOr(draftBag.save)
   }
 }
