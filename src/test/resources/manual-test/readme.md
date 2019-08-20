@@ -2,7 +2,7 @@ JSON/ZIP files for manual tests
 -------------------------------
 
 All `json` and `zip` files could be used for manual tests.
-The expected results are documented with unit tests such as `DatasetXmlSpec` and `UploadSpec`.
+The expected results are documented with unit tests: search for `manual-test` in `*Spec.scala`.
 
 The files with `datasetmetadata-from-ui-` in their name are derived from the mockserver of [easy-deposit-ui].
 
@@ -45,10 +45,6 @@ The steps of a deposit scenario can be tested manually with tools like `Postman`
       curl -i  -H 'Content-Type: application/json' --data-binary "@XXX.json" -X PUT -u user001:user001 'http://deasy.dans.knaw.nl:20190/deposit/<UUID>/metadata'
 
 * For details of other commands see `docs/api.html`, with examples in the [xls of EASY-1644] and [easy-test-resources]
-
-Reserve a DOI or submit requires a pid generator which is not deployed on the local VM.
-For other commands you can use the local `test` VM
-which you can launch with `vagrant up` in the root of the project. 
 
 [easy-test-resources]: https://github.com/DANS-KNAW/easy-test-resources/blob/master/test-run/EASY-1525-deposit-api.md
 [xls of EASY-1644]: https://drivenbydata.atlassian.net/secure/attachment/25376/2018-08-03%20EASY-1644%20Deposit_API_1.0.0.xlsx

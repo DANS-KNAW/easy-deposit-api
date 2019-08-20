@@ -16,8 +16,10 @@
 package nl.knaw.dans.easy.deposit.servlets
 
 import java.io.{ ByteArrayInputStream, FileInputStream, InputStream }
-import java.nio.charset.StandardCharsets
+import java.nio.charset.{ Charset, StandardCharsets }
+import java.util.zip.ZipException
 
+import better.files.{ File, UnicodeCharset, _ }
 import nl.knaw.dans.easy.deposit.Errors.MalformedZipException
 import nl.knaw.dans.easy.deposit.TestSupportFixture
 import org.apache.commons.compress.archivers.zip.ZipArchiveInputStream
@@ -38,42 +40,120 @@ class RichZipInputStreamSpec extends TestSupportFixture {
     mockRichFileItemGetZipInputStream(new ByteArrayInputStream("Lorem ipsum est".getBytes(StandardCharsets.UTF_8))).apply(
       unzip(_) shouldBe Failure(MalformedZipException("No entries found."))
     )
+    stagingDir.entries shouldBe empty
   }
 
-  it should "extract all files from the zip" in {
-    // zipped on a mac from some files (that used to live) in src/test/resources/manual-test
-    mockRichFileItemGetZipInputStream(new FileInputStream("src/test/resources/manual-test/Archive.zip")).apply(
-      unzip(_) shouldBe Success(())
+  it should "complain about an invalid zip" in {
+    val zipFile = "src/test/resources/manual-test/invalid.zip"
+    mockRichFileItemGetZipInputStream(new FileInputStream(zipFile)).apply(
+      unzip(_) shouldBe Failure(MalformedZipException("No entries found."))
     )
-    stagingDir.walk().map(_.name).toList should contain theSameElementsAs
-      List("staging", "login.html", "readme.md", "upload.html")
+    stagingDir.entries shouldBe empty
+  }
+
+  it should "complain about an empty zip" in {
+    val zipFile = "src/test/resources/manual-test/empty.zip"
+    mockRichFileItemGetZipInputStream(new FileInputStream(zipFile)).apply(
+      unzip(_) shouldBe Failure(MalformedZipException("No entries found."))
+    )
+    stagingDir.entries shouldBe empty
+  }
+
+  it should "not accept a tar" in {
+    val zipFile = "src/test/resources/manual-test/Archive.tar.gz"
+    mockRichFileItemGetZipInputStream(new FileInputStream(zipFile)).apply(
+      unzip(_) shouldBe Failure(MalformedZipException("Unexpected record signature: 0X88B1F"))
+    )
+    stagingDir.entries shouldBe empty
+  }
+
+  it should "extract allowed files from a zip" in {
+    val zipFile = "src/test/resources/manual-test/macosx.zip"
+    val notExpected = List("__MACOSX/", "__MACOSX/._login.html")
+    val expected = List("login.html", "readme.md", "upload.html")
+    entriesOf(zipFile) should contain theSameElementsAs expected ::: notExpected
+    testUnzipPlainEntries(zipFile, expected, notExpected)
   }
 
   it should "create parent directories not explicitly listed in the zip" in {
     // https://github.com/Davidhuangwei/TFM/
-    mockRichFileItemGetZipInputStream(new FileInputStream("src/test/resources/manual-test/no-dir.zip")).apply(
-      unzip(_) shouldBe Success(())
-    )
-    stagingDir.walk().map(_.name).toList should contain theSameElementsAs
-    List("staging", "tfm.m", "FMC-copper-wiresFRD.png", "image_domain.m", "license.txt" /* 2-clause BSD */, "copper_wire_example.m")
+    val zipFile = "src/test/resources/manual-test/no-dir.zip"
+    val notExpected = List("__MACOSX/._copper_wire_example.m", "__MACOSX/._image_domain.m", "__MACOSX/._tfm.m")
+    val expected = List("tfm.m", "FMC-copper-wiresFRD.png", "image_domain.m", "license.txt" /* 2-clause BSD */ , "copper_wire_example.m")
+    entriesOf(zipFile) should contain theSameElementsAs expected ::: notExpected
+    testUnzipPlainEntries(zipFile, expected, notExpected)
   }
 
   it should "not throw ZipException: only DEFLATED entries can have EXT descriptor" in {
-    mockRichFileItemGetZipInputStream(new FileInputStream("src/test/resources/manual-test/ruimtereis-bag.zip")).apply(
+    val zipFile = "src/test/resources/manual-test/ruimtereis-bag.zip"
+
+    // precondition: test method `entriesOf` uses java.util.zip.ZipInputStream
+    the[ZipException] thrownBy entriesOf(zipFile) should have message "only DEFLATED entries can have EXT descriptor"
+
+    // implementation: uses org.apache.commons.compress.archivers.zip.ZipArchiveInputStream
+    mockRichFileItemGetZipInputStream(new FileInputStream(zipFile)).apply(
       unzip(_) shouldBe Success(())
     )
     (stagingDir / "data-test-2" / "data" / "ruimtereis01_verklaring.txt") should exist
-    stagingDir.walk().map(_.name).toList should contain theSameElementsAs
-      List(
-        "staging", "data-test-2", "tagmanifest-md5.txt", "bagit.txt", "bag-info.txt", "manifest-sha1.txt",
-        "data", "ruimtereis01_verklaring.txt", "secret.txt", "rand.2.txt", "metadata", "dataset.xml", "files.xml"
-      )
+  }
+
+  it should "recursively remove empty directories" in {
+    val zipFile = "src/test/resources/manual-test/empty-dir-win.zip"
+    entriesOf(zipFile) should contain theSameElementsAs List(
+      "empty-dir/parent1/",
+      "empty-dir/parent1/parent2/",
+      "empty-dir/parent1/parent2/empty-dir/",
+      "empty-dir/parent1/sibling/",
+      "empty-dir/parent1/sibling/hello.txt"
+    )
+
+    mockRichFileItemGetZipInputStream(new FileInputStream(zipFile)).apply(
+      unzip(_) shouldBe Success(())
+    )
+    (stagingDir / "empty-dir" / "parent1" / "sibling" / "hello.txt") should exist
+    (stagingDir / "empty-dir" / "parent1" / "parent2") shouldNot exist
+  }
+
+  it should "remove empty directory" in {
+    val zipFile = "src/test/resources/manual-test/empty-dir-mac.zip"
+
+    entriesOf(zipFile) should contain allElementsOf List(
+      "empty-dir/parent1/parent2/empty-dir/",
+      "empty-dir/parent1/sibling/hello.txt",
+      "empty-dir/parent1/.DS_Store",
+      // not interested in more of .DS_Store and __MACOSX/
+    )
+
+    mockRichFileItemGetZipInputStream(new FileInputStream(zipFile)).apply(
+      unzip(_) shouldBe Success(())
+    )
+    (stagingDir / "empty-dir" / "parent1" / "sibling" / "hello.txt") should exist
+    (stagingDir / "empty-dir" / "parent1" / "parent2" / ".DS_Store") should exist
+  }
+
+  private def testUnzipPlainEntries(zipFile: String, expectedInStagingDir: List[String], notExpectedInStagingDir: List[String]): Any = {
+    mockRichFileItemGetZipInputStream(new FileInputStream(zipFile)).apply(
+      unzip(_) shouldBe Success(())
+    )
+    val actual = stagingDir.walk().map(_.name).toList
+    actual should contain theSameElementsAs expectedInStagingDir :+ "staging"
+    actual shouldNot contain theSameElementsAs notExpectedInStagingDir
+  }
+
+  /**
+   * Note that not all zips supported by ZipArchiveInputStream (used by the application)
+   * are supported by newZipInputStream used to test preconditions.
+   */
+  private def entriesOf(zipFile: String) = {
+    val charset: Charset = UnicodeCharset(Charset.defaultCharset()) // TODO as implicit?
+    File(zipFile).newZipInputStream(charset).mapEntries(_.getName).toList
   }
 
   private def unzip(stream: ZipArchiveInputStream): Try[Unit] = {
     stream.unzipPlainEntriesTo(stagingDir.createDirectories())
   }
 
+  /** Mocks how a file item of a http request is processed by the application */
   private def mockRichFileItemGetZipInputStream(inputStream: InputStream): ManagedResource[ZipArchiveInputStream] = {
     /*
      The next example would use java.util throwing the tested ZipException, we use apache.commons
