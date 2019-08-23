@@ -3,6 +3,7 @@ Description=EASY Deposit Api Service
 
 [Service]
 ExecStart=/bin/java \
+   $MAX_HEAP_SIZE \
    -Dlogback.configurationFile=/etc/opt/dans.knaw.nl/easy-deposit-api/logback-service.xml \
    -Dapp.home=/opt/dans.knaw.nl/easy-deposit-api \
    -Dorg.scalatra.environment="production" \
