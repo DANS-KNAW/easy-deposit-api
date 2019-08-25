@@ -86,7 +86,7 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
     (bagDir / "metadata" / "dataset.json").size shouldBe mdOldSize
     // no DOI added
     val submittedBagDir = testDir / "submitted" / bagStoreBagID / bagDirName
-    (submittedBagDir / "metadata" / "depositor-info" / "message-from-depositor.txt").contentAsString shouldBe customMessage
+    (submittedBagDir / "metadata" / "depositor-info" / "message-from-depositor.txt").contentAsString shouldBe s"$customMessage\n\nThe deposit can be found at http://does.not.exist/${depositDir.id}"
     (submittedBagDir / "metadata" / "depositor-info" / "agreements.xml").lineIterator.next() shouldBe prologue
     (submittedBagDir / "metadata" / "dataset.xml").lineIterator.next() shouldBe prologue
     (submittedBagDir / "data").children.size shouldBe (bagDir / "data").children.size
@@ -107,7 +107,7 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
     val bagStoreBagId = succeedingSubmit(depositDir)
 
     (testDir / "submitted" / bagStoreBagId / bagDirName / "metadata" / "depositor-info" / "message-from-depositor.txt")
-      .contentAsString shouldBe ""
+      .contentAsString shouldBe s"The deposit can be found at http://does.not.exist/${depositDir.id}"
   }
 
   it should "overwrite a previous bag-store.bag-id at resubmit" in {
@@ -187,6 +187,7 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
       (testDir / "staged").createDirectories(),
       (testDir / "submitted").createDirectories(),
       group,
+      "http://does.not.exist",
     )
   }
 

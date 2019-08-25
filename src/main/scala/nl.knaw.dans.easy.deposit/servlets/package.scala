@@ -30,6 +30,7 @@ import org.scalatra.servlet.{ FileItem, MultipartConfig }
 import org.scalatra.util.RicherString._
 import resource.{ ManagedResource, managed }
 
+import scala.annotation.tailrec
 import scala.util.{ Failure, Success, Try }
 
 // @formatter:off
@@ -63,24 +64,33 @@ package object servlets extends DebugEnhancedLogging {
 
   implicit class RichZipInputStream(val zipInputStream: ZipArchiveInputStream) extends AnyVal {
 
-    private def skip(file: File): Boolean = {
-      file.isDirectory && file.name == "__MACOSX"
-    }
-
-    def unzipPlainEntriesTo(dir: File): Try[Unit] = {
+    def unzipPlainEntriesTo(targetDir: File): Try[Unit] = {
       def extract(entry: ArchiveEntry): Try[Unit] = {
         if (entry.isDirectory)
-          Try((dir / entry.getName).createDirectories())
+          Try((targetDir / entry.getName).createDirectories())
         else {
           logger.info(s"Extracting ${ entry.getName } size=${ entry.getSize } getLastModifiedDate=${ entry.getLastModifiedDate } }")
           Try {
-            (dir / entry.getName).parent.createDirectories() // in case a directory was not specified separately
-            Files.copy(zipInputStream, (dir / entry.getName).path)
+            (targetDir / entry.getName).parent.createDirectories() // in case a directory was not specified separately
+            Files.copy(zipInputStream, (targetDir / entry.getName).path)
             ()
           }.recoverWith { case e: ZipException =>
             logger.error(e.getMessage, e)
             Failure(MalformedZipException(s"Can't extract ${ entry.getName }"))
           }
+        }
+      }
+
+      @tailrec
+      def cleanup(file: File): Unit = {
+        // in case walk returns a parent after its children
+        // a __MACOSX gets deleted because its content was deleted
+        // it will simply not be a directory anymore and not cause trouble
+        if (file.isDirectory && (file.isEmpty || file.name == "__MACOSX")) {
+          logger.info(s"cleaning up $file")
+          file.delete()
+          if (file.parent != targetDir)
+            cleanup(file.parent)
         }
       }
 
@@ -96,7 +106,7 @@ package object servlets extends DebugEnhancedLogging {
             .takeWhile(Option(_).nonEmpty)
             .map(extract)
             .failFastOr(Success(()))
-          _ = dir.list(skip).foreach(_.delete())
+          _ = targetDir.walk().foreach(cleanup)
         } yield ()
       }
     }

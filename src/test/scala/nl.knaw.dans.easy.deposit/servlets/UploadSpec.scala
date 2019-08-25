@@ -15,17 +15,17 @@
  */
 package nl.knaw.dans.easy.deposit.servlets
 
-import java.nio.charset.Charset
 import java.nio.file.attribute.PosixFilePermission
 import java.util.UUID
 
-import better.files.{ File, UnicodeCharset }
+import better.files.File
 import nl.knaw.dans.easy.deposit.DepositDir
 import nl.knaw.dans.easy.deposit.docs.DepositInfo
 import nl.knaw.dans.lib.error._
 import org.eclipse.jetty.http.HttpStatus._
+import org.scalatest.Inspectors
 
-class UploadSpec extends DepositServletFixture {
+class UploadSpec extends DepositServletFixture with Inspectors {
 
   override def beforeEach(): Unit = {
     super.beforeEach()
@@ -51,15 +51,15 @@ class UploadSpec extends DepositServletFixture {
     ) {
       body shouldBe ""
       status shouldBe CREATED_201
-      val bagDir = testDir / "drafts/foo" / uuid.toString / bagDirName
-      val uploaded = (bagDir / "data" / relativeTarget).list
-      uploaded.size shouldBe bodyParts.size
-      uploaded.foreach(file =>
-        file.contentAsString shouldBe (testDir / "input" / file.name).contentAsString
-      )
-      (bagDir / "manifest-sha1.txt").lines.size shouldBe bodyParts.size
-      (testDir / "staged").list.size shouldBe 0
     }
+    val bagDir = testDir / "drafts/foo" / uuid.toString / bagDirName
+    val uploaded = (bagDir / "data" / relativeTarget).list
+    uploaded.size shouldBe bodyParts.size
+    forEvery(uploaded.toList) { file =>
+      file.contentAsString shouldBe (testDir / "input" / file.name).contentAsString
+    }
+    (bagDir / "manifest-sha1.txt").lines.size shouldBe bodyParts.size
+    (testDir / "staged").list.toList shouldBe empty
   }
 
   it should "refuse concurrent posts" in {
@@ -79,11 +79,11 @@ class UploadSpec extends DepositServletFixture {
     ) {
       status shouldBe CONFLICT_409
       body shouldBe "Another upload or submit is pending."
-      val bagDir = testDir / "drafts/foo" / uuid.toString / bagDirName
-      (bagDir / "data").list.size shouldBe 0
-      (bagDir / "manifest-sha1.txt").lines.size shouldBe 0
-      (testDir / "staged").list.size shouldBe 1
     }
+    val bagDir = testDir / "drafts/foo" / uuid.toString / bagDirName
+    (bagDir / "data").entries shouldBe empty
+    (bagDir / "manifest-sha1.txt").lines shouldBe empty
+    (testDir / "staged").entries.map(_.name).toList should contain only s"foo-$uuid-XYZ"
   }
 
   it should "report upload failure" in {
@@ -127,8 +127,8 @@ class UploadSpec extends DepositServletFixture {
     ) {
       body shouldBe "A multipart/form-data message contained a ZIP part [2.zip] but also other parts."
       status shouldBe BAD_REQUEST_400
-      absoluteTarget.list.size shouldBe 0 // preceding plain file not added to draft bag
     }
+    absoluteTarget.entries shouldBe empty // preceding plain file not added to draft bag
   }
 
   it should "report a ZIP item found without uploading any of the others" in {
@@ -147,8 +147,8 @@ class UploadSpec extends DepositServletFixture {
     ) {
       body shouldBe "A multipart/form-data message contained a ZIP part [1.zip] but also other parts."
       status shouldBe BAD_REQUEST_400
-      absoluteTarget.list.size shouldBe 0
     }
+    absoluteTarget.entries shouldBe empty
   }
 
   it should "report a malformed ZIP" in {
@@ -162,80 +162,36 @@ class UploadSpec extends DepositServletFixture {
       headers = Seq(fooBarBasicAuthHeader),
       files = bodyParts
     ) {
-      absoluteTarget.list.size shouldBe 0
       status shouldBe BAD_REQUEST_400
       body shouldBe "ZIP file is malformed. No entries found."
     }
+    absoluteTarget.entries shouldBe empty
   }
 
-  it should "report a ZIP file with a few corrupted bytes" in {
-    val bodyParts = Seq(("some", new java.io.File("src/test/resources/manual-test/invalid.zip")))
-    val uuid = createDeposit
-    val relativeTarget = "path/to/dir"
-    val absoluteTarget = (testDir / "drafts" / "foo" / uuid.toString / bagDirName / "data" / relativeTarget).createDirectories()
-    post(
-      uri = s"/deposit/$uuid/file/$relativeTarget",
-      params = Iterable(),
-      headers = Seq(fooBarBasicAuthHeader),
-      files = bodyParts
-    ) {
-      absoluteTarget.list.size shouldBe 0
-      status shouldBe 400
-      body shouldBe "ZIP file is malformed. No entries found."
-    }
-  }
-
-  it should "report an empty ZIP archive" in {
-    val bodyParts = Seq(("some", new java.io.File("src/test/resources/manual-test/empty.zip")))
-    val uuid = createDeposit
-    val relativeTarget = "path/to/dir"
-    val absoluteTarget = (testDir / "drafts" / "foo" / uuid.toString / bagDirName / "data" / relativeTarget).createDirectories()
-    post(
-      uri = s"/deposit/$uuid/file/$relativeTarget",
-      params = Iterable(),
-      headers = Seq(fooBarBasicAuthHeader),
-      files = bodyParts
-    ) {
-      body shouldBe "ZIP file is malformed. No entries found."
-      status shouldBe BAD_REQUEST_400
-      absoluteTarget.list.size shouldBe 0
-    }
-  }
-
-  it should "extract allowed files from a ZIP" in {
-    val inputZip: File = File("src/test/resources/manual-test/Archive.zip")
-    val preconditionStream = inputZip.newZipInputStream(UnicodeCharset(Charset.defaultCharset()))
-    Stream.continually(preconditionStream.getNextEntry)
-      .takeWhile(Option(_).nonEmpty)
-      .toList
-      .map(_.getName) should contain theSameElementsAs
-      List("login.html", "__MACOSX/", "__MACOSX/._login.html", "readme.md", "upload.html")
-
+  it should "extract the files into the relative target" in {
     val uuid = createDeposit
     val relativeTarget = "path/to/dir"
     val bagDir = testDir / "drafts" / "foo" / uuid.toString / bagDirName
     val absoluteTarget = (bagDir / "data" / relativeTarget).createDirectories()
-    absoluteTarget.list.size shouldBe 0 // precondition
+    absoluteTarget.entries shouldBe empty // precondition
     post(
-      uri = s"/deposit/$uuid/file/$relativeTarget",
+      uri = s"/deposit/$uuid/file/$relativeTarget", // another post-URI tested with the same zip
       params = Iterable(),
       headers = Seq(fooBarBasicAuthHeader),
-      files = Seq(("formFieldName", inputZip.toJava))
+      files = Seq(("formFieldName", File("src/test/resources/manual-test/macosx.zip").toJava))
     ) {
       body shouldBe ""
       status shouldBe CREATED_201
-      absoluteTarget.walk().map(_.name).toList should contain theSameElementsAs List(
-        "dir", "login.html", "readme.md", "upload.html"
-      )
-      absoluteTarget.walk().map(_.name).toList shouldNot contain theSameElementsAs List(
-        "__MACOSX/", "__MACOSX/._login.html"
-      )
-      (bagDir / "manifest-sha1.txt")
-        .lines
-        .map(_.replaceAll(".* +", "")) should contain theSameElementsAs List(
-        "login.html", "readme.md", "upload.html"
-      ).map("data/path/to/dir/" + _)
     }
+    absoluteTarget.walk().map(_.name).toList should contain theSameElementsAs List(
+      "dir", "login.html", "readme.md", "upload.html"
+    )
+    (bagDir / "manifest-sha1.txt")
+      .lines
+      .map(_.replaceAll(".* +", "")) should contain theSameElementsAs List(
+      "login.html", "readme.md", "upload.html"
+    ).map(s"data/$relativeTarget/" + _)
+
     // get should show uploaded files
     get(
       uri = s"/deposit/$uuid/file/",
@@ -253,7 +209,7 @@ class UploadSpec extends DepositServletFixture {
     val relativeTarget = "path/to/dir"
     val bagDir = testDir / "drafts" / "foo" / uuid.toString / bagDirName
     val absoluteTarget = (bagDir / "data" / relativeTarget).createDirectories()
-    absoluteTarget.list.size shouldBe 0 // precondition
+    absoluteTarget.entries shouldBe empty // precondition
     post(
       uri = s"/deposit/$uuid/file/$relativeTarget",
       params = Iterable(),
@@ -262,15 +218,16 @@ class UploadSpec extends DepositServletFixture {
     ) {
       body shouldBe empty
       status shouldBe CREATED_201
-      absoluteTarget.walk().map(_.name).toList should contain theSameElementsAs List(
-        "dir", "myCompress", ".DS_Store", "secondLayer", "test.txt", "test_file.txt", "deeper.zip"
-      )
-      (bagDir / "manifest-sha1.txt")
-        .lines
-        .map(_.replaceAll(".* +", "")) should contain theSameElementsAs List(
-        "myCompress/test_file.txt", "myCompress/.DS_Store", "myCompress/secondLayer/test.txt", "myCompress/deeper.zip"
-      ).map("data/path/to/dir/" + _)
     }
+    absoluteTarget.walk().map(_.name).toList should contain theSameElementsAs List(
+      "dir", "myCompress", ".DS_Store", "secondLayer", "test.txt", "test_file.txt", "deeper.zip"
+    )
+    (bagDir / "manifest-sha1.txt")
+      .lines
+      .map(_.replaceAll(".* +", "")) should contain theSameElementsAs List(
+      "myCompress/test_file.txt", "myCompress/.DS_Store", "myCompress/secondLayer/test.txt", "myCompress/deeper.zip"
+    ).map("data/path/to/dir/" + _)
+
     // get should show uploaded files
     get(
       uri = s"/deposit/$uuid/file/",
@@ -284,45 +241,29 @@ class UploadSpec extends DepositServletFixture {
     }
   }
 
-  it should "not accept a tar" in {
-    val uuid = createDeposit
-    val relativeTarget = "path/to/dir"
-    val bagDir = testDir / "drafts" / "foo" / uuid.toString / bagDirName
-    val absoluteTarget = (bagDir / "data" / relativeTarget).createDirectories()
-    absoluteTarget.list.size shouldBe 0 // precondition
-    post(
-      uri = s"/deposit/$uuid/file/$relativeTarget",
-      params = Iterable(),
-      headers = Seq(fooBarBasicAuthHeader),
-      files = Seq(("formFieldName", File("src/test/resources/manual-test/Archive.tar.gz").toJava))
-    ) {
-      body shouldBe "ZIP file is malformed. Unexpected record signature: 0X88B1F"
-      status shouldBe BAD_REQUEST_400
-    }
-  }
-
   it should "extract ZIP to root of data dir in the bag" in {
     val uuid = createDeposit
     val bagDir = testDir / "drafts" / "foo" / uuid.toString / bagDirName
     val absoluteTarget = (bagDir / "data").createDirectories()
-    absoluteTarget.list.size shouldBe 0 // precondition
+    absoluteTarget.entries shouldBe empty // precondition
     post(
-      uri = s"/deposit/$uuid/file/",
+      uri = s"/deposit/$uuid/file/", // another post-URI tested with the same zip
       params = Iterable(),
       headers = Seq(fooBarBasicAuthHeader),
-      files = Seq(("formFieldName", File("src/test/resources/manual-test/Archive.zip").toJava))
+      files = Seq(("formFieldName", File("src/test/resources/manual-test/macosx.zip").toJava))
     ) {
       body shouldBe ""
       status shouldBe CREATED_201
-      absoluteTarget.walk().map(_.name).toList should contain theSameElementsAs List(
-        "data", "login.html", "readme.md", "upload.html"
-      )
-      (bagDir / "manifest-sha1.txt")
-        .lines
-        .map(_.replaceAll(".* +", "")) should contain theSameElementsAs List(
-        "login.html", "readme.md", "upload.html"
-      ).map("data/" + _)
     }
+    absoluteTarget.walk().map(_.name).toList should contain theSameElementsAs List(
+      "data", "login.html", "readme.md", "upload.html"
+    )
+    (bagDir / "manifest-sha1.txt")
+      .lines
+      .map(_.replaceAll(".* +", "")) should contain theSameElementsAs List(
+      "login.html", "readme.md", "upload.html"
+    ).map("data/" + _)
+
     // get should show uploaded files
     get(
       uri = s"/deposit/$uuid/file/",
@@ -332,31 +273,6 @@ class UploadSpec extends DepositServletFixture {
       body should include("""{"filename":"readme.md","dirpath":"",""")
       body should include("""{"filename":"upload.html","dirpath":"",""")
       body should include("""{"filename":"login.html","dirpath":"",""")
-    }
-  }
-
-  it should "report existing files" in {
-    val bodyParts = createBodyParts(Seq(
-      ("some", "1.txt", "rababera"),
-      ("some", "2.txt", "rababera"),
-      ("some", "3.txt", "rababera"),
-      ("some", "4.txt", "rababera"),
-    ))
-    val uuid = createDeposit
-    val relativeTarget = "some"
-    val absoluteTarget = (testDir / "drafts" / "foo" / uuid.toString / bagDirName / "data" / relativeTarget).createDirectories()
-    (absoluteTarget / "2.txt").createFile()
-    (absoluteTarget / "3.txt").createFile()
-    post(
-      uri = s"/deposit/$uuid/file/$relativeTarget",
-      params = Iterable(),
-      headers = Seq(fooBarBasicAuthHeader),
-      files = bodyParts
-    ) {
-      absoluteTarget.list.size shouldBe 2
-      status shouldBe CONFLICT_409
-      val prefix = "The following file(s) already exist on the server:"
-      body should (equal(s"$prefix some/3.txt, some/2.txt".toString) or equal(s"$prefix some/2.txt, some/3.txt".toString))
     }
   }
 
@@ -402,9 +318,9 @@ class UploadSpec extends DepositServletFixture {
       body = longContent
     ) {
       status shouldBe CREATED_201
-      (bagBase / "data/path/to/text.txt").contentAsString shouldBe longContent
-      (bagBase / "manifest-sha1.txt").contentAsString shouldBe "0d21d1af59b36f0bee70fd034e931ec72f04f1cd  data/path/to/text.txt\n"
     }
+    (bagBase / "data/path/to/text.txt").contentAsString shouldBe longContent
+    (bagBase / "manifest-sha1.txt").contentAsString shouldBe "0d21d1af59b36f0bee70fd034e931ec72f04f1cd  data/path/to/text.txt\n"
 
     // second upload of same file
     val sha = "c5b8de8cc3587aef4e118a481115391033621e06"
@@ -414,9 +330,9 @@ class UploadSpec extends DepositServletFixture {
       body = shortContent
     ) {
       status shouldBe NO_CONTENT_204
-      (bagBase / "data/path/to/text.txt").contentAsString shouldBe shortContent
-      (bagBase / "manifest-sha1.txt").contentAsString shouldBe s"$sha  data/path/to/text.txt\n"
     }
+    (bagBase / "data/path/to/text.txt").contentAsString shouldBe shortContent
+    (bagBase / "manifest-sha1.txt").contentAsString shouldBe s"$sha  data/path/to/text.txt\n"
 
     // get should show uploaded file once
     get(
@@ -440,9 +356,9 @@ class UploadSpec extends DepositServletFixture {
       body = shortContent
     ) {
       status shouldBe CREATED_201
-      (bagBase / "data/text.txt").contentAsString shouldBe shortContent
-      (bagBase / "manifest-sha1.txt").contentAsString shouldBe s"$sha  data/text.txt\n"
     }
+    (bagBase / "data/text.txt").contentAsString shouldBe shortContent
+    (bagBase / "manifest-sha1.txt").contentAsString shouldBe s"$sha  data/text.txt\n"
 
     // get should show uploaded file once
     get(

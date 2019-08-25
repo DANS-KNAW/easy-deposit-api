@@ -88,7 +88,8 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
 
   private val submitter = {
     val groupName = properties.getString("deposit.permissions.group")
-    new Submitter(stagedBaseDir, submitBase, groupName)
+    val depositUiURL = properties.getString("easy.deposit-ui")
+    new Submitter(stagedBaseDir, submitBase, groupName, depositUiURL)
   }
 
   // possible trailing slash is dropped

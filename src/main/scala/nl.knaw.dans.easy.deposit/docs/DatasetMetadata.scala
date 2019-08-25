@@ -30,7 +30,7 @@ import scala.util.{ Failure, Success, Try }
  * All params are (de)serialized by [[JsonUtil]].
  * Private params are remixed or converted for XML serialization with [[DDM]].
  */
-case class DatasetMetadata(private val identifiers: Option[Seq[SchemedValue]] = None,
+case class DatasetMetadata(identifiers: Option[Seq[SchemedValue]] = None,
                            languageOfDescription: Option[SchemedKeyValue] = None,
                            titles: Option[Seq[String]] = None,
                            alternativeTitles: Option[Seq[String]] = None,
@@ -40,7 +40,7 @@ case class DatasetMetadata(private val identifiers: Option[Seq[SchemedValue]] = 
                            audiences: Option[Seq[SchemedKeyValue]] = None,
                            subjects: Option[Seq[SchemedKeyValue]] = None,
                            private val alternativeIdentifiers: Option[Seq[SchemedValue]] = None,
-                           relations: Option[Seq[RelationType]] = None,
+                           private val relations: Option[Seq[RelationType]] = None,
                            languagesOfFiles: Option[Seq[SchemedKeyValue]] = None,
                            private val dates: Option[Seq[Date]] = None,
                            sources: Option[Seq[String]] = None,
@@ -77,7 +77,9 @@ case class DatasetMetadata(private val identifiers: Option[Seq[SchemedValue]] = 
     .withFilter(_.isRightsHolder)
     .map(_.toString)
 
-  lazy val allIdentifiers: Seq[SchemedValue] = identifiers.getOrElse(Seq()) ++ alternativeIdentifiers.getOrElse(Seq())
+  lazy val allRelations: Seq[RelationType] = relations.getOrElse(Seq()) ++
+    alternativeIdentifiers.getOrElse(Seq())
+      .map(i => RelatedIdentifier(i.scheme, i.value, Option(RelationQualifier.isFormatOf)))
 
   //// doi
   lazy val doi: Option[String] = identifiers.flatMap(_.collectFirst {
