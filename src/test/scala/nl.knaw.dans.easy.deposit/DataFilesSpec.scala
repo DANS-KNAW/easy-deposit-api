@@ -106,12 +106,14 @@ class DataFilesSpec extends TestSupportFixture {
       .addPayloadFile(randomContent, Paths.get("folder1/b/x.txt")).getOrRecover(payloadFailure)
       .addPayloadFile(randomContent, Paths.get("folder1#b/x.txt")).getOrRecover(payloadFailure)
       .addPayloadFile(randomContent, Paths.get("folder1/3.txt")).getOrRecover(payloadFailure)
+      .addPayloadFile(randomContent, Paths.get("#/1.txt")).getOrRecover(payloadFailure)
       .addPayloadFile(randomContent, Paths.get("folder2/4.txt")).getOrRecover(payloadFailure)
       .addPayloadFile(randomContent, Paths.get("folder11/4.txt")).getOrRecover(payloadFailure)
       .addPayloadFile(randomContent, Paths.get("folder1/5.txt")).getOrRecover(payloadFailure)
     bag.save()
     DataFiles(bag).list(Paths.get(""))
       .map(_.map(fileInfo => s"${ fileInfo.dirpath }/${ fileInfo.filename }")) shouldBe Success(List(
+      "#/1.txt",
       "/1.txt",
       "folder1#b/x.txt",
       "folder1/3.txt",
