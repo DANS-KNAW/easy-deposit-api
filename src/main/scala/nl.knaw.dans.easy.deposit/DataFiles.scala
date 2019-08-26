@@ -24,7 +24,6 @@ import nl.knaw.dans.bag.DansBag
 import nl.knaw.dans.easy.deposit.Errors.NoSuchFileInDepositException
 import nl.knaw.dans.easy.deposit.docs.FileInfo
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
-import org.joda.time.DateTime
 
 import scala.language.postfixOps
 import scala.util.{ Failure, Success, Try }
