@@ -24,4 +24,6 @@ import java.nio.file.Path
  * @param dirpath  path of the containing directory, relative to the content base directory
  * @param sha1sum  the SHA-1 checksum of the file data
  */
-case class FileInfo(filename: String, dirpath: Path, sha1sum: String)
+case class FileInfo(filename: String, dirpath: Path, sha1sum: String) extends Ordered[FileInfo] {
+  override def compare(that: FileInfo): Int = s"${this.dirpath}/$filename".compareTo(s"${that.dirpath}/$filename")
+}

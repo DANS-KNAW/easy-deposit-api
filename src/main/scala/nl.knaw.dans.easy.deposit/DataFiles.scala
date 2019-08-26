@@ -26,6 +26,7 @@ import nl.knaw.dans.easy.deposit.docs.FileInfo
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 
 import scala.language.postfixOps
+import Ordering._
 import scala.util.{ Failure, Success, Try }
 
 /**
@@ -65,12 +66,11 @@ case class DataFiles(bag: DansBag) extends DebugEnhancedLogging {
     }
 
     def convert(items: Map[File, String]) = {
-      implicit val pathOrdering: Ordering[Path] = Ordering.fromLessThan[Path](_.compareTo(_) < 0)
       items
         .withFilter(_._1.isChildOf(parentPath))
         .map((toFileInfo _).tupled)
         .toSeq
-        .sortBy(fileInfo => (fileInfo.dirpath, fileInfo.filename))
+        .sortBy(fileInfo => s"${fileInfo.dirpath}/${fileInfo.filename}")
     }
 
     manifestMap

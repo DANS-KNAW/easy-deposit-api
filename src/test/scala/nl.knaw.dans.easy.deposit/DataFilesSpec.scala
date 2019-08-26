@@ -113,15 +113,13 @@ class DataFilesSpec extends TestSupportFixture {
     DataFiles(bag).list(Paths.get(""))
       .map(_.map(fileInfo => s"${ fileInfo.dirpath }/${ fileInfo.filename }")) shouldBe Success(List(
       "/1.txt",
+      "folder1#b/x.txt",
       "folder1/3.txt",
       "folder1/5.txt",
-      "folder1#b/x.txt",
       "folder1/b/x.txt",
       "folder11/4.txt",
       "folder2/4.txt"
     ))
-    // lexicographical order is "#/1"
-    // a dir with "#" can apparently return between the files and dirs of one other dir
   }
 
   "fileInfo" should "contain proper information about the files" in {
