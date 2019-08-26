@@ -24,6 +24,7 @@ import nl.knaw.dans.bag.DansBag
 import nl.knaw.dans.easy.deposit.Errors.NoSuchFileInDepositException
 import nl.knaw.dans.easy.deposit.docs.FileInfo
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
+import org.joda.time.DateTime
 
 import scala.language.postfixOps
 import scala.util.{ Failure, Success, Try }
@@ -65,11 +66,12 @@ case class DataFiles(bag: DansBag) extends DebugEnhancedLogging {
     }
 
     def convert(items: Map[File, String]) = {
+      implicit val pathOrdering: Ordering[Path] = Ordering.fromLessThan[Path](_.compareTo(_) < 0)
       items
         .withFilter(_._1.isChildOf(parentPath))
         .map((toFileInfo _).tupled)
         .toSeq
-        .sortBy(fileInfo => (fileInfo.dirpath, fileInfo.dirpath))
+        .sortBy(fileInfo => (fileInfo.dirpath, fileInfo.filename))
     }
 
     manifestMap

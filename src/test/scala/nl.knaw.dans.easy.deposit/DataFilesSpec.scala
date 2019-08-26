@@ -99,24 +99,29 @@ class DataFilesSpec extends TestSupportFixture {
     }
   }
 
-  "fileInfoSeq" should "return the proper number of files" in {
+  "list" should "return files in lexicographical order" in {
     val bag = DansV0Bag
       .empty(testDir / "testBag").getOrRecover(fail("could not create test bag", _))
       .addPayloadFile(randomContent, Paths.get("1.txt")).getOrRecover(payloadFailure)
-      .addPayloadFile(randomContent, Paths.get("folder1/2.txt")).getOrRecover(payloadFailure)
+      .addPayloadFile(randomContent, Paths.get("folder1/b/x.txt")).getOrRecover(payloadFailure)
+      .addPayloadFile(randomContent, Paths.get("folder1#b/x.txt")).getOrRecover(payloadFailure)
       .addPayloadFile(randomContent, Paths.get("folder1/3.txt")).getOrRecover(payloadFailure)
       .addPayloadFile(randomContent, Paths.get("folder2/4.txt")).getOrRecover(payloadFailure)
+      .addPayloadFile(randomContent, Paths.get("folder11/4.txt")).getOrRecover(payloadFailure)
+      .addPayloadFile(randomContent, Paths.get("folder1/5.txt")).getOrRecover(payloadFailure)
     bag.save()
-    val dataFiles = DataFiles(bag)
-    dataFiles.list(Paths.get("folder2")) should matchPattern {
-      case Success(Seq(_)) =>
-    }
-    dataFiles.list(Paths.get("folder1")) should matchPattern {
-      case Success(Seq(_, _)) =>
-    }
-    dataFiles.list(Paths.get("")) should matchPattern {
-      case Success(Seq(_, _, _, _)) =>
-    }
+    DataFiles(bag).list(Paths.get(""))
+      .map(_.map(fileInfo => s"${ fileInfo.dirpath }/${ fileInfo.filename }")) shouldBe Success(List(
+      "/1.txt",
+      "folder1/3.txt",
+      "folder1/5.txt",
+      "folder1#b/x.txt",
+      "folder1/b/x.txt",
+      "folder11/4.txt",
+      "folder2/4.txt"
+    ))
+    // lexicographical order is "#/1"
+    // a dir with "#" can apparently return between the files and dirs of one other dir
   }
 
   "fileInfo" should "contain proper information about the files" in {
