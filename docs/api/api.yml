@@ -423,7 +423,8 @@ paths:
         unzipped in `dir_path`. For each file in the ZIP file, the path in the deposit will be `dir_path`/`path_in_zip`.
         The ZIP file may contain `nested ZIP files`, which will **not** be extracted, but stored as ZIP file.
 
-        Existing files at the target location will be overwritten. Concurrent POST or PUT calls to the same deposit are not allowed.
+        Existing files at the target location will be overwritten, existing folders at the target location will be merged with the folders in the zip.
+        Concurrent POST or PUT calls to the same deposit are not allowed.
 
       parameters:
       - $ref: "#/components/parameters/DepositId"
