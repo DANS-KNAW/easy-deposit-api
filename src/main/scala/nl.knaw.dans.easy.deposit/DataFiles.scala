@@ -26,7 +26,6 @@ import nl.knaw.dans.easy.deposit.docs.FileInfo
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 
 import scala.language.postfixOps
-import scala.collection.JavaConverters._
 import scala.util.{ Failure, Success, Try }
 
 /**
@@ -70,7 +69,7 @@ case class DataFiles(bag: DansBag) extends DebugEnhancedLogging {
         .withFilter(_._1.isChildOf(parentPath))
         .map((toFileInfo _).tupled)
         .toSeq
-        .sortBy(fileInfo => (fileInfo.dirpath.asScala, fileInfo.filename))
+        .sortBy(fileInfo => (File(fileInfo.dirpath) / fileInfo.filename).path)
     }
 
     manifestMap
