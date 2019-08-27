@@ -111,17 +111,20 @@ class DataFilesSpec extends TestSupportFixture {
       .addPayloadFile(randomContent, Paths.get("folder11/4.txt")).getOrRecover(payloadFailure)
       .addPayloadFile(randomContent, Paths.get("folder1/5.txt")).getOrRecover(payloadFailure)
     bag.save()
-    DataFiles(bag).list(Paths.get(""))
-      .map(_.map(fileInfo => s"${ fileInfo.dirpath }/${ fileInfo.filename }")) shouldBe Success(List(
-      "#/1.txt",
-      "/1.txt",
-      "folder1#b/x.txt",
-      "folder1/3.txt",
-      "folder1/5.txt",
-      "folder1/b/x.txt",
-      "folder11/4.txt",
-      "folder2/4.txt"
-    ))
+    
+    inside(DataFiles(bag).list(Paths.get(""))) {
+      case Success(result) =>
+        result.map(fileInfo => fileInfo.dirpath.toString -> fileInfo.filename) should contain inOrderOnly(
+          "" -> "1.txt",
+          "#" -> "1.txt",
+          "folder1" -> "3.txt",
+          "folder1" -> "5.txt",
+          "folder1/b" -> "x.txt",
+          "folder1#b" -> "x.txt",
+          "folder11" -> "4.txt",
+          "folder2" -> "4.txt",
+        )
+    }
   }
 
   "fileInfo" should "contain proper information about the files" in {
