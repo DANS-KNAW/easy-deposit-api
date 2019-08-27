@@ -34,7 +34,7 @@
         <main-class>nl.knaw.dans.easy.deposit.Command</main-class>
     </properties>
     <scm>
-        <developerConnection>scm:git:https://github.com/DANS-KNAW/easy-deposit-api</developerConnection>
+        <developerConnection>scm:git:https://github.com/DANS-KNAW/${project.artifactId}</developerConnection>
         <tag>HEAD</tag>
     </scm>
     <dependencies>
