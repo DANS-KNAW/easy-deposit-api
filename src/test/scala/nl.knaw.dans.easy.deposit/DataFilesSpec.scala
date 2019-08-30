@@ -100,7 +100,7 @@ class DataFilesSpec extends TestSupportFixture {
     }
   }
 
-  "list" should "return files in lexicographical order" in {
+  "list" should "return files grouped by folder" in {
     val bag = DansV0Bag
       .empty(testDir / "testBag").getOrRecover(fail("could not create test bag", _))
       .addPayloadFile(randomContent, Paths.get("1.txt")).getOrRecover(payloadFailure)
