@@ -2,7 +2,9 @@
 Description=EASY Deposit Api Service
 
 [Service]
+# MAX_HEAP_SIZE is specified in memusage.conf
 ExecStart=/bin/java \
+   $INITIAL_HEAP_SIZE \
    -Dlogback.configurationFile=/etc/opt/dans.knaw.nl/easy-deposit-api/logback-service.xml \
    -Dapp.home=/opt/dans.knaw.nl/easy-deposit-api \
    -Dorg.scalatra.environment="production" \
