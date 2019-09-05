@@ -95,7 +95,7 @@ class Submitter(stagingBaseDir: File,
       // EASY-1464 3.3.8.a create empty staged bag to take a copy of the deposit
       stageBag <- DansV0Bag.empty(stagedDir / bagDirName).map(_.withCreated())
       // EASY-1464 3.3.6 change state and copy with the rest of the deposit properties to staged dir
-      _ <- stateManager.changeState(StateInfo(State.submitted, "Deposit is ready for processing."))
+      _ <- stateManager.changeState(StateInfo(State.submitted, "The deposit is being processed"))
       submittedId <- stateManager.getSubmittedBagId // created by changeState
       submitDir = submitToBaseDir / submittedId.toString
       _ = if (submitDir.exists) throw AlreadySubmittedException(draftDeposit.id)
