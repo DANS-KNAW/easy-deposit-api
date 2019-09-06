@@ -57,7 +57,7 @@ class StateManagerSpec extends TestSupportFixture {
     // the problem will be logged
     draftPropsFile.writeText(
       s"""state.label = SUBMITTED
-         |state.description = The dataset is ready for processing
+         |state.description = The deposit is being processed
       """.stripMargin)
     StateManager(draftDeposit, submitBase, easyHome).getStateInfo shouldBe Success(StateInfo(
       State.submitted,
@@ -69,7 +69,7 @@ class StateManagerSpec extends TestSupportFixture {
     // the problem will be logged
     draftPropsFile.writeText(
       s"""state.label = SUBMITTED
-         |state.description = The dataset is ready for processing
+         |state.description = The deposit is being processed
          |bag-store.bag-id = $submittedUuid
       """.stripMargin)
     StateManager(draftDeposit, submitBase, easyHome).getStateInfo shouldBe Success(StateInfo(
@@ -81,7 +81,7 @@ class StateManagerSpec extends TestSupportFixture {
   it should "change SUBMITTED to IN_PROGRESS" in {
     draftPropsFile.writeText(
       s"""state.label = SUBMITTED
-         |state.description = The deposit is ready for processing
+         |state.description = The deposit is being processed
          |bag-store.bag-id = $submittedUuid
       """.stripMargin)
     submittedPropsFile.writeText(
@@ -97,7 +97,7 @@ class StateManagerSpec extends TestSupportFixture {
   it should "return the fedora landing page" in {
     draftPropsFile.writeText(
       s"""state.label = SUBMITTED
-         |state.description = The deposit is ready for processing
+         |state.description = The deposit is being processed
          |bag-store.bag-id = $submittedUuid
          |identifier.doi = 10.5072/dans-zyf-v9sc
       """.stripMargin)
@@ -116,7 +116,7 @@ class StateManagerSpec extends TestSupportFixture {
   it should "mail the draft uuid" in {
     draftPropsFile.writeText(
       s"""state.label = SUBMITTED
-         |state.description = The deposit is ready for processing
+         |state.description = The deposit is being processed
       """.stripMargin)
     submittedPropsFile.writeText(
       s"""state.label = REJECTED
@@ -135,7 +135,7 @@ class StateManagerSpec extends TestSupportFixture {
   it should "mail the submitted uuid" in {
     draftPropsFile.writeText(
       s"""state.label = SUBMITTED
-         |state.description = The deposit is ready for processing
+         |state.description = The deposit is being processed
          |bag-store.bag-id = $submittedUuid
       """.stripMargin)
     submittedPropsFile.writeText(
@@ -162,7 +162,7 @@ class StateManagerSpec extends TestSupportFixture {
   it should "return the curators message" in {
     draftPropsFile.writeText(
       s"""state.label = SUBMITTED
-         |state.description = The deposit is ready for processing
+         |state.description = The deposit is being processed
          |bag-store.bag-id = $submittedUuid
       """.stripMargin)
     submittedPropsFile.writeText(
@@ -176,7 +176,7 @@ class StateManagerSpec extends TestSupportFixture {
   it should "return a generic landing page when no fedora-id is available" in {
     draftPropsFile.writeText(
       s"""state.label = SUBMITTED
-         |state.description = The deposit is ready for processin
+         |state.description = The deposit is being processed
          |bag-store.bag-id = $submittedUuid
          |identifier.doi = 10.5072/dans-zyf-v9sc
       """.stripMargin)

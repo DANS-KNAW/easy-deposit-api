@@ -236,7 +236,7 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
     get(
       uri = s"/deposit/$uuid/state", headers = Seq(fooBarBasicAuthHeader),
     ) {
-      body shouldBe """{"state":"SUBMITTED","stateDescription":"Deposit is ready for processing."}"""
+      body shouldBe """{"state":"SUBMITTED","stateDescription":"The deposit is being processed"}"""
       status shouldBe OK_200
     }
   }
