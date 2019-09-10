@@ -54,6 +54,7 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
   "submit" should "fail if the user is not part of the given group" in {
     val depositDir = createDeposit(datasetMetadata)
     val stateManager = depositDir.getStateManager(testDir / "submitted", easyHome)
+      .getOrRecover(e => fail(s"could not get stateManager of test deposit $e"))
     addDoiToDepositProperties(getBag(depositDir))
 
     createSubmitter(unrelatedGroup).submit(depositDir, stateManager, "fullName", testDir / "staged") should matchPattern {
@@ -81,11 +82,11 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
     val bagStoreBagID = succeedingSubmit(depositDir)
 
     // post conditions
-    (testDir / "staged") should not (exist)
+    (testDir / "staged") should not(exist)
     (bagDir / "metadata" / "dataset.json").size shouldBe mdOldSize
     // no DOI added
     val submittedBagDir = testDir / "submitted" / bagStoreBagID / bagDirName
-    (submittedBagDir / "metadata" / "depositor-info" / "message-from-depositor.txt").contentAsString shouldBe customMessage
+    (submittedBagDir / "metadata" / "depositor-info" / "message-from-depositor.txt").contentAsString shouldBe s"$customMessage\n\nThe deposit can be found at http://does.not.exist/${depositDir.id}"
     (submittedBagDir / "metadata" / "depositor-info" / "agreements.xml").lineIterator.next() shouldBe prologue
     (submittedBagDir / "metadata" / "dataset.xml").lineIterator.next() shouldBe prologue
     (submittedBagDir / "data").children.size shouldBe (bagDir / "data").children.size
@@ -106,7 +107,7 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
     val bagStoreBagId = succeedingSubmit(depositDir)
 
     (testDir / "submitted" / bagStoreBagId / bagDirName / "metadata" / "depositor-info" / "message-from-depositor.txt")
-      .contentAsString shouldBe ""
+      .contentAsString shouldBe s"The deposit can be found at http://does.not.exist/${depositDir.id}"
   }
 
   it should "overwrite a previous bag-store.bag-id at resubmit" in {
@@ -135,6 +136,7 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
 
   private def succeedingSubmit(deposit: DepositDir): String = {
     val stateManager = deposit.getStateManager(testDir / "submitted", easyHome)
+      .getOrRecover(e => fail(s"could not get stateManager of test deposit $e"))
 
     val triedBagStoreBagID = createSubmitter(userGroup).submit(deposit, stateManager, "fullName", testDir / "staged")
     triedBagStoreBagID shouldBe a[Success[_]]
@@ -146,6 +148,7 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
   it should "report a file missing in the draft" in {
     val depositDir = createDeposit(datasetMetadata)
     val stateManager = depositDir.getStateManager(testDir / "submitted", easyHome)
+      .getOrRecover(e => fail(s"could not get stateManager of test deposit $e"))
     val bag = getBag(depositDir)
     addDoiToDepositProperties(bag)
     bag.addPayloadFile("lorum ipsum".inputStream, Paths.get("file.txt"))
@@ -162,6 +165,7 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
   it should "report an invalid checksum" in {
     val depositDir = createDeposit(datasetMetadata)
     val stateManager = depositDir.getStateManager(testDir / "submitted", easyHome)
+      .getOrRecover(e => fail(s"could not get stateManager of test deposit $e"))
     val bag = getBag(depositDir)
     addDoiToDepositProperties(bag)
     bag.addPayloadFile("lorum ipsum".inputStream, Paths.get("file.txt"))
@@ -183,6 +187,7 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
       (testDir / "staged").createDirectories(),
       (testDir / "submitted").createDirectories(),
       group,
+      "http://does.not.exist",
     )
   }
 

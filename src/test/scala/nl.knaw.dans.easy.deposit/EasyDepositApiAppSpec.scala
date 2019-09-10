@@ -51,7 +51,11 @@ class EasyDepositApiAppSpec extends TestSupportFixture {
     // copy from draft to submit directory: deposit5's state will be read out of the submit directory
     copyDepositToSubmitArea(deposit5.id)
 
-    inside(app.getDeposits(defaultUser)) {
+    // the state is required for the pattern match but the description is error prone and beyond the scope of the test
+    val expectedState = app.getDepositState(defaultUser,deposit5.id).getOrElse(fail())
+
+    val testResult = app.getDeposits(defaultUser)
+    inside(testResult) {
       case Success(sortedDeposits) =>
         sortedDeposits should contain inOrderOnly(
           // first rejected deposits (newest to oldest)
@@ -60,7 +64,7 @@ class EasyDepositApiAppSpec extends TestSupportFixture {
           // then draft deposits
           deposit4,
           // then in-progress deposits
-          deposit5.copy(stateDescription = "The deposit is in progress."),
+          deposit5.copy(state = expectedState.state, stateDescription = expectedState.stateDescription),
           // and finally archived deposits (newest to oldest)
           deposit6,
           deposit2,

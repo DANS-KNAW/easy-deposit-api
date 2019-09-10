@@ -27,7 +27,7 @@ import scala.xml._
 
 object DDM extends SchemedXml with DebugEnhancedLogging {
   override val schemaNameSpace: String = "http://easy.dans.knaw.nl/schemas/md/ddm/"
-  override val schemaLocation: String = "https://easy.dans.knaw.nl/schemas/md/2018/05/ddm.xsd"
+  override val schemaLocation: String = "https://easy.dans.knaw.nl/schemas/md/ddm/ddm.xsd"
 
   def apply(dm: DatasetMetadata): Try[Elem] = Try {
     val lang: String = dm.languageOfDescription.flatMap(_.key).nonBlankOrNull
@@ -54,9 +54,9 @@ object DDM extends SchemedXml with DebugEnhancedLogging {
         { dm.accessRights.toSeq.map(src => <ddm:accessRights>{ src.toString }</ddm:accessRights>) }
       </ddm:profile>
       <ddm:dcmiMetadata>
-        { dm.allIdentifiers.map(id => <dcterms:identifier xsi:type={ id.scheme.nonBlankOrNull }>{ id.value.nonBlankOrEmpty }</dcterms:identifier>) }
+        { dm.identifiers.withNonEmpty.map(id => <dcterms:identifier xsi:type={ id.scheme.nonBlankOrNull }>{ id.value.nonBlankOrEmpty }</dcterms:identifier>) }
         { dm.alternativeTitles.withNonEmpty.map(str => <dcterms:alternative xml:lang={ lang }>{ str }</dcterms:alternative>) }
-        { dm.relations.withNonEmpty.map(details(_, lang)) }
+        { dm.allRelations.withNonEmpty.map(details(_, lang)) }
         { dm.contributors.withNonEmpty.map(author => <dcx-dai:contributorDetails>{ details(author, lang) }</dcx-dai:contributorDetails>) }
         { dm.rightsHolders.map(str => <dcterms:rightsHolder>{ str }</dcterms:rightsHolder>) }
         { dm.publishers.withNonEmpty.map(str => <dcterms:publisher xml:lang={ lang }>{ str }</dcterms:publisher>) }
@@ -105,12 +105,16 @@ object DDM extends SchemedXml with DebugEnhancedLogging {
       case Relation(_, Some(url: String), Some(title: String)) => <label xml:lang={ lang } href={ url }>{ title }</label>
       case Relation(_, Some(url: String), None) => <label href={ url }>{ url }</label>
       case Relation(_, None, Some(title: String)) => <label xml:lang={ lang }>{ title }</label>
+      case RelatedIdentifier(Some("id-type:DOI"), Some(value), _) => <label scheme="id-type:DOI" href={ "https://doi.org/" + value }>{ value }</label>
+      case RelatedIdentifier(Some("id-type:URN"), Some(value), _) => <label scheme="id-type:URN" href={ "http://persistent-identifier.nl/" + value }>{ value }</label>
+      case RelatedIdentifier(Some(scheme @ ("id-type:URI" | "id-type:URL")), Some(value), _) => <label scheme={ scheme } href={ value }>{ value }</label>
       case RelatedIdentifier(scheme, Some(value), _) => <label xsi:type={ scheme.nonBlankOrNull }>{ value }</label>
       case RelatedIdentifier(scheme, None, _) => <label xsi:type={ scheme.nonBlankOrNull }></label>
       case _ => throw new IllegalArgumentException("invalid relation " + JsonUtil.toJson(relation))
     }
-  }.withLabel(relation match { // replace the name space in case of an href=URL attribute
+  }.withLabel(relation match { // replace the namespace in case of an href=URL attribute
     case RelatedIdentifier(_, _, None) => throw new IllegalArgumentException("missing qualifier: RelatedIdentifier" + JsonUtil.toJson(relation))
+    case RelatedIdentifier(Some("id-type:URI" | "id-type:URL" | "id-type:URN" | "id-type:DOI"), _, Some(qualifier)) => qualifier.toString.replace("dcterms", "ddm")
     case RelatedIdentifier(_, _, Some(qualifier)) => qualifier.toString
     case Relation(None, _, _) => throw new IllegalArgumentException("missing qualifier: Relation" + JsonUtil.toJson(relation))
     case Relation(Some(qualifier), Some(_), _) => qualifier.toString.replace("dcterms", "ddm")
@@ -153,8 +157,8 @@ object DDM extends SchemedXml with DebugEnhancedLogging {
 
   private def orgDetails(organization: String, lang: String, role: Option[SchemedKeyValue]): Elem =
       <dcx-dai:organization>
-        { role.flatMap(_.key).withNonEmpty.map(key => <dcx-dai:role>{ key }</dcx-dai:role>) }
         { <dcx-dai:name xml:lang={ lang }>{ organization }</dcx-dai:name> }
+        { role.flatMap(_.key).withNonEmpty.map(key => <dcx-dai:role>{ key }</dcx-dai:role>) }
       </dcx-dai:organization>
 
   /** @param elem XML element to be adjusted */

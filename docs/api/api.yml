@@ -423,7 +423,8 @@ paths:
         unzipped in `dir_path`. For each file in the ZIP file, the path in the deposit will be `dir_path`/`path_in_zip`.
         The ZIP file may contain `nested ZIP files`, which will **not** be extracted, but stored as ZIP file.
 
-        Existing files at the target location will be overwritten. Concurrent POST or PUT calls to the same deposit are not allowed.
+        Existing files at the target location will be overwritten, existing folders at the target location will be merged with the folders in the zip.
+        Concurrent POST or PUT calls to the same deposit are not allowed.
 
       parameters:
       - $ref: "#/components/parameters/DepositId"
@@ -649,7 +650,7 @@ components:
 
     ForbiddenUpdate:
       description: |
-        Forbidden. The resource cannot be updated at this point. (Updating is only permitted when the deposit is in one of states: DRAFT, REJECTED.)
+        Forbidden. The resource cannot be updated at this point. (Updating is only permitted when the deposit is in state: DRAFT.)
 
     ForbiddenDelete:
       description: |
@@ -665,10 +666,7 @@ components:
     ZipMustBeOnlyFile:
       description: Bad request. A multipart/form-data message contained a ZIP part but also other parts.
 
-    ConflictOverwritesFilesOnServer:
-      description: Conflict. The following file(s) already exist on the server
-
-    ConflictConcurrentUploadsNotAllowed":
+    ConflictConcurrentUploadsNotAllowed:
       description: Conflict. Concurrent file uploads to the same deposit are not allowed.
 
     ConflictAttemptToOverwriteDirectoryWithFile:

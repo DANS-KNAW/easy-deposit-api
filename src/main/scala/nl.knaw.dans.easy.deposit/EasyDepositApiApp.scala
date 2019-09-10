@@ -26,6 +26,7 @@ import nl.knaw.dans.easy.deposit.Errors.{ ClientAbortedUploadException, Configur
 import nl.knaw.dans.easy.deposit.PidRequesterComponent.PidRequester
 import nl.knaw.dans.easy.deposit.authentication.{ AuthenticationProvider, LdapAuthentication }
 import nl.knaw.dans.easy.deposit.docs.StateInfo.State
+import nl.knaw.dans.easy.deposit.docs.StateInfo.State.State
 import nl.knaw.dans.easy.deposit.docs.{ DatasetMetadata, DepositInfo, StateInfo }
 import nl.knaw.dans.easy.deposit.servlets.contentTypeZipPattern
 import nl.knaw.dans.lib.error._
@@ -88,7 +89,8 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
 
   private val submitter = {
     val groupName = properties.getString("deposit.permissions.group")
-    new Submitter(stagedBaseDir, submitBase, groupName)
+    val depositUiURL = properties.getString("easy.deposit-ui")
+    new Submitter(stagedBaseDir, submitBase, groupName, depositUiURL)
   }
 
   // possible trailing slash is dropped
@@ -132,6 +134,7 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
    */
   def getDeposits(user: String): Try[Seq[DepositInfo]] = {
     implicit val timestampOrdering: Ordering[DateTime] = Ordering.fromLessThan[DateTime](_ isBefore _)
+    implicit val tupleOrdering: Ordering[(State, DateTime)] = Ordering.Tuple2[State,DateTime]
     val deposits = DepositDir.list(draftBase, user)
     for {
       infos <- deposits.map(_.getDepositInfo(submitBase, easyHome)).collectResults
@@ -149,7 +152,8 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
   def getDepositState(user: String, id: UUID): Try[StateInfo] = {
     for {
       deposit <- getDeposit(user, id)
-      state <- deposit.getStateManager(submitBase, easyHome).getStateInfo
+      stateManager <- deposit.getStateManager(submitBase, easyHome)
+      state <- stateManager.getStateInfo
     } yield state
   }
 
@@ -184,7 +188,7 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
 
     for {
       deposit <- getDeposit(user, id)
-      stateManager = deposit.getStateManager(submitBase, easyHome)
+      stateManager <- deposit.getStateManager(submitBase, easyHome)
       _ <- stateManager.canChangeState(newStateInfo)
       _ <- if (newStateInfo.state == State.submitted)
              submit(deposit, stateManager) // also changes the state
@@ -207,7 +211,8 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
    */
   def deleteDeposit(user: String, id: UUID): Try[Unit] = for {
     deposit <- getDeposit(user, id)
-    state <- deposit.getStateManager(submitBase, easyHome).getStateInfo
+    stateManager <- deposit.getStateManager(submitBase, easyHome)
+    state <- stateManager.getStateInfo
     _ <- state.canDelete
     _ = deposit.bagDir.parent.delete()
   } yield ()

@@ -36,6 +36,7 @@ import org.joda.time.DateTime
 import scala.collection.JavaConverters._
 import scala.util.control.NonFatal
 import scala.util.{ Failure, Success, Try }
+import nl.knaw.dans.lib.string._
 
 /**
  * Object that contains the logic for submitting a deposit.
@@ -46,6 +47,7 @@ import scala.util.{ Failure, Success, Try }
 class Submitter(stagingBaseDir: File,
                 submitToBaseDir: File,
                 groupName: String,
+                depositUiURL: String,
                ) extends DebugEnhancedLogging {
   private val groupPrincipal = {
     Try {
@@ -82,20 +84,24 @@ class Submitter(stagingBaseDir: File,
       _ = datasetMetadata.doi.getOrElse(throw InvalidDoiException(draftDeposit.id))
       _ <- draftDeposit.sameDOIs(datasetMetadata)
       datasetXml <- DDM(datasetMetadata)
-      msg = datasetMetadata.messageForDataManager.getOrElse("")
+      msg4DataManager = {
+        val firstPart = datasetMetadata.messageForDataManager.getOrElse("").stripLineEnd
+        val secondPart = s"The deposit can be found at $depositUiURL/${draftDeposit.id}"
+        firstPart.toOption.fold(secondPart)(_ + "\n\n" + secondPart)
+      }
       filesXml <- FilesXml(draftBag.data)
       _ <- sameFiles(draftBag.payloadManifests, draftBag.baseDir / "data")
       // from now on no more user errors but internal errors
       // EASY-1464 3.3.8.a create empty staged bag to take a copy of the deposit
       stageBag <- DansV0Bag.empty(stagedDir / bagDirName).map(_.withCreated())
       // EASY-1464 3.3.6 change state and copy with the rest of the deposit properties to staged dir
-      _ <- stateManager.changeState(StateInfo(State.submitted, "Deposit is ready for processing."))
+      _ <- stateManager.changeState(StateInfo(State.submitted, "The deposit is being processed"))
       submittedId <- stateManager.getSubmittedBagId // created by changeState
       submitDir = submitToBaseDir / submittedId.toString
       _ = if (submitDir.exists) throw AlreadySubmittedException(draftDeposit.id)
       _ = (draftBag.baseDir.parent / propsFileName).copyTo(stagedDir / propsFileName)
       // EASY-1464 3.3.5.b: write files to metadata
-      _ = stageBag.addMetadataFile(msg, s"$depositorInfoDirectoryName/message-from-depositor.txt")
+      _ = stageBag.addMetadataFile(msg4DataManager, s"$depositorInfoDirectoryName/message-from-depositor.txt")
       _ <- stageBag.addMetadataFile(agreementsXml, s"$depositorInfoDirectoryName/agreements.xml")
       _ <- stageBag.addMetadataFile(datasetXml, "dataset.xml")
       _ <- stageBag.addMetadataFile(filesXml, "files.xml")

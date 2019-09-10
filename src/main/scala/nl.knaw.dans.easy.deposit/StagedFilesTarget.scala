@@ -15,15 +15,14 @@
  */
 package nl.knaw.dans.easy.deposit
 
-import java.nio.file.{ FileAlreadyExistsException, Path }
+import java.nio.file.Path
 
 import better.files.File
 import nl.knaw.dans.bag.DansBag
 import nl.knaw.dans.bag.ImportOption.ATOMIC_MOVE
-import nl.knaw.dans.easy.deposit.Errors.OverwriteException
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 
-import scala.util.{ Failure, Success, Try }
+import scala.util.{ Success, Try }
 
 /**
  * @param draftBag    the bag that receives the staged files as payload
@@ -32,53 +31,34 @@ import scala.util.{ Failure, Success, Try }
 case class StagedFilesTarget(draftBag: DansBag, destination: Path) extends DebugEnhancedLogging {
 
   /**
-   * Moves files from stagingDir to draftBag if no files in the bag would be overwritten.
+   * Moves files from stagingDir to draftBag, after deleting each file in the bag as soon as it would be overwritten.
    *
    * @param stagingDir the temporary container for files, unique per request, same mount as draftBag
    * @return
    */
   def moveAllFrom(stagingDir: File): Try[Unit] = {
-    // read files.xml at most once, not at all if the first file appears to exist as payload
-    lazy val fetchFiles = draftBag.fetchFiles.map(_.file)
+    // though currently we don't create fetch files, let us not run into trouble whenever we do
+    lazy val fetchFiles = draftBag.fetchFiles
+      .map(fetchFile =>
+        draftBag.data.relativize(fetchFile.file)
+      )
 
-    val absDestination = draftBag.baseDir / destination.toString
-
-    def sourceToTarget(sourceFile: File) = {
-      val bagRelativePath = destination.resolve(stagingDir.relativize(sourceFile))
-      val isPayload = (draftBag.data / bagRelativePath.toString).exists
-      lazy val isFetchItem = fetchFiles.contains(draftBag.data / bagRelativePath.toString)
-      if (logger.underlying.isDebugEnabled)
-        logger.debug(s"Checking existence of $bagRelativePath isPayload=$isPayload isFetchItem=$isFetchItem")
-      if (isPayload || isFetchItem)
-        Failure(new FileAlreadyExistsException(bagRelativePath.toString))
-      else Success(sourceFile -> bagRelativePath)
+    def cleanUp(bagRelativePath: Path) = {
+      if ((draftBag.data / bagRelativePath.toString).exists)
+        draftBag.removePayloadFile(bagRelativePath)
+      else if (fetchFiles.contains(bagRelativePath))
+             draftBag.removeFetchItem(bagRelativePath)
+      else Success(())
     }
 
-    val (successesOfSourceTarget, duplicates) = stagingDir
-      .list
-      .map(sourceToTarget)
-      .partition(triedTuple => triedTuple.isSuccess)
-
-    if (duplicates.nonEmpty)
-      collectExistingFiles(duplicates)
-    else {
-      logger.info(s"Moving from staging [$stagingDir] to [$absDestination]")
-      successesOfSourceTarget.toStream.map {
-        _.flatMap { case (src: File, target: Path) => draftBag
-          .addPayloadFile(src, target)(ATOMIC_MOVE)
-          .recoverWith { case _: FileAlreadyExistsException =>
-            logger.warn(s"A concurrent PUT created $target, upload continues with the rest of the files.")
-            Success(draftBag)
-          }
-        }
+    stagingDir.walk()
+      .withFilter(!_.isDirectory)
+      .map { stagedFile =>
+        val bagRelativePath = destination.resolve(stagingDir.relativize(stagedFile))
+        for {
+          _ <- cleanUp(bagRelativePath)
+          _ <- draftBag.addPayloadFile(stagedFile, bagRelativePath)(ATOMIC_MOVE)
+        } yield ()
       }.failFastOr(draftBag.save)
-    }
-  }
-
-  private def collectExistingFiles(duplicates: Iterator[Try[(File, Path)]]): Failure[Nothing] = {
-    val msg = duplicates
-      .map(_.failed.getOrElse(new Exception("should not get here")).getMessage)
-      .mkString(", ")
-    Failure(OverwriteException("The following file(s) already exist on the server: " + msg))
   }
 }

@@ -75,6 +75,7 @@ class DepositDirSpec extends TestSupportFixture with MockFactory {
           "state.description" -> "Deposit is open for changes.",
           "identifier.dans-doi.action" -> "create",
           "bag-store.bag-name" -> bagDirName,
+          "deposit.origin" -> "API",
         )
     }
   }
