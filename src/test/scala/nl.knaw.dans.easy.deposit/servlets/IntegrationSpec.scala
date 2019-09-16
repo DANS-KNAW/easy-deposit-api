@@ -44,10 +44,7 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
     override val pidRequester: PidRequester = mockPidRequester
 
     override def getUserProperties(user: String): Try[Map[String, Seq[String]]] = {
-      Success(Map(
-        "displayName"-> Seq("F. Bar"),
-        "email"-> Seq("info@dans.knaw.nl"),
-      ))
+      Success(userMap)
     }
   }
   mountServlets(app, authMocker.mockedAuthenticationProvider)
