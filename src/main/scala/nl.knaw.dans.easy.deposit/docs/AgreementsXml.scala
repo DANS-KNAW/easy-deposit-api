@@ -23,7 +23,7 @@ import scala.xml.Elem
 
 object AgreementsXml extends SchemedXml {
   override val schemaNameSpace = "http://easy.dans.knaw.nl/schemas/bag/metadata/agreements/"
-  override val schemaLocation = "https://easy.dans.knaw.nl/schemas/bag/metadata/agreements/2019/01/agreements.xsd"
+  override val schemaLocation = "https://easy.dans.knaw.nl/schemas/bag/metadata/agreements/2019/09/agreements.xsd"
 
   def apply(dateSubmitted: DateTime, dm: DatasetMetadata, userProperties: Map[String, Seq[String]]): Try[Elem] = {
     if (userProperties == null) Failure(CorruptUserException("no user attributes"))
