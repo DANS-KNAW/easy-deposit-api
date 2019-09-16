@@ -15,6 +15,7 @@
  */
 package nl.knaw.dans.easy.deposit.docs
 
+import nl.knaw.dans.easy.deposit.Errors.CorruptUserException
 import org.joda.time.DateTime
 
 import scala.util.Try
@@ -24,10 +25,12 @@ object AgreementsXml extends SchemedXml {
   override val schemaNameSpace = "http://easy.dans.knaw.nl/schemas/bag/metadata/agreements/"
   override val schemaLocation = "https://easy.dans.knaw.nl/schemas/bag/metadata/agreements/2019/01/agreements.xsd"
 
-  def apply(userId: String, dateSubmitted: DateTime, dm: DatasetMetadata, fullname: String): Try[Elem] = {
+  def apply(userId: String, dateSubmitted: DateTime, dm: DatasetMetadata, userProperties: Map[String, Seq[String]]): Try[Elem] = {
     for {
       _ <- dm.depositAgreementAccepted
       privacy <- dm.hasPrivacySensitiveData
+      displayName <- Try( userProperties("displayName").headOption.getOrElse(throw CorruptUserException(s"$userProperties has no displayName")))
+      email <- Try( userProperties("email").headOption.getOrElse(throw CorruptUserException(s"$userProperties has no email")))
     } yield
       <agreements
           xmlns={schemaNameSpace}
@@ -35,12 +38,12 @@ object AgreementsXml extends SchemedXml {
           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
           xsi:schemaLocation={s"$schemaNameSpace $schemaLocation"}>
         <depositAgreement>
-          <signerId easy-account={userId}>{fullname}</signerId>
+          <signerId easy-account={userId} email={email}>{displayName}</signerId>
           <dcterms:dateAccepted>{dateSubmitted}</dcterms:dateAccepted>
           <depositAgreementAccepted>{dm.acceptDepositAgreement}</depositAgreementAccepted>
         </depositAgreement>
         <personalDataStatement>
-          <signerId>{fullname}</signerId>
+          <signerId easy-account={userId} email={email}>{displayName}</signerId>
           <dateSigned>{dateSubmitted}</dateSigned>
           <containsPrivacySensitiveData>{privacy}</containsPrivacySensitiveData>
         </personalDataStatement>

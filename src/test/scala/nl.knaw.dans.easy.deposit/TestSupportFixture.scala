@@ -53,6 +53,11 @@ trait TestSupportFixture extends FlatSpec with Matchers with Inside with BeforeA
     }
   }
 
+  val userMap: Map[String, Seq[String]] = Map(
+    "displayName" -> Seq("fullName"),
+    "email" -> Seq("info@dans.knaw.nl"),
+  )
+
   def testResource(file: String): File = File(getClass.getResource(file))
 
   def getManualTestResource(file: String): String = {

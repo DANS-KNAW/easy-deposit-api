@@ -33,7 +33,7 @@ class AgreementsSpec extends TestSupportFixture {
         acceptDepositAgreement = false,
         privacySensitiveDataPresent = PrivacySensitiveDataPresent.no
       ),
-      ""
+      userMap
     ) should matchPattern {
       case Failure(e: InvalidDocumentException) if e.getMessage == "invalid DatasetMetadata: Please set AcceptDepositAgreement" =>
     }
@@ -46,7 +46,7 @@ class AgreementsSpec extends TestSupportFixture {
         acceptDepositAgreement = true,
         privacySensitiveDataPresent = PrivacySensitiveDataPresent.unspecified
       ),
-      ""
+      userMap
     ) should matchPattern {
       case Failure(e: InvalidDocumentException) if e.getMessage == "invalid DatasetMetadata: Please set PrivacySensitiveDataPresent" =>
     }
@@ -63,11 +63,29 @@ class AgreementsSpec extends TestSupportFixture {
         acceptDepositAgreement = true,
         privacySensitiveDataPresent = PrivacySensitiveDataPresent.no
       ),
-      ""
+      Map(
+        "displayName" -> Seq(""),
+        "email" -> Seq(""),
+      )
     ).flatMap(triedSchema.validate) shouldBe a[Success[_]]
   }
 
-  it should "succeed without fullname" in {
+  it should "fail without an emal property for the user" in {
+    assume(triedSchema.isAvailable)
+    AgreementsXml(
+      "user",
+      DateTime.now,
+      DatasetMetadata().copy(
+        acceptDepositAgreement = true,
+        privacySensitiveDataPresent = PrivacySensitiveDataPresent.no
+      ),
+      Seq(
+        "displayName" -> Seq(""),
+      ).toMap
+    ).flatMap(triedSchema.validate) shouldBe a[Success[_]]
+  }
+
+  it should "succeed without a user" in {
     assume(triedSchema.isAvailable)
     AgreementsXml(
       null, // the attribute is omitted from <signerId easy-account={userId}>{fullname}</signerId>

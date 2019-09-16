@@ -22,7 +22,7 @@ import java.util.UUID
 
 import better.files.File.temporaryDirectory
 import better.files.{ Dispose, File }
-import nl.knaw.dans.easy.deposit.Errors.{ ClientAbortedUploadException, ConfigurationException, CorruptUserException, InvalidContentTypeException, LeftoversOfForcedShutdownException, NoStagingDirException, OverwriteException, PendingUploadException }
+import nl.knaw.dans.easy.deposit.Errors.{ ClientAbortedUploadException, ConfigurationException, InvalidContentTypeException, LeftoversOfForcedShutdownException, NoStagingDirException, OverwriteException, PendingUploadException }
 import nl.knaw.dans.easy.deposit.PidRequesterComponent.PidRequester
 import nl.knaw.dans.easy.deposit.authentication.{ AuthenticationProvider, LdapAuthentication }
 import nl.knaw.dans.easy.deposit.docs.StateInfo.State
@@ -113,7 +113,7 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
     DepositDir.get(draftBase, user, id)
   }
 
-  def getUser(user: String): Try[Map[String, Seq[String]]] = authentication.getUser(user)
+  def getUserProperties(user: String): Try[Map[String, Seq[String]]] = authentication.getUser(user)
 
   /**
    * Creates a new, empty deposit, containing an empty bag in the user's draft area. If the user
@@ -172,22 +172,22 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
    * 3. The deposit directory will be copied to the staging area.
    * 4. The copy will be moved to the deposit area.
    *
-   * @param user         the user ID
+   * @param userId       the user ID
    * @param id           the deposit ID
    * @param newStateInfo the state to transition to
    * @return
    */
-  def setDepositState(newStateInfo: StateInfo, user: String, id: UUID): Try[Unit] = {
-    def submit(deposit: DepositDir, stateManager: StateManager) = {
+  def setDepositState(newStateInfo: StateInfo, userId: String, id: UUID): Try[Unit] = {
+    def submit(deposit: DepositDir, stateManager: StateManager): Try[Unit] = {
       for {
-        fullName <- getFullName(user)
-        disposableStagedDir <- getStagedDir(user, id)
-        _ <- disposableStagedDir.apply(submitter.submit(deposit, stateManager, fullName, _))
+        userProperties <- getUserProperties(userId)
+        disposableStagedDir <- getStagedDir(userId, id)
+        _ <- disposableStagedDir.apply(submitter.submit(deposit, stateManager, userProperties, _))
       } yield ()
     }
 
     for {
-      deposit <- getDeposit(user, id)
+      deposit <- getDeposit(userId, id)
       stateManager <- deposit.getStateManager(submitBase, easyHome)
       _ <- stateManager.canChangeState(newStateInfo)
       _ <- if (newStateInfo.state == State.submitted)
@@ -195,12 +195,6 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
            else stateManager.changeState(newStateInfo)
     } yield ()
   }
-
-  private def getFullName(user: String): Try[String] = {
-    getUser(user)
-      .map(_ ("displayName").headOption.getOrElse(throw CorruptUserException(s"$user has no displayName")))
-  }
-
 
   /**
    * Deletes the deposit from the user's draft area.
