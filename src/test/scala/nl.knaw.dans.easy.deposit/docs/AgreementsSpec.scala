@@ -22,6 +22,7 @@ import nl.knaw.dans.easy.deposit.docs.dm.PrivacySensitiveDataPresent
 import org.joda.time.DateTime
 
 import scala.util.{ Failure, Success, Try }
+import scala.xml.Elem
 
 class AgreementsSpec extends TestSupportFixture {
 
@@ -55,8 +56,7 @@ class AgreementsSpec extends TestSupportFixture {
   private lazy val triedSchema: Try[Schema] = AgreementsXml.loadSchema
 
   "schema validation" should "succeed with an empty full name" in {
-    assume(triedSchema.isAvailable)
-    AgreementsXml(
+    validate(AgreementsXml(
       "user",
       DateTime.now,
       DatasetMetadata().copy(
@@ -67,12 +67,11 @@ class AgreementsSpec extends TestSupportFixture {
         "displayName" -> Seq(""),
         "email" -> Seq(""),
       )
-    ).flatMap(triedSchema.validate) shouldBe a[Success[_]]
+    ))
   }
 
   it should "fail without an emal property for the user" in {
-    assume(triedSchema.isAvailable)
-    AgreementsXml(
+    validate(AgreementsXml(
       "user",
       DateTime.now,
       DatasetMetadata().copy(
@@ -82,12 +81,11 @@ class AgreementsSpec extends TestSupportFixture {
       Seq(
         "displayName" -> Seq(""),
       ).toMap
-    ).flatMap(triedSchema.validate) shouldBe a[Success[_]]
+    ))
   }
 
   it should "succeed without a user" in {
-    assume(triedSchema.isAvailable)
-    AgreementsXml(
+    validate(AgreementsXml(
       null, // the attribute is omitted from <signerId easy-account={userId}>{fullname}</signerId>
       null, // the schema is happy with <dateSigned></dateSigned>
       DatasetMetadata().copy(
@@ -95,6 +93,12 @@ class AgreementsSpec extends TestSupportFixture {
         privacySensitiveDataPresent = PrivacySensitiveDataPresent.no
       ),
       null, // the schema is happy with <signerId></signerId>
-    ).flatMap(triedSchema.validate) shouldBe a[Success[_]]
+    ))
+  }
+
+  private def validate(triedXML: Try[Elem]) = {
+    triedXML shouldBe a[Success[_]]
+    assume(triedSchema.isAvailable)
+    triedXML.flatMap(triedSchema.validate) shouldBe a[Success[_]]
   }
 }
