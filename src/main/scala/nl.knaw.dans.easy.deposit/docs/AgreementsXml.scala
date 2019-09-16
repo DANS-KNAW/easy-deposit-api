@@ -18,19 +18,21 @@ package nl.knaw.dans.easy.deposit.docs
 import nl.knaw.dans.easy.deposit.Errors.CorruptUserException
 import org.joda.time.DateTime
 
-import scala.util.Try
+import scala.util.{ Failure, Success, Try }
 import scala.xml.Elem
 
 object AgreementsXml extends SchemedXml {
   override val schemaNameSpace = "http://easy.dans.knaw.nl/schemas/bag/metadata/agreements/"
   override val schemaLocation = "https://easy.dans.knaw.nl/schemas/bag/metadata/agreements/2019/01/agreements.xsd"
 
-  def apply(userId: String, dateSubmitted: DateTime, dm: DatasetMetadata, userProperties: Map[String, Seq[String]]): Try[Elem] = {
-    for {
+  def apply(dateSubmitted: DateTime, dm: DatasetMetadata, userProperties: Map[String, Seq[String]]): Try[Elem] = {
+    if (userProperties == null) Failure(CorruptUserException("no user attributes"))
+    else for {
       _ <- dm.depositAgreementAccepted
       privacy <- dm.hasPrivacySensitiveData
-      displayName <- Try( userProperties("displayName").headOption.getOrElse(throw CorruptUserException(s"$userProperties has no displayName")))
-      email <- Try( userProperties("email").headOption.getOrElse(throw CorruptUserException(s"$userProperties has no email")))
+      userId <- Try(userProperties("userId").headOption.getOrElse(throw CorruptUserException(s"$userProperties has no userId")))
+      displayName <- Try(userProperties("displayName").headOption.getOrElse(throw CorruptUserException(s"$userProperties has no displayName")))
+      email <- Try(userProperties("email").headOption.getOrElse(throw CorruptUserException(s"$userProperties has no email")))
     } yield
       <agreements
           xmlns={schemaNameSpace}
@@ -48,5 +50,8 @@ object AgreementsXml extends SchemedXml {
           <containsPrivacySensitiveData>{privacy}</containsPrivacySensitiveData>
         </personalDataStatement>
       </agreements>
+    }.recoverWith {
+    case t: NoSuchElementException => Failure(CorruptUserException(t.getMessage))
+    case t => Failure(t)
   }
 }

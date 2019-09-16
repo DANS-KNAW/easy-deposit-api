@@ -16,88 +16,71 @@
 package nl.knaw.dans.easy.deposit.docs
 
 import javax.xml.validation.Schema
-import nl.knaw.dans.easy.deposit.Errors.InvalidDocumentException
+import nl.knaw.dans.easy.deposit.Errors.{ CorruptUserException, InvalidDocumentException }
 import nl.knaw.dans.easy.deposit.TestSupportFixture
 import nl.knaw.dans.easy.deposit.docs.dm.PrivacySensitiveDataPresent
 import org.joda.time.DateTime
 
 import scala.util.{ Failure, Success, Try }
-import scala.xml.Elem
 
 class AgreementsSpec extends TestSupportFixture {
 
   "apply" should "complain about not accepted deposit agreement" in {
-    AgreementsXml(
-      "user",
-      DateTime.now,
-      DatasetMetadata().copy(
-        acceptDepositAgreement = false,
-        privacySensitiveDataPresent = PrivacySensitiveDataPresent.no
-      ),
-      userMap
-    ) should matchPattern {
+    AgreementsXml(DateTime.now, DatasetMetadata().copy(
+      acceptDepositAgreement = false,
+      privacySensitiveDataPresent = PrivacySensitiveDataPresent.no
+    ), userMap) should matchPattern {
       case Failure(e: InvalidDocumentException) if e.getMessage == "invalid DatasetMetadata: Please set AcceptDepositAgreement" =>
     }
   }
+
   it should "complain about not specifying the presence of privacy sensitive data" in {
-    AgreementsXml(
-      "user",
-      DateTime.now,
-      DatasetMetadata().copy(
-        acceptDepositAgreement = true,
-        privacySensitiveDataPresent = PrivacySensitiveDataPresent.unspecified
-      ),
-      userMap
-    ) should matchPattern {
+    AgreementsXml(DateTime.now, DatasetMetadata().copy(
+      acceptDepositAgreement = true,
+      privacySensitiveDataPresent = PrivacySensitiveDataPresent.unspecified
+    ), userMap) should matchPattern {
       case Failure(e: InvalidDocumentException) if e.getMessage == "invalid DatasetMetadata: Please set PrivacySensitiveDataPresent" =>
     }
   }
 
-  private lazy val triedSchema: Try[Schema] = AgreementsXml.loadSchema
-
-  "schema validation" should "succeed with an empty full name" in {
-    validate(AgreementsXml(
-      "user",
-      DateTime.now,
-      DatasetMetadata().copy(
-        acceptDepositAgreement = true,
-        privacySensitiveDataPresent = PrivacySensitiveDataPresent.no
-      ),
-      Map(
-        "displayName" -> Seq(""),
-        "email" -> Seq(""),
-      )
-    ))
+  it should "complain about a user without an email" in {
+    AgreementsXml(DateTime.now, DatasetMetadata().copy(
+      acceptDepositAgreement = true,
+      privacySensitiveDataPresent = PrivacySensitiveDataPresent.no
+    ), Seq(
+      "userId" -> Seq(""),
+      "displayName" -> Seq(""),
+    ).toMap) shouldBe Failure(CorruptUserException("key not found: email"))
   }
 
-  it should "fail without an emal property for the user" in {
-    validate(AgreementsXml(
-      "user",
-      DateTime.now,
-      DatasetMetadata().copy(
-        acceptDepositAgreement = true,
-        privacySensitiveDataPresent = PrivacySensitiveDataPresent.no
-      ),
-      Seq(
-        "displayName" -> Seq(""),
-      ).toMap
-    ))
+  it should "fail without user properties" in {
+    AgreementsXml(null, DatasetMetadata().copy(
+      acceptDepositAgreement = true,
+      privacySensitiveDataPresent = PrivacySensitiveDataPresent.no
+    ), null) shouldBe Failure(CorruptUserException("no user attributes"))
   }
 
-  it should "succeed without a user" in {
-    validate(AgreementsXml(
-      null, // the attribute is omitted from <signerId easy-account={userId}>{fullname}</signerId>
-      null, // the schema is happy with <dateSigned></dateSigned>
-      DatasetMetadata().copy(
-        acceptDepositAgreement = true,
-        privacySensitiveDataPresent = PrivacySensitiveDataPresent.no
-      ),
-      null, // the schema is happy with <signerId></signerId>
-    ))
+  it should "complain about a user without a display name" in {
+    AgreementsXml(DateTime.now, DatasetMetadata().copy(
+      acceptDepositAgreement = true,
+      privacySensitiveDataPresent = PrivacySensitiveDataPresent.no
+    ), Seq(
+      "userId" -> Seq(""),
+      "email" -> Seq(""),
+    ).toMap) shouldBe Failure(CorruptUserException("key not found: displayName"))
   }
 
-  private def validate(triedXML: Try[Elem]) = {
+  "schema validation" should "succeed with empty user attributes" in {
+    val triedXML = AgreementsXml(DateTime.now, DatasetMetadata().copy(
+      acceptDepositAgreement = true,
+      privacySensitiveDataPresent = PrivacySensitiveDataPresent.no
+    ), Map(
+      "userId" -> Seq(""),
+      "displayName" -> Seq(""),
+      "email" -> Seq(""),
+    ))
     triedXML shouldBe a[Success[_]]
+    val triedSchema: Try[Schema] = AgreementsXml.loadSchema
     assume(triedSchema.isAvailable)
     triedXML.flatMap(triedSchema.validate) shouldBe a[Success[_]]
   }

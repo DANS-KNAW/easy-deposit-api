@@ -80,7 +80,7 @@ class Submitter(stagingBaseDir: File,
       // EASY-1464 3.3.5.a: generate (with some implicit validation) content for metadata files
       draftBag <- draftDeposit.getDataFiles.map(_.bag)
       datasetMetadata <- draftDeposit.getDatasetMetadata
-      agreementsXml <- AgreementsXml(draftDeposit.user, DateTime.now, datasetMetadata, user)
+      agreementsXml <- AgreementsXml(DateTime.now, datasetMetadata, user)
       _ = datasetMetadata.doi.getOrElse(throw InvalidDoiException(draftDeposit.id))
       _ <- draftDeposit.sameDOIs(datasetMetadata)
       datasetXml <- DDM(datasetMetadata)
