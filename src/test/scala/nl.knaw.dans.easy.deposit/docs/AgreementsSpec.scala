@@ -48,7 +48,7 @@ class AgreementsSpec extends TestSupportFixture {
       acceptDepositAgreement = true,
       privacySensitiveDataPresent = PrivacySensitiveDataPresent.no
     ), Seq(
-      "userId" -> Seq(""),
+      "uid" -> Seq(""),
       "displayName" -> Seq(""),
     ).toMap) shouldBe Failure(CorruptUserException("key not found: email"))
   }
@@ -65,8 +65,8 @@ class AgreementsSpec extends TestSupportFixture {
       acceptDepositAgreement = true,
       privacySensitiveDataPresent = PrivacySensitiveDataPresent.no
     ), Seq(
-      "userId" -> Seq(""),
-      "email" -> Seq(""),
+      "uid" -> Seq(""),
+      "mail" -> Seq(""),
     ).toMap) shouldBe Failure(CorruptUserException("key not found: displayName"))
   }
 
@@ -75,9 +75,9 @@ class AgreementsSpec extends TestSupportFixture {
       acceptDepositAgreement = true,
       privacySensitiveDataPresent = PrivacySensitiveDataPresent.no
     ), Map(
-      "userId" -> Seq(""),
+      "uid" -> Seq(""),
       "displayName" -> Seq(""),
-      "email" -> Seq(""),
+      "mail" -> Seq(""),
     ))
     triedXML shouldBe a[Success[_]]
     val triedSchema: Try[Schema] = AgreementsXml.loadSchema

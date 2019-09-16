@@ -30,9 +30,9 @@ object AgreementsXml extends SchemedXml {
     else for {
       _ <- dm.depositAgreementAccepted
       privacy <- dm.hasPrivacySensitiveData
-      userId <- Try(userProperties("userId").headOption.getOrElse(throw CorruptUserException(s"$userProperties has no userId")))
+      userId <- Try(userProperties("uid").headOption.getOrElse(throw CorruptUserException(s"$userProperties has no userId")))
       displayName <- Try(userProperties("displayName").headOption.getOrElse(throw CorruptUserException(s"$userProperties has no displayName")))
-      email <- Try(userProperties("email").headOption.getOrElse(throw CorruptUserException(s"$userProperties has no email")))
+      email <- Try(userProperties("mail").headOption.getOrElse(throw CorruptUserException(s"$userProperties has no email")))
     } yield
       <agreements
           xmlns={schemaNameSpace}
