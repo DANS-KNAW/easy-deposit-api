@@ -15,24 +15,20 @@
  */
 package nl.knaw.dans.easy.deposit.docs
 
-import nl.knaw.dans.easy.deposit.Errors.CorruptUserException
 import org.joda.time.DateTime
 
-import scala.util.{ Failure, Success, Try }
+import scala.util.{ Failure, Try }
 import scala.xml.Elem
 
 object AgreementsXml extends SchemedXml {
   override val schemaNameSpace = "http://easy.dans.knaw.nl/schemas/bag/metadata/agreements/"
   override val schemaLocation = "https://easy.dans.knaw.nl/schemas/bag/metadata/agreements/2019/09/agreements.xsd"
 
-  def apply(dateSubmitted: DateTime, dm: DatasetMetadata, userProperties: Map[String, Seq[String]]): Try[Elem] = {
-    if (userProperties == null) Failure(CorruptUserException("no user attributes"))
+  def apply(dateSubmitted: DateTime, dm: DatasetMetadata, userProperties: UserInfo): Try[Elem] = {
+    if (userProperties == null) Failure(new IllegalArgumentException("no user attributes"))
     else for {
       _ <- dm.depositAgreementAccepted
       privacy <- dm.hasPrivacySensitiveData
-      userId <- Try(userProperties("uid").headOption.getOrElse(throw CorruptUserException(s"$userProperties has no userId")))
-      displayName <- Try(userProperties("displayName").headOption.getOrElse(throw CorruptUserException(s"$userProperties has no displayName")))
-      email <- Try(userProperties("mail").headOption.getOrElse(throw CorruptUserException(s"$userProperties has no email")))
     } yield
       <agreements
           xmlns={schemaNameSpace}
@@ -40,18 +36,15 @@ object AgreementsXml extends SchemedXml {
           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
           xsi:schemaLocation={s"$schemaNameSpace $schemaLocation"}>
         <depositAgreement>
-          <signerId easy-account={userId} email={email}>{displayName}</signerId>
+          <signerId easy-account={userProperties.userName} email={userProperties.email}>{userProperties.displayName}</signerId>
           <dcterms:dateAccepted>{dateSubmitted}</dcterms:dateAccepted>
           <depositAgreementAccepted>{dm.acceptDepositAgreement}</depositAgreementAccepted>
         </depositAgreement>
         <personalDataStatement>
-          <signerId easy-account={userId} email={email}>{displayName}</signerId>
+          <signerId easy-account={userProperties.userName} email={userProperties.email}>{userProperties.displayName}</signerId>
           <dateSigned>{dateSubmitted}</dateSigned>
           <containsPrivacySensitiveData>{privacy}</containsPrivacySensitiveData>
         </personalDataStatement>
       </agreements>
-    }.recoverWith {
-    case t: NoSuchElementException => Failure(CorruptUserException(t.getMessage))
-    case t => Failure(t)
   }
 }

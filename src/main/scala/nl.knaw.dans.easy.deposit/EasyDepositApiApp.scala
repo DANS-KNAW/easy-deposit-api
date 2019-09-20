@@ -27,7 +27,7 @@ import nl.knaw.dans.easy.deposit.PidRequesterComponent.PidRequester
 import nl.knaw.dans.easy.deposit.authentication.{ AuthenticationProvider, LdapAuthentication }
 import nl.knaw.dans.easy.deposit.docs.StateInfo.State
 import nl.knaw.dans.easy.deposit.docs.StateInfo.State.State
-import nl.knaw.dans.easy.deposit.docs.{ DatasetMetadata, DepositInfo, StateInfo }
+import nl.knaw.dans.easy.deposit.docs.{ DatasetMetadata, DepositInfo, StateInfo, UserInfo }
 import nl.knaw.dans.easy.deposit.servlets.contentTypeZipPattern
 import nl.knaw.dans.lib.error._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
@@ -113,7 +113,7 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
     DepositDir.get(draftBase, user, id)
   }
 
-  def getUserProperties(user: String): Try[Map[String, Seq[String]]] = authentication.getUser(user)
+  def getUserProperties(user: String): Try[UserInfo] = authentication.getUser(user)
 
   /**
    * Creates a new, empty deposit, containing an empty bag in the user's draft area. If the user
@@ -134,7 +134,7 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
    */
   def getDeposits(user: String): Try[Seq[DepositInfo]] = {
     implicit val timestampOrdering: Ordering[DateTime] = Ordering.fromLessThan[DateTime](_ isBefore _)
-    implicit val tupleOrdering: Ordering[(State, DateTime)] = Ordering.Tuple2[State,DateTime]
+    implicit val tupleOrdering: Ordering[(State, DateTime)] = Ordering.Tuple2[State, DateTime]
     val deposits = DepositDir.list(draftBase, user)
     for {
       infos <- deposits.map(_.getDepositInfo(submitBase, easyHome)).collectResults
@@ -360,7 +360,6 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
       disposableStagingDir <- createManagedTempDir(prefix)
       _ <- atMostOneTempDir(prefix).doIfFailure { case _ => disposableStagingDir.get() }
     } yield disposableStagingDir
-
   }
 
   // the temporary directory is dropped when the disposable resource is released on completion of the request,

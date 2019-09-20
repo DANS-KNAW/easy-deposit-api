@@ -96,7 +96,6 @@ class LdapAuthenticationSpec extends TestSupportFixture with MockFactory {
   }
 
   it should "not access ldap with a blank password" in pendingUntilFixed {
-
     wire(new LdapMocker).authenticate("someone", " ") shouldBe Success(None)
   }
 
@@ -111,7 +110,7 @@ class LdapAuthenticationSpec extends TestSupportFixture with MockFactory {
     })
     inside(authentication.getUser("someone")) {
       case Success(user) => // just sampling the result
-        user("dansPrefixes").toArray shouldBe Array("van", "den")
+        user.prefix shouldBe Array("van", "den")
     }
   }
 }

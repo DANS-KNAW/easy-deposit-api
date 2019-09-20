@@ -88,35 +88,35 @@ class HappyRoutesSpec extends TestSupportFixture with ServletFixture with Scalat
 
   "get /user" should "return a user with something for all attributes" in {
     authMocker.expectsUserFooBar
-    (mockedApp.getUserProperties(_: String)) expects "foo" returning Success(Map(
+    (mockedApp.getUserProperties(_: String)) expects "foo" returning Success(UserInfo(Map(
       "uid" -> Seq("foo"),
       "cn" -> Seq("Jan"),
       "dansPrefixes" -> Seq("van", "den"),
       "sn" -> Seq("Berg"),
       "displayName" -> Seq("Jan v.d. Berg"),
-    ))
+    )))
     get(
       uri = "/user",
       headers = Seq(fooBarBasicAuthHeader)
     ) {
-      body shouldBe """{"userName":"foo","firstName":"Jan","prefix":"van den","lastName":"Berg","displayName":"Jan v.d. Berg"}"""
+      body shouldBe """{"userName":"foo","firstName":"Jan","prefix":"van den","lastName":"Berg","displayName":"Jan v.d. Berg","email":""}"""
       status shouldBe OK_200
     }
   }
 
   it should "return a user with minimal attributes" in {
     authMocker.expectsUserFooBar
-    (mockedApp.getUserProperties(_: String)) expects "foo" returning Success(Map(
+    (mockedApp.getUserProperties(_: String)) expects "foo" returning Success(UserInfo(Map(
       "uid" -> Seq("foo"),
       "sn" -> Seq("Berg"),
       "displayName" -> Seq("Jan v.d. Berg"),
-    ))
+    )))
 
     get(
       uri = "/user",
       headers = Seq(fooBarBasicAuthHeader)
     ) {
-      body shouldBe """{"userName":"foo","lastName":"Berg","displayName":"Jan v.d. Berg"}"""
+      body shouldBe """{"userName":"foo","lastName":"Berg","displayName":"Jan v.d. Berg","email":""}"""
       status shouldBe OK_200
     }
   }

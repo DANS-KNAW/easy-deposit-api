@@ -25,6 +25,7 @@ case class UserInfo(userName: String,
                     prefix: Option[String] = None,
                     lastName: String,
                     displayName: String,
+                    email: String,
                    )
 object UserInfo {
   def apply(input: JsonInput): Try[UserInfo] = input.deserialize[UserInfo]
@@ -43,6 +44,7 @@ object UserInfo {
 
       lastName = attributes.getOrElse("sn", Seq.empty).headOption.getOrElse(""),
       displayName = attributes.getOrElse("displayName", Seq.empty).headOption.getOrElse(""),
+      email = attributes.getOrElse("mail", Seq.empty).headOption.getOrElse(""),
     )
   }
 }
