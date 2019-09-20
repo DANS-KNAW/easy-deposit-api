@@ -16,6 +16,7 @@
 package nl.knaw.dans.easy.deposit.docs
 
 import nl.knaw.dans.easy.deposit.docs.JsonUtil.RichJsonInput
+import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.json4s.JsonInput
 
 import scala.util.Try
@@ -27,24 +28,33 @@ case class UserInfo(userName: String,
                     displayName: String,
                     email: String,
                    )
-object UserInfo {
+object UserInfo extends DebugEnhancedLogging {
   def apply(input: JsonInput): Try[UserInfo] = input.deserialize[UserInfo]
 
   def apply(attributes: Map[String, Seq[String]]): UserInfo = {
-    // For possible attribute keys see: https://github.com/DANS-KNAW/dans.easy-test-users/blob/master/templates
+
+    def getAttribute(key: String) = {
+      attributes
+        .getOrElse(key, Seq.empty)
+        .headOption
+        .getOrElse {
+          logger.warn(s"user has no attribute '$key' $attributes")
+          ""
+        }
+    }
     new UserInfo(
 
       // mandatory: https://github.com/DANS-KNAW/dans.easy-ldap-dir/blob/f17c391/files/easy-schema.ldif#L83-L84
-      userName = attributes.getOrElse("uid", Seq.empty).headOption.getOrElse(""),
+      userName = getAttribute("uid"),
 
       firstName = attributes.getOrElse("cn", Seq.empty).headOption,
 
       // https://github.com/DANS-KNAW/easy-app/blob/b41e9e93e35f97af00c48d0515b09cc57bc5ba6c/lib-deprecated/dans-ldap/src/main/java/nl/knaw/dans/common/ldap/management/DANSSchema.java#L33-L34
       prefix = attributes.get("dansPrefixes").map(s => s.mkString(" ")),
 
-      lastName = attributes.getOrElse("sn", Seq.empty).headOption.getOrElse(""),
-      displayName = attributes.getOrElse("displayName", Seq.empty).headOption.getOrElse(""),
-      email = attributes.getOrElse("mail", Seq.empty).headOption.getOrElse(""),
+      lastName = getAttribute("sn"),
+      displayName = getAttribute("displayName"),
+      email = getAttribute("mail"),
     )
   }
 }

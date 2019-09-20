@@ -26,32 +26,78 @@ import scala.util.{ Failure, Success, Try }
 class AgreementsSpec extends TestSupportFixture {
 
   "apply" should "complain about not accepted deposit agreement" in {
-    AgreementsXml(DateTime.now, DatasetMetadata().copy(
-      acceptDepositAgreement = false,
-      privacySensitiveDataPresent = PrivacySensitiveDataPresent.no
-    ), UserInfo(userMap)) should matchPattern {
+    AgreementsXml(
+      dateSubmitted = DateTime.now,
+      dm = DatasetMetadata().copy(
+        acceptDepositAgreement = false,
+        privacySensitiveDataPresent = PrivacySensitiveDataPresent.no
+      ),
+      userProperties = UserInfo(userMap),
+    ) should matchPattern {
       case Failure(e: InvalidDocumentException) if e.getMessage == "invalid DatasetMetadata: Please set AcceptDepositAgreement" =>
     }
   }
 
   it should "complain about not specifying the presence of privacy sensitive data" in {
-    AgreementsXml(DateTime.now, DatasetMetadata().copy(
-      acceptDepositAgreement = true,
-      privacySensitiveDataPresent = PrivacySensitiveDataPresent.unspecified
-    ), UserInfo(userMap)) should matchPattern {
+    AgreementsXml(
+      dateSubmitted = DateTime.now,
+      dm = DatasetMetadata().copy(
+        acceptDepositAgreement = true,
+        privacySensitiveDataPresent = PrivacySensitiveDataPresent.unspecified
+      ),
+      userProperties = UserInfo(userMap),
+    ) should matchPattern {
       case Failure(e: InvalidDocumentException) if e.getMessage == "invalid DatasetMetadata: Please set PrivacySensitiveDataPresent" =>
     }
   }
 
-  "schema validation" should "succeed with empty user attributes" in {
-    val triedXML = AgreementsXml(DateTime.now, DatasetMetadata().copy(
-      acceptDepositAgreement = true,
-      privacySensitiveDataPresent = PrivacySensitiveDataPresent.no
-    ), UserInfo(Map(
-      "uid" -> Seq(""),
-      "displayName" -> Seq(""),
-      "mail" -> Seq(""),
-    )))
+  it should "log a user without an email" in {
+    // TODO for now set 'trace' at https://github.com/DANS-KNAW/easy-deposit-api/blob/f1b9924/src/test/resources/logback.xml#L15
+    AgreementsXml(
+      dateSubmitted = DateTime.now,
+      dm = DatasetMetadata().copy(
+        acceptDepositAgreement = true,
+        privacySensitiveDataPresent = PrivacySensitiveDataPresent.no
+      ),
+      userProperties = UserInfo(Seq("uid" -> Seq(""), "displayName" -> Seq(""),
+      ).toMap),
+    ) shouldBe a[Success[_]]
+  }
+
+  it should "log a user without a display name" in {
+    // TODO for now set 'trace' at https://github.com/DANS-KNAW/easy-deposit-api/blob/f1b9924/src/test/resources/logback.xml#L15
+    AgreementsXml(
+      dateSubmitted = DateTime.now,
+      dm = DatasetMetadata().copy(
+        acceptDepositAgreement = true,
+        privacySensitiveDataPresent = PrivacySensitiveDataPresent.no
+      ),
+      userProperties = UserInfo(Seq("uid" -> Seq(""), "mail" -> Seq("")).toMap),
+    ) shouldBe a[Success[_]]
+  }
+
+  it should "fail without user properties" in {
+    AgreementsXml(
+      dateSubmitted = null,
+      dm = DatasetMetadata().copy(
+        acceptDepositAgreement = true,
+        privacySensitiveDataPresent = PrivacySensitiveDataPresent.no
+      ),
+      userProperties = null,
+    ) should matchPattern {
+      case Failure(e: IllegalArgumentException) if e.getMessage == "no user attributes" =>
+    }
+  }
+
+  "schema validation" should "succeed with missing user attributes" in {
+    val triedXML = AgreementsXml(
+      dateSubmitted = DateTime.now,
+      dm = DatasetMetadata().copy(
+        acceptDepositAgreement = true,
+        privacySensitiveDataPresent = PrivacySensitiveDataPresent.no
+      ),
+      userProperties = UserInfo(Map[String, Seq[String]]()),
+    )
     triedXML shouldBe a[Success[_]]
     val triedSchema: Try[Schema] = AgreementsXml.loadSchema
     assume(triedSchema.isAvailable)
