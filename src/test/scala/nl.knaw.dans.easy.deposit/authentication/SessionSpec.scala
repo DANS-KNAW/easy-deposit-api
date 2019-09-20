@@ -15,10 +15,9 @@
  */
 package nl.knaw.dans.easy.deposit.authentication
 
-import nl.knaw.dans.easy.deposit.PidRequesterComponent.PidRequester
 import nl.knaw.dans.easy.deposit._
 import nl.knaw.dans.easy.deposit.authentication.AuthUser.UserState
-import nl.knaw.dans.easy.deposit.servlets.{AuthServlet, ProtectedServlet, ServletFixture, UndoMasking}
+import nl.knaw.dans.easy.deposit.servlets.{ AuthServlet, ProtectedServlet, ServletFixture, UndoMasking }
 import org.eclipse.jetty.http.HttpStatus._
 import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat
@@ -41,7 +40,7 @@ class SessionSpec extends TestSupportFixture with ServletFixture with ScalatraSu
 
     get("/") {
       contentType = "text/plain"
-      Ok(s"$user ${new DateTime()}: EASY Deposit API Service running")
+      Ok(s"$user ${ new DateTime() }: EASY Deposit API Service running")
     }
   }
 
@@ -78,7 +77,7 @@ class SessionSpec extends TestSupportFixture with ServletFixture with ScalatraSu
 
     get(
       uri = "/deposit",
-      headers = Seq(("Cookie", s"${Scentry.scentryAuthKey}=$jwtCookie"))
+      headers = Seq(("Cookie", s"${ Scentry.scentryAuthKey }=$jwtCookie"))
     ) {
       status shouldBe OK_200
       Option(header("REMOTE_USER")) shouldBe None
@@ -93,7 +92,7 @@ class SessionSpec extends TestSupportFixture with ServletFixture with ScalatraSu
 
     get(
       uri = "/deposit",
-      headers = Seq(("Cookie", s"${Scentry.scentryAuthKey}=$jwtCookie"))
+      headers = Seq(("Cookie", s"${ Scentry.scentryAuthKey }=$jwtCookie"))
     ) {
       status shouldBe UNAUTHORIZED_401
       header("Content-Type").toLowerCase shouldBe "text/plain;charset=utf-8"
@@ -107,7 +106,7 @@ class SessionSpec extends TestSupportFixture with ServletFixture with ScalatraSu
 
     post(
       uri = "/auth/logout",
-      headers = Seq(("Cookie", s"${Scentry.scentryAuthKey}=$jwtCookie"))
+      headers = Seq(("Cookie", s"${ Scentry.scentryAuthKey }=$jwtCookie"))
     ) {
       status shouldBe NO_CONTENT_204
       header("Content-Type").toLowerCase shouldBe "text/html;charset=utf-8"

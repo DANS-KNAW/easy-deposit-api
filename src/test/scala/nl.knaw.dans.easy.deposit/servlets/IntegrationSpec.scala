@@ -17,17 +17,16 @@ package nl.knaw.dans.easy.deposit.servlets
 
 import java.util.UUID
 
-import nl.knaw.dans.easy.deposit.PidRequesterComponent.PidRequester
 import nl.knaw.dans.easy.deposit.PidRequesterComponent.PidType.PidType
 import nl.knaw.dans.easy.deposit._
-import nl.knaw.dans.easy.deposit.authentication.{AuthenticationMocker, AuthenticationProvider}
+import nl.knaw.dans.easy.deposit.authentication.{ AuthenticationMocker, AuthenticationProvider }
 import nl.knaw.dans.easy.deposit.docs._
 import nl.knaw.dans.lib.error._
 import org.apache.commons.configuration.PropertiesConfiguration
 import org.eclipse.jetty.http.HttpStatus._
 import org.scalatra.test.scalatest.ScalatraSuite
 
-import scala.util.{Success, Try}
+import scala.util.Success
 
 class IntegrationSpec extends TestSupportFixture with ServletFixture with ScalatraSuite {
 

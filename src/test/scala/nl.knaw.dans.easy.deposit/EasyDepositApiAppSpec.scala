@@ -17,7 +17,6 @@ package nl.knaw.dans.easy.deposit
 
 import java.util.UUID
 
-import nl.knaw.dans.easy.deposit.PidRequesterComponent.PidRequester
 import nl.knaw.dans.easy.deposit.docs.DepositInfo
 import nl.knaw.dans.easy.deposit.docs.StateInfo.State
 import nl.knaw.dans.easy.deposit.docs.StateInfo.State.State

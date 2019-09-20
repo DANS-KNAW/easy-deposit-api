@@ -15,18 +15,18 @@
  */
 package nl.knaw.dans.easy.deposit.servlets
 
+import nl.knaw.dans.easy.deposit.PidRequesterComponent.PidType
 import nl.knaw.dans.easy.deposit.PidRequesterComponent.PidType.PidType
-import nl.knaw.dans.easy.deposit.PidRequesterComponent.{PidRequester, PidType}
-import nl.knaw.dans.easy.deposit.authentication.{AuthenticationMocker, AuthenticationProvider}
+import nl.knaw.dans.easy.deposit.authentication.{ AuthenticationMocker, AuthenticationProvider }
 import nl.knaw.dans.easy.deposit.docs.DepositInfo
-import nl.knaw.dans.easy.deposit.{EasyDepositApiApp, TestSupportFixture}
+import nl.knaw.dans.easy.deposit.{ EasyDepositApiApp, TestSupportFixture }
 import nl.knaw.dans.lib.error._
 import org.eclipse.jetty.http.HttpStatus._
 import org.scalamock.handlers.CallHandler1
 import org.scalamock.scalatest.MockFactory
 import org.scalatra.test.scalatest.ScalatraSuite
 
-import scala.util.{Success, Try}
+import scala.util.{ Success, Try }
 
 trait DepositServletFixture extends TestSupportFixture with ServletFixture with ScalatraSuite with MockFactory {
   private val app: EasyDepositApiApp = createTestApp
