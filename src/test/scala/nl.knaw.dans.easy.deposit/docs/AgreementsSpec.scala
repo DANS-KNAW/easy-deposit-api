@@ -50,7 +50,7 @@ class AgreementsSpec extends TestSupportFixture {
     ), Seq(
       "uid" -> Seq(""),
       "displayName" -> Seq(""),
-    ).toMap) shouldBe Failure(CorruptUserException("key not found: email"))
+    ).toMap) shouldBe Failure(CorruptUserException("key not found: mail"))
   }
 
   it should "fail without user properties" in {

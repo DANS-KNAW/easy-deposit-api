@@ -66,11 +66,11 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
   )
 
   "minimal with multiple descriptions" should behave like validDatasetMetadata(
-    input = Try(new MinimalDatasetMetadata(descriptions = Some(Seq("Lorum <a href='mailto:info@dans.knaw.nl'>ipsum</a>", "ipsum")))),
+    input = Try(new MinimalDatasetMetadata(descriptions = Some(Seq("Lorum <a href='mailto:does.not.exist@dans.knaw.nl'>ipsum</a>", "ipsum")))),
     subset = actualDDM => profileElements(actualDDM, "description"),
     expectedDdmContent =
       <ddm:profile>
-        <dcterms:description>Lorum &lt;a href='mailto:info@dans.knaw.nl'&gt;ipsum&lt;/a&gt;</dcterms:description>
+        <dcterms:description>Lorum &lt;a href='mailto:does.not.exist@dans.knaw.nl'&gt;ipsum&lt;/a&gt;</dcterms:description>
         <dcterms:description>ipsum</dcterms:description>
       </ddm:profile>
   )
