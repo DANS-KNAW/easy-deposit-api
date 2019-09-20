@@ -15,20 +15,20 @@
  */
 package nl.knaw.dans.easy.deposit
 
-import java.util.{ TimeZone, UUID }
+import java.util.{TimeZone, UUID}
 
 import better.files.File
 import better.files.File._
 import nl.knaw.dans.easy.deposit.PidRequesterComponent.PidRequester
 import nl.knaw.dans.easy.deposit.authentication.TokenSupport.TokenConfig
-import nl.knaw.dans.easy.deposit.authentication.{ AuthConfig, AuthUser, AuthenticationProvider, TokenSupport }
+import nl.knaw.dans.easy.deposit.authentication.{AuthConfig, AuthUser, AuthenticationProvider, TokenSupport}
 import org.apache.commons.configuration.PropertiesConfiguration
-import org.joda.time.{ DateTime, DateTimeUtils, DateTimeZone }
+import org.joda.time.{DateTime, DateTimeUtils, DateTimeZone}
 import org.scalamock.scalatest.MockFactory
 import org.scalatest._
 import org.scalatest.enablers.Existence
 
-import scala.util.Properties
+import scala.util.{Properties, Success, Try}
 
 trait TestSupportFixture extends FlatSpec with Matchers with Inside with BeforeAndAfterEach with MockFactory {
   implicit def existenceOfFile[FILE <: better.files.File]: Existence[FILE] = _.exists
@@ -71,13 +71,14 @@ trait TestSupportFixture extends FlatSpec with Matchers with Inside with BeforeA
   }
 
   val nowYMD = "2018-03-22"
-  val now = s"${ nowYMD }T21:43:01.576"
-  val nowUTC = s"${ nowYMD }T20:43:01Z"
+  val now = s"${nowYMD}T21:43:01.576"
+  val nowUTC = s"${nowYMD}T20:43:01Z"
   /** Causes DateTime.now() to return a predefined value. */
   DateTimeUtils.setCurrentMillisFixed(new DateTime(nowUTC).getMillis)
   DateTimeZone.setDefault(DateTimeZone.forTimeZone(TimeZone.getTimeZone("Europe/Amsterdam")))
 
   trait MockedPidRequester extends PidRequester with HttpContext
+
   def mockPidRequester: PidRequester = mock[MockedPidRequester]
 
   def minimalAppConfig: Configuration = {
@@ -98,11 +99,22 @@ trait TestSupportFixture extends FlatSpec with Matchers with Inside with BeforeA
     })
   }
 
+  def createTestApp: EasyDepositApiApp = {
+    new EasyDepositApiApp(minimalAppConfig) {
+      override val pidRequester: PidRequester = mockPidRequester
+
+      override def getUserProperties(user: String): Try[Map[String, Seq[String]]] = {
+        Success(userMap)
+      }
+    }
+  }
+
   private def testSubDir(drafts: String): File = {
     (testDir / drafts)
       .delete(swallowIOExceptions = true)
       .createIfNotExists(asDirectory = true, createParents = true)
   }
+
   private class TokenSupportImpl() extends TokenSupport with AuthConfig {
 
     // required by AuthConfig but not by TokenSupport
@@ -110,6 +122,7 @@ trait TestSupportFixture extends FlatSpec with Matchers with Inside with BeforeA
 
     def getProperties: PropertiesConfiguration = new PropertiesConfiguration()
   }
+
   private val tokenSupport = new TokenSupportImpl()
 
   def jwtConfig: TokenConfig = tokenSupport.tokenConfig

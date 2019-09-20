@@ -20,14 +20,14 @@ import java.util.UUID
 import nl.knaw.dans.easy.deposit.PidRequesterComponent.PidRequester
 import nl.knaw.dans.easy.deposit.PidRequesterComponent.PidType.PidType
 import nl.knaw.dans.easy.deposit._
-import nl.knaw.dans.easy.deposit.authentication.{ AuthenticationMocker, AuthenticationProvider }
+import nl.knaw.dans.easy.deposit.authentication.{AuthenticationMocker, AuthenticationProvider}
 import nl.knaw.dans.easy.deposit.docs._
 import nl.knaw.dans.lib.error._
 import org.apache.commons.configuration.PropertiesConfiguration
 import org.eclipse.jetty.http.HttpStatus._
 import org.scalatra.test.scalatest.ScalatraSuite
 
-import scala.util.{ Success, Try }
+import scala.util.{Success, Try}
 
 class IntegrationSpec extends TestSupportFixture with ServletFixture with ScalatraSuite {
 
@@ -40,19 +40,15 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
     clearTestDir()
   }
 
-  private val app: EasyDepositApiApp = new EasyDepositApiApp(minimalAppConfig) {
-    override val pidRequester: PidRequester = mockPidRequester
-
-    override def getUserProperties(user: String): Try[Map[String, Seq[String]]] = {
-      Success(userMap)
-    }
-  }
+  private val app: EasyDepositApiApp = createTestApp
   mountServlets(app, authMocker.mockedAuthenticationProvider)
 
   "scenario: /deposit/:uuid/metadata life cycle" should "return default dataset metadata" in {
     // create dataset
     authMocker.expectsUserFooBar
-    val responseBody = post(uri = s"/deposit", headers = Seq(fooBarBasicAuthHeader)) { body }
+    val responseBody = post(uri = s"/deposit", headers = Seq(fooBarBasicAuthHeader)) {
+      body
+    }
     val uuid = DepositInfo(responseBody).map(_.id.toString).getOrRecover(e => fail(e.toString, e))
     val metadataURI = s"/deposit/$uuid/metadata"
 
@@ -88,7 +84,9 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
       post(
         uri = s"/deposit",
         headers = Seq(fooBarBasicAuthHeader)
-      ) { new String(bodyBytes) }
+      ) {
+        new String(bodyBytes)
+      }
     }
     responseBodies.foreach(_ should endWith("""Z"}"""))
 
@@ -107,7 +105,9 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
   "scenario: POST /deposit; PUT /deposit/:uuid/file/...; GET /deposit/$uuid/file/..." should "return single FileInfo object respective an array of objects" in {
     // create dataset
     authMocker.expectsUserFooBar
-    val responseBody = post(uri = s"/deposit", headers = Seq(fooBarBasicAuthHeader)) { body }
+    val responseBody = post(uri = s"/deposit", headers = Seq(fooBarBasicAuthHeader)) {
+      body
+    }
     val uuid = DepositInfo(responseBody).map(_.id.toString).getOrRecover(e => fail(e.toString, e))
 
     // upload files in a folder (more variations in UploadSpec)
@@ -184,7 +184,9 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
   "scenario: POST /deposit; twice GET /deposit/:uuid/doi" should "return 200" in {
     // create dataset
     authMocker.expectsUserFooBar
-    val responseBody = post(uri = s"/deposit", headers = Seq(fooBarBasicAuthHeader)) { body }
+    val responseBody = post(uri = s"/deposit", headers = Seq(fooBarBasicAuthHeader)) {
+      body
+    }
     val uuid = DepositInfo(responseBody).map(_.id.toString).getOrRecover(e => fail(e.toString, e))
 
     // expect a new doi once
@@ -252,7 +254,9 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
 
     // create dataset
     authMocker.expectsUserFooBar
-    val responseBody = post(uri = s"/deposit", headers = Seq(fooBarBasicAuthHeader)) { body }
+    val responseBody = post(uri = s"/deposit", headers = Seq(fooBarBasicAuthHeader)) {
+      body
+    }
 
     val uuid = DepositInfo(responseBody).map(_.id.toString).getOrRecover(e => fail(e.toString, e))
     // upload dataset metadata
@@ -297,7 +301,9 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
   "scenario: POST /deposit; hack state to ARCHIVED; SUBMIT" should "reject state transition" in {
     // create dataset
     authMocker.expectsUserFooBar
-    val responseBody = post(uri = s"/deposit", headers = Seq(fooBarBasicAuthHeader)) { body }
+    val responseBody = post(uri = s"/deposit", headers = Seq(fooBarBasicAuthHeader)) {
+      body
+    }
     val uuid = DepositInfo(responseBody).map(_.id.toString).getOrRecover(e => fail(e.toString, e))
 
     // hack state
@@ -331,7 +337,9 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
 
     // create dataset
     authMocker.expectsUserFooBar
-    val responseBody = post(uri = s"/deposit", headers = Seq(fooBarBasicAuthHeader)) { body }
+    val responseBody = post(uri = s"/deposit", headers = Seq(fooBarBasicAuthHeader)) {
+      body
+    }
     val uuid = DepositInfo(responseBody).map(_.id.toString).getOrRecover(e => fail(e.toString, e))
     val depositDir = testDir / "drafts" / "foo" / uuid.toString
 
