@@ -42,6 +42,8 @@ object UserInfo extends DebugEnhancedLogging {
           ""
         }
     }
+
+    // For possible attribute keys see: https://github.com/DANS-KNAW/dans.easy-test-users/blob/master/templates
     new UserInfo(
 
       // mandatory: https://github.com/DANS-KNAW/dans.easy-ldap-dir/blob/f17c391/files/easy-schema.ldif#L83-L84
