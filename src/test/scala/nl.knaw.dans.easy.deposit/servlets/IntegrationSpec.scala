@@ -84,7 +84,7 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
         uri = s"/deposit",
         headers = Seq(fooBarBasicAuthHeader)
       ) {
-        new String(bodyBytes)
+        body
       }
     }
     responseBodies.foreach(_ should endWith("""Z"}"""))
