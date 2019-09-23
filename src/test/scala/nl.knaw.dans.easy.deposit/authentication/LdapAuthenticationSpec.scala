@@ -24,6 +24,7 @@ import nl.knaw.dans.easy.deposit.TestSupportFixture
 import nl.knaw.dans.easy.deposit.authentication.AuthUser.UserState
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.exceptions.TestFailedException
+import nl.knaw.dans.lib.error._
 
 import scala.util.{ Failure, Success }
 
@@ -99,18 +100,40 @@ class LdapAuthenticationSpec extends TestSupportFixture with MockFactory {
     wire(new LdapMocker).authenticate("someone", " ") shouldBe Success(None)
   }
 
-  "getUser(user)" should "return user properties" in {
-    val authentication = wire(new LdapMocker {
+  "getUser(user)" should "concatenate multiple prefixes" in {
+    wire(new LdapMocker {
       expectLdapAttributes(new BasicAttributes() {
         put("uid", "foo")
         put("dansPrefixes", "van")
         get("dansPrefixes").add("den")
         put("sn", "Berg")
       })
-    })
-    inside(authentication.getUser("someone")) {
-      case Success(user) => // just sampling the result
-        user.prefix.value shouldBe "van den"
-    }
+    }).getUser("someone")
+    .getOrRecover(e => fail(e))
+    .prefix shouldBe Some("van den")
+  }
+
+  // TODO for now set 'trace' at https://github.com/DANS-KNAW/easy-deposit-api/blob/f1b9924/src/test/resources/logback.xml#L15
+  //  figure out how to intercept and assert the logging
+  it should "log a user without an email" in {
+    wire(new LdapMocker {
+      expectLdapAttributes(new BasicAttributes() {
+        put("uid", "foo")
+        put("displayName", "F. Bar")
+      })
+    }).getUser("someone")
+      .getOrRecover(e => fail(e))
+      .displayName shouldBe "F. Bar"
+  }
+
+  it should "log a user without a display name" in {
+    wire(new LdapMocker {
+      expectLdapAttributes(new BasicAttributes() {
+        put("uid", "foo")
+        put("mail", "does.not.exist@dans.knaw.nl")
+      })
+    }).getUser("someone")
+      .getOrRecover(e => fail(e))
+      .email shouldBe "does.not.exist@dans.knaw.nl"
   }
 }

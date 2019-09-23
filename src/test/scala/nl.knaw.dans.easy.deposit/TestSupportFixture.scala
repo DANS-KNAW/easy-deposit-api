@@ -54,11 +54,7 @@ trait TestSupportFixture extends FlatSpec with Matchers with Inside with BeforeA
     }
   }
 
-  val userMap: Map[String, Seq[String]] = Map(
-    "uid" -> Seq("user001"),
-    "displayName" -> Seq("fullName"),
-    "mail" -> Seq("does.not.exist@dans.knaw.nl"),
-  )
+  val defaultUserInfo = UserInfo("user001", displayName = "fullName", email ="does.not.exist@dans.knaw.nl", lastName="")
 
   def testResource(file: String): File = File(getClass.getResource(file))
 
@@ -105,7 +101,7 @@ trait TestSupportFixture extends FlatSpec with Matchers with Inside with BeforeA
       override val pidRequester: PidRequester = mockPidRequester
 
       override def getUserProperties(user: String): Try[UserInfo] = {
-        Success(UserInfo(userMap))
+        Success(defaultUserInfo)
       }
     }
   }

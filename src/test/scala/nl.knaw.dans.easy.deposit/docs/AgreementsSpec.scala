@@ -32,7 +32,7 @@ class AgreementsSpec extends TestSupportFixture {
         acceptDepositAgreement = false,
         privacySensitiveDataPresent = PrivacySensitiveDataPresent.no
       ),
-      userProperties = UserInfo(userMap),
+      userProperties = defaultUserInfo,
     ) should matchPattern {
       case Failure(e: InvalidDocumentException) if e.getMessage == "invalid DatasetMetadata: Please set AcceptDepositAgreement" =>
     }
@@ -45,35 +45,10 @@ class AgreementsSpec extends TestSupportFixture {
         acceptDepositAgreement = true,
         privacySensitiveDataPresent = PrivacySensitiveDataPresent.unspecified
       ),
-      userProperties = UserInfo(userMap),
+      userProperties = defaultUserInfo,
     ) should matchPattern {
       case Failure(e: InvalidDocumentException) if e.getMessage == "invalid DatasetMetadata: Please set PrivacySensitiveDataPresent" =>
     }
-  }
-
-  it should "log a user without an email" in {
-    // TODO for now set 'trace' at https://github.com/DANS-KNAW/easy-deposit-api/blob/f1b9924/src/test/resources/logback.xml#L15
-    AgreementsXml(
-      dateSubmitted = DateTime.now,
-      dm = DatasetMetadata().copy(
-        acceptDepositAgreement = true,
-        privacySensitiveDataPresent = PrivacySensitiveDataPresent.no
-      ),
-      userProperties = UserInfo(Seq("uid" -> Seq(""), "displayName" -> Seq(""),
-      ).toMap),
-    ) shouldBe a[Success[_]]
-  }
-
-  it should "log a user without a display name" in {
-    // TODO for now set 'trace' at https://github.com/DANS-KNAW/easy-deposit-api/blob/f1b9924/src/test/resources/logback.xml#L15
-    AgreementsXml(
-      dateSubmitted = DateTime.now,
-      dm = DatasetMetadata().copy(
-        acceptDepositAgreement = true,
-        privacySensitiveDataPresent = PrivacySensitiveDataPresent.no
-      ),
-      userProperties = UserInfo(Seq("uid" -> Seq(""), "mail" -> Seq("")).toMap),
-    ) shouldBe a[Success[_]]
   }
 
   it should "fail without user properties" in {
