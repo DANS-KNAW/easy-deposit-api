@@ -110,7 +110,7 @@ class LdapAuthenticationSpec extends TestSupportFixture with MockFactory {
     })
     inside(authentication.getUser("someone")) {
       case Success(user) => // just sampling the result
-        user.prefix shouldBe Some("van den")
+        user.prefix.value shouldBe "van den"
     }
   }
 }
