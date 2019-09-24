@@ -33,27 +33,31 @@ object UserInfo extends DebugEnhancedLogging {
 
   def apply(attributes: Map[String, Seq[String]]): UserInfo = {
 
-    def getAttribute(key: String) = {
+    def getOption(key: String): Option[String] = {
       attributes
         .getOrElse(key, Seq.empty)
         .headOption
-        .getOrElse {
-          logger.warn(s"user has no attribute '$key' $attributes")
-          ""
-        }
     }
 
-    // For possible attribute keys see: https://github.com/DANS-KNAW/dans.easy-test-users/blob/master/templates
+    def getAttribute(key: String): String = {
+      getOption(key).getOrElse {
+        logger.warn(s"user has no attribute '$key' $attributes")
+        ""
+      }
+    }
+
+    // For possible attribute keys see
+    // https://github.com/DANS-KNAW/easy-app/blob/master/lib-deprecated/dans-ldap/src/main/java/nl/knaw/dans/common/ldap/management/
+    //   DANSSchema.java
+    //   EasySchema.java
+    // https://github.com/DANS-KNAW/dans.easy-test-users/blob/master/templates
     new UserInfo(
 
       // mandatory: https://github.com/DANS-KNAW/dans.easy-ldap-dir/blob/f17c391/files/easy-schema.ldif#L83-L84
       userName = getAttribute("uid"),
 
-      firstName = attributes.getOrElse("cn", Seq.empty).headOption,
-
-      // https://github.com/DANS-KNAW/easy-app/blob/b41e9e93e35f97af00c48d0515b09cc57bc5ba6c/lib-deprecated/dans-ldap/src/main/java/nl/knaw/dans/common/ldap/management/DANSSchema.java#L33-L34
-      prefix = attributes.get("dansPrefixes").map(s => s.mkString(" ")),
-
+      firstName = getOption("cn"),
+      prefix = getOption("dansPrefixes"),
       lastName = getAttribute("sn"),
       displayName = getAttribute("displayName"),
       email = getAttribute("mail"),

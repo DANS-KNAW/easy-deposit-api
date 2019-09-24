@@ -100,7 +100,9 @@ class LdapAuthenticationSpec extends TestSupportFixture with MockFactory {
     wire(new LdapMocker).authenticate("someone", " ") shouldBe Success(None)
   }
 
-  "getUser(user)" should "concatenate multiple prefixes" in {
+  "getUser(user)" should "ignore a second prefix" in {
+    // schema defines attribute as single-value
+    // https://github.com/DANS-KNAW/easy-app/blob/b8e64ead3b74e5d453ef895a083847b21fc225c4/lib-deprecated/dans-ldap/src/main/java/nl/knaw/dans/common/ldap/management/DANSSchema.java#L33-L37
     wire(new LdapMocker {
       expectLdapAttributes(new BasicAttributes() {
         put("uid", "foo")
@@ -110,7 +112,7 @@ class LdapAuthenticationSpec extends TestSupportFixture with MockFactory {
       })
     }).getUser("someone")
     .getOrRecover(e => fail(e))
-    .prefix shouldBe Some("van den")
+    .prefix shouldBe Some("van")
   }
 
   // TODO for now set 'trace' at https://github.com/DANS-KNAW/easy-deposit-api/blob/f1b9924/src/test/resources/logback.xml#L15
