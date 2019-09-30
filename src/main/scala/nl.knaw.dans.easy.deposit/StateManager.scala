@@ -149,7 +149,7 @@ case class StateManager(draftDeposit: DepositDir, submitBase: File, easyHome: UR
          |${ draftDeposit.user }
          |""".stripMargin
     )
-    s"""Something went wrong while processing this deposit. Please <a href="mailto:does.not.exist@dans.knaw.nl?subject=$subject&body=$body">contact DANS</a>"""
+    s"""Something went wrong while processing this deposit. Please <a href="mailto:info@dans.knaw.nl?subject=$subject&body=$body">contact DANS</a>"""
   }
 
   private def landingPage(msgStart: String): String = {
