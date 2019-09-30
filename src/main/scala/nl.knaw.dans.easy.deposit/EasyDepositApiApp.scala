@@ -113,7 +113,7 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
     DepositDir.get(draftBase, user, id)
   }
 
-  def getUserProperties(user: String): Try[UserInfo] = authentication.getUser(user)
+  def getUserInfo(user: String): Try[UserInfo] = authentication.getUser(user)
 
   /**
    * Creates a new, empty deposit, containing an empty bag in the user's draft area. If the user
@@ -180,9 +180,9 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
   def setDepositState(newStateInfo: StateInfo, userId: String, id: UUID): Try[Unit] = {
     def submit(deposit: DepositDir, stateManager: StateManager): Try[Unit] = {
       for {
-        userProperties <- getUserProperties(userId)
+        userInfo <- getUserInfo(userId)
         disposableStagedDir <- getStagedDir(userId, id)
-        _ <- disposableStagedDir.apply(submitter.submit(deposit, stateManager, userProperties, _))
+        _ <- disposableStagedDir.apply(submitter.submit(deposit, stateManager, userInfo, _))
       } yield ()
     }
 

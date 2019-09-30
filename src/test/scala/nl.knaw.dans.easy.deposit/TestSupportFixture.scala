@@ -100,7 +100,7 @@ trait TestSupportFixture extends FlatSpec with Matchers with Inside with BeforeA
     new EasyDepositApiApp(minimalAppConfig) {
       override val pidRequester: PidRequester = mockPidRequester
 
-      override def getUserProperties(user: String): Try[UserInfo] = {
+      override def getUserInfo(user: String): Try[UserInfo] = {
         Success(defaultUserInfo)
       }
     }

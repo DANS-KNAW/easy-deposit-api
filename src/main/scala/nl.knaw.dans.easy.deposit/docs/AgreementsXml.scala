@@ -24,8 +24,8 @@ object AgreementsXml extends SchemedXml {
   override val schemaNameSpace = "http://easy.dans.knaw.nl/schemas/bag/metadata/agreements/"
   override val schemaLocation = "https://easy.dans.knaw.nl/schemas/bag/metadata/agreements/2019/09/agreements.xsd"
 
-  def apply(dateSubmitted: DateTime, dm: DatasetMetadata, userProperties: UserInfo): Try[Elem] = {
-    if (userProperties == null) Failure(new IllegalArgumentException("no user attributes"))
+  def apply(dateSubmitted: DateTime, dm: DatasetMetadata, userInfo: UserInfo): Try[Elem] = {
+    if (userInfo == null) Failure(new IllegalArgumentException("no user attributes"))
     else for {
       _ <- dm.depositAgreementAccepted
       privacy <- dm.hasPrivacySensitiveData
@@ -36,12 +36,12 @@ object AgreementsXml extends SchemedXml {
           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
           xsi:schemaLocation={s"$schemaNameSpace $schemaLocation"}>
         <depositAgreement>
-          <signerId easy-account={userProperties.userName} email={userProperties.email}>{userProperties.displayName}</signerId>
+          <signerId easy-account={userInfo.userName} email={userInfo.email}>{userInfo.displayName}</signerId>
           <dcterms:dateAccepted>{dateSubmitted}</dcterms:dateAccepted>
           <depositAgreementAccepted>{dm.acceptDepositAgreement}</depositAgreementAccepted>
         </depositAgreement>
         <personalDataStatement>
-          <signerId easy-account={userProperties.userName} email={userProperties.email}>{userProperties.displayName}</signerId>
+          <signerId easy-account={userInfo.userName} email={userInfo.email}>{userInfo.displayName}</signerId>
           <dateSigned>{dateSubmitted}</dateSigned>
           <containsPrivacySensitiveData>{privacy}</containsPrivacySensitiveData>
         </personalDataStatement>
