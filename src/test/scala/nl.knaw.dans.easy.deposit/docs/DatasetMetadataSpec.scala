@@ -19,15 +19,16 @@ import better.files.File
 import nl.knaw.dans.easy.deposit.Errors.InvalidDocumentException
 import nl.knaw.dans.easy.deposit.TestSupportFixture
 import nl.knaw.dans.easy.deposit.docs.JsonUtil.toJson
+import nl.knaw.dans.easy.deposit.docs.dm.{ Date, DateQualifier }
 import nl.knaw.dans.lib.error._
 import org.json4s.JsonAST._
 import org.json4s.native.JsonMethods
 import org.json4s.{ Diff, JsonInput }
-import org.scalatest.Assertion
+import org.scalatest.{ Assertion, OptionValues }
 
 import scala.util.{ Failure, Success }
 
-class DatasetMetadataSpec extends TestSupportFixture {
+class DatasetMetadataSpec extends TestSupportFixture with OptionValues {
 
   implicit class RichString(str: String) {
     def causesInvalidDocumentException(expectedMessage: String): Assertion = {
@@ -76,13 +77,28 @@ class DatasetMetadataSpec extends TestSupportFixture {
   "DatasetMetadata.dates" should "accept a date without a scheme" in {
     val s: JsonInput =
       """{"dates": [{ "value": "2018", "qualifier": "dcterms:created" }]}"""
-    DatasetMetadata(s) shouldBe a[Success[_]]
+
+    inside(DatasetMetadata(s)) {
+      case Success(dm) =>
+        dm.datesCreated.value shouldBe Date(qualifier = Some(DateQualifier.created), value = Some("2018"), scheme = None)
+        dm.datesAvailable shouldBe empty
+        dm.otherDates should contain only Date(Some("dcterms:W3CDTF"), Some(nowYMD), Some(DateQualifier.dateSubmitted))
+    }
   }
 
   it should "accept a plain date" in {
     val s: JsonInput =
       """{"dates":[{"qualifier":"dcterms:date","scheme":"dcterms:W3CDTF","value":"2019-03-29T15:08:34+01:00"}]}"""
-    DatasetMetadata(s) shouldBe a[Success[_]]
+
+    inside(DatasetMetadata(s)) {
+      case Success(dm) =>
+        dm.datesCreated shouldBe empty
+        dm.datesAvailable shouldBe empty
+        dm.otherDates should contain only(
+          Date(scheme = Some("dcterms:W3CDTF"), qualifier = Some(DateQualifier.date), value = Some("2019-03-29")),
+          Date(scheme = Some("dcterms:W3CDTF"), qualifier = Some(DateQualifier.dateSubmitted), value = Some(nowYMD)),
+        )
+    }
   }
 
   "DatasetMetadata.relations" should "accept complete relations" in {
@@ -164,13 +180,13 @@ class DatasetMetadataSpec extends TestSupportFixture {
 
   "DatasetMetadata.*" should "only report the item in the list that are invalid" in {
     val alteredData = createCorruptMetadataJsonString(""""scheme": "string"""", """"invalid": "property"""")
-    expectErrorMessage(alteredData,"""invalid DatasetMetadata: don't recognize {"languageOfDescription":{"invalid":"property"},"audiences":{"invalid":"property"},"subjects":{"invalid":"property"},"temporalCoverages":{"invalid":"property"}}""")
+    expectErrorMessage(alteredData, """invalid DatasetMetadata: don't recognize {"languageOfDescription":{"invalid":"property"},"audiences":{"invalid":"property"},"subjects":{"invalid":"property"},"temporalCoverages":{"invalid":"property"}}""")
   }
 
   "DatasetMetadata.spatialBoxes" should "only report spatial points of the box that are invalid" in {
     val boxes: String =
       """{ "spatialBoxes": [{"north-west": 2,"south-east": 3,"north": 4,"east": 5,"south": 9,"west": 10}]}"""
-    expectErrorMessage(boxes,"""invalid DatasetMetadata: don't recognize {"spatialBoxes":{"north-west":2,"south-east":3}}""")
+    expectErrorMessage(boxes, """invalid DatasetMetadata: don't recognize {"spatialBoxes":{"north-west":2,"south-east":3}}""")
   }
 
   "DatasetMetadata.spatialCoverages" should "only report someCoverage if is supplied instead of spatialCoverages" in {
