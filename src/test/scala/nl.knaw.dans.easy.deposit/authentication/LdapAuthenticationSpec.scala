@@ -22,9 +22,9 @@ import javax.naming.directory.BasicAttributes
 import javax.naming.ldap.LdapContext
 import nl.knaw.dans.easy.deposit.TestSupportFixture
 import nl.knaw.dans.easy.deposit.authentication.AuthUser.UserState
+import nl.knaw.dans.lib.error._
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.exceptions.TestFailedException
-import nl.knaw.dans.lib.error._
 
 import scala.util.{ Failure, Success }
 
@@ -111,12 +111,12 @@ class LdapAuthenticationSpec extends TestSupportFixture with MockFactory {
         put("sn", "Berg")
       })
     }).getUser("someone")
-    .getOrRecover(e => fail(e))
-    .prefix shouldBe Some("van")
+      .getOrRecover(e => fail(e))
+      .prefix shouldBe Some("van")
   }
 
-  // TODO for now set 'trace' at https://github.com/DANS-KNAW/easy-deposit-api/blob/f1b9924/src/test/resources/logback.xml#L15
-  //  figure out how to intercept and assert the logging
+  // TODO figure out how to intercept and assert the logging
+  //  for now test manually with 'trace':  https://github.com/DANS-KNAW/easy-deposit-api/blob/f1b9924/src/test/resources/logback.xml#L15
   it should "log a user without an email" in {
     wire(new LdapMocker {
       expectLdapAttributes(new BasicAttributes() {

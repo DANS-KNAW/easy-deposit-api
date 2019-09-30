@@ -17,7 +17,7 @@ package nl.knaw.dans.easy.deposit.docs
 
 import org.joda.time.DateTime
 
-import scala.util.{ Failure, Try }
+import scala.util.Try
 import scala.xml.Elem
 
 object AgreementsXml extends SchemedXml {
@@ -25,8 +25,7 @@ object AgreementsXml extends SchemedXml {
   override val schemaLocation = "https://easy.dans.knaw.nl/schemas/bag/metadata/agreements/2019/09/agreements.xsd"
 
   def apply(dateSubmitted: DateTime, dm: DatasetMetadata, userInfo: UserInfo): Try[Elem] = {
-    if (userInfo == null) Failure(new IllegalArgumentException("no user attributes"))
-    else for {
+    for {
       _ <- dm.depositAgreementAccepted
       privacy <- dm.hasPrivacySensitiveData
     } yield

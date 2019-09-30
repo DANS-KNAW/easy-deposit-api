@@ -89,7 +89,7 @@ class HappyRoutesSpec extends TestSupportFixture with ServletFixture with Scalat
   "get /user" should "return a user with something for all attributes" in {
     authMocker.expectsUserFooBar
     (mockedApp.getUserInfo(_: String)) expects "foo" returning
-      Success(UserInfo("foo", displayName = "Jan v.d. Berg", email ="", firstName = Some("Jan"), prefix = Some("van den"), lastName="Berg"))
+      Success(UserInfo("foo", displayName = "Jan v.d. Berg", email = "", firstName = Some("Jan"), prefix = Some("van den"), lastName = "Berg"))
     get(
       uri = "/user",
       headers = Seq(fooBarBasicAuthHeader)
@@ -102,7 +102,7 @@ class HappyRoutesSpec extends TestSupportFixture with ServletFixture with Scalat
   it should "return a user with minimal attributes" in {
     authMocker.expectsUserFooBar
     (mockedApp.getUserInfo(_: String)) expects "foo" returning
-      Success(UserInfo("foo", displayName = "", email ="", lastName=""))
+      Success(UserInfo("foo", displayName = "", email = "", lastName = ""))
 
     get(
       uri = "/user",

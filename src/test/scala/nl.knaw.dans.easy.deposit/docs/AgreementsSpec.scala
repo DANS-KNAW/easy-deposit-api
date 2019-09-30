@@ -60,7 +60,7 @@ class AgreementsSpec extends TestSupportFixture {
       ),
       userInfo = null,
     ) should matchPattern {
-      case Failure(e: IllegalArgumentException) if e.getMessage == "no user attributes" =>
+      case Failure(e: NullPointerException) =>
     }
   }
 

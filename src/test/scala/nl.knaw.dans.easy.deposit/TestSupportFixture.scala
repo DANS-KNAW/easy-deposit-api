@@ -54,7 +54,7 @@ trait TestSupportFixture extends FlatSpec with Matchers with Inside with BeforeA
     }
   }
 
-  val defaultUserInfo = UserInfo("user001", displayName = "fullName", email ="does.not.exist@dans.knaw.nl", lastName="")
+  val defaultUserInfo = UserInfo("user001", displayName = "fullName", email = "does.not.exist@dans.knaw.nl", lastName = "")
 
   def testResource(file: String): File = File(getClass.getResource(file))
 
