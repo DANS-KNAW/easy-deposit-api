@@ -77,13 +77,13 @@ object Date {
     private[docs] def separate = {
       dates.foldLeft((Option.empty[Date], Option.empty[Date], Seq(dateSubmitted))) {
         // @formatter:off
-          case ((_,           _,             _     ),      Date(_, _, Some(q@DateQualifier.dateSubmitted))) => invalidQualifier(q)
-          case ((None,        dateAvailable, others), date@Date(_, _, Some(  DateQualifier.created))      ) => (Some(date),  dateAvailable, others)
-          case ((Some(dc),    _,             _     ), date@Date(_, _, Some(  DateQualifier.created))      ) => duplicateDates(Seq(dc, date))
-          case ((dateCreated, None,          others), date@Date(_, _, Some(  DateQualifier.available))    ) => (dateCreated, Some(date),    others)
-          case ((_,           Some(da),      _     ), date@Date(_, _, Some(  DateQualifier.available))    ) => duplicateDates(Seq(da, date))
-          case ((dateCreated, dateAvailable, others), date@Date(_, _, _)                                  ) => (dateCreated, dateAvailable, others :+ date)
-          // @formatter:on
+        case ((_,           _,             _     ),      Date(_, _, Some(q@DateQualifier.dateSubmitted))) => invalidQualifier(q)
+        case ((None,        dateAvailable, others), date@Date(_, _, Some(  DateQualifier.created))      ) => (Some(date),  dateAvailable, others)
+        case ((Some(dc),    _,             _     ), date@Date(_, _, Some(  DateQualifier.created))      ) => duplicateDates(Seq(dc, date))
+        case ((dateCreated, None,          others), date@Date(_, _, Some(  DateQualifier.available))    ) => (dateCreated, Some(date),    others)
+        case ((_,           Some(da),      _     ), date@Date(_, _, Some(  DateQualifier.available))    ) => duplicateDates(Seq(da, date))
+        case ((dateCreated, dateAvailable, others), date@Date(_, _, _)                                  ) => (dateCreated, dateAvailable, others :+ date)
+        // @formatter:on
       }
     }
 
