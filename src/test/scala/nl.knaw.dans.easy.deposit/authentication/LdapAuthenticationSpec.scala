@@ -22,6 +22,7 @@ import javax.naming.directory.BasicAttributes
 import javax.naming.ldap.LdapContext
 import nl.knaw.dans.easy.deposit.TestSupportFixture
 import nl.knaw.dans.easy.deposit.authentication.AuthUser.UserState
+import nl.knaw.dans.lib.error._
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.exceptions.TestFailedException
 
@@ -96,22 +97,45 @@ class LdapAuthenticationSpec extends TestSupportFixture with MockFactory {
   }
 
   it should "not access ldap with a blank password" in pendingUntilFixed {
-
     wire(new LdapMocker).authenticate("someone", " ") shouldBe Success(None)
   }
 
-  "getUser(user)" should "return user properties" in {
-    val authentication = wire(new LdapMocker {
+  "getUser(user)" should "ignore a second prefix" in {
+    // schema defines attribute as single-value
+    // https://github.com/DANS-KNAW/easy-app/blob/b8e64ead3b74e5d453ef895a083847b21fc225c4/lib-deprecated/dans-ldap/src/main/java/nl/knaw/dans/common/ldap/management/DANSSchema.java#L33-L37
+    wire(new LdapMocker {
       expectLdapAttributes(new BasicAttributes() {
         put("uid", "foo")
         put("dansPrefixes", "van")
         get("dansPrefixes").add("den")
         put("sn", "Berg")
       })
-    })
-    inside(authentication.getUser("someone")) {
-      case Success(user) => // just sampling the result
-        user("dansPrefixes").toArray shouldBe Array("van", "den")
-    }
+    }).getUser("someone")
+      .getOrRecover(e => fail(e))
+      .prefix shouldBe Some("van")
+  }
+
+  // TODO figure out how to intercept and assert the logging
+  //  for now test manually with 'trace':  https://github.com/DANS-KNAW/easy-deposit-api/blob/f1b9924/src/test/resources/logback.xml#L15
+  it should "log a user without an email" in {
+    wire(new LdapMocker {
+      expectLdapAttributes(new BasicAttributes() {
+        put("uid", "foo")
+        put("displayName", "F. Bar")
+      })
+    }).getUser("someone")
+      .getOrRecover(e => fail(e))
+      .displayName shouldBe "F. Bar"
+  }
+
+  it should "log a user without a display name" in {
+    wire(new LdapMocker {
+      expectLdapAttributes(new BasicAttributes() {
+        put("uid", "foo")
+        put("mail", "does.not.exist@dans.knaw.nl")
+      })
+    }).getUser("someone")
+      .getOrRecover(e => fail(e))
+      .email shouldBe "does.not.exist@dans.knaw.nl"
   }
 }

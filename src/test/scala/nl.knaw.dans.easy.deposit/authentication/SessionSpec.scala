@@ -15,7 +15,6 @@
  */
 package nl.knaw.dans.easy.deposit.authentication
 
-import nl.knaw.dans.easy.deposit.PidRequesterComponent.PidRequester
 import nl.knaw.dans.easy.deposit._
 import nl.knaw.dans.easy.deposit.authentication.AuthUser.UserState
 import nl.knaw.dans.easy.deposit.servlets.{ AuthServlet, ProtectedServlet, ServletFixture, UndoMasking }
@@ -28,9 +27,7 @@ import org.scalatra.test.scalatest.ScalatraSuite
 
 class SessionSpec extends TestSupportFixture with ServletFixture with ScalatraSuite {
 
-  private val app: EasyDepositApiApp = new EasyDepositApiApp(minimalAppConfig) {
-    override val pidRequester: PidRequester = mockPidRequester
-  }
+  private val app: EasyDepositApiApp = createTestApp
   private val authMocker = new AuthenticationMocker() {
     override val mockedAuthenticationProvider: AuthenticationProvider = mock[AuthenticationProvider]
   }

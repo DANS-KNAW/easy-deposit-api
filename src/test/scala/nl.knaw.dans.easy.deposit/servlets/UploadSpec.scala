@@ -379,7 +379,7 @@ class UploadSpec extends DepositServletFixture with Inspectors {
       uri = "/deposit",
       headers = Seq(fooBarBasicAuthHeader)
     ) {
-      new String(bodyBytes)
+      body
     }
     DepositInfo(responseBody)
       .map(_.id)

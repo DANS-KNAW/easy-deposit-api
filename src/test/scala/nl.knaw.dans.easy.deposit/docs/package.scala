@@ -28,7 +28,7 @@ import scala.util.{ Failure, Try }
 import scala.xml.{ Elem, PrettyPrinter, SAXParseException }
 
 package object docs extends DebugEnhancedLogging {
-  // pretty provides friendly trouble shooting for complex XML's
+  // pretty provides friendly troubleshooting for complex XML's
   val prettyPrinter: PrettyPrinter = new scala.xml.PrettyPrinter(1024, 2)
 
   implicit class triedSchemaExtension(val triedSchema: Try[Schema]) extends AnyVal {
