@@ -44,8 +44,8 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
             <dcx-dai:surname>Foo</dcx-dai:surname>
           </dcx-dai:author>
         </dcx-dai:creatorDetails>
-        <ddm:created>2018</ddm:created>
-        <ddm:available>2018</ddm:available>
+        <ddm:created>2018-05-29</ddm:created>
+        <ddm:available>2018-07-30</ddm:available>
         <ddm:audience>D35200</ddm:audience>
         <ddm:accessRights>OPEN_ACCESS</ddm:accessRights>
       </ddm:profile>
@@ -261,8 +261,8 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
           <dcterms:valid>Groundhog day</dcterms:valid>
           <dcterms:valid xsi:type="dcterms:W3CDTF">2018</dcterms:valid>
           <dcterms:valid xsi:type="dcterms:W3CDTF">2018-12</dcterms:valid>
-          <dcterms:valid xsi:type="dcterms:W3CDTF">2018-12-09T08:15:30-05:00</dcterms:valid>
-          <dcterms:valid xsi:type="dcterms:W3CDTF">2018-12-09T13:15:30Z</dcterms:valid>
+          <dcterms:valid xsi:type="dcterms:W3CDTF">2018-12-09</dcterms:valid>
+          <dcterms:valid xsi:type="dcterms:W3CDTF">2018-12-09</dcterms:valid>
         </ddm:dcmiMetadata>
     )
   }
