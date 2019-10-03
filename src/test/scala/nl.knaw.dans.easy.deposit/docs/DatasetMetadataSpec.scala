@@ -101,6 +101,21 @@ class DatasetMetadataSpec extends TestSupportFixture with OptionValues {
     }
   }
 
+  it should "accept single digit dates" in {
+    val s: JsonInput =
+      """{"dates":[{"qualifier":"dcterms:date","scheme":"dcterms:W3CDTF","value":"2019-3-9T15:08:34+01:00"}]}"""
+
+    inside(DatasetMetadata(s)) {
+      case Success(dm) =>
+        dm.datesCreated shouldBe empty
+        dm.datesAvailable shouldBe empty
+        dm.otherDates should contain only(
+          Date(scheme = Some("dcterms:W3CDTF"), qualifier = Some(DateQualifier.date), value = Some("2019-03-09")),
+          Date(scheme = Some("dcterms:W3CDTF"), qualifier = Some(DateQualifier.dateSubmitted), value = Some(nowYMD)),
+        )
+    }
+  }
+
   "DatasetMetadata.relations" should "accept complete relations" in {
     val s: JsonInput =
       """{

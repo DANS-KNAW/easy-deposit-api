@@ -54,7 +54,7 @@ case class Date(
    */
   def toDayLevel: Date = {
     lazy val hasW3CDTFScheme = scheme contains DateScheme.W3CDTF.toString
-    lazy val hasValidValue = value.exists(_ matches "^[0-9]{4}-[0-9]{2}-[0-9]{2}(.*)$")
+    lazy val hasValidValue = value.exists(_ matches "^[0-9]{4}-[0-9]{1,2}-[0-9]{1,2}(.*)$")
 
     if (hasW3CDTFScheme && hasValidValue)
       copy(value = value.map(DateTime.parse(_).toString(ISODateTimeFormat.date())))

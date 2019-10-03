@@ -44,7 +44,7 @@ class MinimalDatasetMetadata(
                               relations: Option[Seq[RelationType]] = None,
                               languagesOfFiles: Option[Seq[SchemedKeyValue]] = None,
                               dates: Option[Seq[Date]] = Some(Seq(
-                                Date(scheme = Some(W3CDTF.toString), value = Some("2018-05-29T19:35:00.000+02:00"), Some(DateQualifier.created)),
+                                Date(scheme = Some(W3CDTF.toString), value = Some("2018-5-29T19:35:00.000+02:00"), Some(DateQualifier.created)),
                                 Date(scheme = Some(W3CDTF.toString), value = Some("2018-07-30T16:00:00.000+02:00"), Some(DateQualifier.available))
                               )),
                               sources: Option[Seq[String]] = None,
