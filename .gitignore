@@ -21,6 +21,7 @@
 /.vagrant/
 /.yum-repo
 /.dans.knaw.nl-yum-repo
+/site
 
 # Eclipse
 /.project
