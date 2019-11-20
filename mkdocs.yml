@@ -23,7 +23,7 @@ repo_name: DANS-KNAW/easy-deposit-api
 repo_url: https://github.com/DANS-KNAW/easy-deposit-api
 
 nav:
-  - Manual: manual.md
+  - Manual: index.md
   - HTTP API: to-api.md
 
 plugins:
