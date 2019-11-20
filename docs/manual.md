@@ -1,15 +1,5 @@
----
-title: Manual
-layout: home
----
-
 Manual
 ======
-
-TABLE OF CONTENTS
------------------
-
-
 
 SYNOPSIS
 --------
