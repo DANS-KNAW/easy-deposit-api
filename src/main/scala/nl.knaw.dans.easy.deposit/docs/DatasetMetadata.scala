@@ -69,7 +69,10 @@ case class DatasetMetadata(identifiers: Option[Seq[SchemedValue]] = None,
                                                  else Failure(missingValue("AcceptDepositAgreement"))
 
   // not lazy so not allowed duplicates throw exceptions when parsing json, like other unknown fields
-  val (datesCreated, datesAvailable, otherDates) = dates.separate
+  val (datesCreated, datesAvailable, otherDates) = dates
+    .getOrElse(Seq.empty)
+    .map(_.toDayLevel)
+    .separate
 
   private lazy val authors: Seq[Author] = (contributors.toSeq ++ creators.toSeq).flatten
   // duplicates for plain strings in dcterms (which has no place for IDs as contributors/creators do)

@@ -42,7 +42,26 @@ case class Date(
                  scheme: Option[String],
                  value: Option[String],
                  qualifier: Option[DateQualifier],
-               )
+               ) {
+
+  /**
+   * If the scheme is present and is equal to DateScheme.W3CDTF and
+   * if the value is present and starts with a yyyy-MM-dd formatted date
+   * converts this Date with date-and-time value to just day level.
+   * Else, keep the value as is
+   *
+   * @return the day level representation of this Date
+   */
+  def toDayLevel: Date = {
+    lazy val hasW3CDTFScheme = scheme contains DateScheme.W3CDTF.toString
+    lazy val hasValidValue = value.exists(_ matches "^[0-9]{4}-[0-9]{1,2}-[0-9]{1,2}(.*)$")
+
+    if (hasW3CDTFScheme && hasValidValue)
+      copy(value = value.map(DateTime.parse(_).toString(ISODateTimeFormat.date())))
+    else
+      this
+  }
+}
 
 object Date {
   private def dateSubmitted: Date = Date(
@@ -51,22 +70,21 @@ object Date {
     Some(DateQualifier.dateSubmitted)
   )
 
-  implicit class DatesExtension(val dates: Option[Seq[Date]]) extends AnyVal {
+  implicit class DatesExtension(val dates: Seq[Date]) extends AnyVal {
     /**
      * @return (dateCreated, dateAvailable, plainDates)
      */
     private[docs] def separate = {
-      dates.getOrElse(Seq.empty)
-        .foldLeft((Option.empty[Date], Option.empty[Date], Seq(dateSubmitted))) {
-          // @formatter:off
-          case ((_,           _,             _     ),      Date(_, _, Some(q@DateQualifier.dateSubmitted))) => invalidQualifier(q)
-          case ((None,        dateAvailable, others), date@Date(_, _, Some(  DateQualifier.created))      ) => (Some(date),  dateAvailable, others)
-          case ((Some(dc),    _,             _     ), date@Date(_, _, Some(  DateQualifier.created))      ) => duplicateDates(Seq(dc, date))
-          case ((dateCreated, None,          others), date@Date(_, _, Some(  DateQualifier.available))    ) => (dateCreated, Some(date),    others)
-          case ((_,           Some(da),      _     ), date@Date(_, _, Some(  DateQualifier.available))    ) => duplicateDates(Seq(da, date))
-          case ((dateCreated, dateAvailable, others), date@Date(_, _, _)                                  ) => (dateCreated, dateAvailable, others :+ date)
-          // @formatter:on
-        }
+      dates.foldLeft((Option.empty[Date], Option.empty[Date], Seq(dateSubmitted))) {
+        // @formatter:off
+        case ((_,           _,             _     ),      Date(_, _, Some(q@DateQualifier.dateSubmitted))) => invalidQualifier(q)
+        case ((None,        dateAvailable, others), date@Date(_, _, Some(  DateQualifier.created))      ) => (Some(date),  dateAvailable, others)
+        case ((Some(dc),    _,             _     ), date@Date(_, _, Some(  DateQualifier.created))      ) => duplicateDates(Seq(dc, date))
+        case ((dateCreated, None,          others), date@Date(_, _, Some(  DateQualifier.available))    ) => (dateCreated, Some(date),    others)
+        case ((_,           Some(da),      _     ), date@Date(_, _, Some(  DateQualifier.available))    ) => duplicateDates(Seq(da, date))
+        case ((dateCreated, dateAvailable, others), date@Date(_, _, _)                                  ) => (dateCreated, dateAvailable, others :+ date)
+        // @formatter:on
+      }
     }
 
     private def duplicateDates(dates: Seq[Date]) = {

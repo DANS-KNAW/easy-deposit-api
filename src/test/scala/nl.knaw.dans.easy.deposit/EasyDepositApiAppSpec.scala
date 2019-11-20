@@ -17,7 +17,6 @@ package nl.knaw.dans.easy.deposit
 
 import java.util.UUID
 
-import nl.knaw.dans.easy.deposit.PidRequesterComponent.PidRequester
 import nl.knaw.dans.easy.deposit.docs.DepositInfo
 import nl.knaw.dans.easy.deposit.docs.StateInfo.State
 import nl.knaw.dans.easy.deposit.docs.StateInfo.State.State
@@ -28,9 +27,7 @@ import org.joda.time.DateTimeZone.UTC
 import scala.util.Success
 
 class EasyDepositApiAppSpec extends TestSupportFixture {
-  private val app: EasyDepositApiApp = new EasyDepositApiApp(minimalAppConfig) {
-    override val pidRequester: PidRequester = mockPidRequester
-  }
+  private val app: EasyDepositApiApp = createTestApp
 
   private val defaultUser: String = "user001"
 
@@ -52,7 +49,7 @@ class EasyDepositApiAppSpec extends TestSupportFixture {
     copyDepositToSubmitArea(deposit5.id)
 
     // the state is required for the pattern match but the description is error prone and beyond the scope of the test
-    val expectedState = app.getDepositState(defaultUser,deposit5.id).getOrElse(fail())
+    val expectedState = app.getDepositState(defaultUser, deposit5.id).getOrElse(fail())
 
     val testResult = app.getDeposits(defaultUser)
     inside(testResult) {

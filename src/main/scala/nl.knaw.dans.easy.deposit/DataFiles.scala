@@ -69,6 +69,7 @@ case class DataFiles(bag: DansBag) extends DebugEnhancedLogging {
         .withFilter(_._1.isChildOf(parentPath))
         .map((toFileInfo _).tupled)
         .toSeq
+        .sortBy(fileInfo => (File(fileInfo.dirpath) / fileInfo.filename).path)
     }
 
     manifestMap

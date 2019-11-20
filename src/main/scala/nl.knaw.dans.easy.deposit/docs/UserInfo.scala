@@ -16,6 +16,7 @@
 package nl.knaw.dans.easy.deposit.docs
 
 import nl.knaw.dans.easy.deposit.docs.JsonUtil.RichJsonInput
+import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.json4s.JsonInput
 
 import scala.util.Try
@@ -25,24 +26,41 @@ case class UserInfo(userName: String,
                     prefix: Option[String] = None,
                     lastName: String,
                     displayName: String,
+                    email: String,
                    )
-object UserInfo {
+object UserInfo extends DebugEnhancedLogging {
   def apply(input: JsonInput): Try[UserInfo] = input.deserialize[UserInfo]
 
   def apply(attributes: Map[String, Seq[String]]): UserInfo = {
-    // For possible attribute keys see: https://github.com/DANS-KNAW/dans.easy-test-users/blob/master/templates
+
+    def getOption(key: String): Option[String] = {
+      attributes
+        .getOrElse(key, Seq.empty)
+        .headOption
+    }
+
+    def getAttribute(key: String): String = {
+      getOption(key).getOrElse {
+        logger.warn(s"user has no attribute '$key' $attributes")
+        ""
+      }
+    }
+
+    // For possible attribute keys see
+    // https://github.com/DANS-KNAW/easy-app/blob/master/lib-deprecated/dans-ldap/src/main/java/nl/knaw/dans/common/ldap/management/
+    //   DANSSchema.java
+    //   EasySchema.java
+    // https://github.com/DANS-KNAW/dans.easy-test-users/blob/master/templates
     new UserInfo(
 
       // mandatory: https://github.com/DANS-KNAW/dans.easy-ldap-dir/blob/f17c391/files/easy-schema.ldif#L83-L84
-      userName = attributes.getOrElse("uid", Seq.empty).headOption.getOrElse(""),
+      userName = getAttribute("uid"),
 
-      firstName = attributes.getOrElse("cn", Seq.empty).headOption,
-
-      // https://github.com/DANS-KNAW/easy-app/blob/b41e9e93e35f97af00c48d0515b09cc57bc5ba6c/lib-deprecated/dans-ldap/src/main/java/nl/knaw/dans/common/ldap/management/DANSSchema.java#L33-L34
-      prefix = attributes.get("dansPrefixes").map(s => s.mkString(" ")),
-
-      lastName = attributes.getOrElse("sn", Seq.empty).headOption.getOrElse(""),
-      displayName = attributes.getOrElse("displayName", Seq.empty).headOption.getOrElse(""),
+      firstName = getOption("cn"),
+      prefix = getOption("dansPrefixes"),
+      lastName = getAttribute("sn"),
+      displayName = getAttribute("displayName"),
+      email = getAttribute("mail"),
     )
   }
 }

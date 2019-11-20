@@ -21,7 +21,7 @@ import org.scalatra.ScalatraBase
 trait UndoMasking extends MaskedLogFormatter {
   this: ScalatraBase =>
 
-  // to trouble shoot unit tests set the log level to trace in test/resource/logback.xml
+  // to troubleshoot unit tests set the log level to trace in test/resource/logback.xml
   // move the change to another change list in git to prevent an accidental commit
 
   override protected def formatRemoteAddress(remoteAddress: String): String = remoteAddress

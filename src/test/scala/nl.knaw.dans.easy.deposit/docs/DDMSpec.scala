@@ -44,8 +44,8 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
             <dcx-dai:surname>Foo</dcx-dai:surname>
           </dcx-dai:author>
         </dcx-dai:creatorDetails>
-        <ddm:created>2018</ddm:created>
-        <ddm:available>2018</ddm:available>
+        <ddm:created>2018-05-29</ddm:created>
+        <ddm:available>2018-07-30</ddm:available>
         <ddm:audience>D35200</ddm:audience>
         <ddm:accessRights>OPEN_ACCESS</ddm:accessRights>
       </ddm:profile>
@@ -66,11 +66,11 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
   )
 
   "minimal with multiple descriptions" should behave like validDatasetMetadata(
-    input = Try(new MinimalDatasetMetadata(descriptions = Some(Seq("Lorum <a href='mailto:info@dans.knaw.nl'>ipsum</a>", "ipsum")))),
+    input = Try(new MinimalDatasetMetadata(descriptions = Some(Seq("Lorum <a href='mailto:does.not.exist@dans.knaw.nl'>ipsum</a>", "ipsum")))),
     subset = actualDDM => profileElements(actualDDM, "description"),
     expectedDdmContent =
       <ddm:profile>
-        <dcterms:description>Lorum &lt;a href='mailto:info@dans.knaw.nl'&gt;ipsum&lt;/a&gt;</dcterms:description>
+        <dcterms:description>Lorum &lt;a href='mailto:does.not.exist@dans.knaw.nl'&gt;ipsum&lt;/a&gt;</dcterms:description>
         <dcterms:description>ipsum</dcterms:description>
       </ddm:profile>
   )
@@ -261,8 +261,8 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
           <dcterms:valid>Groundhog day</dcterms:valid>
           <dcterms:valid xsi:type="dcterms:W3CDTF">2018</dcterms:valid>
           <dcterms:valid xsi:type="dcterms:W3CDTF">2018-12</dcterms:valid>
-          <dcterms:valid xsi:type="dcterms:W3CDTF">2018-12-09T08:15:30-05:00</dcterms:valid>
-          <dcterms:valid xsi:type="dcterms:W3CDTF">2018-12-09T13:15:30Z</dcterms:valid>
+          <dcterms:valid xsi:type="dcterms:W3CDTF">2018-12-09</dcterms:valid>
+          <dcterms:valid xsi:type="dcterms:W3CDTF">2018-12-09</dcterms:valid>
         </ddm:dcmiMetadata>
     )
   }
@@ -591,7 +591,7 @@ trait DdmBehavior {
 
       assume(triedSchema.isAvailable)
       val result = triedSchema.validate(ddm)
-      if (result.isFailure) // trouble shoot broken tests
+      if (result.isFailure) // show the relevant XML section to troubleshoot a broken test
         println(prettyPrinter.format(subset(triedDDM.getOrRecover(e => fail(e)))))
       result shouldBe a[Success[_]]
     }

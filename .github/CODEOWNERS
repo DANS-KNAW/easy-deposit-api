@@ -1,11 +1,11 @@
 # configuration for authorized and required reviewers
-* @jo-pol @DANS-KNAW/easy-leads
+* @jo-pol @rvanheest
 
-#code
+# code
 # no overrides
 
-#documentation
-/docs/ @jo-pol
+# documentation
+/docs/ @jo-pol @janvanmansum
 /README.md @jo-pol
 
 # policies

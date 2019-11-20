@@ -22,9 +22,9 @@ import scala.xml.Elem
 
 object AgreementsXml extends SchemedXml {
   override val schemaNameSpace = "http://easy.dans.knaw.nl/schemas/bag/metadata/agreements/"
-  override val schemaLocation = "https://easy.dans.knaw.nl/schemas/bag/metadata/agreements/2019/01/agreements.xsd"
+  override val schemaLocation = "https://easy.dans.knaw.nl/schemas/bag/metadata/agreements/2019/09/agreements.xsd"
 
-  def apply(userId: String, dateSubmitted: DateTime, dm: DatasetMetadata, fullname: String): Try[Elem] = {
+  def apply(dateSubmitted: DateTime, dm: DatasetMetadata, userInfo: UserInfo): Try[Elem] = {
     for {
       _ <- dm.depositAgreementAccepted
       privacy <- dm.hasPrivacySensitiveData
@@ -35,12 +35,12 @@ object AgreementsXml extends SchemedXml {
           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
           xsi:schemaLocation={s"$schemaNameSpace $schemaLocation"}>
         <depositAgreement>
-          <signerId easy-account={userId}>{fullname}</signerId>
+          <signerId easy-account={userInfo.userName} email={userInfo.email}>{userInfo.displayName}</signerId>
           <dcterms:dateAccepted>{dateSubmitted}</dcterms:dateAccepted>
           <depositAgreementAccepted>{dm.acceptDepositAgreement}</depositAgreementAccepted>
         </depositAgreement>
         <personalDataStatement>
-          <signerId>{fullname}</signerId>
+          <signerId easy-account={userInfo.userName} email={userInfo.email}>{userInfo.displayName}</signerId>
           <dateSigned>{dateSubmitted}</dateSigned>
           <containsPrivacySensitiveData>{privacy}</containsPrivacySensitiveData>
         </personalDataStatement>

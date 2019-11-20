@@ -27,56 +27,55 @@ class AgreementsSpec extends TestSupportFixture {
 
   "apply" should "complain about not accepted deposit agreement" in {
     AgreementsXml(
-      "user",
-      DateTime.now,
-      DatasetMetadata().copy(
+      dateSubmitted = DateTime.now,
+      dm = DatasetMetadata().copy(
         acceptDepositAgreement = false,
         privacySensitiveDataPresent = PrivacySensitiveDataPresent.no
       ),
-      ""
+      userInfo = defaultUserInfo,
     ) should matchPattern {
       case Failure(e: InvalidDocumentException) if e.getMessage == "invalid DatasetMetadata: Please set AcceptDepositAgreement" =>
     }
   }
+
   it should "complain about not specifying the presence of privacy sensitive data" in {
     AgreementsXml(
-      "user",
-      DateTime.now,
-      DatasetMetadata().copy(
+      dateSubmitted = DateTime.now,
+      dm = DatasetMetadata().copy(
         acceptDepositAgreement = true,
         privacySensitiveDataPresent = PrivacySensitiveDataPresent.unspecified
       ),
-      ""
+      userInfo = defaultUserInfo,
     ) should matchPattern {
       case Failure(e: InvalidDocumentException) if e.getMessage == "invalid DatasetMetadata: Please set PrivacySensitiveDataPresent" =>
     }
   }
 
-  private lazy val triedSchema: Try[Schema] = AgreementsXml.loadSchema
-
-  "schema validation" should "succeed with an empty full name" in {
-    assume(triedSchema.isAvailable)
+  it should "fail without user properties" in {
     AgreementsXml(
-      "user",
-      DateTime.now,
-      DatasetMetadata().copy(
+      dateSubmitted = null,
+      dm = DatasetMetadata().copy(
         acceptDepositAgreement = true,
         privacySensitiveDataPresent = PrivacySensitiveDataPresent.no
       ),
-      ""
-    ).flatMap(triedSchema.validate) shouldBe a[Success[_]]
+      userInfo = null,
+    ) should matchPattern {
+      case Failure(e: NullPointerException) =>
+    }
   }
 
-  it should "succeed without fullname" in {
-    assume(triedSchema.isAvailable)
-    AgreementsXml(
-      null, // the attribute is omitted from <signerId easy-account={userId}>{fullname}</signerId>
-      null, // the schema is happy with <dateSigned></dateSigned>
-      DatasetMetadata().copy(
+  "schema validation" should "succeed with missing user attributes" in {
+    val triedXML = AgreementsXml(
+      dateSubmitted = DateTime.now,
+      dm = DatasetMetadata().copy(
         acceptDepositAgreement = true,
         privacySensitiveDataPresent = PrivacySensitiveDataPresent.no
       ),
-      null, // the schema is happy with <signerId></signerId>
-    ).flatMap(triedSchema.validate) shouldBe a[Success[_]]
+      userInfo = UserInfo(Map[String, Seq[String]]()),
+    )
+    triedXML shouldBe a[Success[_]]
+    val triedSchema: Try[Schema] = AgreementsXml.loadSchema
+    assume(triedSchema.isAvailable)
+    triedXML.flatMap(triedSchema.validate) shouldBe a[Success[_]]
   }
 }

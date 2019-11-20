@@ -22,13 +22,14 @@ import better.files.File._
 import nl.knaw.dans.easy.deposit.PidRequesterComponent.PidRequester
 import nl.knaw.dans.easy.deposit.authentication.TokenSupport.TokenConfig
 import nl.knaw.dans.easy.deposit.authentication.{ AuthConfig, AuthUser, AuthenticationProvider, TokenSupport }
+import nl.knaw.dans.easy.deposit.docs.UserInfo
 import org.apache.commons.configuration.PropertiesConfiguration
 import org.joda.time.{ DateTime, DateTimeUtils, DateTimeZone }
 import org.scalamock.scalatest.MockFactory
 import org.scalatest._
 import org.scalatest.enablers.Existence
 
-import scala.util.Properties
+import scala.util.{ Properties, Success, Try }
 
 trait TestSupportFixture extends FlatSpec with Matchers with Inside with BeforeAndAfterEach with MockFactory {
   implicit def existenceOfFile[FILE <: better.files.File]: Existence[FILE] = _.exists
@@ -53,6 +54,8 @@ trait TestSupportFixture extends FlatSpec with Matchers with Inside with BeforeA
     }
   }
 
+  val defaultUserInfo = UserInfo("user001", displayName = "fullName", email = "does.not.exist@dans.knaw.nl", lastName = "")
+
   def testResource(file: String): File = File(getClass.getResource(file))
 
   def getManualTestResource(file: String): String = {
@@ -72,6 +75,7 @@ trait TestSupportFixture extends FlatSpec with Matchers with Inside with BeforeA
   DateTimeZone.setDefault(DateTimeZone.forTimeZone(TimeZone.getTimeZone("Europe/Amsterdam")))
 
   trait MockedPidRequester extends PidRequester with HttpContext
+
   def mockPidRequester: PidRequester = mock[MockedPidRequester]
 
   def minimalAppConfig: Configuration = {
@@ -92,11 +96,22 @@ trait TestSupportFixture extends FlatSpec with Matchers with Inside with BeforeA
     })
   }
 
+  def createTestApp: EasyDepositApiApp = {
+    new EasyDepositApiApp(minimalAppConfig) {
+      override val pidRequester: PidRequester = mockPidRequester
+
+      override def getUserInfo(user: String): Try[UserInfo] = {
+        Success(defaultUserInfo)
+      }
+    }
+  }
+
   private def testSubDir(drafts: String): File = {
     (testDir / drafts)
       .delete(swallowIOExceptions = true)
       .createIfNotExists(asDirectory = true, createParents = true)
   }
+
   private class TokenSupportImpl() extends TokenSupport with AuthConfig {
 
     // required by AuthConfig but not by TokenSupport
@@ -104,6 +119,7 @@ trait TestSupportFixture extends FlatSpec with Matchers with Inside with BeforeA
 
     def getProperties: PropertiesConfiguration = new PropertiesConfiguration()
   }
+
   private val tokenSupport = new TokenSupportImpl()
 
   def jwtConfig: TokenConfig = tokenSupport.tokenConfig

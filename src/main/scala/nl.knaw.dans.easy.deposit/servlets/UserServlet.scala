@@ -26,8 +26,8 @@ import scala.util.Try
 class UserServlet(app: EasyDepositApiApp) extends ProtectedServlet(app) {
 
   get("/") {
-    Try(app.getUser(user.id)).flatten // no throw should slip through
-      .map(properties => Ok(toJson(UserInfo(properties))))
+    Try(app.getUserInfo(user.id)).flatten // no throw should slip through
+      .map(userInfo => Ok(toJson(userInfo)))
       .getOrRecoverWithActionResult
   }
   put("/") {

@@ -27,6 +27,7 @@ import nl.knaw.dans.easy.deposit.Errors.NoSuchFileInDepositException
 import nl.knaw.dans.easy.deposit.docs.FileInfo
 import nl.knaw.dans.lib.error._
 
+import scala.collection.JavaConverters._
 import scala.util.{ Failure, Success }
 
 class DataFilesSpec extends TestSupportFixture {
@@ -99,24 +100,51 @@ class DataFilesSpec extends TestSupportFixture {
     }
   }
 
-  "fileInfoSeq" should "return the proper number of files" in {
+  "list" should "return files grouped by folder" in {
     val bag = DansV0Bag
       .empty(testDir / "testBag").getOrRecover(fail("could not create test bag", _))
       .addPayloadFile(randomContent, Paths.get("1.txt")).getOrRecover(payloadFailure)
-      .addPayloadFile(randomContent, Paths.get("folder1/2.txt")).getOrRecover(payloadFailure)
+      .addPayloadFile(randomContent, Paths.get("folder1/b/x.txt")).getOrRecover(payloadFailure)
+      .addPayloadFile(randomContent, Paths.get("folder1#b/x.txt")).getOrRecover(payloadFailure)
+      .addPayloadFile(randomContent, Paths.get("folder1.x/y.txt")).getOrRecover(payloadFailure)
+      .addPayloadFile(randomContent, Paths.get("folder1y/x.txt")).getOrRecover(payloadFailure)
       .addPayloadFile(randomContent, Paths.get("folder1/3.txt")).getOrRecover(payloadFailure)
+      .addPayloadFile(randomContent, Paths.get(".hidden")).getOrRecover(payloadFailure)
+      .addPayloadFile(randomContent, Paths.get("#/1.txt")).getOrRecover(payloadFailure)
       .addPayloadFile(randomContent, Paths.get("folder2/4.txt")).getOrRecover(payloadFailure)
+      .addPayloadFile(randomContent, Paths.get("foo.txt")).getOrRecover(payloadFailure)
+      .addPayloadFile(randomContent, Paths.get("folder11/4.txt")).getOrRecover(payloadFailure)
+      .addPayloadFile(randomContent, Paths.get("folder1/5.txt")).getOrRecover(payloadFailure)
     bag.save()
-    val dataFiles = DataFiles(bag)
-    dataFiles.list(Paths.get("folder2")) should matchPattern {
-      case Success(Seq(_)) =>
-    }
-    dataFiles.list(Paths.get("folder1")) should matchPattern {
-      case Success(Seq(_, _)) =>
-    }
-    dataFiles.list(Paths.get("")) should matchPattern {
-      case Success(Seq(_, _, _, _)) =>
-    }
+
+    DataFiles(bag).list(Paths.get(""))
+      .map(_.map(fileInfo => fileInfo.dirpath.toString -> fileInfo.filename)) shouldBe Success(Seq(
+      /* From path.compare:
+       *
+       * Compares two abstract paths lexicographically. The ordering defined by
+       * this method is provider specific, and in the case of the default
+       * provider, platform specific. This method does not access the file system
+       * and neither file is required to exist.
+       */
+      /* Observation:
+       *
+       * depth first
+       * at one level files an folders are mixed
+       * a sequence of digits seems to be treated as a single character (unlike an ls command) but not numerically
+       */
+      "#" -> "1.txt",
+      "" -> ".hidden",
+      "" -> "1.txt",
+      "folder1#b" -> "x.txt",
+      "folder1.x" -> "y.txt",
+      "folder1" -> "3.txt",
+      "folder1" -> "5.txt",
+      "folder1/b" -> "x.txt",
+      "folder11" -> "4.txt",
+      "folder1y" -> "x.txt",
+      "folder2" -> "4.txt",
+      "" -> "foo.txt",
+    ))
   }
 
   "fileInfo" should "contain proper information about the files" in {

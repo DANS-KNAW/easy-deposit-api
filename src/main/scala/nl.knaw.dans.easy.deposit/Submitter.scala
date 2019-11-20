@@ -28,15 +28,15 @@ import nl.knaw.dans.bag.DansBag
 import nl.knaw.dans.bag.v0.DansV0Bag
 import nl.knaw.dans.easy.deposit.Errors.{ AlreadySubmittedException, InvalidDoiException }
 import nl.knaw.dans.easy.deposit.docs.StateInfo.State
-import nl.knaw.dans.easy.deposit.docs.{ AgreementsXml, DDM, FilesXml, StateInfo }
+import nl.knaw.dans.easy.deposit.docs._
 import nl.knaw.dans.lib.error._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
+import nl.knaw.dans.lib.string._
 import org.joda.time.DateTime
 
 import scala.collection.JavaConverters._
 import scala.util.control.NonFatal
 import scala.util.{ Failure, Success, Try }
-import nl.knaw.dans.lib.string._
 
 /**
  * Object that contains the logic for submitting a deposit.
@@ -69,7 +69,7 @@ class Submitter(stagingBaseDir: File,
    * @param draftDeposit the deposit object to submit
    * @return the UUID of the deposit in the submit area (easy-ingest-flow-inbox)
    */
-  def submit(draftDeposit: DepositDir, stateManager: StateManager, fullName: String, stagedDir: File): Try[UUID] = {
+  def submit(draftDeposit: DepositDir, stateManager: StateManager, user: UserInfo, stagedDir: File): Try[UUID] = {
     val propsFileName = "deposit.properties"
     for {
       // EASY-1464 step 3.3.4 validation
@@ -80,13 +80,13 @@ class Submitter(stagingBaseDir: File,
       // EASY-1464 3.3.5.a: generate (with some implicit validation) content for metadata files
       draftBag <- draftDeposit.getDataFiles.map(_.bag)
       datasetMetadata <- draftDeposit.getDatasetMetadata
-      agreementsXml <- AgreementsXml(draftDeposit.user, DateTime.now, datasetMetadata, fullName)
+      agreementsXml <- AgreementsXml(DateTime.now, datasetMetadata, user)
       _ = datasetMetadata.doi.getOrElse(throw InvalidDoiException(draftDeposit.id))
       _ <- draftDeposit.sameDOIs(datasetMetadata)
       datasetXml <- DDM(datasetMetadata)
       msg4DataManager = {
         val firstPart = datasetMetadata.messageForDataManager.getOrElse("").stripLineEnd
-        val secondPart = s"The deposit can be found at $depositUiURL/${draftDeposit.id}"
+        val secondPart = s"The deposit can be found at $depositUiURL/${ draftDeposit.id }"
         firstPart.toOption.fold(secondPart)(_ + "\n\n" + secondPart)
       }
       filesXml <- FilesXml(draftBag.data)
@@ -95,7 +95,7 @@ class Submitter(stagingBaseDir: File,
       // EASY-1464 3.3.8.a create empty staged bag to take a copy of the deposit
       stageBag <- DansV0Bag.empty(stagedDir / bagDirName).map(_.withCreated())
       // EASY-1464 3.3.6 change state and copy with the rest of the deposit properties to staged dir
-      _ <- stateManager.changeState(StateInfo(State.submitted, "Deposit is ready for processing."))
+      _ <- stateManager.changeState(StateInfo(State.submitted, "The deposit is being processed"))
       submittedId <- stateManager.getSubmittedBagId // created by changeState
       submitDir = submitToBaseDir / submittedId.toString
       _ = if (submitDir.exists) throw AlreadySubmittedException(draftDeposit.id)
