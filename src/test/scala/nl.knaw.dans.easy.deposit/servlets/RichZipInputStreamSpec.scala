@@ -58,7 +58,7 @@ class RichZipInputStreamSpec extends TestSupportFixture {
     )
     stagingDir.entries shouldBe empty
     testDir.entries should have size 1
-    testDir.parent.entries should have size 1
+    testDir.parent.entries.filter(!_.name.endsWith("Spec")) shouldBe empty
   }
 
   it should "complain about an empty zip" in {
