@@ -66,8 +66,10 @@ package object servlets extends DebugEnhancedLogging {
 
     def unzipPlainEntriesTo(targetDir: File): Try[Unit] = {
       def extract(entry: ArchiveEntry): Try[Unit] = {
-        if (entry.isDirectory)
-          Try((targetDir / entry.getName).createDirectories())
+        if (!(targetDir / entry.getName).isChildOf(targetDir))
+          Failure(MalformedZipException(s"Can't extract ${ entry.getName }"))
+        else if (entry.isDirectory)
+               Try((targetDir / entry.getName).createDirectories())
         else {
           logger.info(s"Extracting ${ entry.getName } size=${ entry.getSize } getLastModifiedDate=${ entry.getLastModifiedDate } }")
           Try {
