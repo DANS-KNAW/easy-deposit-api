@@ -163,12 +163,12 @@ class UploadSpec extends DepositServletFixture with Inspectors {
       files = bodyParts
     ) {
       status shouldBe BAD_REQUEST_400
-      body shouldBe "ZIP file is malformed. No entries found."
+      body shouldBe "Archive file is malformed. No entries found."
     }
     absoluteTarget.entries shouldBe empty
   }
 
-  it should "extract the files into the relative target" in {
+  it should "extract the files of a zip into the relative target" in {
     val uuid = createDeposit
     val relativeTarget = "path/to/dir"
     val bagDir = testDir / "drafts" / "foo" / uuid.toString / bagDirName
@@ -202,6 +202,25 @@ class UploadSpec extends DepositServletFixture with Inspectors {
       body should include("""{"filename":"upload.html","dirpath":"path/to/dir",""")
       body should include("""{"filename":"login.html","dirpath":"path/to/dir",""")
     }
+  }
+
+  it should "extract the files of a tar into the relative target" in {
+    val uuid = createDeposit
+    val relativeTarget = "path/to/dir"
+    val bagDir = testDir / "drafts" / "foo" / uuid.toString / bagDirName
+    val absoluteTarget = (bagDir / "data" / relativeTarget).createDirectories()
+    absoluteTarget.entries shouldBe empty // precondition
+    post(
+      uri = s"/deposit/$uuid/file/$relativeTarget", // another post-URI tested with the same zip
+      params = Iterable(),
+      headers = Seq(fooBarBasicAuthHeader),
+      files = Seq(("formFieldName", File("src/test/resources/manual-test/ruimtereis-bag.tar").toJava))
+    ) {
+      body shouldBe ""
+      status shouldBe CREATED_201
+    }
+    // more extensive verifications for the zip test
+    absoluteTarget.walk().map(_.name).toList should contain ("ruimtereis01_verklaring.txt")
   }
 
   it should "extract all files from a ZIP, with a nested zip" in {

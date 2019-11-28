@@ -20,14 +20,16 @@ import java.nio.charset.{ Charset, StandardCharsets }
 import java.util.zip.ZipException
 
 import better.files.{ File, UnicodeCharset, _ }
-import nl.knaw.dans.easy.deposit.Errors.MalformedZipException
+import nl.knaw.dans.easy.deposit.Errors.MalformedArchiveException
 import nl.knaw.dans.easy.deposit.TestSupportFixture
+import org.apache.commons.compress.archivers.ArchiveInputStream
+import org.apache.commons.compress.archivers.tar.TarArchiveInputStream
 import org.apache.commons.compress.archivers.zip.ZipArchiveInputStream
 import resource.{ ManagedResource, managed }
 
 import scala.util.{ Failure, Success, Try }
 
-class RichZipInputStreamSpec extends TestSupportFixture {
+class RichArchiveInputStreamSpec extends TestSupportFixture {
 
   private val stagingDir = testDir / "staging"
 
@@ -36,17 +38,17 @@ class RichZipInputStreamSpec extends TestSupportFixture {
     clearTestDir()
   }
 
-  "unzipPlainEntriesTo" should "report invalid content" in {
+  "unpackPlainEntriesTo" should "report invalid content" in {
     mockRichFileItemGetZipInputStream(new ByteArrayInputStream("Lorem ipsum est".getBytes(StandardCharsets.UTF_8))).apply(
-      unzip(_) shouldBe Failure(MalformedZipException("No entries found."))
+      unzip(_) shouldBe Failure(MalformedArchiveException("No entries found."))
     )
     stagingDir.entries shouldBe empty
   }
 
   it should "complain about an invalid zip" in {
-    val zipFile = "src/test/resources/manual-test/invalid.zip"
-    mockRichFileItemGetZipInputStream(new FileInputStream(zipFile)).apply(
-      unzip(_) shouldBe Failure(MalformedZipException("No entries found."))
+    val archiveFile = "src/test/resources/manual-test/invalid.zip"
+    mockRichFileItemGetZipInputStream(new FileInputStream(archiveFile)).apply(
+      unzip(_) shouldBe Failure(MalformedArchiveException("No entries found."))
     )
     stagingDir.entries shouldBe empty
   }
@@ -54,7 +56,7 @@ class RichZipInputStreamSpec extends TestSupportFixture {
   it should "complain about a zip trying to put files outside the intended target" in {
     val zipFile = "src/test/resources/manual-test/slip.zip"
     mockRichFileItemGetZipInputStream(new FileInputStream(zipFile)).apply(
-      unzip(_) shouldBe Failure(MalformedZipException("Can't extract ../../user001washere.txt"))
+      unzip(_) shouldBe Failure(MalformedArchiveException("Can't extract ../../user001washere.txt"))
     )
     stagingDir.entries shouldBe empty
     testDir.entries should have size 1
@@ -64,15 +66,15 @@ class RichZipInputStreamSpec extends TestSupportFixture {
   it should "complain about an empty zip" in {
     val zipFile = "src/test/resources/manual-test/empty.zip"
     mockRichFileItemGetZipInputStream(new FileInputStream(zipFile)).apply(
-      unzip(_) shouldBe Failure(MalformedZipException("No entries found."))
+      unzip(_) shouldBe Failure(MalformedArchiveException("No entries found."))
     )
     stagingDir.entries shouldBe empty
   }
 
-  it should "not accept a tar" in {
-    val zipFile = "src/test/resources/manual-test/Archive.tar.gz"
-    mockRichFileItemGetZipInputStream(new FileInputStream(zipFile)).apply(
-      unzip(_) shouldBe Failure(MalformedZipException("Unexpected record signature: 0X88B1F"))
+  it should "not accept an invalid tar" in {
+    val archiveFile = "src/test/resources/manual-test/invalid.tar.gz"
+    mockRichFileItemGetZipInputStream(new FileInputStream(archiveFile)).apply(
+      unzip(_) shouldBe Failure(MalformedArchiveException("Unexpected record signature: 0X88B1F"))
     )
     stagingDir.entries shouldBe empty
   }
@@ -105,6 +107,15 @@ class RichZipInputStreamSpec extends TestSupportFixture {
       unzip(_) shouldBe Success(())
     )
     (stagingDir / "data-test-2" / "data" / "ruimtereis01_verklaring.txt") should exist
+  }
+
+  it should "handle tar" in {
+    val tarFile = "src/test/resources/manual-test/ruimtereis-bag.tar"
+
+    mockRichFileItemGetTarInputStream(new FileInputStream(tarFile)).apply(
+      unzip(_) shouldBe Success(())
+    )
+    (stagingDir / "data" / "ruimtereis01_verklaring.txt") should exist
   }
 
   it should "recursively remove empty directories" in {
@@ -159,8 +170,8 @@ class RichZipInputStreamSpec extends TestSupportFixture {
     File(zipFile).newZipInputStream(charset).mapEntries(_.getName).toList
   }
 
-  private def unzip(stream: ZipArchiveInputStream): Try[Unit] = {
-    stream.unzipPlainEntriesTo(stagingDir.createDirectories())
+  private def unzip(stream: ArchiveInputStream): Try[Unit] = {
+    stream.unpackPlainEntriesTo(stagingDir.createDirectories())
   }
 
   /** Mocks how a file item of a http request is processed by the application */
@@ -172,5 +183,8 @@ class RichZipInputStreamSpec extends TestSupportFixture {
      inputStream.asZipInputStream
      */
     managed(new ZipArchiveInputStream(inputStream, "UTF8", true, true))
+  }
+  private def mockRichFileItemGetTarInputStream(inputStream: InputStream): ManagedResource[TarArchiveInputStream] = {
+    managed(new TarArchiveInputStream(inputStream, "UTF8"))
   }
 }
