@@ -125,7 +125,7 @@ class UploadSpec extends DepositServletFixture with Inspectors {
       headers = Seq(fooBarBasicAuthHeader),
       files = bodyParts
     ) {
-      body shouldBe "A multipart/form-data message contained a ZIP part [2.zip] but also other parts."
+      body shouldBe "A multipart/form-data message contained an archive part [2.zip] but also other parts."
       status shouldBe BAD_REQUEST_400
     }
     absoluteTarget.entries shouldBe empty // preceding plain file not added to draft bag
@@ -145,7 +145,7 @@ class UploadSpec extends DepositServletFixture with Inspectors {
       headers = Seq(fooBarBasicAuthHeader),
       files = bodyParts
     ) {
-      body shouldBe "A multipart/form-data message contained a ZIP part [1.zip] but also other parts."
+      body shouldBe "A multipart/form-data message contained an archive part [1.zip] but also other parts."
       status shouldBe BAD_REQUEST_400
     }
     absoluteTarget.entries shouldBe empty

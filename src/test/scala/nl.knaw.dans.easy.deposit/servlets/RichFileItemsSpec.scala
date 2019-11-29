@@ -84,7 +84,7 @@ class RichFileItemsSpec extends TestSupportFixture with MockFactory {
     ).buffered
     fileItems.nextAsArchiveIfOnlyOne should matchPattern {
       case Failure(e: ArchiveMustBeOnlyFileException) if e.getMessage ==
-        "A multipart/form-data message contained a ZIP part [some.zip] but also other parts." =>
+        "A multipart/form-data message contained an archive part [some.zip] but also other parts." =>
     }
   }
 
@@ -107,7 +107,7 @@ class RichFileItemsSpec extends TestSupportFixture with MockFactory {
 
     createMultipartConfig.moveNonArchive(fileItems, createStageDir) should matchPattern {
       case Failure(e: ArchiveMustBeOnlyFileException) if e.getMessage ==
-        "A multipart/form-data message contained a ZIP part [some.zip] but also other parts." =>
+        "A multipart/form-data message contained an archive part [some.zip] but also other parts." =>
       // moveNonZips should not have been called at all by the servlet with these items
       // that's out of scope for this unit test but is the (fall back) rationale for the "but ..."
       // of the message returned to the client
