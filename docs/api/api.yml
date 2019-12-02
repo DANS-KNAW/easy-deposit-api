@@ -515,7 +515,7 @@ paths:
        - $ref: "#/components/parameters/FilePath"
       description: |
         If any of `file_path`'s parent do not yet exist, they are first created. The parameter `file_path` must not refer
-        to an existing directory. The Content-Type may be not be `application/zip` `application/tar-compressed` nor `multipart`.
+        to an existing directory. The Content-Type may be not be `application/zip`, `application/tar-compressed` or `multipart`.
         Concurrent POST or PUT calls to the same deposit are not allowed.
       operationId: writeFile
       requestBody:
