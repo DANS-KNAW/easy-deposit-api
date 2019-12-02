@@ -418,10 +418,11 @@ paths:
         [multipart media type](https://tools.ietf.org/html/rfc2046.html#section-5.1); each part contains one file.
         The header area of each part specifies the file name using a `Content-Disposition` header.
 
-        If the body contains **only one part** and that part has `Content-Type: application/zip`, then the body
-        is a file in ZIP format. This ZIP file can contain a directory hierarchy. The ZIP file will be
-        unzipped in `dir_path`. For each file in the ZIP file, the path in the deposit will be `dir_path`/`path_in_zip`.
-        The ZIP file may contain `nested ZIP files`, which will **not** be extracted, but stored as ZIP file.
+        If the body contains **only one part** and that part has `Content-Type: application/zip`
+        or `Content-Type: application/tar-compressed`, then the body
+        is a file in archive format. This archive file can contain a directory hierarchy. The archive file will be
+        unpacked in `dir_path`. For each file in the archive file, the path in the deposit will be `dir_path`/`path_in_archive`.
+        The archive file may contain `nested archive files`, which will **not** be extracted, but stored as is.
 
         Existing files at the target location will be overwritten, existing folders at the target location will be merged with the folders in the zip.
         Concurrent POST or PUT calls to the same deposit are not allowed.
@@ -445,11 +446,11 @@ paths:
         201:
           description: file or subdirectory added
         400.1:
-          $ref: "#/components/responses/MalformedZip"
+          $ref: "#/components/responses/MalformedArchive"
         400.2:
           $ref: "#/components/responses/MustBeMultipartFormdata"
         400.3:
-          $ref: "#/components/responses/ZipMustBeOnlyFile"
+          $ref: "#/components/responses/ArchiveMustBeOnlyFile"
         401:
           $ref: "#/components/responses/Unauthorized"
         404:
@@ -514,7 +515,7 @@ paths:
        - $ref: "#/components/parameters/FilePath"
       description: |
         If any of `file_path`'s parent do not yet exist, they are first created. The parameter `file_path` must not refer
-        to an existing directory. The Content-Type may be not be `application/zip` nor `multipart`.
+        to an existing directory. The Content-Type may be not be `application/zip` `application/tar-compressed` nor `multipart`.
         Concurrent POST or PUT calls to the same deposit are not allowed.
       operationId: writeFile
       requestBody:
@@ -541,8 +542,6 @@ paths:
                 $ref: "#/components/schemas/FileInfo"
         204:
           description: Updated existing file.
-        400:
-          $ref: "#/components/responses/ZipFileNotAllowed"
         401:
           $ref: "#/components/responses/Unauthorized"
         403:
@@ -663,8 +662,8 @@ components:
     NotFound:
       description: Not found. The body specifies if the deposit or something in the deposit is not found.
 
-    ZipMustBeOnlyFile:
-      description: Bad request. A multipart/form-data message contained a ZIP part but also other parts.
+    ArchiveMustBeOnlyFile:
+      description: Bad request. A multipart/form-data message contained a archive part but also other parts.
 
     ConflictConcurrentUploadsNotAllowed:
       description: Conflict. Concurrent file uploads to the same deposit are not allowed.
@@ -685,14 +684,11 @@ components:
     MalformedState:
       description: Bad request. State document is malformed.
 
-    MalformedZip:
-      description: Bad request. ZIP file is malformed.
+    MalformedArchive:
+      description: Bad request. Archive file is malformed.
 
     MustBeMultipartFormdata:
       description: Bad Request. The request body must be multipart/form-data.
-
-    ZipFileNotAllowed:
-      description: Bad request. Content-Type must not be application/zip nor start with multipart.
 
   schemas:
 
