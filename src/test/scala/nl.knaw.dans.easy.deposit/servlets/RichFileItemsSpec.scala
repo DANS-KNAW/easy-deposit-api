@@ -17,7 +17,7 @@ package nl.knaw.dans.easy.deposit.servlets
 
 import better.files.File
 import javax.servlet.http.Part
-import nl.knaw.dans.easy.deposit.Errors.ZipMustBeOnlyFileException
+import nl.knaw.dans.easy.deposit.Errors.ArchiveMustBeOnlyFileException
 import nl.knaw.dans.easy.deposit.TestSupportFixture
 import org.scalamock.scalatest.MockFactory
 import org.scalatra.servlet.{ FileItem, MultipartConfig }
@@ -33,7 +33,7 @@ class RichFileItemsSpec extends TestSupportFixture with MockFactory {
 
   "nextAsZipIfOnlyOne" should "return nothing" in {
     val fileItems = Iterator[FileItem]().buffered
-    fileItems.nextAsZipIfOnlyOne shouldBe Success(None)
+    fileItems.nextAsArchiveIfOnlyOne shouldBe Success(None)
     fileItems.hasNext shouldBe false
   }
 
@@ -43,7 +43,7 @@ class RichFileItemsSpec extends TestSupportFixture with MockFactory {
       mockFileItem("some.zip"),
       mockFileItem(""),
     ).buffered
-    fileItems.nextAsZipIfOnlyOne should matchPattern { case Success(Some(_)) => }
+    fileItems.nextAsArchiveIfOnlyOne should matchPattern { case Success(Some(_)) => }
     fileItems.hasNext shouldBe false
   }
 
@@ -68,7 +68,7 @@ class RichFileItemsSpec extends TestSupportFixture with MockFactory {
     fileItems.map {
       Iterator(_)
         .buffered
-        .nextAsZipIfOnlyOne
+        .nextAsArchiveIfOnlyOne
         .map(_.isDefined)
         .toString
     }.mkString("") shouldBe ("Success(true)" * fileItems.size)
@@ -82,9 +82,9 @@ class RichFileItemsSpec extends TestSupportFixture with MockFactory {
       mockFileItem("other.zip"),
       mockFileItem(""),
     ).buffered
-    fileItems.nextAsZipIfOnlyOne should matchPattern {
-      case Failure(e: ZipMustBeOnlyFileException) if e.getMessage ==
-        "A multipart/form-data message contained a ZIP part [some.zip] but also other parts." =>
+    fileItems.nextAsArchiveIfOnlyOne should matchPattern {
+      case Failure(e: ArchiveMustBeOnlyFileException) if e.getMessage ==
+        "A multipart/form-data message contained an archive part [some.zip] but also other parts." =>
     }
   }
 
@@ -93,7 +93,7 @@ class RichFileItemsSpec extends TestSupportFixture with MockFactory {
       mockFileItem(""),
     ).buffered
 
-    createMultipartConfig.moveNonZips(fileItems, createStageDir) shouldBe a[Success[_]]
+    createMultipartConfig.moveNonArchive(fileItems, createStageDir) shouldBe a[Success[_]]
     (testDir / "staged").list should have size 0
   }
 
@@ -105,9 +105,9 @@ class RichFileItemsSpec extends TestSupportFixture with MockFactory {
       mockFileItem("another.txt", content = "Dolor sit amet"),
     ).buffered
 
-    createMultipartConfig.moveNonZips(fileItems, createStageDir) should matchPattern {
-      case Failure(e: ZipMustBeOnlyFileException) if e.getMessage ==
-        "A multipart/form-data message contained a ZIP part [some.zip] but also other parts." =>
+    createMultipartConfig.moveNonArchive(fileItems, createStageDir) should matchPattern {
+      case Failure(e: ArchiveMustBeOnlyFileException) if e.getMessage ==
+        "A multipart/form-data message contained an archive part [some.zip] but also other parts." =>
       // moveNonZips should not have been called at all by the servlet with these items
       // that's out of scope for this unit test but is the (fall back) rationale for the "but ..."
       // of the message returned to the client

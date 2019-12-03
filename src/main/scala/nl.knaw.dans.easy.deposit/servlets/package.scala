@@ -22,10 +22,11 @@ import java.util.zip.ZipException
 
 import better.files.File
 import better.files.File.CopyOptions
-import nl.knaw.dans.easy.deposit.Errors.{ ConfigurationException, MalformedZipException, ZipMustBeOnlyFileException }
+import nl.knaw.dans.easy.deposit.Errors.{ ArchiveMustBeOnlyFileException, ConfigurationException, MalformedArchiveException }
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
-import org.apache.commons.compress.archivers.ArchiveEntry
+import org.apache.commons.compress.archivers.tar.TarArchiveInputStream
 import org.apache.commons.compress.archivers.zip.ZipArchiveInputStream
+import org.apache.commons.compress.archivers.{ ArchiveEntry, ArchiveInputStream }
 import org.scalatra.servlet.{ FileItem, MultipartConfig }
 import org.scalatra.util.RicherString._
 import resource.{ ManagedResource, managed }
@@ -48,37 +49,41 @@ import scala.util.{ Failure, Success, Try }
 // @formatter:on
 package object servlets extends DebugEnhancedLogging {
 
-  val extensionZipPattern = ".+[.]g?z(ip)?"
+  private val zipExtRegexp = "g?z(ip)?"
+  private val tarExtRegexp = "tar(.gz)?"
+  val archiveExtRegexp = s".+[.]($zipExtRegexp|$tarExtRegexp)"
   private val pre = "(x-)?g?zip"
   private val post = "-compress(ed)?"
-  val contentTypeZipPattern = s"application/(($pre($post)?)|(x$post))"
+  private val zipContentTypeRegexp = s"(($pre($post)?)|(x$post))"
+  private val tarContentTypeRegexp = s"x-g?tar$post"
+  val archiveContentTypeRegexp = s"application/($zipContentTypeRegexp|$tarContentTypeRegexp)"
 
   val contentTypeJson: (String, String) = "content-type" -> "application/json;charset=UTF-8"
   val contentTypePlainText: (String, String) = "content-type" -> "text/plain;charset=UTF-8"
 
-  implicit class RichManagedZipInputStream(val zipInputStream: ManagedResource[ZipArchiveInputStream]) extends AnyVal {
-    def unzipPlainEntriesTo(dir: File): Try[Unit] = {
-      zipInputStream.apply(_.unzipPlainEntriesTo(dir))
+  implicit class RichManagedArchiveInputStream(val archiveInputStream: ManagedResource[ArchiveInputStream]) extends AnyVal {
+    def unpackPlainEntriesTo(dir: File): Try[Unit] = {
+      archiveInputStream.apply(_.unpackPlainEntriesTo(dir))
     }
   }
 
-  implicit class RichZipInputStream(val zipInputStream: ZipArchiveInputStream) extends AnyVal {
+  implicit class RichArchiveInputStream(val archiveInputStream: ArchiveInputStream) extends AnyVal {
 
-    def unzipPlainEntriesTo(targetDir: File): Try[Unit] = {
+    def unpackPlainEntriesTo(targetDir: File): Try[Unit] = {
       def extract(entry: ArchiveEntry): Try[Unit] = {
         if (!(targetDir / entry.getName).isChildOf(targetDir))
-          Failure(MalformedZipException(s"Can't extract ${ entry.getName }"))
+          Failure(MalformedArchiveException(s"Can't extract ${ entry.getName }"))
         else if (entry.isDirectory)
                Try((targetDir / entry.getName).createDirectories())
         else {
           logger.info(s"Extracting ${ entry.getName } size=${ entry.getSize } getLastModifiedDate=${ entry.getLastModifiedDate } }")
           Try {
             (targetDir / entry.getName).parent.createDirectories() // in case a directory was not specified separately
-            Files.copy(zipInputStream, (targetDir / entry.getName).path)
+            Files.copy(archiveInputStream, (targetDir / entry.getName).path)
             ()
           }.recoverWith { case e: ZipException =>
             logger.error(e.getMessage, e)
-            Failure(MalformedZipException(s"Can't extract ${ entry.getName }"))
+            Failure(MalformedArchiveException(s"Can't extract ${ entry.getName }"))
           }
         }
       }
@@ -96,15 +101,15 @@ package object servlets extends DebugEnhancedLogging {
         }
       }
 
-      Try(Option(zipInputStream.getNextEntry)) match {
+      Try(Option(archiveInputStream.getNextEntry)) match {
         case Success(None) |
-             Failure(_: EOFException) => Failure(MalformedZipException(s"No entries found."))
-        case Failure(e: ZipException) => Failure(MalformedZipException(e.getMessage))
+             Failure(_: EOFException) => Failure(MalformedArchiveException(s"No entries found."))
+        case Failure(e: ZipException) => Failure(MalformedArchiveException(e.getMessage))
         case Failure(e) => Failure(e)
         case Success(Some(firstEntry: ArchiveEntry)) => for {
           _ <- extract(firstEntry)
           _ <- Stream
-            .continually(zipInputStream.getNextEntry)
+            .continually(archiveInputStream.getNextEntry)
             .takeWhile(Option(_).nonEmpty)
             .map(extract)
             .failFastOr(Success(()))
@@ -116,37 +121,33 @@ package object servlets extends DebugEnhancedLogging {
 
   implicit class RichFileItem(val fileItem: FileItem) extends AnyVal {
 
-    def isZip: Boolean = {
-      val extensionIsZip = fileItem.name.matches(extensionZipPattern)
-      lazy val contentTypeIsZip = fileItem.contentType.exists(_.matches(contentTypeZipPattern))
-      logger.debug(s"ZIP check: ${ fileItem.name } : $extensionIsZip; ${ fileItem.contentType } : $contentTypeIsZip ")
-      extensionIsZip || contentTypeIsZip
+    private def matchesEitherOf(extensionRegexp: String, contentTypeRegexp: String) = {
+      fileItem.name.matches(extensionRegexp) || fileItem.contentType.exists(_.matches(contentTypeRegexp))
     }
 
-    def getZipInputStream: Try[resource.ManagedResource[ZipArchiveInputStream]] = Try {
-      fileItem.charset
-        .map(toZipInputStream)
-        .getOrElse(toZipInputStream("UTF8"))
+    def isArchive: Boolean = {
+      matchesEitherOf(archiveExtRegexp, archiveContentTypeRegexp)
     }
 
-    private def toZipInputStream(charSet: String): ManagedResource[ZipArchiveInputStream] = {
-      val useUnicodeExtraFields = true
-      val allowStoredEntriesWithDataDescriptor = true
-      managed(new ZipArchiveInputStream(fileItem.getInputStream, charSet, useUnicodeExtraFields, allowStoredEntriesWithDataDescriptor))
+    def getArchiveInputStream: Try[resource.ManagedResource[ArchiveInputStream]] = Try {
+      val charSet = fileItem.charset.getOrElse("UTF8")
+      if (matchesEitherOf(s".+[.]$tarExtRegexp", tarContentTypeRegexp))
+        managed(new TarArchiveInputStream(fileItem.getInputStream, charSet))
+      else managed(new ZipArchiveInputStream(fileItem.getInputStream, charSet, true, true))
     }
   }
 
   implicit class RichMultipartConfig(config: MultipartConfig) {
-    def moveNonZips(srcItems: Iterator[FileItem], targetDir: File): Try[Unit] = {
+    def moveNonArchive(srcItems: Iterator[FileItem], targetDir: File): Try[Unit] = {
       srcItems
-        .map(moveIfNonZip(_, targetDir))
+        .map(moveIfNotAnArchive(_, targetDir))
         .failFastOr(Success(()))
     }
 
-    private def moveIfNonZip(srcItem: FileItem, targetDir: File): Try[Unit] = {
+    private def moveIfNotAnArchive(srcItem: FileItem, targetDir: File): Try[Unit] = {
       logger.info(s"staging upload: size=${ srcItem.size } contentType=${ srcItem.contentType } $targetDir/${ srcItem.name }")
       if (srcItem.name.isBlank) Success(()) // skip form field without selected files
-      else if (srcItem.isZip) Failure(ZipMustBeOnlyFileException(srcItem))
+      else if (srcItem.isArchive) Failure(ArchiveMustBeOnlyFileException(srcItem))
       else Try {
         val f = UUID.randomUUID().toString
         val location = File(config.location.getOrElse(throw ConfigurationException("multipart.location is missing")))
@@ -163,15 +164,15 @@ package object servlets extends DebugEnhancedLogging {
 
   implicit class RichFileItems(val fileItems: BufferedIterator[FileItem]) extends AnyVal {
 
-    def nextAsZipIfOnlyOne: Try[Option[ManagedResource[ZipArchiveInputStream]]] = {
+    def nextAsArchiveIfOnlyOne: Try[Option[ManagedResource[ArchiveInputStream]]] = {
       skipLeadingEmptyFormFields()
-      if (!fileItems.headOption.exists(_.isZip)) Success(None)
+      if (!fileItems.headOption.exists(_.isArchive)) Success(None)
       else {
-        val leadingZipItem = fileItems.next()
+        val leadingArchiveItem = fileItems.next()
         skipLeadingEmptyFormFields()
         if (fileItems.hasNext)
-          Failure(ZipMustBeOnlyFileException(leadingZipItem))
-        else leadingZipItem.getZipInputStream.map(Some(_))
+          Failure(ArchiveMustBeOnlyFileException(leadingArchiveItem))
+        else leadingArchiveItem.getArchiveInputStream.map(Some(_))
       }
     }
 

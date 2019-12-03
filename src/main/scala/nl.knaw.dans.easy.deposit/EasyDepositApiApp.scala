@@ -28,7 +28,7 @@ import nl.knaw.dans.easy.deposit.authentication.{ AuthenticationProvider, LdapAu
 import nl.knaw.dans.easy.deposit.docs.StateInfo.State
 import nl.knaw.dans.easy.deposit.docs.StateInfo.State.State
 import nl.knaw.dans.easy.deposit.docs.{ DatasetMetadata, DepositInfo, StateInfo, UserInfo }
-import nl.knaw.dans.easy.deposit.servlets.contentTypeZipPattern
+import nl.knaw.dans.easy.deposit.servlets.archiveContentTypeRegexp
 import nl.knaw.dans.lib.error._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.apache.commons.configuration.PropertiesConfiguration
@@ -339,7 +339,7 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
     contentType.map(_.trim.toLowerCase) match {
       case Some(str) if str.nonEmpty
         && !str.startsWith("multipart")
-        && !str.matches(contentTypeZipPattern) => Success(())
+        && !str.matches(archiveContentTypeRegexp) => Success(())
       case _ => Failure(InvalidContentTypeException(contentType, "must not be application/zip nor start with multipart."))
     }
   }

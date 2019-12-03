@@ -86,10 +86,10 @@ object Errors extends DebugEnhancedLogging {
       s"Deposit has state $actual, can only $action deposits with one of the states: ${ allowed.mkString(", ") }"
     )
 
-  case class ZipMustBeOnlyFileException(item: FileItem)
+  case class ArchiveMustBeOnlyFileException(item: FileItem)
     extends ServletResponseException(
       BAD_REQUEST_400,
-      s"A multipart/form-data message contained a ZIP part [${ item.name }] but also other parts."
+      s"A multipart/form-data message contained an archive part [${ item.name }] but also other parts."
     )
 
   case class InvalidDocumentException(document: String, t: Throwable = null)
@@ -109,8 +109,8 @@ object Errors extends DebugEnhancedLogging {
   case class InvalidDoiException(uuid: UUID)
     extends ServletResponseException(BAD_REQUEST_400, s"InvalidDoi: DOI must be obtained by calling GET /deposit/$uuid")
 
-  case class MalformedZipException(msgAboutEntry: String)
-    extends ServletResponseException(BAD_REQUEST_400, s"ZIP file is malformed. $msgAboutEntry")
+  case class MalformedArchiveException(msgAboutEntry: String)
+    extends ServletResponseException(BAD_REQUEST_400, s"Archive file is malformed. $msgAboutEntry")
 
   case class PendingUploadException()
     extends ServletResponseException(CONFLICT_409, "Another upload or submit is pending.")
