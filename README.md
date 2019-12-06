@@ -2,7 +2,7 @@ easy-deposit-api
 ================
 [![Build Status](https://travis-ci.org/DANS-KNAW/easy-deposit-api.png?branch=master)](https://travis-ci.org/DANS-KNAW/easy-deposit-api)
 
-JSON-base deposit service.
+JSON-based deposit service.
 
 Welcome
 -------

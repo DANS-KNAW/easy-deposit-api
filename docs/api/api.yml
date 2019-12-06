@@ -1,13 +1,11 @@
 openapi: 3.0.1
 
 servers:
-  - description: Debug environment
     url: http://localhost:20190/
-  - description: Local Vagrant machine
-    url: http://test.dans.knaw.nl
+
 info:
   description: Public interface for depositing datasets in EASY.
-  version: 1.0.0
+  version: 5.1.2
   title: Deposit API
   contact:
     email: info@dans.knaw.nl
