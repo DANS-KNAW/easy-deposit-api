@@ -48,7 +48,13 @@ class Submitter(stagingBaseDir: File,
                 submitToBaseDir: File,
                 groupName: String,
                 depositUiURL: String,
-               ) extends DebugEnhancedLogging {
+               ) extends DebugEnhancedLogging with Mailer {
+  // TODO how to implement these overrides
+  override val smtpHost: String = "deasy.dans.knaw.nl"
+  override val fromAddress: String = "info.dans.knaw.nl"
+  override val bcc: Option[String] = None
+  override val templateDir: File = File("src/main/assembly/dist/cfg/template")
+
   private val groupPrincipal = {
     Try {
       stagingBaseDir.fileSystem.getUserPrincipalLookupService.lookupPrincipalByGroupName(groupName)
@@ -105,12 +111,12 @@ class Submitter(stagingBaseDir: File,
       _ <- stageBag.addMetadataFile(agreementsXml, s"$depositorInfoDirectoryName/agreements.xml")
       _ <- stageBag.addMetadataFile(datasetXml, "dataset.xml")
       _ <- stageBag.addMetadataFile(filesXml, "files.xml")
-      _ <- workerActions(draftDeposit.id, draftBag, stageBag, submitDir)
+      _ <- workerActions(draftDeposit.id, draftBag, stageBag, submitDir, datasetMetadata, user)
     } yield submittedId
   }
 
   // TODO a worker thread allows submit to return fast for large deposits.
-  private def workerActions(id: UUID, draftBag: DansBag, stageBag: DansBag, submitDir: File) = for {
+  private def workerActions(id: UUID, draftBag: DansBag, stageBag: DansBag, submitDir: File, datasetMetadata: DatasetMetadata, user: UserInfo) = for {
     // EASY-1464 3.3.8.b copy files
     _ <- stageBag.addPayloadFile(draftBag.data, Paths.get("."))
     _ <- stageBag.save()
@@ -124,6 +130,7 @@ class Submitter(stagingBaseDir: File,
     _ <- Try(draftDepositDir.moveTo(submitDir)(CopyOptions.atomically)).recoverWith {
       case _: FileAlreadyExistsException => Failure(AlreadySubmittedException(id))
     }
+    _ <- sendMessage(user, datasetMetadata)
   } yield ()
 
   private def setRightsRecursively(file: File): Try[Unit] = {

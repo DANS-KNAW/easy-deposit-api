@@ -122,6 +122,16 @@
             <artifactId>joda-time</artifactId>
         </dependency>
         <dependency>
+            <groupId>javax.mail</groupId>
+            <artifactId>mail</artifactId>
+            <version>1.4.7</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.velocity</groupId>
+            <artifactId>velocity</artifactId>
+            <version>1.7</version>
+        </dependency>
+        <dependency>
             <groupId>org.json4s</groupId>
             <artifactId>json4s-native_2.12</artifactId>
         </dependency>
