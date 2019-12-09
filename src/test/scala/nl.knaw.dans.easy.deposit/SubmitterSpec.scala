@@ -19,7 +19,7 @@ import java.io.IOException
 import java.net.URL
 import java.nio.file.Paths
 
-import better.files.StringExtensions
+import better.files.{ File, StringExtensions }
 import nl.knaw.dans.bag.DansBag
 import nl.knaw.dans.easy.deposit.docs._
 import nl.knaw.dans.lib.error._
@@ -188,7 +188,13 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
       (testDir / "submitted").createDirectories(),
       group,
       "http://does.not.exist",
-    )
+    ) {
+      override val smtpHost: String = "localhost"
+      override val fromAddress: String = "does.not.exist@dans.knaw.nl"
+      override val bounceAddress: String = "does.not.exist@dans.knaw.nl"
+      override val bcc: String = ""
+      override val templateDir: File = File("src/main/assembly/dist/cfg/template")
+    }
   }
 
   private def addDoiToDepositProperties(bag: DansBag): Unit = {

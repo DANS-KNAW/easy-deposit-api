@@ -1,13 +1,27 @@
+/**
+ * Copyright (C) 2018 DANS - Data Archiving and Networked Services (info@dans.knaw.nl)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package nl.knaw.dans.easy.deposit
 
-import java.util.{ Date, Properties }
+import java.util.Properties
 
 import better.files.File
-import javax.activation.{ DataHandler, FileDataSource }
-import javax.mail.Message.RecipientType.{ BCC, TO }
-import javax.mail._
-import javax.mail.internet._
+import javax.mail.internet.{ MimeBodyPart, MimeMultipart }
+import javax.mail.util.ByteArrayDataSource
 import nl.knaw.dans.easy.deposit.docs.{ DatasetMetadata, UserInfo }
+import org.apache.commons.mail.MultiPartEmail
 import org.apache.velocity.app.VelocityEngine
 
 import scala.util.Try
@@ -15,55 +29,63 @@ import scala.util.Try
 trait Mailer {
   val smtpHost: String
   val fromAddress: String
-  val bcc: Option[String] // internal copies for trouble shooting of automated mails
+  val bounceAddress: String
+  val bcc: String // internal copies for trouble shooting of automated mails
   val templateDir: File
 
-  lazy val textEngine = new VelocityEngine(new Properties() {
-    setProperty("file.resource.loader.path", templateDir.toString())
+  private lazy val textEngine = new VelocityEngine(new Properties() {
+    setProperty("file.resource.loader.path", templateDir.toString)
     setProperty("template.file.name", "depositConfirmation.txt")
   }) {
     init()
   }
-  lazy val htmlEngine = new VelocityEngine(new Properties() {
-    setProperty("file.resource.loader.path", ???)
+  private lazy val htmlEngine = new VelocityEngine(new Properties() {
+    setProperty("file.resource.loader.path", templateDir.toString)
     setProperty("template.file.name", "depositConfirmation.html")
   }) {
     init()
   }
 
-  def sendMessage(to: UserInfo, dm: DatasetMetadata, files: File*): Try[Unit] = Try {
-    val subject = s"DANS EASY: Deposit confirmation for ${ dm.titles.headOption.getOrElse("...") }"
-    val session = getSession
-    Transport.send(new MimeMessage(session) {
-      setSentDate(new Date())
-      setSubject(subject)
-      setFrom(new InternetAddress(fromAddress))
-      setRecipients(BCC, parseRecipient(to.email))
-      bcc.foreach(to => setRecipients(TO, parseRecipient(to)))
-      setContent(new MimeMultipart("mixed") {
-        // TODO apply place holders to templates with velocity
-        addBodyPart(new MimeBodyPart() {
-          setText((templateDir / "depositConfirmation.txt").contentAsString)
-        })
-        addBodyPart(new MimeBodyPart() {
-          setContent((templateDir / "depositConfirmation.html").contentAsString, "text/html")
-        })
-        files.foreach(file => new MimeBodyPart() {
-          setDataHandler(new DataHandler(new FileDataSource(file.toJava)))
-          setFileName(file.name)
-        })
+  /** @return messageID */
+  def buildMessage(to: UserInfo, dm: DatasetMetadata, files: Map[String, String]): Try[MultiPartEmail] = Try {
+    val email = new MultiPartEmail()
+    email.setHostName(smtpHost)
+    email.setSubject(s"DANS EASY: Deposit confirmation for ${ dm.titles.getOrElse("...") }")
+    email.setFrom(fromAddress)
+    email.setBounceAddress(bounceAddress)
+    email.addTo(to.email)
+    bcc.split(" +, +").filter(_.nonEmpty).foreach(email.addBcc)
+    email.setContent(new MimeMultipart("mixed") {
+      addBodyPart(new MimeBodyPart() {
+        setContent(htmlContent(to, dm), "text/html")
+      })
+      addBodyPart(new MimeBodyPart() {
+        setText(textContent(to, dm), "UTF-8")
       })
     })
+    files.foreach { case (name, content) =>
+      email.attach(xmlDataSource(content), name, "","attachment")
+    }
+    // TODO streamed attachment from easy-deposit-agreement-generator, see source code of ByteArrayDataSource
+    email.buildMimeMessage()
+    email
   }
 
-  protected def getSession = {
-
-    Session.getInstance(new Properties() {
-      put("mail.smtp.host", smtpHost)
-    })
+  private def xmlDataSource(content: String) = {
+    new ByteArrayDataSource(content.getBytes, "text/xml")
   }
 
-  private def parseRecipient(to: String) = {
-    InternetAddress.parse(to).asInstanceOf[Array[Address]]
+  private def textContent(to: UserInfo, dm: DatasetMetadata) = {
+    // TODO apply place holders to templates with velocity
+    (templateDir / "depositConfirmation.txt").contentAsString
+  }
+
+  private def htmlContent(to: UserInfo, dm: DatasetMetadata) = {
+    // TODO apply place holders to templates with velocity
+    (templateDir / "depositConfirmation.html").contentAsString
+  }
+
+  def send(email: MultiPartEmail): Try[String] = Try {
+    email.sendMimeMessage
   }
 }

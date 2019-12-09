@@ -90,7 +90,14 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
   private val submitter = {
     val groupName = properties.getString("deposit.permissions.group")
     val depositUiURL = properties.getString("easy.deposit-ui")
-    new Submitter(stagedBaseDir, submitBase, groupName, depositUiURL)
+    new Submitter(stagedBaseDir, submitBase, groupName, depositUiURL) {
+      // mailer trait configuration:
+      override val smtpHost: String = properties.getString("mail.smtp.host")
+      override val fromAddress: String = properties.getString("mail.fromAddress")
+      override val bounceAddress: String = properties.getString("mail.bounceAddress")
+      override val bcc: String = properties.getString("mail.bccs", "")
+      override val templateDir: File = File(properties.getString("mail.template",""))
+    }
   }
 
   // possible trailing slash is dropped

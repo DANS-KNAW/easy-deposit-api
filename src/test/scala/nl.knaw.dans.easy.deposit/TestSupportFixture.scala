@@ -54,7 +54,7 @@ trait TestSupportFixture extends FlatSpec with Matchers with Inside with BeforeA
     }
   }
 
-  val defaultUserInfo = UserInfo("user001", displayName = "fullName", email = "does.not.exist@dans.knaw.nl", lastName = "")
+  val defaultUserInfo: UserInfo = UserInfo("user001", displayName = "fullName", email = "does.not.exist@dans.knaw.nl", lastName = "")
 
   def testResource(file: String): File = File(getClass.getResource(file))
 
@@ -93,6 +93,9 @@ trait TestSupportFixture extends FlatSpec with Matchers with Inside with BeforeA
       addProperty("multipart.location", (testDir / "multipart").createDirectories().toString())
       addProperty("multipart.file-size-threshold", "3145728") // 3MB
       addProperty("easy.home", "https://easy.dans.knaw.nl/ui")
+      addProperty("mail.smtp.host", "localhost")
+      addProperty("mail.fromAddress", "info@dans.knaw.nl")
+      addProperty("mail.template", "src/main/assembly/dist/cfg/template")
     })
   }
 

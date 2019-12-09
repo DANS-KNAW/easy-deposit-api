@@ -15,20 +15,18 @@
  */
 package nl.knaw.dans.easy.deposit
 import better.files.File
-import javax.mail.Session
 import nl.knaw.dans.easy.deposit.docs.MinimalDatasetMetadata
 
 import scala.util.Success
 
 class MailerSpec  extends TestSupportFixture with Mailer {
-  override val smtpHost: String = "deasy.dans.knaw.nl"
-  override val fromAddress: String = "info.dans.knaw.nl"
-  override val bcc: Option[String] = None
+  override val smtpHost: String = "localhost"
+  override val fromAddress: String = "does.not.exist@dans.knaw.nl"
+  override val bounceAddress: String = "does.not.exist@dans.knaw.nl"
+  override val bcc: String = ""
   override val templateDir: File = File("src/main/assembly/dist/cfg/template")
 
-  override def getSession: Session = null
-
-  "" should "" in {
-    sendMessage(defaultUserInfo, new MinimalDatasetMetadata()) shouldBe Success(())
+  "buildMessage" should "succeed" in {
+    buildMessage(defaultUserInfo, new MinimalDatasetMetadata(), Map.empty) shouldBe a[Success[_]]
   }
 }

@@ -122,9 +122,9 @@
             <artifactId>joda-time</artifactId>
         </dependency>
         <dependency>
-            <groupId>javax.mail</groupId>
-            <artifactId>mail</artifactId>
-            <version>1.4.7</version>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-email</artifactId>
+            <version>1.5</version>
         </dependency>
         <dependency>
             <groupId>org.apache.velocity</groupId>
@@ -189,6 +189,19 @@
                     <plugin>
                         <groupId>org.codehaus.mojo</groupId>
                         <artifactId>rpm-maven-plugin</artifactId>
+                        <configuration>
+                        <group>Applications/Archiving</group>
+                            <mappings combine.children="append">
+                                <mapping>
+                                    <directory>/var/opt/${dans-provider-name}/resource/${project.artifactId}/cfg/template</directory>
+                                    <sources>
+                                        <source>
+                                            <location>src/main/assembly/dist/cfg/template</location>
+                                        </source>
+                                    </sources>
+                                </mapping>
+                            </mappings>
+                        </configuration>
                     </plugin>
                 </plugins>
             </build>

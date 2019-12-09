@@ -32,6 +32,7 @@ import nl.knaw.dans.easy.deposit.docs._
 import nl.knaw.dans.lib.error._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import nl.knaw.dans.lib.string._
+import org.apache.commons.mail.MultiPartEmail
 import org.joda.time.DateTime
 
 import scala.collection.JavaConverters._
@@ -44,16 +45,11 @@ import scala.util.{ Failure, Success, Try }
  * @param stagingBaseDir  the base directory for staged copies
  * @param submitToBaseDir the directory to which the staged copy must be moved.
  */
-class Submitter(stagingBaseDir: File,
+abstract class Submitter(stagingBaseDir: File,
                 submitToBaseDir: File,
                 groupName: String,
                 depositUiURL: String,
                ) extends DebugEnhancedLogging with Mailer {
-  // TODO how to implement these overrides
-  override val smtpHost: String = "deasy.dans.knaw.nl"
-  override val fromAddress: String = "info.dans.knaw.nl"
-  override val bcc: Option[String] = None
-  override val templateDir: File = File("src/main/assembly/dist/cfg/template")
 
   private val groupPrincipal = {
     Try {
@@ -110,13 +106,15 @@ class Submitter(stagingBaseDir: File,
       _ = stageBag.addMetadataFile(msg4DataManager, s"$depositorInfoDirectoryName/message-from-depositor.txt")
       _ <- stageBag.addMetadataFile(agreementsXml, s"$depositorInfoDirectoryName/agreements.xml")
       _ <- stageBag.addMetadataFile(datasetXml, "dataset.xml")
-      _ <- stageBag.addMetadataFile(filesXml, "files.xml")
-      _ <- workerActions(draftDeposit.id, draftBag, stageBag, submitDir, datasetMetadata, user)
+      _ <- stageBag.addMetadataFile(filesXml, "files.xml") // TODO stress test with large number of files?
+      files = Map("dataset.xml" -> datasetXml.serialize, "filesXml" -> filesXml.serialize) // TODO serialize both once?
+      email <-  buildMessage(user, datasetMetadata, files )
+      _ <- workerActions(draftDeposit.id, draftBag, stageBag, submitDir, datasetMetadata, email)
     } yield submittedId
   }
 
   // TODO a worker thread allows submit to return fast for large deposits.
-  private def workerActions(id: UUID, draftBag: DansBag, stageBag: DansBag, submitDir: File, datasetMetadata: DatasetMetadata, user: UserInfo) = for {
+  private def workerActions(id: UUID, draftBag: DansBag, stageBag: DansBag, submitDir: File, datasetMetadata: DatasetMetadata, email: MultiPartEmail) = for {
     // EASY-1464 3.3.8.b copy files
     _ <- stageBag.addPayloadFile(draftBag.data, Paths.get("."))
     _ <- stageBag.save()
@@ -127,11 +125,15 @@ class Submitter(stagingBaseDir: File,
     _ <- setRightsRecursively(draftDepositDir)
     // EASY-1464 step 3.3.9 Move copy to submit-to area
     _ = logger.info(s"moving $draftDepositDir to $submitDir")
-    _ <- Try(draftDepositDir.moveTo(submitDir)(CopyOptions.atomically)).recoverWith {
-      case _: FileAlreadyExistsException => Failure(AlreadySubmittedException(id))
-    }
-    _ <- sendMessage(user, datasetMetadata)
+    _ <- move(draftDepositDir, submitDir, id)
+    _ = Try(send(email)).doIfFailure { case e => logger.error(s"deposit submitted but could not send confirmation message", e)}
   } yield ()
+
+  private def move(draftDepositDir: File, submitDir: File, id: UUID) = Try(
+    draftDepositDir.moveTo(submitDir)(CopyOptions.atomically)
+  ).recoverWith {
+    case _: FileAlreadyExistsException => Failure(AlreadySubmittedException(id))
+  }
 
   private def setRightsRecursively(file: File): Try[Unit] = {
     resource.managed(Files.walk(file.path, Int.MaxValue, VisitOptions.default: _*))
