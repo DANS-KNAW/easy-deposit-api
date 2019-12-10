@@ -14,26 +14,56 @@
  * limitations under the License.
  */
 package nl.knaw.dans.easy.deposit
+
 import better.files.{ File, StringExtensions }
 import nl.knaw.dans.easy.deposit.docs.MinimalDatasetMetadata
 
-import scala.util.Success
+import scala.util.{ Failure, Success }
 
-class MailerSpec  extends TestSupportFixture with Mailer {
-  override val smtpHost: String = "localhost"
-  override val fromAddress: String = "does.not.exist@dans.knaw.nl"
-  override val bounceAddress: String = "does.not.exist@dans.knaw.nl"
-  override val bcc: String = ""
-  override val templateDir: File = File("src/main/assembly/dist/cfg/template")
-
+class MailerSpec extends TestSupportFixture {
   "buildMessage" should "succeed" in {
     val metadata = Map(
       "dataset.xml" -> <greeting>hello world</greeting>,
       "files.xml" -> <farewell>goodby world</farewell>,
     )
-    val triedEmail = buildMessage(defaultUserInfo, new MinimalDatasetMetadata(), "".inputStream, metadata)
-    triedEmail shouldBe a[Success[_]]
-    val x = triedEmail.get
-    println(x)
+    new Mailer {
+      override val smtpHost: String = "localhost"
+      override val fromAddress: String = "does.not.exist@dans.knaw.nl"
+      override val bounceAddress: String = "does.not.exist@dans.knaw.nl"
+      override val bcc: String = ""
+      override val templateDir: File = File("src/main/assembly/dist/cfg/template")
+    }.buildMessage(defaultUserInfo, new MinimalDatasetMetadata(), "agreement".inputStream, metadata) shouldBe a[Success[_]]
+  }
+
+  "buildMessage" should "report invalid address" in {
+    val metadata = Map(
+      "dataset.xml" -> <greeting>hello world</greeting>,
+      "files.xml" -> <farewell>goodby world</farewell>,
+    )
+    new Mailer {
+      override val smtpHost: String = "localhost"
+      override val fromAddress: String = "dans.knaw.nl"
+      override val bounceAddress: String = "dans.knaw.nl"
+      override val bcc: String = ""
+      override val templateDir: File = File("src/main/assembly/dist/cfg/template")
+    }.buildMessage(defaultUserInfo, new MinimalDatasetMetadata(), "agreement".inputStream, metadata) should matchPattern {
+      case Failure(e) if e.getMessage.matches(".*Missing final '@domain'.*dans.knaw.nl.*")=>
+    }
+  }
+
+  "buildMessage" should "report missing templates" in {
+    val metadata = Map(
+      "dataset.xml" -> <greeting>hello world</greeting>,
+      "files.xml" -> <farewell>goodby world</farewell>,
+    )
+    new Mailer {
+      override val smtpHost: String = "localhost"
+      override val fromAddress: String = "does.not.exist@dans.knaw.nl"
+      override val bounceAddress: String = "does.not.exist@dans.knaw.nl"
+      override val bcc: String = ""
+      override val templateDir: File = File("does/not/exist")
+    }.buildMessage(defaultUserInfo, new MinimalDatasetMetadata(), "agreement".inputStream, metadata) should matchPattern {
+      case Failure(e) if e.getMessage == "Unable to find resource 'depositConfirmation.html'" =>
+    }
   }
 }

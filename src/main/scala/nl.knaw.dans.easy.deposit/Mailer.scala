@@ -16,6 +16,7 @@
 package nl.knaw.dans.easy.deposit
 
 import java.io.{ InputStream, OutputStream, StringWriter }
+import java.util.Properties
 
 import better.files.{ File, StringExtensions }
 import javax.activation.DataSource
@@ -23,7 +24,7 @@ import javax.mail.internet.{ MimeBodyPart, MimeMultipart }
 import nl.knaw.dans.easy.deposit.docs.{ DatasetMetadata, UserInfo }
 import org.apache.commons.lang.NotImplementedException
 import org.apache.commons.mail.MultiPartEmail
-import org.apache.velocity.app.Velocity
+import org.apache.velocity.app.VelocityEngine
 import org.apache.velocity.{ Template, VelocityContext }
 
 import scala.util.Try
@@ -36,15 +37,27 @@ trait Mailer {
   val bcc: String // internal copies for trouble shooting of automated mails
   val templateDir: File
 
-  Velocity.init()
-  private val htmlTemplate: Template = Velocity.getTemplate((templateDir / "depositConfirmation.html").toJava.getAbsolutePath)
-  private val txtTemplate = Velocity.getTemplate((templateDir / "depositConfirmation.txt").toJava.getAbsolutePath)
+  private lazy val engine = new VelocityEngine(new Properties() {
+    setProperty("file.resource.loader.path", templateDir.toJava.getAbsolutePath)
+  }) {
+    init()
+  }
+  private lazy val htmlTemplate: Template = engine.getTemplate("depositConfirmation.html")
+  private lazy val txtTemplate = engine.getTemplate("depositConfirmation.txt")
 
   private def generate(template: Template, context: VelocityContext): String = {
-    resource.managed(new StringWriter).acquireAndGet{ writer =>
-      template.merge(context,writer)
-      val s = writer.getBuffer.toString
-      s
+    resource.managed(new StringWriter).acquireAndGet { writer =>
+      template.merge(context, writer)
+      writer.getBuffer.toString
+    }
+  }
+
+  private def createContext(to: UserInfo, dm: DatasetMetadata) = {
+    new VelocityContext {
+      put("displayName", to.displayName)
+      put("datasetTitle", dm.titles.getOrElse(""))
+      put("myDatasetsUrl", "") // TODO
+      put("doi", dm.doi)
     }
   }
 
@@ -60,28 +73,18 @@ trait Mailer {
     val context = createContext(to, dm)
     email.setContent(new MimeMultipart("mixed") {
       addBodyPart(new MimeBodyPart() {
-        setContent(generate(htmlTemplate,context), "text/html")
+        setContent(generate(htmlTemplate, context), "text/html")
       })
       addBodyPart(new MimeBodyPart() {
-        setText(generate(txtTemplate,context), "UTF-8")
+        setText(generate(txtTemplate, context), "UTF-8")
       })
     })
     StreamedDataSource(agreement, "application/pdf", "agreement.pdf").attachTo(email)
     metadata.foreach { case (name, content) =>
       StreamedDataSource(content.serialize.inputStream, "text/xml", name).attachTo(email)
     }
-    // TODO streamed attachment from easy-deposit-agreement-generator
     email.buildMimeMessage()
     email
-  }
-
-  private def createContext(to: UserInfo, dm: DatasetMetadata) = {
-    new VelocityContext {
-      put("displayName",to.displayName)
-      put("datasetTitle",dm.titles.getOrElse(""))
-      put("myDatasetsUrl","")
-      put("doi",dm.doi)
-    }
   }
 
   private case class StreamedDataSource(content: InputStream, contentType: String, name: String) extends DataSource {
