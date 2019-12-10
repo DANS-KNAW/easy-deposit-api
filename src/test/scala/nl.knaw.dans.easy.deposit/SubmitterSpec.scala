@@ -190,13 +190,7 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
       group,
       "http://does.not.exist",
     ) {
-      override val mailer: Mailer = new Mailer {
-        override val smtpHost: String = "localhost"
-        override val fromAddress: String = "does.not.exist@dans.knaw.nl"
-        override val bounceAddress: String = "does.not.exist@dans.knaw.nl"
-        override val bcc: String = ""
-        override val templateDir: File = File("src/main/assembly/dist/cfg/template")
-      }
+      override val mailer: Mailer = Mailer ("localhost", "does.not.exist@dans.knaw.nl", "does.not.exist@dans.knaw.nl", "", File("src/main/assembly/dist/cfg/template"))
       override val agreementGenerator: AgreementGenerator = new AgreementGenerator {
         override val http: BaseHttp = null // TODO
         override val url: URL = new URL("http://localhost")

@@ -189,19 +189,6 @@
                     <plugin>
                         <groupId>org.codehaus.mojo</groupId>
                         <artifactId>rpm-maven-plugin</artifactId>
-                        <configuration>
-                        <group>Applications/Archiving</group>
-                            <mappings combine.children="append">
-                                <mapping>
-                                    <directory>/var/opt/${dans-provider-name}/resource/${project.artifactId}/cfg/template</directory>
-                                    <sources>
-                                        <source>
-                                            <location>src/main/assembly/dist/cfg/template</location>
-                                        </source>
-                                    </sources>
-                                </mapping>
-                            </mappings>
-                        </configuration>
                     </plugin>
                 </plugins>
             </build>

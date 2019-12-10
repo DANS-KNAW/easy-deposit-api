@@ -26,13 +26,9 @@ class MailerSpec extends TestSupportFixture {
       "dataset.xml" -> <greeting>hello world</greeting>,
       "files.xml" -> <farewell>goodby world</farewell>,
     )
-    new Mailer {
-      override val smtpHost: String = "localhost"
-      override val fromAddress: String = "does.not.exist@dans.knaw.nl"
-      override val bounceAddress: String = "does.not.exist@dans.knaw.nl"
-      override val bcc: String = ""
-      override val templateDir: File = File("src/main/assembly/dist/cfg/template")
-    }.buildMessage(defaultUserInfo, new MinimalDatasetMetadata(), "agreement".inputStream, metadata) shouldBe a[Success[_]]
+    val from = "does.not.exist@dans.knaw.nl"
+    Mailer (smtpHost = "localhost", fromAddress = from, bounceAddress = from, bccs = "", templateDir = File("src/main/assembly/dist/cfg/template"))
+      .buildMessage(defaultUserInfo, new MinimalDatasetMetadata(), "agreement".inputStream, metadata) shouldBe a[Success[_]]
   }
 
   "buildMessage" should "report invalid address" in {
@@ -40,13 +36,9 @@ class MailerSpec extends TestSupportFixture {
       "dataset.xml" -> <greeting>hello world</greeting>,
       "files.xml" -> <farewell>goodby world</farewell>,
     )
-    new Mailer {
-      override val smtpHost: String = "localhost"
-      override val fromAddress: String = "dans.knaw.nl"
-      override val bounceAddress: String = "dans.knaw.nl"
-      override val bcc: String = ""
-      override val templateDir: File = File("src/main/assembly/dist/cfg/template")
-    }.buildMessage(defaultUserInfo, new MinimalDatasetMetadata(), "agreement".inputStream, metadata) should matchPattern {
+    val from = "dans.knaw.nl"
+    Mailer (smtpHost = "localhost", fromAddress = from, bounceAddress = from, bccs = "", templateDir = File("src/main/assembly/dist/cfg/template"))
+      .buildMessage(defaultUserInfo, new MinimalDatasetMetadata(), "agreement".inputStream, metadata) should matchPattern {
       case Failure(e) if e.getMessage.matches(".*Missing final '@domain'.*dans.knaw.nl.*")=>
     }
   }
@@ -56,13 +48,9 @@ class MailerSpec extends TestSupportFixture {
       "dataset.xml" -> <greeting>hello world</greeting>,
       "files.xml" -> <farewell>goodby world</farewell>,
     )
-    new Mailer {
-      override val smtpHost: String = "localhost"
-      override val fromAddress: String = "does.not.exist@dans.knaw.nl"
-      override val bounceAddress: String = "does.not.exist@dans.knaw.nl"
-      override val bcc: String = ""
-      override val templateDir: File = File("does/not/exist")
-    }.buildMessage(defaultUserInfo, new MinimalDatasetMetadata(), "agreement".inputStream, metadata) should matchPattern {
+    val from = "does.not.exist@dans.knaw.nl"
+    Mailer (smtpHost = "localhost", fromAddress = from, bounceAddress = from, bccs = "", templateDir = File("does/not/exist"))
+      .buildMessage(defaultUserInfo, new MinimalDatasetMetadata(), "agreement".inputStream, metadata) should matchPattern {
       case Failure(e) if e.getMessage == "Unable to find resource 'depositConfirmation.html'" =>
     }
   }

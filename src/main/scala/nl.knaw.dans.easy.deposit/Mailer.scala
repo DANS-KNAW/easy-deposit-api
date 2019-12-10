@@ -22,6 +22,7 @@ import better.files.{ File, StringExtensions }
 import javax.activation.DataSource
 import javax.mail.internet.{ MimeBodyPart, MimeMultipart }
 import nl.knaw.dans.easy.deposit.docs.{ DatasetMetadata, UserInfo }
+import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.apache.commons.lang.NotImplementedException
 import org.apache.commons.mail.MultiPartEmail
 import org.apache.velocity.app.VelocityEngine
@@ -30,34 +31,31 @@ import org.apache.velocity.{ Template, VelocityContext }
 import scala.util.Try
 import scala.xml.Elem
 
-trait Mailer {
-  val smtpHost: String
-  val fromAddress: String
-  val bounceAddress: String
-  val bcc: String // internal copies for trouble shooting of automated mails
-  val templateDir: File
+case class Mailer (smtpHost: String, fromAddress: String, bounceAddress: String, bccs: String, templateDir: File) extends DebugEnhancedLogging {
 
-  private lazy val engine = new VelocityEngine(new Properties() {
+  private  val engine = new VelocityEngine(new Properties() {
     setProperty("file.resource.loader.path", templateDir.toJava.getAbsolutePath)
   }) {
     init()
   }
-  private lazy val htmlTemplate: Template = engine.getTemplate("depositConfirmation.html")
-  private lazy val txtTemplate = engine.getTemplate("depositConfirmation.txt")
+  private val htmlTemplate: Template = engine.getTemplate("depositConfirmation.html")
+  private val txtTemplate = engine.getTemplate("depositConfirmation.txt")
+
+  private def templateContext(to: UserInfo, dm: DatasetMetadata) = {
+    new VelocityContext {
+      put("displayName", to.displayName)
+      put("datasetTitle", dm.titles.getOrElse(Seq.empty).headOption.getOrElse(""))
+      put("myDatasetsUrl", "") // TODO
+      put("doi", dm.doi.getOrElse(""))
+    }
+  }
 
   private def generate(template: Template, context: VelocityContext): String = {
     resource.managed(new StringWriter).acquireAndGet { writer =>
       template.merge(context, writer)
-      writer.getBuffer.toString
-    }
-  }
-
-  private def createContext(to: UserInfo, dm: DatasetMetadata) = {
-    new VelocityContext {
-      put("displayName", to.displayName)
-      put("datasetTitle", dm.titles.getOrElse(""))
-      put("myDatasetsUrl", "") // TODO
-      put("doi", dm.doi)
+      val string = writer.getBuffer.toString
+      logger.debug(string)
+      string
     }
   }
 
@@ -69,8 +67,9 @@ trait Mailer {
     email.setFrom(fromAddress)
     email.setBounceAddress(bounceAddress)
     email.addTo(to.email)
-    bcc.split(" +, +").filter(_.nonEmpty).foreach(email.addBcc)
-    val context = createContext(to, dm)
+    bccs.split(" +, +").filter(_.nonEmpty).foreach(email.addBcc)
+    val context = templateContext(to, dm)
+    logger.info("placeholder values: " + context.getKeys.map(key => context.get(key.toString)).mkString)
     email.setContent(new MimeMultipart("mixed") {
       addBodyPart(new MimeBodyPart() {
         setContent(generate(htmlTemplate, context), "text/html")
