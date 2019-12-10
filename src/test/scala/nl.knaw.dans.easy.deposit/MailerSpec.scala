@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 package nl.knaw.dans.easy.deposit
-import better.files.File
+import better.files.{ File, StringExtensions }
 import nl.knaw.dans.easy.deposit.docs.MinimalDatasetMetadata
 
 import scala.util.Success
@@ -27,6 +27,13 @@ class MailerSpec  extends TestSupportFixture with Mailer {
   override val templateDir: File = File("src/main/assembly/dist/cfg/template")
 
   "buildMessage" should "succeed" in {
-    buildMessage(defaultUserInfo, new MinimalDatasetMetadata(), Map.empty) shouldBe a[Success[_]]
+    val metadata = Map(
+      "dataset.xml" -> <greeting>hello world</greeting>,
+      "files.xml" -> <farewell>goodby world</farewell>,
+    )
+    val triedEmail = buildMessage(defaultUserInfo, new MinimalDatasetMetadata(), "".inputStream, metadata)
+    triedEmail shouldBe a[Success[_]]
+    val x = triedEmail.get
+    println(x)
   }
 }

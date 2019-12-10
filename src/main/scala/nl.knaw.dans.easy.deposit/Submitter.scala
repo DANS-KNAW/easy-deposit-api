@@ -46,10 +46,12 @@ import scala.util.{ Failure, Success, Try }
  * @param submitToBaseDir the directory to which the staged copy must be moved.
  */
 abstract class Submitter(stagingBaseDir: File,
-                submitToBaseDir: File,
-                groupName: String,
-                depositUiURL: String,
-               ) extends DebugEnhancedLogging with Mailer {
+                         submitToBaseDir: File,
+                         groupName: String,
+                         depositUiURL: String,
+                        ) extends DebugEnhancedLogging {
+  val mailer: Mailer
+  val agreementGenerator: AgreementGenerator
 
   private val groupPrincipal = {
     Try {
@@ -107,8 +109,9 @@ abstract class Submitter(stagingBaseDir: File,
       _ <- stageBag.addMetadataFile(agreementsXml, s"$depositorInfoDirectoryName/agreements.xml")
       _ <- stageBag.addMetadataFile(datasetXml, "dataset.xml")
       _ <- stageBag.addMetadataFile(filesXml, "files.xml") // TODO stress test with large number of files?
-      files = Map("dataset.xml" -> datasetXml.serialize, "filesXml" -> filesXml.serialize) // TODO serialize both once?
-      email <-  buildMessage(user, datasetMetadata, files )
+      files = Map("metadata.xml" -> datasetXml, "files.xml" -> filesXml) // TODO serialize both once?
+      agreement <- agreementGenerator.agreementDoc()
+      email <- mailer.buildMessage(user, datasetMetadata, agreement, files)
       _ <- workerActions(draftDeposit.id, draftBag, stageBag, submitDir, datasetMetadata, email)
     } yield submittedId
   }
@@ -126,7 +129,7 @@ abstract class Submitter(stagingBaseDir: File,
     // EASY-1464 step 3.3.9 Move copy to submit-to area
     _ = logger.info(s"moving $draftDepositDir to $submitDir")
     _ <- move(draftDepositDir, submitDir, id)
-    _ = Try(send(email)).doIfFailure { case e => logger.error(s"deposit submitted but could not send confirmation message", e)}
+    _ = Try(mailer.send(email)).doIfFailure { case e => logger.error(s"deposit submitted but could not send confirmation message", e) }
   } yield ()
 
   private def move(draftDepositDir: File, submitDir: File, id: UUID) = Try(

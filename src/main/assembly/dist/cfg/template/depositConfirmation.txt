@@ -6,7 +6,7 @@ AVAILABILITY TO THE PUBLIC
 Within a few working days, DANS staff will make your data available to the public in accordance with the conditions indicated by you. DANS guarantees that your data will remain accessible and safely stored for the long term.
 
 You can follow the status of your dataset in 'My datasets' to see if it is already available to the public. You will see this option in EASY when you log in. Or you may use this direct link:
-$datasetsUrl
+$myDatasetsUrl
 
 IMPLEMENTING CHANGES
 Should you wish to implement any changes to the metadata or to upload complementary files, either now or in the future, please contact us: info@dans.knaw.nl.

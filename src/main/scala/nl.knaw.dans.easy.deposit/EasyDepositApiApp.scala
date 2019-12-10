@@ -35,6 +35,7 @@ import org.apache.commons.configuration.PropertiesConfiguration
 import org.eclipse.jetty.io.EofException
 import org.joda.time.DateTime
 import org.scalatra.servlet.MultipartConfig
+import scalaj.http.BaseHttp
 
 import scala.util.{ Failure, Success, Try }
 
@@ -91,12 +92,17 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
     val groupName = properties.getString("deposit.permissions.group")
     val depositUiURL = properties.getString("easy.deposit-ui")
     new Submitter(stagedBaseDir, submitBase, groupName, depositUiURL) {
-      // mailer trait configuration:
-      override val smtpHost: String = properties.getString("mail.smtp.host")
-      override val fromAddress: String = properties.getString("mail.fromAddress")
-      override val bounceAddress: String = properties.getString("mail.bounceAddress")
-      override val bcc: String = properties.getString("mail.bccs", "")
-      override val templateDir: File = File(properties.getString("mail.template",""))
+      override val mailer: Mailer = new Mailer {
+        override val smtpHost: String = properties.getString("mail.smtp.host")
+        override val fromAddress: String = properties.getString("mail.fromAddress")
+        override val bounceAddress: String = properties.getString("mail.bounceAddress")
+        override val bcc: String = properties.getString("mail.bccs", "")
+        override val templateDir: File = File(properties.getString("mail.template", ""))
+      }
+      override val agreementGenerator: AgreementGenerator = new AgreementGenerator {
+        override val http: BaseHttp = null // TODO
+        override val url: URL = new URL(properties.getString("agreement-generator.url", "http://localhost"))
+      }
     }
   }
 
