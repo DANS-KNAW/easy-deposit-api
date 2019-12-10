@@ -20,11 +20,10 @@ import java.util.Properties
 
 import better.files.{ File, StringExtensions }
 import javax.activation.DataSource
-import javax.mail.internet.{ MimeBodyPart, MimeMultipart }
 import nl.knaw.dans.easy.deposit.docs.{ DatasetMetadata, UserInfo }
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.apache.commons.lang.NotImplementedException
-import org.apache.commons.mail.MultiPartEmail
+import org.apache.commons.mail.{ HtmlEmail, MultiPartEmail }
 import org.apache.velocity.app.VelocityEngine
 import org.apache.velocity.{ Template, VelocityContext }
 
@@ -61,27 +60,21 @@ case class Mailer (smtpHost: String, fromAddress: String, bounceAddress: String,
 
   /** @return messageID */
   def buildMessage(to: UserInfo, dm: DatasetMetadata, agreement: InputStream, metadata: Map[String, Elem]): Try[MultiPartEmail] = Try {
-    val email = new MultiPartEmail()
-    email.setHostName(smtpHost)
-    email.setSubject(s"DANS EASY: Deposit confirmation for ${ dm.titles.getOrElse("...") }")
-    email.setFrom(fromAddress)
-    email.setBounceAddress(bounceAddress)
-    email.addTo(to.email)
-    bccs.split(" +, +").filter(_.nonEmpty).foreach(email.addBcc)
     val context = templateContext(to, dm)
     logger.info("placeholder values: " + context.getKeys.map(key => context.get(key.toString)).mkString)
-    email.setContent(new MimeMultipart("mixed") {
-      addBodyPart(new MimeBodyPart() {
-        setContent(generate(htmlTemplate, context), "text/html")
-      })
-      addBodyPart(new MimeBodyPart() {
-        setText(generate(txtTemplate, context), "UTF-8")
-      })
-    })
+    val email = new HtmlEmail()
+    email.setHtmlMsg(generate(htmlTemplate, context))
+    email.setTextMsg(generate(txtTemplate, context))
+    email.setSubject(s"DANS EASY: Deposit confirmation for ${ dm.titles.getOrElse("...") }")
+    email.addTo(to.email)
+    email.setFrom(fromAddress)
+    email.setBounceAddress(bounceAddress)
+    bccs.split(" +, +").filter(_.nonEmpty).foreach(email.addBcc)
     StreamedDataSource(agreement, "application/pdf", "agreement.pdf").attachTo(email)
     metadata.foreach { case (name, content) =>
       StreamedDataSource(content.serialize.inputStream, "text/xml", name).attachTo(email)
     }
+    email.setHostName(smtpHost)
     email.buildMimeMessage()
     email
   }
