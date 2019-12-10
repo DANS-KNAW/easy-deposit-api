@@ -15,8 +15,7 @@
  */
 package nl.knaw.dans.easy.deposit
 
-import java.io.{ ByteArrayOutputStream, InputStream, OutputStream, OutputStreamWriter }
-import java.util.Properties
+import java.io.{ InputStream, OutputStream, StringWriter }
 
 import better.files.{ File, StringExtensions }
 import javax.activation.DataSource
@@ -24,8 +23,8 @@ import javax.mail.internet.{ MimeBodyPart, MimeMultipart }
 import nl.knaw.dans.easy.deposit.docs.{ DatasetMetadata, UserInfo }
 import org.apache.commons.lang.NotImplementedException
 import org.apache.commons.mail.MultiPartEmail
-import org.apache.velocity.VelocityContext
-import org.apache.velocity.app.VelocityEngine
+import org.apache.velocity.app.Velocity
+import org.apache.velocity.{ Template, VelocityContext }
 
 import scala.util.Try
 import scala.xml.Elem
@@ -37,19 +36,14 @@ trait Mailer {
   val bcc: String // internal copies for trouble shooting of automated mails
   val templateDir: File
 
-  private lazy val engine = new VelocityEngine(new Properties() {
-    setProperty("file.resource.loader.path", templateDir.toString)
-  }) {
-    init()
-  }
+  Velocity.init()
+  private val htmlTemplate: Template = Velocity.getTemplate((templateDir / "depositConfirmation.html").toJava.getAbsolutePath)
+  private val txtTemplate = Velocity.getTemplate((templateDir / "depositConfirmation.txt").toJava.getAbsolutePath)
 
-  private def generate(extension: String, context: VelocityContext): String = {
-    val encoding = "UTF-8"
-    resource.managed(new ByteArrayOutputStream()).acquireAndGet{ outputStream =>
-      new OutputStreamWriter(outputStream, encoding)
-      val writer = new OutputStreamWriter(outputStream, encoding)
-      engine.mergeTemplate(s"depositConfirmation.$extension", encoding, context,writer)
-      val s = outputStream.toString
+  private def generate(template: Template, context: VelocityContext): String = {
+    resource.managed(new StringWriter).acquireAndGet{ writer =>
+      template.merge(context,writer)
+      val s = writer.getBuffer.toString
       s
     }
   }
@@ -66,10 +60,10 @@ trait Mailer {
     val context = createContext(to, dm)
     email.setContent(new MimeMultipart("mixed") {
       addBodyPart(new MimeBodyPart() {
-        setContent(generate("html",context), "text/html")
+        setContent(generate(htmlTemplate,context), "text/html")
       })
       addBodyPart(new MimeBodyPart() {
-        setText(generate("txt",context), "UTF-8")
+        setText(generate(txtTemplate,context), "UTF-8")
       })
     })
     StreamedDataSource(agreement, "application/pdf", "agreement.pdf").attachTo(email)
