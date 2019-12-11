@@ -1,5 +1,6 @@
-Manual
+MANUAL
 ======
+[![Build Status](https://travis-ci.org/DANS-KNAW/easy-deposit-api.png?branch=master)](https://travis-ci.org/DANS-KNAW/easy-deposit-api)
 
 SYNOPSIS
 --------
@@ -33,11 +34,12 @@ ARGUMENTS
 INSTALLATION AND CONFIGURATION
 ------------------------------
 The preferred way of install this module is using the RPM package. This will install the binaries to
-`/opt/dans.knaw.nl/easy-deposit-api`, the configuration files to `/etc/opt/dans.knaw.nl/easy-deposit-api`,
-and will install the service script for `initd` or `systemd`.
+`/opt/dans.knaw.nl/easy-deposit-api` and the configuration files to `/etc/opt/dans.knaw.nl/easy-deposit-api`.
 
-If you are on a system that does not support RPM, you can use the tarball. You will need to copy the
-service scripts to the appropiate locations yourself.
+To install the module on systems that do not support RPM, you can copy and unarchive the tarball to the target host.
+You will have to take care of placing the files in the correct locations for your system yourself. For instructions
+on building the tarball, see next section.
+
 
 BUILDING FROM SOURCE
 --------------------
@@ -46,7 +48,7 @@ Prerequisites:
 
 * Java 8 or higher
 * Maven 3.3.3 or higher
-* RPM (if you want to build the RPM package).
+* RPM 
 
 Steps:
 
@@ -57,3 +59,7 @@ Steps:
 If the `rpm` executable is found at `/usr/local/bin/rpm`, the build profile that includes the RPM 
 packaging will be activated. If `rpm` is available, but at a different path, then activate it by using
 Maven's `-P` switch: `mvn -Pprm install`.
+
+Alternatively, to build the tarball execute:
+
+    mvn clean install assembly:single
