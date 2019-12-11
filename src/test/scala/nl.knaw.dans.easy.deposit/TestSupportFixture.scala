@@ -93,6 +93,9 @@ trait TestSupportFixture extends FlatSpec with Matchers with Inside with BeforeA
       addProperty("multipart.location", (testDir / "multipart").createDirectories().toString())
       addProperty("multipart.file-size-threshold", "3145728") // 3MB
       addProperty("easy.home", "https://easy.dans.knaw.nl/ui")
+      addProperty("threadpool.core-pool-size", 1)
+      addProperty("threadpool.max-pool-size", 2)
+      addProperty("threadpool.keep-alive-time-ms", 60000L)
     })
   }
 

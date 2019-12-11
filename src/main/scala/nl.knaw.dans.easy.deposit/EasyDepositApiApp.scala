@@ -28,6 +28,7 @@ import nl.knaw.dans.easy.deposit.authentication.{ AuthenticationProvider, LdapAu
 import nl.knaw.dans.easy.deposit.docs.StateInfo.State
 import nl.knaw.dans.easy.deposit.docs.StateInfo.State.State
 import nl.knaw.dans.easy.deposit.docs.{ DatasetMetadata, DepositInfo, StateInfo, UserInfo }
+import nl.knaw.dans.easy.deposit.executor.{ QueuedThreadPoolExecutor, ThreadPoolConfig }
 import nl.knaw.dans.easy.deposit.servlets.archiveContentTypeRegexp
 import nl.knaw.dans.lib.error._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
@@ -86,6 +87,14 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
       fileSizeThreshold = Some(properties.getInt("multipart.file-size-threshold")), //throws if not provided
     )
   }
+
+  private val executor = QueuedThreadPoolExecutor(
+    ThreadPoolConfig(
+      corePoolSize = properties.getInt("threadpool.core-pool-size"),
+      maxPoolSize = properties.getInt("threadpool.max-pool-size"),
+      keepAliveTime = properties.getLong("threadpool.keep-alive-time-ms"),
+    )
+  )
 
   private val submitter = {
     val groupName = properties.getString("deposit.permissions.group")
@@ -178,7 +187,9 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
    * @return
    */
   def setDepositState(newStateInfo: StateInfo, userId: String, id: UUID): Try[Unit] = {
-    def submit(deposit: DepositDir, stateManager: StateManager): Try[Unit] = {
+    // TODO for now I set up the Runnable creation here,
+    //  but after refactoring it should use SubmitJob here
+    def submitJob(deposit: DepositDir, stateManager: StateManager): Runnable = () => {
       for {
         userInfo <- getUserInfo(userId)
         disposableStagedDir <- getStagedDir(userId, id)
@@ -191,7 +202,11 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
       stateManager <- deposit.getStateManager(submitBase, easyHome)
       _ <- stateManager.canChangeState(newStateInfo)
       _ <- if (newStateInfo.state == State.submitted)
-             submit(deposit, stateManager) // also changes the state
+             // TODO notice that this Try only catches errors from giving the job to the executor.
+             //  In other words, errors from the job itself don't end up here.
+             //  Find out which errors can occur in the job itself and make the job such that it will
+             //  deal with those errors appropriately (setting state, etc.)
+             Try { executor.execute(submitJob(deposit, stateManager)) } // also changes the state
            else stateManager.changeState(newStateInfo)
     } yield ()
   }
