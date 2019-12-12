@@ -16,7 +16,7 @@ case class AgreementData(depositor: AgreementUser,
                         )
 object AgreementData {
   def apply(userData: UserData, dm: DatasetMetadata): AgreementData = {
-    // TODO error handling for not found values
+    // the ui and ingest-flow validate, so just prevent exceptions here on absent values
     new AgreementData(depositor = AgreementUser(userData),
       doi = dm.doi.getOrElse(""),
       title= dm.titles.getOrElse(Seq.empty).headOption.getOrElse(""),
