@@ -18,21 +18,23 @@ package nl.knaw.dans.easy.deposit
 import java.io.{ InputStream, OutputStream, StringWriter }
 import java.util.Properties
 
-import better.files.{ File, StringExtensions }
+import better.files.File
 import javax.activation.DataSource
+import javax.mail.util.ByteArrayDataSource
 import nl.knaw.dans.easy.deposit.docs.{ DatasetMetadata, UserInfo }
+import nl.knaw.dans.lib.error._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.apache.commons.lang.NotImplementedException
-import org.apache.commons.mail.{ HtmlEmail, MultiPartEmail }
+import org.apache.commons.mail.{ EmailAttachment, HtmlEmail, MultiPartEmail }
 import org.apache.velocity.app.VelocityEngine
 import org.apache.velocity.{ Template, VelocityContext }
 
 import scala.util.Try
 import scala.xml.Elem
 
-case class Mailer (smtpHost: String, fromAddress: String, bounceAddress: String, bccs: String, templateDir: File) extends DebugEnhancedLogging {
+case class Mailer(smtpHost: String, fromAddress: String, bounceAddress: String, bccs: String, templateDir: File) extends DebugEnhancedLogging {
 
-  private  val engine = new VelocityEngine(new Properties() {
+  private val engine = new VelocityEngine(new Properties() {
     setProperty("file.resource.loader.path", templateDir.toJava.getAbsolutePath)
   }) {
     init()
@@ -61,7 +63,7 @@ case class Mailer (smtpHost: String, fromAddress: String, bounceAddress: String,
   /** @return messageID */
   def buildMessage(to: UserInfo, dm: DatasetMetadata, agreement: InputStream, metadata: Map[String, Elem]): Try[MultiPartEmail] = Try {
     val context = templateContext(to, dm)
-    logger.info("placeholder values: " + context.getKeys.map(key => context.get(key.toString)).mkString)
+    logger.info("email placeholder values: " + context.getKeys.map(key => s"$key=${ context.get(key.toString) }").mkString(", "))
     val email = new HtmlEmail()
     email.setHtmlMsg(generate(htmlTemplate, context))
     email.setTextMsg(generate(txtTemplate, context))
@@ -70,9 +72,10 @@ case class Mailer (smtpHost: String, fromAddress: String, bounceAddress: String,
     email.setFrom(fromAddress)
     email.setBounceAddress(bounceAddress)
     bccs.split(" *, *").filter(_.nonEmpty).foreach(email.addBcc)
-    StreamedDataSource(agreement, "application/pdf", "agreement.pdf").attachTo(email)
+    //StreamedDataSource(agreement, "application/pdf", "agreement.pdf").attachTo(email)
     metadata.foreach { case (name, content) =>
-      StreamedDataSource(content.serialize.inputStream, "text/xml", name).attachTo(email)
+      val dataSource = new ByteArrayDataSource(content.serialize.getBytes, "text/xml")
+      email.attach(dataSource, name, name, EmailAttachment.ATTACHMENT)
     }
     email.setHostName(smtpHost)
     email.buildMimeMessage()
@@ -93,7 +96,12 @@ case class Mailer (smtpHost: String, fromAddress: String, bounceAddress: String,
     }
   }
 
-  def send(email: MultiPartEmail): Try[String] = Try {
-    email.sendMimeMessage
+  def send(email: MultiPartEmail): Try[String] = {
+    Try(email.sendMimeMessage)
+      .map { messageId =>
+        logger.info(s"sent email $messageId")
+        messageId
+      }
+      .doIfFailure { case e => logger.error(s"could not send deposit confirmation message", e) }
   }
 }
