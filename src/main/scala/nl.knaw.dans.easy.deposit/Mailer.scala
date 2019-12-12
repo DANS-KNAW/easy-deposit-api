@@ -69,7 +69,7 @@ case class Mailer (smtpHost: String, fromAddress: String, bounceAddress: String,
     email.addTo(to.email)
     email.setFrom(fromAddress)
     email.setBounceAddress(bounceAddress)
-    bccs.split(" +, +").filter(_.nonEmpty).foreach(email.addBcc)
+    bccs.split(" *, *").filter(_.nonEmpty).foreach(email.addBcc)
     StreamedDataSource(agreement, "application/pdf", "agreement.pdf").attachTo(email)
     metadata.foreach { case (name, content) =>
       StreamedDataSource(content.serialize.inputStream, "text/xml", name).attachTo(email)
