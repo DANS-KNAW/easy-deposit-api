@@ -19,6 +19,7 @@ import java.io.InputStream
 import java.net.{ URI, URL }
 import java.nio.file.Path
 import java.util.UUID
+import java.util.concurrent.ThreadPoolExecutor
 
 import better.files.File.temporaryDirectory
 import better.files.{ Dispose, File }
@@ -88,7 +89,7 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
     )
   }
 
-  private val executor = QueuedThreadPoolExecutor(
+  private val executor: ThreadPoolExecutor = QueuedThreadPoolExecutor(
     ThreadPoolConfig(
       corePoolSize = properties.getInt("threadpool.core-pool-size"),
       maxPoolSize = properties.getInt("threadpool.max-pool-size"),
@@ -99,7 +100,7 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
   private val submitter = {
     val groupName = properties.getString("deposit.permissions.group")
     val depositUiURL = properties.getString("easy.deposit-ui")
-    new Submitter(stagedBaseDir, submitBase, groupName, depositUiURL)
+    new Submitter(stagedBaseDir, submitBase, groupName, depositUiURL, executor)
   }
 
   // possible trailing slash is dropped
@@ -187,9 +188,7 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
    * @return
    */
   def setDepositState(newStateInfo: StateInfo, userId: String, id: UUID): Try[Unit] = {
-    // TODO for now I set up the Runnable creation here,
-    //  but after refactoring it should use SubmitJob here
-    def submitJob(deposit: DepositDir, stateManager: StateManager): Runnable = () => {
+    def submit(deposit: DepositDir, stateManager: StateManager): Try[Unit] = {
       for {
         userInfo <- getUserInfo(userId)
         disposableStagedDir <- getStagedDir(userId, id)
@@ -202,11 +201,7 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
       stateManager <- deposit.getStateManager(submitBase, easyHome)
       _ <- stateManager.canChangeState(newStateInfo)
       _ <- if (newStateInfo.state == State.submitted)
-             // TODO notice that this Try only catches errors from giving the job to the executor.
-             //  In other words, errors from the job itself don't end up here.
-             //  Find out which errors can occur in the job itself and make the job such that it will
-             //  deal with those errors appropriately (setting state, etc.)
-             Try { executor.execute(submitJob(deposit, stateManager)) } // also changes the state
+             submit(deposit, stateManager) // also changes the state
            else stateManager.changeState(newStateInfo)
     } yield ()
   }

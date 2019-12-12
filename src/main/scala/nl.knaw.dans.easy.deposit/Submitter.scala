@@ -20,6 +20,7 @@ import java.nio.file._
 import java.nio.file.attribute.PosixFilePermission._
 import java.nio.file.attribute.{ PosixFileAttributeView, UserPrincipalNotFoundException }
 import java.util.UUID
+import java.util.concurrent.ThreadPoolExecutor
 
 import better.files.File
 import better.files.File.{ CopyOptions, VisitOptions }
@@ -48,6 +49,7 @@ class Submitter(stagingBaseDir: File,
                 submitToBaseDir: File,
                 groupName: String,
                 depositUiURL: String,
+                executor: ThreadPoolExecutor
                ) extends DebugEnhancedLogging {
   private val groupPrincipal = {
     Try {
@@ -105,12 +107,17 @@ class Submitter(stagingBaseDir: File,
       _ <- stageBag.addMetadataFile(agreementsXml, s"$depositorInfoDirectoryName/agreements.xml")
       _ <- stageBag.addMetadataFile(datasetXml, "dataset.xml")
       _ <- stageBag.addMetadataFile(filesXml, "files.xml")
-      _ <- workerActions(draftDeposit.id, draftBag, stageBag, submitDir)
+      // TODO (1) notice that this only catches errors from giving the Runnable to the executor.
+      //  In other words, errors from the job itself don't end up here.
+      //  Find out which errors can occur in the job itself and make the job such that it will
+      //  deal with those errors appropriately (setting state, etc.)
+      // TODO (2) migrate 'workerActions' and functions that are called from there to 'SubmitJob'
+      _ = executor.execute { workerActions(draftDeposit.id, draftBag, stageBag, submitDir) }
     } yield submittedId
   }
 
   // TODO a worker thread allows submit to return fast for large deposits.
-  private def workerActions(id: UUID, draftBag: DansBag, stageBag: DansBag, submitDir: File) = for {
+  private def workerActions(id: UUID, draftBag: DansBag, stageBag: DansBag, submitDir: File): Runnable = () => for {
     // EASY-1464 3.3.8.b copy files
     _ <- stageBag.addPayloadFile(draftBag.data, Paths.get("."))
     _ <- stageBag.save()
