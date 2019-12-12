@@ -21,23 +21,27 @@ import org.json4s.JsonInput
 
 import scala.util.Try
 
-case class UserInfo(userName: String,
-                    firstName: Option[String] = None,
-                    prefix: Option[String] = None,
-                    lastName: String,
-                    displayName: String,
-                    email: String,
+case class AgreementUser(name: String,
+                         address: String,
+                         zipcode: String,
+                         city: String,
+                         country: String,
+                         organisation: String,
+                         phone: String,
+                         email: String,
                    )
-object UserInfo extends DebugEnhancedLogging {
+object AgreementUser extends DebugEnhancedLogging {
   def apply(input: JsonInput): Try[UserInfo] = input.deserialize[UserInfo]
 
-  def apply(data: UserData): UserInfo = {
-    new UserInfo(
-      userName = data.id,
-      firstName = data.firstName,
-      prefix = data.prefix,
-      lastName = data.lastName,
-      displayName = data.name,
+  def apply(data: UserData): AgreementUser = {
+    new AgreementUser(
+      name = data.name,
+      address = data.address,
+      zipcode = data.zipcode,
+      city = data.city,
+      country = data.country,
+      organisation = data.organisation,
+      phone = data.phone,
       email = data.email,
     )
   }

@@ -73,7 +73,7 @@ abstract class Submitter(stagingBaseDir: File,
    * @param draftDeposit the deposit object to submit
    * @return the UUID of the deposit in the submit area (easy-ingest-flow-inbox)
    */
-  def submit(draftDeposit: DepositDir, stateManager: StateManager, user: UserInfo, stagedDir: File): Try[UUID] = {
+  def submit(draftDeposit: DepositDir, stateManager: StateManager, user: UserData, stagedDir: File): Try[UUID] = {
     val propsFileName = "deposit.properties"
     for {
       // EASY-1464 step 3.3.4 validation
@@ -110,8 +110,9 @@ abstract class Submitter(stagingBaseDir: File,
       _ <- stageBag.addMetadataFile(datasetXml, "dataset.xml")
       _ <- stageBag.addMetadataFile(filesXml, "files.xml") // TODO stress test with large number of files?
       files = Map("metadata.xml" -> datasetXml, "files.xml" -> filesXml) // TODO serialize both once?
-      agreement <- agreementGenerator.agreementDoc()
-      email <- mailer.buildMessage(user, datasetMetadata, agreement, files)
+      agreementData = AgreementData(user, datasetMetadata)
+      agreement <- agreementGenerator.agreementDoc(agreementData)
+      email <- mailer.buildMessage(agreementData, agreement, files)
       _ <- workerActions(draftDeposit.id, draftBag, stageBag, submitDir, datasetMetadata, email)
     } yield submittedId
   }

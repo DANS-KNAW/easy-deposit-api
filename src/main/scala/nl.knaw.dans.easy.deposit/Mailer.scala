@@ -21,7 +21,7 @@ import java.util.Properties
 import better.files.File
 import javax.activation.DataSource
 import javax.mail.util.ByteArrayDataSource
-import nl.knaw.dans.easy.deposit.docs.{ DatasetMetadata, UserInfo }
+import nl.knaw.dans.easy.deposit.docs.AgreementData
 import nl.knaw.dans.lib.error._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.apache.commons.lang.NotImplementedException
@@ -41,16 +41,6 @@ case class Mailer(smtpHost: String, fromAddress: String, bounceAddress: String, 
   }
   private val htmlTemplate: Template = engine.getTemplate("depositConfirmation.html")
   private val txtTemplate = engine.getTemplate("depositConfirmation.txt")
-
-  private def templateContext(to: UserInfo, dm: DatasetMetadata) = {
-    new VelocityContext {
-      put("displayName", to.displayName)
-      put("datasetTitle", dm.titles.getOrElse(Seq.empty).headOption.getOrElse(""))
-      put("myDatasetsUrl", "") // TODO
-      put("doi", dm.doi.getOrElse(""))
-    }
-  }
-
   private def generate(template: Template, context: VelocityContext): String = {
     resource.managed(new StringWriter).acquireAndGet { writer =>
       template.merge(context, writer)
@@ -61,14 +51,19 @@ case class Mailer(smtpHost: String, fromAddress: String, bounceAddress: String, 
   }
 
   /** @return messageID */
-  def buildMessage(to: UserInfo, dm: DatasetMetadata, agreement: InputStream, metadata: Map[String, Elem]): Try[MultiPartEmail] = Try {
-    val context = templateContext(to, dm)
+  def buildMessage(data: AgreementData, agreement: InputStream, metadata: Map[String, Elem]): Try[MultiPartEmail] = Try {
+    val context = new VelocityContext {
+      put("displayName", data.depositor.name)
+      put("datasetTitle", data.title)
+      put("myDatasetsUrl", "") // TODO
+      put("doi", data.doi)
+    }
     logger.info("email placeholder values: " + context.getKeys.map(key => s"$key=${ context.get(key.toString) }").mkString(", "))
     val email = new HtmlEmail()
     email.setHtmlMsg(generate(htmlTemplate, context))
     email.setTextMsg(generate(txtTemplate, context))
-    email.setSubject(s"DANS EASY: Deposit confirmation for ${ dm.titles.getOrElse("...") }")
-    email.addTo(to.email)
+    email.setSubject(s"DANS EASY: Deposit confirmation for ${ data.title }")
+    email.addTo(data.depositor.email)
     email.setFrom(fromAddress)
     email.setBounceAddress(bounceAddress)
     bccs.split(" *, *").filter(_.nonEmpty).foreach(email.addBcc)

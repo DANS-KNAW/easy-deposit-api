@@ -22,7 +22,7 @@ import better.files.File._
 import nl.knaw.dans.easy.deposit.PidRequesterComponent.PidRequester
 import nl.knaw.dans.easy.deposit.authentication.TokenSupport.TokenConfig
 import nl.knaw.dans.easy.deposit.authentication.{ AuthConfig, AuthUser, AuthenticationProvider, TokenSupport }
-import nl.knaw.dans.easy.deposit.docs.UserInfo
+import nl.knaw.dans.easy.deposit.docs.UserData
 import org.apache.commons.configuration.PropertiesConfiguration
 import org.joda.time.{ DateTime, DateTimeUtils, DateTimeZone }
 import org.scalamock.scalatest.MockFactory
@@ -54,7 +54,20 @@ trait TestSupportFixture extends FlatSpec with Matchers with Inside with BeforeA
     }
   }
 
-  val defaultUserInfo: UserInfo = UserInfo("user001", displayName = "fullName", email = "does.not.exist@dans.knaw.nl", lastName = "")
+  val defaultUserInfo: UserData = UserData(
+    id = "user001",
+    name = "fullName",
+    firstName = None,
+    prefix = None,
+    lastName = "",
+    address = "",
+    zipcode = "",
+    city = "",
+    country = "",
+    organisation = "",
+    phone = "",
+    email = "does.not.exist@dans.knaw.nl",
+  )
 
   def testResource(file: String): File = File(getClass.getResource(file))
 
@@ -103,7 +116,7 @@ trait TestSupportFixture extends FlatSpec with Matchers with Inside with BeforeA
     new EasyDepositApiApp(minimalAppConfig) {
       override val pidRequester: PidRequester = mockPidRequester
 
-      override def getUserInfo(user: String): Try[UserInfo] = {
+      override def getUserData(user: String): Try[UserData] = {
         Success(defaultUserInfo)
       }
     }

@@ -19,13 +19,20 @@ import java.io.InputStream
 import java.net.URL
 
 import better.files.StringExtensions
+import nl.knaw.dans.easy.deposit.docs.AgreementData
 import scalaj.http.BaseHttp
 
 import scala.util.{ Success, Try }
+import nl.knaw.dans.easy.deposit.docs.JsonUtil._
+import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 
-trait AgreementGenerator {
+trait AgreementGenerator extends DebugEnhancedLogging {
   val http: BaseHttp
   val url: URL
 
-  def agreementDoc(): Try[InputStream] = Success("not yet implemented".inputStream)
+  def agreementDoc(agreementData: AgreementData): Try[InputStream] = {
+    val json = toJson(agreementData)
+    logger.info(json)
+    Success(s"not yet implemented $json".inputStream)
+  }
 }
