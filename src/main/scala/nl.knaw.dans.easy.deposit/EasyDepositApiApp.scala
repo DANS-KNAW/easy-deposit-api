@@ -66,14 +66,14 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
     configuration.version
   }
 
-  private val stagedBaseDir = {
+  protected val stagedBaseDir: File = {
     val dir = getConfiguredDirectory("deposits.staged")
     if (dir.nonEmpty) throw LeftoversOfForcedShutdownException(dir)
     logger.info(s"Uploads/submits will be staged in $dir")
     dir
   }
   private val draftBase: File = getConfiguredDirectory("deposits.drafts")
-  private val submitBase: File = getConfiguredDirectory("deposits.submit-to")
+  protected val submitBase: File = getConfiguredDirectory("deposits.submit-to")
   StartupValidation.allowsAtomicMove(srcDir = stagedBaseDir, targetDir = draftBase)
 
   val multipartConfig: MultipartConfig = {
@@ -88,7 +88,7 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
     )
   }
 
-  private val submitter = {
+  protected val submitter: Submitter = {
     val groupName = properties.getString("deposit.permissions.group")
     val depositUiURL = properties.getString("easy.deposit-ui")
     new Submitter(stagedBaseDir, submitBase, groupName, depositUiURL) {

@@ -15,19 +15,23 @@
  */
 package nl.knaw.dans.easy.deposit
 
+import java.net.URL
 import java.util.{ TimeZone, UUID }
 
 import better.files.File
 import better.files.File._
+import javax.activation.DataSource
 import nl.knaw.dans.easy.deposit.PidRequesterComponent.PidRequester
 import nl.knaw.dans.easy.deposit.authentication.TokenSupport.TokenConfig
 import nl.knaw.dans.easy.deposit.authentication.{ AuthConfig, AuthUser, AuthenticationProvider, TokenSupport }
-import nl.knaw.dans.easy.deposit.docs.UserData
+import nl.knaw.dans.easy.deposit.docs.{ AgreementData, UserData }
 import org.apache.commons.configuration.PropertiesConfiguration
+import org.apache.commons.mail.MultiPartEmail
 import org.joda.time.{ DateTime, DateTimeUtils, DateTimeZone }
 import org.scalamock.scalatest.MockFactory
 import org.scalatest._
 import org.scalatest.enablers.Existence
+import scalaj.http.Http
 
 import scala.util.{ Properties, Success, Try }
 
@@ -120,6 +124,38 @@ trait TestSupportFixture extends FlatSpec with Matchers with Inside with BeforeA
 
       override def getUserData(user: String): Try[UserData] = {
         Success(defaultUserInfo)
+      }
+
+      override protected val submitter: Submitter = {
+        val groupName = properties.getString("deposit.permissions.group")
+        val depositUiURL = properties.getString("easy.deposit-ui")
+        createSubmitterWithStubs(stagedBaseDir, submitBase, groupName, depositUiURL)
+      }
+
+    }
+  }
+
+  def createSubmitterWithStubs(stagedBaseDir: File, submitBase: File,groupName: String, depositUiURL: String): Submitter = {
+    new Submitter(stagedBaseDir, submitBase, groupName, depositUiURL) {
+      // stubs
+      override val agreementGenerator: AgreementGenerator = new AgreementGenerator(Http, new URL("http://does.not.exist")) {
+        override def generate(agreementData: AgreementData, id: UUID): Try[Array[Byte]] = {
+          Success("mocked pdf".getBytes)
+        }
+      }
+      override val mailer: Mailer = new Mailer(
+        smtpHost = "",
+        fromAddress = "",
+        bounceAddress = "",
+        bccs = Seq.empty,
+        templateDir = File("src/main/assembly/dist/cfg/template"),
+        myDatasets = new URL("http://does.not.exist")
+      ) {
+        override def buildMessage(data: AgreementData, attachments: Map[String, DataSource]): Try[MultiPartEmail] = {
+          Success(new MultiPartEmail) // only cause causes the following logging:
+          // ERROR could not send deposit confirmation message
+          //java.lang.IllegalArgumentException: MimeMessage has not been created yet
+        }
       }
     }
   }
