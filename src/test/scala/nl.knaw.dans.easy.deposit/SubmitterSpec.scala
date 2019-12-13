@@ -18,6 +18,7 @@ package nl.knaw.dans.easy.deposit
 import java.io.IOException
 import java.net.URL
 import java.nio.file.Paths
+import java.util.UUID
 
 import better.files.{ File, StringExtensions }
 import nl.knaw.dans.bag.DansBag
@@ -25,9 +26,9 @@ import nl.knaw.dans.easy.deposit.docs._
 import nl.knaw.dans.lib.error._
 import org.apache.commons.configuration.PropertiesConfiguration
 import org.scalamock.scalatest.MockFactory
-import scalaj.http.BaseHttp
+import scalaj.http.Http
 
-import scala.util.{ Failure, Success }
+import scala.util.{ Failure, Success, Try }
 
 class SubmitterSpec extends TestSupportFixture with MockFactory {
   override def beforeEach(): Unit = {
@@ -190,10 +191,9 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
       group,
       "http://does.not.exist",
     ) {
-      override val mailer: Mailer = Mailer ("localhost", "does.not.exist@dans.knaw.nl", "does.not.exist@dans.knaw.nl", "", File("src/main/assembly/dist/cfg/template"))
-      override val agreementGenerator: AgreementGenerator = new AgreementGenerator {
-        override val http: BaseHttp = null // TODO
-        override val url: URL = new URL("http://localhost")
+      override val mailer: Mailer = Mailer ("localhost", "does.not.exist@dans.knaw.nl", "does.not.exist@dans.knaw.nl", Seq.empty, File("src/main/assembly/dist/cfg/template"))
+      override val agreementGenerator: AgreementGenerator = new AgreementGenerator (Http,new URL("http://localhost")){
+        override def generate(agreementData: AgreementData, id: UUID): Try[Array[Byte]] = Success("mocked pdf".getBytes)
       }
     }
   }

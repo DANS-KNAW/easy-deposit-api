@@ -27,6 +27,7 @@ import org.apache.commons.configuration.PropertiesConfiguration
 import org.eclipse.jetty.http.HttpStatus._
 import org.scalatra.servlet.FileItem
 import org.scalatra.{ ActionResult, InternalServerError }
+import scalaj.http.HttpResponse
 
 import scala.util.Try
 
@@ -138,4 +139,5 @@ object Errors extends DebugEnhancedLogging {
     extends ServletResponseException(NOT_FOUND_404, s"$relPath not found in deposit") {
     logger.info(s"$relPath not found")
   }
+  case class GeneratorError(msg: String, response: HttpResponse[String]) extends Exception(s"$msg - ${ response.statusLine }, details: ${ response.body }")
 }

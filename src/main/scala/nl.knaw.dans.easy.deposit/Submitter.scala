@@ -111,7 +111,7 @@ abstract class Submitter(stagingBaseDir: File,
       _ <- stageBag.addMetadataFile(filesXml, "files.xml") // TODO stress test with large number of files?
       files = Map("metadata.xml" -> datasetXml, "files.xml" -> filesXml) // TODO serialize both once?
       agreementData = AgreementData(user, datasetMetadata)
-      agreement <- agreementGenerator.agreementDoc(agreementData)
+      agreement <- agreementGenerator.generate(agreementData, draftDeposit.id)
       email <- mailer.buildMessage(agreementData, agreement, files)
       _ <- workerActions(draftDeposit.id, draftBag, stageBag, submitDir, datasetMetadata, email)
     } yield submittedId

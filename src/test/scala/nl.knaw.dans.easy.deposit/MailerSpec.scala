@@ -15,7 +15,7 @@
  */
 package nl.knaw.dans.easy.deposit
 
-import better.files.{ File, StringExtensions }
+import better.files.File
 import nl.knaw.dans.easy.deposit.docs.dm.SchemedValue
 import nl.knaw.dans.easy.deposit.docs.{ AgreementData, MinimalDatasetMetadata }
 
@@ -37,27 +37,23 @@ class MailerSpec extends TestSupportFixture {
   )
 
   "buildMessage" should "succeed" in {
-//    new AgreementGenerator {
-//      override val http: BaseHttp = null // TODO
-//      override val url: URL = new URL( "http://deasy.dans.knaw.nl")
-//    }.agreementDoc(data) shouldBe """"""
     val from = "does.not.exist@dans.knaw.nl"
-    Mailer (smtpHost = "localhost", fromAddress = from, bounceAddress = from, bccs = "", templateDir = File("src/main/assembly/dist/cfg/template"))
-      .buildMessage(data, "not implemented pdf".inputStream, attachments) shouldBe a[Success[_]]
+    Mailer (smtpHost = "localhost", fromAddress = from, bounceAddress = from, bccs = Seq.empty, templateDir = File("src/main/assembly/dist/cfg/template"))
+      .buildMessage(data, "mocked pdf".getBytes, attachments) shouldBe a[Success[_]]
   }
 
   "buildMessage" should "report invalid address" in {
     val from = "dans.knaw.nl"
-    Mailer (smtpHost = "localhost", fromAddress = from, bounceAddress = from, bccs = "", templateDir = File("src/main/assembly/dist/cfg/template"))
-      .buildMessage(data, "agreement".inputStream, attachments) should matchPattern {
+    Mailer (smtpHost = "localhost", fromAddress = from, bounceAddress = from, bccs = Seq.empty, templateDir = File("src/main/assembly/dist/cfg/template"))
+      .buildMessage(data, "mocked pdf".getBytes, attachments) should matchPattern {
       case Failure(e) if e.getMessage.matches(".*Missing final '@domain'.*dans.knaw.nl.*")=>
     }
   }
 
   "buildMessage" should "report missing templates" in pendingUntilFixed {
     val from = "does.not.exist@dans.knaw.nl"
-    Mailer (smtpHost = "localhost", fromAddress = from, bounceAddress = from, bccs = "", templateDir = File("does/not/exist"))
-      .buildMessage(data, "agreement".inputStream, attachments) should matchPattern {
+    Mailer (smtpHost = "localhost", fromAddress = from, bounceAddress = from, bccs = Seq.empty, templateDir = File("does/not/exist"))
+      .buildMessage(data, "mocked pdf".getBytes, attachments) should matchPattern {
       case Failure(e) if e.getMessage == "Unable to find resource 'depositConfirmation.html'" =>
     }
   }

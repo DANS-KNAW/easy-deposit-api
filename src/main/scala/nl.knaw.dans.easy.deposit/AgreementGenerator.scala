@@ -17,22 +17,34 @@ package nl.knaw.dans.easy.deposit
 
 import java.io.InputStream
 import java.net.URL
+import java.util.UUID
 
-import better.files.StringExtensions
+import nl.knaw.dans.easy.deposit.Errors.GeneratorError
 import nl.knaw.dans.easy.deposit.docs.AgreementData
-import scalaj.http.BaseHttp
-
-import scala.util.{ Success, Try }
 import nl.knaw.dans.easy.deposit.docs.JsonUtil._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
+import org.eclipse.jetty.http.HttpStatus.OK_200
+import scalaj.http.BaseHttp
 
-trait AgreementGenerator extends DebugEnhancedLogging {
-  val http: BaseHttp
-  val url: URL
+import scala.io.Source
+import scala.util.{ Failure, Success, Try }
 
-  def agreementDoc(agreementData: AgreementData): Try[InputStream] = {
+case class AgreementGenerator(http: BaseHttp, url: URL) extends DebugEnhancedLogging {
+
+  def generate(agreementData: AgreementData, id: UUID): Try[Array[Byte]] = {
     val json = toJson(agreementData)
-    logger.info(json)
-    Success(s"not yet implemented $json".inputStream)
+    debug(s"calling easy-deposit-agreement-generator for $id with body: $json")
+    Try(http(url.toString).postData(json).header("content-type", "application/json").exec {
+      case (OK_200, _, is) =>
+        return Success(readAll(is))
+      case (_, _, is) =>
+        Source.fromInputStream(is).mkString
+    }).flatMap{ response =>
+      Failure(GeneratorError(s"Could not generate agreement for dataset $id", response))
+    }
+  }
+
+  private def readAll(is: InputStream) = {
+    Stream.continually(is.read).takeWhile(_ != -1).map(_.toByte).toArray
   }
 }

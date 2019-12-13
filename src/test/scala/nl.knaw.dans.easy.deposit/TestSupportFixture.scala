@@ -109,6 +109,7 @@ trait TestSupportFixture extends FlatSpec with Matchers with Inside with BeforeA
       addProperty("mail.smtp.host", "localhost")
       addProperty("mail.fromAddress", "info@dans.knaw.nl")
       addProperty("mail.template", "src/main/assembly/dist/cfg/template")
+      addProperty("agreement-generator.url", "http://deasy.dans.knaw.nl:20210/agreement") // TODO mock
     })
   }
 

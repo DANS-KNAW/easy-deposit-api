@@ -96,13 +96,13 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
         smtpHost = properties.getString("mail.smtp.host"),
         fromAddress = properties.getString("mail.fromAddress"),
         bounceAddress = properties.getString("mail.bounceAddress"),
-        bccs = properties.getString("mail.bccs", ""),
+        bccs = properties.getString("mail.bccs", "").split(" *, *").filter(_.nonEmpty),
         templateDir = File(properties.getString("mail.template", ""))
       )
-      override val agreementGenerator: AgreementGenerator = new AgreementGenerator {
-        override val http: BaseHttp = null // TODO
-        override val url: URL = new URL(properties.getString("agreement-generator.url", "http://localhost"))
-      }
+      override val agreementGenerator: AgreementGenerator = AgreementGenerator (
+        new BaseHttp(userAgent = s"easy-deposit-agreement-creator/${ configuration.version }"),
+        new URL(properties.getString("agreement-generator.url", "http://localhost"))
+      )
     }
   }
 
