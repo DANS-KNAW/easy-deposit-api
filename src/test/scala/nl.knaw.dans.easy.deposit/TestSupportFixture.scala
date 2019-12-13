@@ -109,12 +109,14 @@ trait TestSupportFixture extends FlatSpec with Matchers with Inside with BeforeA
       addProperty("users.ldap-user-id-attr-name", "-")
       addProperty("multipart.location", (testDir / "multipart").createDirectories().toString())
       addProperty("multipart.file-size-threshold", "3145728") // 3MB
-      addProperty("easy.home", "https://easy.dans.knaw.nl/ui")
-      addProperty("easy.my_datasets", "https://easy.dans.knaw.nl/ui/mydatasets")
-      addProperty("mail.smtp.host", "localhost")
-      addProperty("mail.fromAddress", "info@dans.knaw.nl")
+      addProperty("easy.home", "https://doesNotExist.dans.knaw.nl/ui")
+      addProperty("easy.my_datasets", "https://doesNotExist.dans.knaw.nl/ui/mydatasets")
+      // lazy values in the mailer would require less parameters here,
+      // but without lazy the service fails fast when started with an invalid configuration
+      addProperty("mail.smtp.host", "http://mailerDoesNotExist.dans.knaw.nl")
+      addProperty("mail.fromAddress", "does.not.exist@dans.knaw.nl")
       addProperty("mail.template", "src/main/assembly/dist/cfg/template")
-      addProperty("agreement-generator.url", "http://deasy.dans.knaw.nl:20210/agreement") // TODO mock
+      addProperty("agreement-generator.url", "http://agreementGeneratorDoesNotExist.dans.knaw.nl")
     })
   }
 
