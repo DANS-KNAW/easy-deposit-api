@@ -41,8 +41,6 @@
             <outputDirectory>bin</outputDirectory>
             <includes>
                 <include>easy-deposit-api</include>
-                <include>easy-deposit-api-service-start</include>
-                <include>easy-deposit-api-initd.sh</include>
             </includes>
             <fileMode>0755</fileMode>
         </fileSet>
