@@ -106,6 +106,7 @@ trait TestSupportFixture extends FlatSpec with Matchers with Inside with BeforeA
       addProperty("multipart.location", (testDir / "multipart").createDirectories().toString())
       addProperty("multipart.file-size-threshold", "3145728") // 3MB
       addProperty("easy.home", "https://easy.dans.knaw.nl/ui")
+      addProperty("easy.my_datasets", "https://easy.dans.knaw.nl/ui/mydatasets")
       addProperty("mail.smtp.host", "localhost")
       addProperty("mail.fromAddress", "info@dans.knaw.nl")
       addProperty("mail.template", "src/main/assembly/dist/cfg/template")

@@ -109,10 +109,12 @@ abstract class Submitter(stagingBaseDir: File,
       _ <- stageBag.addMetadataFile(agreementsXml, s"$depositorInfoDirectoryName/agreements.xml")
       _ <- stageBag.addMetadataFile(datasetXml, "dataset.xml")
       _ <- stageBag.addMetadataFile(filesXml, "files.xml") // TODO stress test with large number of files?
-      files = Map("metadata.xml" -> datasetXml, "files.xml" -> filesXml) // TODO serialize both once?
       agreementData = AgreementData(user, datasetMetadata)
       agreement <- agreementGenerator.generate(agreementData, draftDeposit.id)
-      email <- mailer.buildMessage(agreementData, agreement, files)
+      attachments = Map("agreement.pdf" -> Mailer.pdfDataSource(agreement),
+        "metadata.xml" -> Mailer.xmlDataSource(datasetXml), // TODO XMLs serialized here as well as by stageBag.addMetadataFile
+        "files.xml" -> Mailer.xmlDataSource(filesXml))
+      email <- mailer.buildMessage(agreementData, attachments)
       _ <- workerActions(draftDeposit.id, draftBag, stageBag, submitDir, datasetMetadata, email)
     } yield submittedId
   }
@@ -130,7 +132,7 @@ abstract class Submitter(stagingBaseDir: File,
     // EASY-1464 step 3.3.9 Move copy to submit-to area
     _ = logger.info(s"moving $draftDepositDir to $submitDir")
     _ <- move(draftDepositDir, submitDir, id)
-    _ = Try(mailer.send(email)).doIfFailure { case e => logger.error(s"deposit submitted but could not send confirmation message", e) }
+    _ = Try(Mailer.send(email)).doIfFailure { case e => logger.error(s"deposit submitted but could not send confirmation message", e) }
   } yield ()
 
   private def move(draftDepositDir: File, submitDir: File, id: UUID) = Try(

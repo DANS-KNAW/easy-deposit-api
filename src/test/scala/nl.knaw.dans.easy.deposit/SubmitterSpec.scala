@@ -191,7 +191,14 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
       group,
       "http://does.not.exist",
     ) {
-      override val mailer: Mailer = Mailer ("localhost", "does.not.exist@dans.knaw.nl", "does.not.exist@dans.knaw.nl", Seq.empty, File("src/main/assembly/dist/cfg/template"))
+      override val mailer: Mailer = Mailer (
+        smtpHost = "localhost",
+        fromAddress = "does.not.exist@dans.knaw.nl",
+        bounceAddress = "does.not.exist@dans.knaw.nl",
+        bccs = Seq.empty,
+        templateDir = File("src/main/assembly/dist/cfg/template"),
+        myDatasets = new URL("http://easu.dans.knaw.nl/ui/myDeposits"),
+      )
       override val agreementGenerator: AgreementGenerator = new AgreementGenerator (Http,new URL("http://localhost")){
         override def generate(agreementData: AgreementData, id: UUID): Try[Array[Byte]] = Success("mocked pdf".getBytes)
       }

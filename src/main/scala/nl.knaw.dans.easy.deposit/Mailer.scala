@@ -16,9 +16,11 @@
 package nl.knaw.dans.easy.deposit
 
 import java.io.StringWriter
+import java.net.URL
 import java.util.Properties
 
 import better.files.File
+import javax.activation.DataSource
 import javax.mail.util.ByteArrayDataSource
 import nl.knaw.dans.easy.deposit.docs.AgreementData
 import nl.knaw.dans.lib.error._
@@ -30,7 +32,13 @@ import org.apache.velocity.{ Template, VelocityContext }
 import scala.util.Try
 import scala.xml.Elem
 
-case class Mailer(smtpHost: String, fromAddress: String, bounceAddress: String, bccs: Seq[String], templateDir: File) extends DebugEnhancedLogging {
+case class Mailer(smtpHost: String,
+                  fromAddress: String,
+                  bounceAddress: String,
+                  bccs: Seq[String],
+                  templateDir: File,
+                  myDatasets: URL,
+                 ) extends DebugEnhancedLogging {
 
   private val engine = new VelocityEngine(new Properties() {
     setProperty("runtime.references.strict", "true")
@@ -41,6 +49,7 @@ case class Mailer(smtpHost: String, fromAddress: String, bounceAddress: String, 
   }
   private val htmlTemplate: Template = engine.getTemplate("depositConfirmation.html")
   private val txtTemplate = engine.getTemplate("depositConfirmation.txt")
+
   private def generate(template: Template, context: VelocityContext): String = {
     resource.managed(new StringWriter).acquireAndGet { writer =>
       template.merge(context, writer)
@@ -51,15 +60,15 @@ case class Mailer(smtpHost: String, fromAddress: String, bounceAddress: String, 
   }
 
   /** @return messageID */
-  def buildMessage(data: AgreementData, agreement: Array[Byte], metadata: Map[String, Elem]): Try[MultiPartEmail] = Try {
+  def buildMessage(data: AgreementData, attachments: Map[String, DataSource]): Try[MultiPartEmail] = Try {
     val context = new VelocityContext {
       put("displayName", data.depositor.name)
       put("datasetTitle", data.title)
-      put("myDatasetsUrl", "https://easy.dans.knaw.nl/ui/mydatasets") // TODO configure?
+      put("myDatasetsUrl", myDatasets.toString)
       put("doi", data.doi)
     }
     logger.info("email placeholder values: " + context.getKeys.map(key => s"$key=${ context.get(key.toString) }").mkString(", "))
-    val email = DepositMail()
+    val email = new HtmlEmail()
     email.setHtmlMsg(generate(htmlTemplate, context))
     email.setTextMsg(generate(txtTemplate, context))
     email.setSubject(s"DANS EASY: Deposit confirmation for ${ data.title }")
@@ -67,21 +76,14 @@ case class Mailer(smtpHost: String, fromAddress: String, bounceAddress: String, 
     email.setFrom(fromAddress)
     email.setBounceAddress(bounceAddress)
     bccs.foreach(email.addBcc)
-    email.attachBytes(agreement, "agreemet.pdf","application/pdf")
-    metadata.foreach { case (name, content) =>
-      email.attachBytes(content.serialize.getBytes, name,"text/xml")
-    }
+    attachments.foreach { case (name, content) => email.attach(content, name, name) }
     email.setHostName(smtpHost)
     email.buildMimeMessage()
     email
   }
 
-  private case class DepositMail() extends HtmlEmail(){
-    def attachBytes(bytes: Array[Byte], name: String, contentType: String): MultiPartEmail = {
-      val dataSource = new ByteArrayDataSource(bytes, contentType)
-      attach(dataSource, name, name)
-    }
-  }
+}
+object Mailer extends DebugEnhancedLogging {
 
   def send(email: MultiPartEmail): Try[String] = {
     Try(email.sendMimeMessage)
@@ -91,4 +93,11 @@ case class Mailer(smtpHost: String, fromAddress: String, bounceAddress: String, 
       }
       .doIfFailure { case e => logger.error(s"could not send deposit confirmation message", e) }
   }
+  def pdfDataSource (data: Array[Byte]): DataSource = {
+    new ByteArrayDataSource(data, "application/pdf")
+  }
+  def xmlDataSource(data: Elem): DataSource = {
+    new ByteArrayDataSource(data.serialize.getBytes, "text/xml")
+  }
+
 }
