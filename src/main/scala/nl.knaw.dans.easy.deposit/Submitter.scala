@@ -111,24 +111,24 @@ abstract class Submitter(stagingBaseDir: File,
       _ <- stageBag.addMetadataFile(datasetXml, "dataset.xml")
       _ <- stageBag.addMetadataFile(filesXml, "files.xml") // TODO stress test with large number of files?
       agreementData = AgreementData(user, datasetMetadata)
-      agreement <- agreementGenerator.generate(agreementData, draftDeposit.id)
+      agreement <- agreementGenerator.generate(agreementData, draftDeposit.id) // TODO move to workerActions when actually implementing the back ground thread
       attachments = Map("agreement.pdf" -> Mailer.pdfDataSource(agreement),
         "metadata.xml" -> Mailer.xmlDataSource(datasetXml), // TODO XML serialized here as well as by stageBag.addMetadataFile
         "files.txt" -> Mailer.txtDataSource(serializeManifest(draftBag, fileLimit)))
       email <- mailer.buildMessage(agreementData, attachments)
-      _ <- workerActions(draftDeposit.id, draftBag, stageBag, submitDir, datasetMetadata, email)
+      _ <- workerActions(draftDeposit.id, draftBag, stageBag, submitDir, email)
     } yield submittedId
   }
 
   private def serializeManifest(draftBag: DansBag, fileLimit: Int): String = {
     logger.info("creating manifest")
     draftBag.payloadManifests.headOption.
-      map(_._2.slice(0,fileLimit).map { case (file, sha) => s"$sha ${draftBag.data.relativize(file)}" }.mkString("\n")
+      map(_._2.slice(0, fileLimit).map { case (file, sha) => s"$sha ${ draftBag.data.relativize(file) }" }.mkString("\n")
       ).getOrElse("")
   }
 
   // TODO a worker thread allows submit to return fast for large deposits.
-  private def workerActions(id: UUID, draftBag: DansBag, stageBag: DansBag, submitDir: File, datasetMetadata: DatasetMetadata, email: MultiPartEmail) = for {
+  private def workerActions(id: UUID, draftBag: DansBag, stageBag: DansBag, submitDir: File, email: MultiPartEmail) = for {
     // EASY-1464 3.3.8.b copy files
     _ <- stageBag.addPayloadFile(draftBag.data, Paths.get("."))
     _ <- stageBag.save()
