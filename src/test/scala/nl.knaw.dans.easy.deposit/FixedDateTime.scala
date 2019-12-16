@@ -13,14 +13,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package nl.knaw.dans.easy.deposit.authentication
+package nl.knaw.dans.easy.deposit
 
-import nl.knaw.dans.easy.deposit.docs.UserData
+import java.util.TimeZone
 
-import scala.util.Try
+import org.joda.time.{ DateTime, DateTimeUtils, DateTimeZone }
 
-trait AuthenticationProvider {
-  def authenticate(userName: String, password: String): Try[Option[AuthUser]]
-
-  def getUser(userName: String): Try[UserData]
+trait FixedDateTime {
+  val nowYMD = "2018-03-22"
+  val now = s"${ nowYMD }T21:43:01.576"
+  val nowUTC = s"${ nowYMD }T20:43:01Z"
+  /** Causes DateTime.now() to return a predefined value. */
+  DateTimeUtils.setCurrentMillisFixed(new DateTime(nowUTC).getMillis)
+  DateTimeZone.setDefault(DateTimeZone.forTimeZone(TimeZone.getTimeZone("Europe/Amsterdam")))
 }

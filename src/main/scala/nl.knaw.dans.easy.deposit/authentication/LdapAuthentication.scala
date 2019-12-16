@@ -20,7 +20,7 @@ import java.util
 import javax.naming.directory.{ Attribute, SearchControls, SearchResult }
 import javax.naming.ldap.{ InitialLdapContext, LdapContext }
 import javax.naming.{ AuthenticationException, Context }
-import nl.knaw.dans.easy.deposit.docs.UserInfo
+import nl.knaw.dans.easy.deposit.docs.{ UserData, UserInfo }
 import nl.knaw.dans.lib.error.TryExtensions
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import resource.managed
@@ -44,9 +44,9 @@ trait LdapAuthentication extends DebugEnhancedLogging {
      * @param userName name of the authenticated user
      * @return
      */
-    def getUser(userName: String): Try[UserInfo] = {
+    def getUser(userName: String): Try[UserData] = {
       findUser(userName, adminContextProperties) match {
-        case Success(Some(props)) => Success(UserInfo(props))
+        case Success(Some(props)) => Success(UserData(props))
         case Success(None) => Failure(new Exception(s"User [$userName] not found by [$ldapAdminPrincipal] (deleted after login?)"))
         case Failure(t) => Failure(new Exception(s"Configuration error of ldap admin user: $t", t))
       }

@@ -27,7 +27,7 @@ import nl.knaw.dans.easy.deposit.PidRequesterComponent.PidRequester
 import nl.knaw.dans.easy.deposit.authentication.{ AuthenticationProvider, LdapAuthentication }
 import nl.knaw.dans.easy.deposit.docs.StateInfo.State
 import nl.knaw.dans.easy.deposit.docs.StateInfo.State.State
-import nl.knaw.dans.easy.deposit.docs.{ DatasetMetadata, DepositInfo, StateInfo, UserInfo }
+import nl.knaw.dans.easy.deposit.docs.{ DatasetMetadata, DepositInfo, StateInfo, UserData }
 import nl.knaw.dans.easy.deposit.servlets.archiveContentTypeRegexp
 import nl.knaw.dans.lib.error._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
@@ -35,6 +35,7 @@ import org.apache.commons.configuration.PropertiesConfiguration
 import org.eclipse.jetty.io.EofException
 import org.joda.time.DateTime
 import org.scalatra.servlet.MultipartConfig
+import scalaj.http.BaseHttp
 
 import scala.util.{ Failure, Success, Try }
 
@@ -65,14 +66,14 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
     configuration.version
   }
 
-  private val stagedBaseDir = {
+  protected val stagedBaseDir: File = {
     val dir = getConfiguredDirectory("deposits.staged")
     if (dir.nonEmpty) throw LeftoversOfForcedShutdownException(dir)
     logger.info(s"Uploads/submits will be staged in $dir")
     dir
   }
   private val draftBase: File = getConfiguredDirectory("deposits.drafts")
-  private val submitBase: File = getConfiguredDirectory("deposits.submit-to")
+  protected val submitBase: File = getConfiguredDirectory("deposits.submit-to")
   StartupValidation.allowsAtomicMove(srcDir = stagedBaseDir, targetDir = draftBase)
 
   val multipartConfig: MultipartConfig = {
@@ -87,10 +88,23 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
     )
   }
 
-  private val submitter = {
+  protected val submitter: Submitter = {
     val groupName = properties.getString("deposit.permissions.group")
     val depositUiURL = properties.getString("easy.deposit-ui")
-    new Submitter(stagedBaseDir, submitBase, groupName, depositUiURL)
+    new Submitter(stagedBaseDir, submitBase, groupName, depositUiURL, fileLimit = properties.getInt("file.limit")) {
+      override val mailer: Mailer = Mailer(
+        smtpHost = properties.getString("mail.smtp.host"),
+        fromAddress = properties.getString("mail.fromAddress"),
+        bounceAddress = properties.getString("mail.bounceAddress"),
+        bccs = properties.getString("mail.bccs", "").split(" *, *").filter(_.nonEmpty),
+        templateDir = File(properties.getString("mail.template", "")),
+        myDatasets = new URL(properties.getString("easy.my_datasets"))
+      )
+      override val agreementGenerator: AgreementGenerator = AgreementGenerator (
+        new BaseHttp(userAgent = s"easy-deposit-agreement-creator/${ configuration.version }"),
+        new URL(properties.getString("agreement-generator.url", "http://localhost"))
+      )
+    }
   }
 
   // possible trailing slash is dropped
@@ -113,7 +127,7 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
     DepositDir.get(draftBase, user, id)
   }
 
-  def getUserInfo(user: String): Try[UserInfo] = authentication.getUser(user)
+  def getUserData(user: String): Try[UserData] = authentication.getUser(user)
 
   /**
    * Creates a new, empty deposit, containing an empty bag in the user's draft area. If the user
@@ -180,9 +194,9 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
   def setDepositState(newStateInfo: StateInfo, userId: String, id: UUID): Try[Unit] = {
     def submit(deposit: DepositDir, stateManager: StateManager): Try[Unit] = {
       for {
-        userInfo <- getUserInfo(userId)
+        userData <- getUserData(userId)
         disposableStagedDir <- getStagedDir(userId, id)
-        _ <- disposableStagedDir.apply(submitter.submit(deposit, stateManager, userInfo, _))
+        _ <- disposableStagedDir.apply(submitter.submit(deposit, stateManager, userData, _))
       } yield ()
     }
 

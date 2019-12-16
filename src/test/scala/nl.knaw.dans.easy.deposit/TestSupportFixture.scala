@@ -15,19 +15,23 @@
  */
 package nl.knaw.dans.easy.deposit
 
+import java.net.URL
 import java.util.{ TimeZone, UUID }
 
 import better.files.File
 import better.files.File._
+import javax.activation.DataSource
 import nl.knaw.dans.easy.deposit.PidRequesterComponent.PidRequester
 import nl.knaw.dans.easy.deposit.authentication.TokenSupport.TokenConfig
 import nl.knaw.dans.easy.deposit.authentication.{ AuthConfig, AuthUser, AuthenticationProvider, TokenSupport }
-import nl.knaw.dans.easy.deposit.docs.UserInfo
+import nl.knaw.dans.easy.deposit.docs.{ AgreementData, UserData }
 import org.apache.commons.configuration.PropertiesConfiguration
+import org.apache.commons.mail.MultiPartEmail
 import org.joda.time.{ DateTime, DateTimeUtils, DateTimeZone }
 import org.scalamock.scalatest.MockFactory
 import org.scalatest._
 import org.scalatest.enablers.Existence
+import scalaj.http.Http
 
 import scala.util.{ Properties, Success, Try }
 
@@ -54,7 +58,20 @@ trait TestSupportFixture extends FlatSpec with Matchers with Inside with BeforeA
     }
   }
 
-  val defaultUserInfo = UserInfo("user001", displayName = "fullName", email = "does.not.exist@dans.knaw.nl", lastName = "")
+  val defaultUserInfo: UserData = UserData(
+    id = "user001",
+    name = "fullName",
+    firstName = None,
+    prefix = None,
+    lastName = "",
+    address = "",
+    zipcode = "",
+    city = "",
+    country = "",
+    organisation = "",
+    phone = "",
+    email = "does.not.exist@dans.knaw.nl",
+  )
 
   def testResource(file: String): File = File(getClass.getResource(file))
 
@@ -92,7 +109,15 @@ trait TestSupportFixture extends FlatSpec with Matchers with Inside with BeforeA
       addProperty("users.ldap-user-id-attr-name", "-")
       addProperty("multipart.location", (testDir / "multipart").createDirectories().toString())
       addProperty("multipart.file-size-threshold", "3145728") // 3MB
-      addProperty("easy.home", "https://easy.dans.knaw.nl/ui")
+      addProperty("easy.home", "https://doesNotExist.dans.knaw.nl/ui")
+      addProperty("easy.my_datasets", "https://doesNotExist.dans.knaw.nl/ui/mydatasets")
+      // lazy values in the mailer would require less parameters here,
+      // but without lazy the service fails fast when started with an invalid configuration
+      addProperty("mail.smtp.host", "http://mailerDoesNotExist.dans.knaw.nl")
+      addProperty("mail.fromAddress", "does.not.exist@dans.knaw.nl")
+      addProperty("mail.template", "src/main/assembly/dist/cfg/template")
+      addProperty("file.limit", "500")
+      addProperty("agreement-generator.url", "http://agreementGeneratorDoesNotExist.dans.knaw.nl")
     })
   }
 
@@ -100,8 +125,40 @@ trait TestSupportFixture extends FlatSpec with Matchers with Inside with BeforeA
     new EasyDepositApiApp(minimalAppConfig) {
       override val pidRequester: PidRequester = mockPidRequester
 
-      override def getUserInfo(user: String): Try[UserInfo] = {
+      override def getUserData(user: String): Try[UserData] = {
         Success(defaultUserInfo)
+      }
+
+      override protected val submitter: Submitter = {
+        val groupName = properties.getString("deposit.permissions.group")
+        val depositUiURL = properties.getString("easy.deposit-ui")
+        createSubmitterWithStubs(stagedBaseDir, submitBase, groupName, depositUiURL)
+      }
+
+    }
+  }
+
+  def createSubmitterWithStubs(stagedBaseDir: File, submitBase: File,groupName: String, depositUiURL: String): Submitter = {
+    new Submitter(stagedBaseDir, submitBase, groupName, depositUiURL) {
+      // stubs
+      override val agreementGenerator: AgreementGenerator = new AgreementGenerator(Http, new URL("http://does.not.exist")) {
+        override def generate(agreementData: AgreementData, id: UUID): Try[Array[Byte]] = {
+          Success("mocked pdf".getBytes)
+        }
+      }
+      override val mailer: Mailer = new Mailer(
+        smtpHost = "",
+        fromAddress = "",
+        bounceAddress = "",
+        bccs = Seq.empty,
+        templateDir = File("src/main/assembly/dist/cfg/template"),
+        myDatasets = new URL("http://does.not.exist")
+      ) {
+        override def buildMessage(data: AgreementData, attachments: Map[String, DataSource]): Try[MultiPartEmail] = {
+          Success(new MultiPartEmail) // only cause causes the following logging:
+          // ERROR could not send deposit confirmation message
+          //java.lang.IllegalArgumentException: MimeMessage has not been created yet
+        }
       }
     }
   }

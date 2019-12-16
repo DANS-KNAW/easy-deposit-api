@@ -32,6 +32,7 @@ import nl.knaw.dans.easy.deposit.docs._
 import nl.knaw.dans.lib.error._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import nl.knaw.dans.lib.string._
+import org.apache.commons.mail.MultiPartEmail
 import org.joda.time.DateTime
 
 import scala.collection.JavaConverters._
@@ -44,11 +45,15 @@ import scala.util.{ Failure, Success, Try }
  * @param stagingBaseDir  the base directory for staged copies
  * @param submitToBaseDir the directory to which the staged copy must be moved.
  */
-class Submitter(stagingBaseDir: File,
-                submitToBaseDir: File,
-                groupName: String,
-                depositUiURL: String,
-               ) extends DebugEnhancedLogging {
+abstract class Submitter(stagingBaseDir: File,
+                         submitToBaseDir: File,
+                         groupName: String,
+                         depositUiURL: String,
+                         fileLimit: Int = 200
+                        ) extends DebugEnhancedLogging {
+  val mailer: Mailer
+  val agreementGenerator: AgreementGenerator
+
   private val groupPrincipal = {
     Try {
       stagingBaseDir.fileSystem.getUserPrincipalLookupService.lookupPrincipalByGroupName(groupName)
@@ -69,7 +74,7 @@ class Submitter(stagingBaseDir: File,
    * @param draftDeposit the deposit object to submit
    * @return the UUID of the deposit in the submit area (easy-ingest-flow-inbox)
    */
-  def submit(draftDeposit: DepositDir, stateManager: StateManager, user: UserInfo, stagedDir: File): Try[UUID] = {
+  def submit(draftDeposit: DepositDir, stateManager: StateManager, user: UserData, stagedDir: File): Try[UUID] = {
     val propsFileName = "deposit.properties"
     for {
       // EASY-1464 step 3.3.4 validation
@@ -104,13 +109,26 @@ class Submitter(stagingBaseDir: File,
       _ = stageBag.addMetadataFile(msg4DataManager, s"$depositorInfoDirectoryName/message-from-depositor.txt")
       _ <- stageBag.addMetadataFile(agreementsXml, s"$depositorInfoDirectoryName/agreements.xml")
       _ <- stageBag.addMetadataFile(datasetXml, "dataset.xml")
-      _ <- stageBag.addMetadataFile(filesXml, "files.xml")
-      _ <- workerActions(draftDeposit.id, draftBag, stageBag, submitDir)
+      _ <- stageBag.addMetadataFile(filesXml, "files.xml") // TODO stress test with large number of files?
+      agreementData = AgreementData(user, datasetMetadata)
+      agreement <- agreementGenerator.generate(agreementData, draftDeposit.id) // TODO move to workerActions when actually implementing the back ground thread
+      attachments = Map("agreement.pdf" -> Mailer.pdfDataSource(agreement),
+        "metadata.xml" -> Mailer.xmlDataSource(datasetXml), // TODO XML serialized here as well as by stageBag.addMetadataFile
+        "files.txt" -> Mailer.txtDataSource(serializeManifest(draftBag, fileLimit)))
+      email <- mailer.buildMessage(agreementData, attachments)
+      _ <- workerActions(draftDeposit.id, draftBag, stageBag, submitDir, email)
     } yield submittedId
   }
 
+  private def serializeManifest(draftBag: DansBag, fileLimit: Int): String = {
+    logger.info("creating manifest")
+    draftBag.payloadManifests.headOption.
+      map(_._2.slice(0, fileLimit).map { case (file, sha) => s"$sha ${ draftBag.data.relativize(file) }" }.mkString("\n")
+      ).getOrElse("")
+  }
+
   // TODO a worker thread allows submit to return fast for large deposits.
-  private def workerActions(id: UUID, draftBag: DansBag, stageBag: DansBag, submitDir: File) = for {
+  private def workerActions(id: UUID, draftBag: DansBag, stageBag: DansBag, submitDir: File, email: MultiPartEmail) = for {
     // EASY-1464 3.3.8.b copy files
     _ <- stageBag.addPayloadFile(draftBag.data, Paths.get("."))
     _ <- stageBag.save()
@@ -121,10 +139,15 @@ class Submitter(stagingBaseDir: File,
     _ <- setRightsRecursively(draftDepositDir)
     // EASY-1464 step 3.3.9 Move copy to submit-to area
     _ = logger.info(s"moving $draftDepositDir to $submitDir")
-    _ <- Try(draftDepositDir.moveTo(submitDir)(CopyOptions.atomically)).recoverWith {
-      case _: FileAlreadyExistsException => Failure(AlreadySubmittedException(id))
-    }
+    _ <- move(draftDepositDir, submitDir, id)
+    _ = Try(Mailer.send(email)).doIfFailure { case e => logger.error(s"deposit submitted but could not send confirmation message", e) }
   } yield ()
+
+  private def move(draftDepositDir: File, submitDir: File, id: UUID) = Try(
+    draftDepositDir.moveTo(submitDir)(CopyOptions.atomically)
+  ).recoverWith {
+    case _: FileAlreadyExistsException => Failure(AlreadySubmittedException(id))
+  }
 
   private def setRightsRecursively(file: File): Try[Unit] = {
     resource.managed(Files.walk(file.path, Int.MaxValue, VisitOptions.default: _*))

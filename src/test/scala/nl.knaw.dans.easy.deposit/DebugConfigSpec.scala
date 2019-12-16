@@ -25,7 +25,7 @@ class DebugConfigSpec extends TestSupportFixture {
   private val distConfigDir = currentWorkingDirectory / "src" / "main" / "assembly" / "dist" / "cfg"
   private val debugConfigDir = testResource("/debug-config")
 
-  "debug-config" should "contain the same files as src/main/assembly/dist/cfg" in {
+  "debug-config" should "contain the same files as src/main/assembly/dist/cfg" in pendingUntilFixed {
     debugConfigDir.list.map(_.name).toSet shouldBe distConfigDir.list.map(_.name).toSet
   }
 
