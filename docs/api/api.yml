@@ -1,7 +1,7 @@
 openapi: 3.0.1
 
 servers:
-    url: http://localhost:20190/
+    - url: http://localhost:20190/
 
 info:
   description: Public interface for depositing datasets in EASY.
