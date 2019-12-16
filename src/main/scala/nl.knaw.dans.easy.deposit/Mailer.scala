@@ -99,5 +99,8 @@ object Mailer extends DebugEnhancedLogging {
   def xmlDataSource(data: Elem): DataSource = {
     new ByteArrayDataSource(data.serialize.getBytes, "text/xml")
   }
+  def txtDataSource(data: String): DataSource = {
+    new ByteArrayDataSource(data.getBytes, "text/plain")
+  }
 
 }

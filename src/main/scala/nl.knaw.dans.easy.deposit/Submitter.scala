@@ -49,6 +49,7 @@ abstract class Submitter(stagingBaseDir: File,
                          submitToBaseDir: File,
                          groupName: String,
                          depositUiURL: String,
+                         fileLimit: Int = 200
                         ) extends DebugEnhancedLogging {
   val mailer: Mailer
   val agreementGenerator: AgreementGenerator
@@ -112,11 +113,18 @@ abstract class Submitter(stagingBaseDir: File,
       agreementData = AgreementData(user, datasetMetadata)
       agreement <- agreementGenerator.generate(agreementData, draftDeposit.id)
       attachments = Map("agreement.pdf" -> Mailer.pdfDataSource(agreement),
-        "metadata.xml" -> Mailer.xmlDataSource(datasetXml), // TODO XMLs serialized here as well as by stageBag.addMetadataFile
-        "files.xml" -> Mailer.xmlDataSource(filesXml))
+        "metadata.xml" -> Mailer.xmlDataSource(datasetXml), // TODO XML serialized here as well as by stageBag.addMetadataFile
+        "files.txt" -> Mailer.txtDataSource(serializeManifest(draftBag, fileLimit)))
       email <- mailer.buildMessage(agreementData, attachments)
       _ <- workerActions(draftDeposit.id, draftBag, stageBag, submitDir, datasetMetadata, email)
     } yield submittedId
+  }
+
+  private def serializeManifest(draftBag: DansBag, fileLimit: Int): String = {
+    logger.info("creating manifest")
+    draftBag.payloadManifests.headOption.
+      map(_._2.slice(0,fileLimit).map { case (file, sha) => s"$sha ${draftBag.data.relativize(file)}" }.mkString("\n")
+      ).getOrElse("")
   }
 
   // TODO a worker thread allows submit to return fast for large deposits.
