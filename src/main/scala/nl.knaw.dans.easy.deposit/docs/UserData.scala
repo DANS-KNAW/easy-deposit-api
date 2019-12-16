@@ -38,6 +38,7 @@ object UserData extends DebugEnhancedLogging {
   def apply(input: JsonInput): Try[UserData] = input.deserialize[UserData]
 
   def apply(attributes: Map[String, Seq[String]]): UserData = {
+    logger.debug("userdata: "+attributes.keys.map(k => s"$k -> ${getAttribute(k)}").mkString(", "))
 
     def getOption(key: String): Option[String] = {
       attributes
@@ -58,7 +59,6 @@ object UserData extends DebugEnhancedLogging {
     //   EasySchema.java
     // https://github.com/DANS-KNAW/dans.easy-test-users/blob/master/templates
     new UserData(
-
       // mandatory: https://github.com/DANS-KNAW/dans.easy-ldap-dir/blob/f17c391/files/easy-schema.ldif#L83-L84
       id = getAttribute("uid"),
 
@@ -70,8 +70,8 @@ object UserData extends DebugEnhancedLogging {
       zipcode = getAttribute("postalCode"),
       city = getAttribute("l"),
       organisation = getAttribute("o"),
-      phone = "",
-      country = "",
+      phone = getAttribute("telephoneNumber"),
+      country = getAttribute("st"),
       email = getAttribute("mail"),
     )
   }

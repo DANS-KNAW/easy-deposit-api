@@ -15,6 +15,8 @@
  */
 package nl.knaw.dans.easy.deposit.docs
 
+import nl.knaw.dans.easy.deposit.docs.dm.DateQualifier
+import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.joda.time.DateTime
 import org.joda.time.format.ISODateTimeFormat
 
@@ -29,16 +31,18 @@ case class AgreementData(depositor: AgreementUser,
                          agreementVersion: String = "4.0",
                          agreementLanguage: String = "EN",
                         )
-object AgreementData {
+object AgreementData extends DebugEnhancedLogging {
   def apply(userData: UserData, dm: DatasetMetadata): AgreementData = {
     // the ui and ingest-flow validate, so just prevent exceptions on absent values
     new AgreementData(depositor = AgreementUser(userData),
       doi = dm.doi.getOrElse(""),
-      title= dm.titles.getOrElse(Seq.empty).headOption.getOrElse(""),
-      dateSubmitted = DateTime.now.toString(ISODateTimeFormat.date()), // TODO from deposit properties?
-      dateAvailable = dm.datesAvailable.map(_.value.getOrElse("")).getOrElse(""),
+      title = dm.titles.getOrElse(Seq.empty).headOption.getOrElse(""),
       accessCategory = dm.accessRights.map(_.toString).getOrElse(""),
       license = dm.license.flatMap(_.value).getOrElse(""),
+      dateAvailable = dm.datesAvailable.map(_.value.getOrElse("")).getOrElse(""),
+      dateSubmitted = dm.otherDates
+        .find(_.qualifier.contains(DateQualifier.dateSubmitted)).flatMap(_.value)
+        .getOrElse(DateTime.now.toString(ISODateTimeFormat.date()))
     )
   }
 }

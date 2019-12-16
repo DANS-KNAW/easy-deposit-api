@@ -33,7 +33,7 @@ case class AgreementGenerator(http: BaseHttp, url: URL) extends DebugEnhancedLog
 
   def generate(agreementData: AgreementData, id: UUID): Try[Array[Byte]] = {
     val json = toJson(agreementData)
-    debug(s"calling easy-deposit-agreement-generator for $id with body: $json")
+    logger.info(s"calling easy-deposit-agreement-generator for $id with body: $json")
     Try(http(url.toString).postData(json).header("content-type", "application/json").exec {
       case (OK_200, _, is) =>
         return Success(readAll(is))
