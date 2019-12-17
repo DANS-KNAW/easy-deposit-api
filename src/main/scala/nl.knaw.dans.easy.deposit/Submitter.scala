@@ -54,6 +54,13 @@ abstract class Submitter(stagingBaseDir: File,
   val mailer: Mailer
   val agreementGenerator: AgreementGenerator
 
+  private lazy val agreementDocName = {
+    s"agreement.${
+      if (agreementGenerator.acceptHeader.contains("html")) "html"
+      else "pdf"
+    }"
+  }
+
   private val groupPrincipal = {
     Try {
       stagingBaseDir.fileSystem.getUserPrincipalLookupService.lookupPrincipalByGroupName(groupName)
@@ -111,8 +118,9 @@ abstract class Submitter(stagingBaseDir: File,
       _ <- stageBag.addMetadataFile(datasetXml, "dataset.xml")
       _ <- stageBag.addMetadataFile(filesXml, "files.xml") // TODO stress test with large number of files?
       agreementData = AgreementData(user, datasetMetadata)
-      agreement <- agreementGenerator.generate(agreementData, draftDeposit.id) // TODO move to workerActions when actually implementing the back ground thread
-      attachments = Map("agreement.pdf" -> Mailer.pdfDataSource(agreement),
+      // TODO move the rest to workerActions when actually implementing the back ground thread
+      agreement <- agreementGenerator.generate(agreementData, draftDeposit.id)
+      attachments = Map(agreementDocName -> Mailer.pdfDataSource(agreement),
         "metadata.xml" -> Mailer.xmlDataSource(datasetXml), // TODO XML serialized here as well as by stageBag.addMetadataFile
         "files.txt" -> Mailer.txtDataSource(serializeManifest(draftBag, fileLimit)))
       email <- mailer.buildMessage(agreementData, attachments)

@@ -134,14 +134,13 @@ trait TestSupportFixture extends FlatSpec with Matchers with Inside with BeforeA
         val depositUiURL = properties.getString("easy.deposit-ui")
         createSubmitterWithStubs(stagedBaseDir, submitBase, groupName, depositUiURL)
       }
-
     }
   }
 
-  def createSubmitterWithStubs(stagedBaseDir: File, submitBase: File,groupName: String, depositUiURL: String): Submitter = {
+  def createSubmitterWithStubs(stagedBaseDir: File, submitBase: File, groupName: String, depositUiURL: String): Submitter = {
     new Submitter(stagedBaseDir, submitBase, groupName, depositUiURL) {
       // stubs
-      override val agreementGenerator: AgreementGenerator = new AgreementGenerator(Http, new URL("http://does.not.exist")) {
+      override val agreementGenerator: AgreementGenerator = new AgreementGenerator(Http, new URL("http://does.not.exist"), "text/html") {
         override def generate(agreementData: AgreementData, id: UUID): Try[Array[Byte]] = {
           Success("mocked pdf".getBytes)
         }
