@@ -118,6 +118,8 @@ trait TestSupportFixture extends FlatSpec with Matchers with Inside with BeforeA
       addProperty("mail.template", "src/main/assembly/dist/cfg/template")
       addProperty("file.limit", "500")
       addProperty("agreement-generator.url", "http://agreementGeneratorDoesNotExist.dans.knaw.nl")
+      addProperty("agreement-generator.connection-timeout-ms", "3000")
+      addProperty("agreement-generator.read-timeout-ms", "60000")
     })
   }
 

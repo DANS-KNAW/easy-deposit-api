@@ -29,20 +29,19 @@ import scalaj.http.BaseHttp
 import scala.io.Source
 import scala.util.{ Failure, Success, Try }
 
-case class AgreementGenerator(http: BaseHttp, url: URL, acceptHeader: String) extends DebugEnhancedLogging {
-
+case class AgreementGenerator(http: BaseHttp, url: URL, acceptHeader: String, connectionTimeoutMs: Int = 2000, readTimeoutMs: Int = 30000) extends DebugEnhancedLogging {
   def generate(agreementData: AgreementData, id: UUID): Try[Array[Byte]] = {
     val json = toJson(agreementData)
     logger.info(s"calling easy-deposit-agreement-generator for $id with body: $json")
-    Try(http(url.toString).postData(json)
-      .header("content-type", "application/json")
-      .header("accept", acceptHeader)
-      .exec {
-        case (OK_200, _, is) =>
-          return Success(readAll(is))
-        case (_, _, is) =>
-          Source.fromInputStream(is).mkString
-      }).flatMap { response =>
+    Try(http(url.toString).timeout(connectionTimeoutMs, readTimeoutMs).postData(json)
+        .header("content-type", "application/json")
+        .header("accept", acceptHeader)
+        .exec {
+      case (OK_200, _, is) =>
+        return Success(readAll(is))
+      case (_, _, is) =>
+        Source.fromInputStream(is).mkString
+    }).flatMap{ response =>
       Failure(GeneratorError(s"Could not generate agreement for dataset $id", response))
     }
   }

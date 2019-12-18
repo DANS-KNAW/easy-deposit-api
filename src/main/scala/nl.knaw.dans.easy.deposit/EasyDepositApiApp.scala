@@ -104,6 +104,8 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
         new BaseHttp(userAgent = s"easy-deposit-agreement-creator/${ configuration.version }"),
         new URL(properties.getString("agreement-generator.url", "http://localhost")),
         properties.getString("agreement-generator.accept", "application/pdf"),
+        connectionTimeoutMs = properties.getInt("agreement-generator.connection-timeout-ms"),
+        readTimeoutMs = properties.getInt("agreement-generator.read-timeout-ms")
       )
     }
   }
