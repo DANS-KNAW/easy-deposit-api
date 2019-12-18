@@ -41,7 +41,7 @@ class AgreementGeneratorSpec extends TestSupportFixture with BeforeAndAfterAll {
   private val server = new MockWebServer
   private val test_server = "/generate/"
 
-  private val generator = AgreementGenerator(Http, server.url(test_server).url())
+  private val generator = AgreementGenerator(Http, server.url(test_server).url(),"text/html")
 
   override protected def afterAll(): Unit = {
     server.shutdown()
@@ -74,7 +74,7 @@ class AgreementGeneratorSpec extends TestSupportFixture with BeforeAndAfterAll {
     val uuid = UUID.randomUUID()
     generator.generate(data, uuid) should matchPattern {
       case Failure(GeneratorError(msg, HttpResponse("some error message", 400, _)))
-        if msg ==(s"Could not generate agreement for dataset $uuid") =>
+        if msg == s"Could not generate agreement for dataset $uuid" =>
     }
   }
 }
