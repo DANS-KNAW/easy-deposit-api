@@ -130,9 +130,9 @@ abstract class Submitter(stagingBaseDir: File,
 
   private def serializeManifest(draftBag: DansBag, fileLimit: Int): String = {
     logger.info("creating manifest")
-    draftBag.payloadManifests.headOption.
-      map(_._2.slice(0, fileLimit).map { case (file, sha) => s"$sha ${ draftBag.data.relativize(file) }" }.mkString("\n")
-      ).getOrElse("")
+    val entries = draftBag.payloadManifests.headOption.map(_._2).getOrElse(Map.empty)
+    if (entries.size > fileLimit) "" // all files or none avoids confusion
+    else entries.map { case (file, sha) => s"$sha ${ draftBag.data.relativize(file) }" }.mkString("\n")
   }
 
   // TODO a worker thread allows submit to return fast for large deposits.

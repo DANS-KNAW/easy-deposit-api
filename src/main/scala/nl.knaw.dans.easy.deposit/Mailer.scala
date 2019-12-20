@@ -76,12 +76,15 @@ case class Mailer(smtpHost: String,
     email.setFrom(fromAddress)
     email.setBounceAddress(bounceAddress)
     bccs.foreach(email.addBcc)
-    attachments.foreach { case (name, content) => email.attach(content, name, name) }
+    attachments.foreach { case (name, content) =>
+      // attach unless empty
+      if (content.getInputStream.available() > 0)
+        email.attach(content, name, name)
+    }
     email.setHostName(smtpHost)
     email.buildMimeMessage()
     email
   }
-
 }
 object Mailer extends DebugEnhancedLogging {
 
@@ -93,14 +96,16 @@ object Mailer extends DebugEnhancedLogging {
       }
       .doIfFailure { case e => logger.error(s"could not send deposit confirmation message", e) }
   }
-  def pdfDataSource (data: Array[Byte]): DataSource = {
+
+  def pdfDataSource(data: Array[Byte]): DataSource = {
     new ByteArrayDataSource(data, "application/pdf")
   }
+
   def xmlDataSource(data: Elem): DataSource = {
     new ByteArrayDataSource(data.serialize.getBytes, "text/xml")
   }
+
   def txtDataSource(data: String): DataSource = {
     new ByteArrayDataSource(data.getBytes, "text/plain")
   }
-
 }
