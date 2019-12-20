@@ -110,7 +110,7 @@ trait TestSupportFixture extends FlatSpec with Matchers with Inside with BeforeA
       addProperty("multipart.location", (testDir / "multipart").createDirectories().toString())
       addProperty("multipart.file-size-threshold", "3145728") // 3MB
       addProperty("easy.home", "https://doesNotExist.dans.knaw.nl/ui")
-      addProperty("easy.my_datasets", "https://doesNotExist.dans.knaw.nl/ui/mydatasets")
+      addProperty("easy.my-datasets", "https://doesNotExist.dans.knaw.nl/ui/mydatasets")
       // lazy values in the mailer would require less parameters here,
       // but without lazy the service fails fast when started with an invalid configuration
       addProperty("mail.smtp.host", "http://mailerDoesNotExist.dans.knaw.nl")
