@@ -91,7 +91,7 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
   protected val submitter: Submitter = {
     val groupName = properties.getString("deposit.permissions.group")
     val depositUiURL = properties.getString("easy.deposit-ui")
-    new Submitter(stagedBaseDir, submitBase, groupName, depositUiURL, fileLimit = properties.getInt("file.limit")) {
+    new Submitter(stagedBaseDir, submitBase, groupName, depositUiURL, fileLimit = properties.getInt("attached-file-list.limit")) {
       override val mailer: Mailer = Mailer(
         smtpHost = properties.getString("mail.smtp.host"),
         fromAddress = properties.getString("mail.fromAddress"),
