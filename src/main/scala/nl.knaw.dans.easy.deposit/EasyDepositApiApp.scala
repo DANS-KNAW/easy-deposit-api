@@ -48,7 +48,7 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
   override val pidRequester: PidRequester = new PidRequester with HttpContext {
     override val pidGeneratorService: URI = new URI(properties.getString("pids.generator-service"))
     override val applicationVersion: String = configuration.version
-    logger.info(s"pids.generator-service = $pidGeneratorService")
+    logger.debug(s"pids.generator-service = $pidGeneratorService")
   }
   override val authentication: AuthenticationProvider = new Authentication {
     override val ldapUserIdAttrName: String = properties.getString("users.ldap-user-id-attr-name")
@@ -56,10 +56,10 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
     override val ldapProviderUrl: String = properties.getString("users.ldap-url")
     override val ldapAdminPrincipal: String = properties.getString("users.ldap-admin-principal")
     override val ldapAdminPassword: String = properties.getString("users.ldap-admin-password")
-    logger.info(s"users.ldap-url = $ldapProviderUrl")
-    logger.info(s"users.ldap-parent-entry = $ldapParentEntry")
-    logger.info(s"users.ldap-user-id-attr-name = $ldapUserIdAttrName")
-    logger.info(s"users.ldap-admin-principal = $ldapAdminPrincipal")
+    logger.debug(s"users.ldap-url = $ldapProviderUrl")
+    logger.debug(s"users.ldap-parent-entry = $ldapParentEntry")
+    logger.debug(s"users.ldap-user-id-attr-name = $ldapUserIdAttrName")
+    logger.debug(s"users.ldap-admin-principal = $ldapAdminPrincipal")
   }
 
   def getVersion: String = {
@@ -69,7 +69,7 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
   protected val stagedBaseDir: File = {
     val dir = getConfiguredDirectory("deposits.staged")
     if (dir.nonEmpty) throw LeftoversOfForcedShutdownException(dir)
-    logger.info(s"Uploads/submits will be staged in $dir")
+    logger.debug(s"Uploads/submits will be staged in $dir")
     dir
   }
   private val draftBase: File = getConfiguredDirectory("deposits.drafts")
@@ -78,7 +78,7 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
 
   val multipartConfig: MultipartConfig = {
     val multipartLocation = getConfiguredDirectory("multipart.location")
-    logger.info(s"Uploads are received at multipart.location: $multipartLocation")
+    logger.debug(s"Uploads are received at multipart.location: $multipartLocation")
     StartupValidation.allowsAtomicMove(srcDir = multipartLocation, targetDir = stagedBaseDir)
     MultipartConfig(
       location = Some(multipartLocation.toString()),
@@ -130,7 +130,10 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
     DepositDir.get(draftBase, user, id)
   }
 
-  def getUserData(user: String): Try[UserData] = authentication.getUser(user)
+  def getUserData(user: String): Try[UserData] = {
+    trace(user)
+    authentication.getUser(user)
+  }
 
   /**
    * Creates a new, empty deposit, containing an empty bag in the user's draft area. If the user
@@ -140,7 +143,11 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
    * @return the new deposit's ID
    */
   def createDeposit(user: String): Try[DepositInfo] = {
-    DepositDir.create(draftBase, user).flatMap(_.getDepositInfo(submitBase, easyHome))
+    trace(user)
+    for {
+      depositDir <- DepositDir.create(draftBase, user)
+      depositInfo <- depositDir.getDepositInfo(submitBase, easyHome)
+    } yield depositInfo
   }
 
   /**
@@ -150,6 +157,7 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
    * @return a list of [[docs.DepositInfo]] objects
    */
   def getDeposits(user: String): Try[Seq[DepositInfo]] = {
+    trace(user)
     implicit val timestampOrdering: Ordering[DateTime] = Ordering.fromLessThan[DateTime](_ isBefore _)
     implicit val tupleOrdering: Ordering[(State, DateTime)] = Ordering.Tuple2[State, DateTime]
     val deposits = DepositDir.list(draftBase, user)
@@ -167,6 +175,7 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
    * @return
    */
   def getDepositState(user: String, id: UUID): Try[StateInfo] = {
+    trace(user, id)
     for {
       deposit <- getDeposit(user, id)
       stateManager <- deposit.getStateManager(submitBase, easyHome)
@@ -195,7 +204,10 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
    * @return
    */
   def setDepositState(newStateInfo: StateInfo, userId: String, id: UUID): Try[Unit] = {
+    trace(userId, id, newStateInfo)
+
     def submit(deposit: DepositDir, stateManager: StateManager): Try[Unit] = {
+      trace(deposit, stateManager)
       for {
         userData <- getUserData(userId)
         disposableStagedDir <- getStagedDir(userId, id)
@@ -206,10 +218,16 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
     for {
       deposit <- getDeposit(userId, id)
       stateManager <- deposit.getStateManager(submitBase, easyHome)
-      _ <- stateManager.canChangeState(newStateInfo)
+      oldStateInfo <- stateManager.getStateInfo
+      _ <- stateManager.canChangeState(oldStateInfo, newStateInfo)
+        .doIfSuccess { _ => logger.info(s"[$id] state change from $oldStateInfo to $newStateInfo is allowed") }
+        .doIfFailure { case _ => logger.info(s"[$id] state change from $oldStateInfo to $newStateInfo is not allowed") }
       _ <- if (newStateInfo.state == State.submitted)
              submit(deposit, stateManager) // also changes the state
-           else stateManager.changeState(newStateInfo)
+           else {
+             logger.info(s"[$id] changing deposit state from $oldStateInfo to $newStateInfo")
+             stateManager.changeState(oldStateInfo, newStateInfo)
+           }
     } yield ()
   }
 
@@ -220,13 +238,16 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
    * @param id   the deposit ID
    * @return
    */
-  def deleteDeposit(user: String, id: UUID): Try[Unit] = for {
-    deposit <- getDeposit(user, id)
-    stateManager <- deposit.getStateManager(submitBase, easyHome)
-    state <- stateManager.getStateInfo
-    _ <- state.canDelete
-    _ = deposit.bagDir.parent.delete()
-  } yield ()
+  def deleteDeposit(user: String, id: UUID): Try[Unit] = {
+    trace(user, id)
+    for {
+      deposit <- getDeposit(user, id)
+      stateManager <- deposit.getStateManager(submitBase, easyHome)
+      state <- stateManager.getStateInfo
+      _ <- state.canDelete
+      _ = deposit.bagDir.parent.delete()
+    } yield ()
+  }
 
   /**
    * Returns the DOI as stored `dataset.xml` respective `deposit.properties`.
@@ -235,20 +256,26 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
    * @param id   the deposit ID
    * @return
    */
-  def getDoi(user: String, id: UUID): Try[String] = for {
-    deposit <- getDeposit(user, id)
-    doi <- deposit.getDOI(pidRequester)
-  } yield doi
+  def getDoi(user: String, id: UUID): Try[String] = {
+    trace(user, id)
+    for {
+      deposit <- getDeposit(user, id)
+      doi <- deposit.getDOI(pidRequester)
+    } yield doi
+  }
 
   /**
    * @param user the user ID
    * @param id   the deposit ID
    * @return Failure(BadDoiException) if the DOI in the DatasetMetadata does not equal the DOI in the dataset properties (both may be absent)
    */
-  def checkDoi(user: String, id: UUID, dm: DatasetMetadata): Try[Unit] = for {
-    deposit <- getDeposit(user, id)
-    _ <- deposit.sameDOIs(dm)
-  } yield ()
+  def checkDoi(user: String, id: UUID, dm: DatasetMetadata): Try[Unit] = {
+    trace(user, id)
+    for {
+      deposit <- getDeposit(user, id)
+      _ <- deposit.sameDOIs(dm)
+    } yield ()
+  }
 
   /**
    * Returns the dataset metadata from `dataset.xml`.
@@ -257,10 +284,13 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
    * @param id   the deposit ID
    * @return
    */
-  def getDatasetMetadataForDeposit(user: String, id: UUID): Try[DatasetMetadata] = for {
-    deposit <- getDeposit(user, id)
-    md <- deposit.getDatasetMetadata
-  } yield md
+  def getDatasetMetadataForDeposit(user: String, id: UUID): Try[DatasetMetadata] = {
+    trace(user, id)
+    for {
+      deposit <- getDeposit(user, id)
+      md <- deposit.getDatasetMetadata
+    } yield md
+  }
 
   /**
    * Writes the provided [[docs.DatasetMetadata]] object as `dataset.xml` to the deposit directory. Any
@@ -272,11 +302,14 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
    * @param dm   the dataset metadata
    * @return
    */
-  def writeDataMetadataToDeposit(dm: DatasetMetadata, user: String, id: UUID): Try[Unit] = for {
-    deposit <- getDeposit(user, id)
-    _ <- canUpdate(user, id)
-    _ <- deposit.writeDatasetMetadataJson(dm)
-  } yield ()
+  def writeDataMetadataToDeposit(dm: DatasetMetadata, user: String, id: UUID): Try[Unit] = {
+    trace(user, id)
+    for {
+      deposit <- getDeposit(user, id)
+      _ <- canUpdate(user, id)
+      _ <- deposit.writeDatasetMetadataJson(dm)
+    } yield ()
+  }
 
   /**
    * Returns a list of [[nl.knaw.dans.easy.deposit.docs.FileInfo]] objects if the path points to a directory,
@@ -287,11 +320,14 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
    * @param path path to a directory or a file
    * @return
    */
-  def getFileInfo(user: String, id: UUID, path: Path): Try[Object] = for {
-    dataFiles <- getDataFiles(user, id)
-    contents <- if (dataFiles.isDirectory(path)) dataFiles.list(path)
-                else dataFiles.get(path)
-  } yield contents
+  def getFileInfo(user: String, id: UUID, path: Path): Try[Object] = {
+    trace(user, id, path)
+    for {
+      dataFiles <- getDataFiles(user, id)
+      contents <- if (dataFiles.isDirectory(path)) dataFiles.list(path)
+                  else dataFiles.get(path)
+    } yield contents
+  }
 
   /**
    * Returns dataset files of the deposit
@@ -322,6 +358,8 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
    * @return `true` if a new file was created, `false` otherwise
    */
   def writeDepositFile(is: => InputStream, user: String, id: UUID, path: Path, contentType: Option[String]): Try[Boolean] = {
+    trace(user, id, path, contentType)
+
     def writeDataFile(dataFiles: DataFiles, lockDir: Dispose[File]): Try[Boolean] = {
       dataFiles
         .write(is, path)
@@ -362,6 +400,7 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
   }
 
   def stageFiles(userId: String, id: UUID, destination: Path): Try[(Dispose[File], StagedFilesTarget)] = {
+    trace(userId, id, destination)
     for {
       _ <- canUpdate(userId, id)
       deposit <- DepositDir.get(draftBase, userId, id)
@@ -403,11 +442,14 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
    * @param path the path of the file to delete, relative to the content base directory
    * @return
    */
-  def deleteDepositFile(user: String, id: UUID, path: Path): Try[Unit] = for {
-    dataFiles <- getDataFiles(user, id)
-    _ <- canUpdate(user, id) //  deleting a file, is updating the deposit
-    _ <- dataFiles.delete(path)
-  } yield ()
+  def deleteDepositFile(user: String, id: UUID, path: Path): Try[Unit] = {
+    trace(user, id, path)
+    for {
+      dataFiles <- getDataFiles(user, id)
+      _ <- canUpdate(user, id) //  deleting a file, is updating the deposit
+      _ <- dataFiles.delete(path)
+    } yield ()
+  }
 
   /**
    * Determines if the deposit can be updated, based on its current state.

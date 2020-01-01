@@ -19,11 +19,10 @@ import java.net.URI
 
 import nl.knaw.dans.easy.deposit.PidRequesterComponent.PidRequester
 import nl.knaw.dans.easy.deposit.PidRequesterComponent.PidType.PidType
-import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 
 import scala.util.{ Failure, Success, Try }
 
-trait PidRequesterComponent extends DebugEnhancedLogging {
+trait PidRequesterComponent {
 
   val pidRequester: PidRequester
 }

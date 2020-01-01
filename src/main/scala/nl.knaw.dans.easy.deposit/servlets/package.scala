@@ -62,21 +62,22 @@ package object servlets extends DebugEnhancedLogging {
   val contentTypePlainText: (String, String) = "content-type" -> "text/plain;charset=UTF-8"
 
   implicit class RichManagedArchiveInputStream(val archiveInputStream: ManagedResource[ArchiveInputStream]) extends AnyVal {
-    def unpackPlainEntriesTo(dir: File): Try[Unit] = {
-      archiveInputStream.apply(_.unpackPlainEntriesTo(dir))
+    def unpackPlainEntriesTo(dir: File, id: => UUID): Try[Unit] = {
+      archiveInputStream.apply(_.unpackPlainEntriesTo(dir, id))
     }
   }
 
   implicit class RichArchiveInputStream(val archiveInputStream: ArchiveInputStream) extends AnyVal {
 
-    def unpackPlainEntriesTo(targetDir: File): Try[Unit] = {
+    def unpackPlainEntriesTo(targetDir: File, id: => UUID): Try[Unit] = {
       def extract(entry: ArchiveEntry): Try[Unit] = {
         if (!(targetDir / entry.getName).isChildOf(targetDir))
           Failure(MalformedArchiveException(s"Can't extract ${ entry.getName }"))
-        else if (entry.isDirectory)
-               Try((targetDir / entry.getName).createDirectories())
+        else if (entry.isDirectory) {
+          Try((targetDir / entry.getName).createDirectories())
+        }
         else {
-          logger.info(s"Extracting ${ entry.getName } size=${ entry.getSize } getLastModifiedDate=${ entry.getLastModifiedDate } }")
+          logger.info(s"[$id] Extracting ${ entry.getName } size = ${ entry.getSize } bytes")
           Try {
             (targetDir / entry.getName).parent.createDirectories() // in case a directory was not specified separately
             Files.copy(archiveInputStream, (targetDir / entry.getName).path)
@@ -94,7 +95,7 @@ package object servlets extends DebugEnhancedLogging {
         // a __MACOSX gets deleted because its content was deleted
         // it will simply not be a directory anymore and not cause trouble
         if (file.isDirectory && (file.isEmpty || file.name == "__MACOSX")) {
-          logger.info(s"cleaning up $file")
+          logger.info(s"[$id] cleaning up $file")
           file.delete()
           if (file.parent != targetDir)
             cleanup(file.parent)
@@ -138,14 +139,15 @@ package object servlets extends DebugEnhancedLogging {
   }
 
   implicit class RichMultipartConfig(config: MultipartConfig) {
-    def moveNonArchive(srcItems: Iterator[FileItem], targetDir: File): Try[Unit] = {
+    def moveNonArchive(id: UUID, srcItems: Iterator[FileItem], targetDir: File): Try[Unit] = {
       srcItems
-        .map(moveIfNotAnArchive(_, targetDir))
+        .map(moveIfNotAnArchive(id, _, targetDir))
         .failFastOr(Success(()))
     }
 
-    private def moveIfNotAnArchive(srcItem: FileItem, targetDir: File): Try[Unit] = {
-      logger.info(s"staging upload: size=${ srcItem.size } contentType=${ srcItem.contentType } $targetDir/${ srcItem.name }")
+    private def moveIfNotAnArchive(id: UUID, srcItem: FileItem, targetDir: File): Try[Unit] = {
+      val target = targetDir / srcItem.name
+      logger.info(s"[$id] staging upload to $target - size = ${ srcItem.size } bytes, contentType = ${ srcItem.contentType }")
       if (srcItem.name.isBlank) Success(()) // skip form field without selected files
       else if (srcItem.isArchive) Failure(ArchiveMustBeOnlyFileException(srcItem))
       else Try {
@@ -157,7 +159,7 @@ package object servlets extends DebugEnhancedLogging {
         srcItem.part.write(f)
 
         // now we can move the upload to the location we really want
-        (location / f).moveTo(targetDir / srcItem.name)(CopyOptions.atomically)
+        (location / f).moveTo(target)(CopyOptions.atomically)
       }
     }
   }

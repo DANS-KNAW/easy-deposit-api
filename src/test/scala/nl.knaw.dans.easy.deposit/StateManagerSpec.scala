@@ -191,12 +191,11 @@ class StateManagerSpec extends TestSupportFixture {
   }
 
   "setStateInfo" should "result in Success when transitioning from DRAFT to SUBMITTED" in {
-    draftPropsFile.writeText(
-      """state.label = DRAFT
-        |state.description = Deposit is open for changes.
-      """.stripMargin)
     val stateManager = StateManager(draftDeposit, submitBase, easyHome)
-    stateManager.changeState(StateInfo(State.submitted, "rabarbera")) shouldBe a[Success[_]]
+    stateManager.changeState(
+      oldStateInfo = StateInfo(State.draft, "Deposit is open for changes."),
+      newStateInfo = StateInfo(State.submitted, "rabarbera"),
+    ) shouldBe a[Success[_]]
     val props = draftPropsFile.contentAsString
     props should include("bag-store.bag-id = ")
     props.split("\n") should contain allOf(
@@ -206,13 +205,11 @@ class StateManagerSpec extends TestSupportFixture {
   }
 
   it should "result in Success when transitioning from REJECTED to DRAFT" in {
-    draftPropsFile.writeText(
-      s"""state.label = REJECTED
-         |state.description = Something's rotten on the state of ...
-         |bag-store.bag-id = $submittedUuid
-         |""".stripMargin)
-    StateManager(draftDeposit, submitBase, easyHome)
-      .changeState(StateInfo(State.draft, "rabarbera")) shouldBe a[Success[_]]
+    val stateManager = StateManager(draftDeposit, submitBase, easyHome)
+    stateManager.changeState(
+      oldStateInfo = StateInfo(State.rejected, "Something's rotten on the state of ..."),
+      newStateInfo = StateInfo(State.draft, "rabarbera"),
+    ) shouldBe a[Success[_]]
     draftPropsFile.contentAsString shouldBe
       s"""state.label = DRAFT
          |state.description = rabarbera
@@ -226,8 +223,11 @@ class StateManagerSpec extends TestSupportFixture {
          |bag-store.bag-id = $submittedUuid
          |""".stripMargin
     draftPropsFile.writeText(props)
-    StateManager(draftDeposit, submitBase, easyHome)
-      .changeState(StateInfo(State.archived, "rabarbera")) should matchPattern {
+    val stateManager = StateManager(draftDeposit, submitBase, easyHome)
+    stateManager.changeState(
+      oldStateInfo = StateInfo(State.draft, "Something's rotten on the state of ..."),
+      newStateInfo = StateInfo(State.archived, "rabarbera"),
+    ) should matchPattern {
       case Failure(e: IllegalStateTransitionException) if e.getMessage == "Cannot transition from DRAFT to ARCHIVED" =>
     }
     draftPropsFile.contentAsString shouldBe props

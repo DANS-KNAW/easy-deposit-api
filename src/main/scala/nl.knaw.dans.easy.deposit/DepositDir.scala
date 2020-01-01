@@ -72,7 +72,7 @@ case class DepositDir private(draftBase: File, user: String, id: UUID) extends D
       stateInfo.stateDescription,
       created
     )
-    }.recoverWith {
+  } recoverWith {
     case t: CorruptDepositException => Failure(t)
     case t => corruptDepositFailure(t)
   }
@@ -140,7 +140,10 @@ case class DepositDir private(draftBase: File, user: String, id: UUID) extends D
     maybeDOI = Option(props.getString("identifier.doi", null))
     _ <- dm.doi.map(_ => doisMatch(dm, maybeDOI)).getOrElse(Success(()))
     maybeTriedDOI = maybeDOI.map(Success(_))
-    doi <- maybeTriedDOI.getOrElse(pidRequester.requestPid(PidType.doi))
+    doi <- maybeTriedDOI.getOrElse {
+      logger.info(s"[$id] calling easy-pid-generator with type ${ PidType.doi }")
+      pidRequester.requestPid(PidType.doi)
+    }
     _ <- maybeTriedDOI.getOrElse(saveDoiProperty(doi, dm, props))
   } yield doi
 
@@ -217,6 +220,7 @@ object DepositDir {
     val depositInfo = DepositInfo()
     val deposit = DepositDir(draftDir, user, depositInfo.id)
     val depositDir = deposit.draftBase / user / depositInfo.id.toString
+    debug(s"[${ depositInfo.id }] create new draft deposit in $depositDir")
     for {
       _ <- Try { depositDir.createDirectories }
       bag <- DansV0Bag.empty(depositDir / bagDirName)

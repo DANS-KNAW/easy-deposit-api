@@ -31,11 +31,17 @@ import org.joda.time.{ DateTime, DateTimeUtils, DateTimeZone }
 import org.scalamock.scalatest.MockFactory
 import org.scalatest._
 import org.scalatest.enablers.Existence
+import org.slf4j.bridge.SLF4JBridgeHandler
 import scalaj.http.Http
 
 import scala.util.{ Properties, Success, Try }
 
 trait TestSupportFixture extends FlatSpec with Matchers with Inside with BeforeAndAfterEach with MockFactory {
+
+  // disable logs from okhttp3.mockwebserver
+  SLF4JBridgeHandler.removeHandlersForRootLogger()
+  SLF4JBridgeHandler.install()
+
   implicit def existenceOfFile[FILE <: better.files.File]: Existence[FILE] = _.exists
 
   lazy val testDir: File = currentWorkingDirectory / "target" / "test" / getClass.getSimpleName
@@ -155,7 +161,7 @@ trait TestSupportFixture extends FlatSpec with Matchers with Inside with BeforeA
         templateDir = File("src/main/assembly/dist/cfg/template"),
         myDatasets = new URL("http://does.not.exist")
       ) {
-        override def buildMessage(data: AgreementData, attachments: Map[String, DataSource]): Try[MultiPartEmail] = {
+        override def buildMessage(depositId: UUID, data: AgreementData, attachments: Map[String, DataSource]): Try[MultiPartEmail] = {
           Success(new MultiPartEmail) // only cause causes the following logging:
           // ERROR could not send deposit confirmation message
           //java.lang.IllegalArgumentException: MimeMessage has not been created yet

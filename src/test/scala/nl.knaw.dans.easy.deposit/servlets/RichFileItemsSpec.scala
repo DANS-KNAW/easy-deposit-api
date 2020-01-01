@@ -15,6 +15,8 @@
  */
 package nl.knaw.dans.easy.deposit.servlets
 
+import java.util.UUID
+
 import better.files.File
 import javax.servlet.http.Part
 import nl.knaw.dans.easy.deposit.Errors.ArchiveMustBeOnlyFileException
@@ -93,7 +95,7 @@ class RichFileItemsSpec extends TestSupportFixture with MockFactory {
       mockFileItem(""),
     ).buffered
 
-    createMultipartConfig.moveNonArchive(fileItems, createStageDir) shouldBe a[Success[_]]
+    createMultipartConfig.moveNonArchive(UUID.randomUUID(), fileItems, createStageDir) shouldBe a[Success[_]]
     (testDir / "staged").list should have size 0
   }
 
@@ -105,7 +107,7 @@ class RichFileItemsSpec extends TestSupportFixture with MockFactory {
       mockFileItem("another.txt", content = "Dolor sit amet"),
     ).buffered
 
-    createMultipartConfig.moveNonArchive(fileItems, createStageDir) should matchPattern {
+    createMultipartConfig.moveNonArchive(UUID.randomUUID(), fileItems, createStageDir) should matchPattern {
       case Failure(e: ArchiveMustBeOnlyFileException) if e.getMessage ==
         "A multipart/form-data message contained an archive part [some.zip] but also other parts." =>
       // moveNonZips should not have been called at all by the servlet with these items
