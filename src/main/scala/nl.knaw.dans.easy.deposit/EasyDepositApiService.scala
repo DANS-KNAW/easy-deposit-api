@@ -39,6 +39,7 @@ class EasyDepositApiService(serverPort: Int, app: EasyDepositApiApp) extends Deb
           context.mount(new DepositServlet(app), "/deposit/*")
           context.mount(new UserServlet(app), "/user/*")
           context.mount(new AuthServlet(app), "/auth/*")
+          context.mount(new HealthServlet(app), "/health/*")
         }
       })
     }

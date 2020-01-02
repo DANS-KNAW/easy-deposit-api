@@ -19,7 +19,7 @@ import java.io.InputStream
 import java.net.{ URI, URL }
 import java.nio.file.Path
 import java.util.UUID
-import java.util.concurrent.ThreadPoolExecutor
+import java.util.concurrent.{ ThreadPoolExecutor, TimeUnit }
 
 import better.files.File.temporaryDirectory
 import better.files.{ Dispose, File }
@@ -29,7 +29,7 @@ import nl.knaw.dans.easy.deposit.authentication.{ AuthenticationProvider, LdapAu
 import nl.knaw.dans.easy.deposit.docs.StateInfo.State
 import nl.knaw.dans.easy.deposit.docs.StateInfo.State.State
 import nl.knaw.dans.easy.deposit.docs.{ DatasetMetadata, DepositInfo, StateInfo, UserInfo }
-import nl.knaw.dans.easy.deposit.executor.{ QueuedThreadPoolExecutor, ThreadPoolConfig }
+import nl.knaw.dans.easy.deposit.executor.{ QueuedThreadPoolExecutor, SystemStatus, ThreadPoolConfig }
 import nl.knaw.dans.easy.deposit.servlets.archiveContentTypeRegexp
 import nl.knaw.dans.lib.error._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
@@ -41,6 +41,7 @@ import org.scalatra.servlet.MultipartConfig
 import scala.util.{ Failure, Success, Try }
 
 class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLogging
+  with AutoCloseable
   with LdapAuthentication
   with PidRequesterComponent {
 
@@ -61,6 +62,12 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
     logger.info(s"users.ldap-parent-entry = $ldapParentEntry")
     logger.info(s"users.ldap-user-id-attr-name = $ldapUserIdAttrName")
     logger.info(s"users.ldap-admin-principal = $ldapAdminPrincipal")
+  }
+
+  override def close(): Unit = {
+    logger.info("terminating ThreadPoolExecutor")
+    executor.awaitTermination(20000, TimeUnit.MILLISECONDS)
+    logger.info("terminated ThreadPoolExecutor")
   }
 
   def getVersion: String = {
@@ -89,13 +96,17 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
     )
   }
 
-  private val executor: ThreadPoolExecutor = QueuedThreadPoolExecutor(
+  private val executor: QueuedThreadPoolExecutor = QueuedThreadPoolExecutor(
     ThreadPoolConfig(
       corePoolSize = properties.getInt("threadpool.core-pool-size"),
       maxPoolSize = properties.getInt("threadpool.max-pool-size"),
       keepAliveTime = properties.getLong("threadpool.keep-alive-time-ms"),
     )
   )
+
+  def threadpoolStatus: SystemStatus = {
+    executor.getSystemStatus
+  }
 
   private val submitter = {
     val groupName = properties.getString("deposit.permissions.group")

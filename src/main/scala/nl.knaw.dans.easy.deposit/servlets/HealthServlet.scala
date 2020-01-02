@@ -13,10 +13,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package nl.knaw.dans.easy.deposit.executor
+package nl.knaw.dans.easy.deposit.servlets
 
-// TODO move essential parts of Submitter.submit(...) here,
-//  making the (...) parameters as constructor arguments
-class SubmitJob extends Runnable {
-  override def run(): Unit = ???
+import nl.knaw.dans.easy.deposit.EasyDepositApiApp
+import org.json4s.native.Serialization
+import org.scalatra.{ Ok, ScalatraServlet }
+import nl.knaw.dans.easy.deposit.executor.SystemStatus.jsonFormatter
+
+class HealthServlet(app: EasyDepositApiApp) extends ScalatraServlet {
+
+  get("/threadpool") {
+    contentType = "application/json"
+    
+    Ok {
+      Serialization.write(app.threadpoolStatus)
+    }
+  }
 }

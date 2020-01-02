@@ -25,7 +25,7 @@ import java.util.concurrent.ThreadPoolExecutor
 import better.files.File
 import better.files.File.{ CopyOptions, VisitOptions }
 import nl.knaw.dans.bag.ChecksumAlgorithm.ChecksumAlgorithm
-import nl.knaw.dans.bag.DansBag
+import nl.knaw.dans.bag.{ DansBag, ImportOption }
 import nl.knaw.dans.bag.v0.DansV0Bag
 import nl.knaw.dans.easy.deposit.Errors.{ AlreadySubmittedException, InvalidDoiException }
 import nl.knaw.dans.easy.deposit.docs.StateInfo.State
@@ -112,26 +112,52 @@ class Submitter(stagingBaseDir: File,
       //  Find out which errors can occur in the job itself and make the job such that it will
       //  deal with those errors appropriately (setting state, etc.)
       // TODO (2) migrate 'workerActions' and functions that are called from there to 'SubmitJob'
+      _ = logger.info(s"[${ draftDeposit.id }] dispatching submit action to async executor")
       _ = executor.execute { workerActions(draftDeposit.id, draftBag, stageBag, submitDir) }
     } yield submittedId
   }
 
   // TODO a worker thread allows submit to return fast for large deposits.
-  private def workerActions(id: UUID, draftBag: DansBag, stageBag: DansBag, submitDir: File): Runnable = () => for {
-    // EASY-1464 3.3.8.b copy files
-    _ <- stageBag.addPayloadFile(draftBag.data, Paths.get("."))
-    _ <- stageBag.save()
-    _ <- isValid(stageBag)
-    // EASY-1464 3.3.7 checksums
-    _ <- samePayloadManifestEntries(stageBag, draftBag)
-    draftDepositDir = stageBag.baseDir.parent
-    _ <- setRightsRecursively(draftDepositDir)
-    // EASY-1464 step 3.3.9 Move copy to submit-to area
-    _ = logger.info(s"moving $draftDepositDir to $submitDir")
-    _ <- Try(draftDepositDir.moveTo(submitDir)(CopyOptions.atomically)).recoverWith {
-      case _: FileAlreadyExistsException => Failure(AlreadySubmittedException(id))
+  private def workerActions(id: UUID, draftBag: DansBag, stageBag: DansBag, submitDir: File): Runnable = new Runnable() {
+    override def run(): Unit = {
+      logger.info(s"[$id] starting the dispatched submit action")
+      logger.info(s"[$id] copy ${ draftBag.data } to ${stageBag.data / Paths.get(".").toString }")
+      
+      // TODO cleanup!!!
+      val stageBagData = stageBag.data
+      val pointPath = Paths.get(".")
+      val destPath = stageBagData / pointPath.toString
+      logger.info(s"stageBag = $stageBagData")
+      logger.info(s"pathInData = ${ pointPath.toString }")
+      logger.info(s"dest = $destPath")
+      logger.info(s"equal paths: $destPath and $stageBagData --> ${ destPath == stageBagData }")
+      
+      val result = for {
+        // EASY-1464 3.3.8.b copy files
+        _ <- stageBag.addPayloadFile(draftBag.data, Paths.get("."))(ImportOption.COPY)
+        _ = logger.info(s"[$id] save changes to stageBag ${ stageBag.baseDir }")
+        _ <- stageBag.save()
+        _ = logger.info(s"[$id] validate stageBag ${ stageBag.baseDir }")
+        _ <- isValid(stageBag)
+        // EASY-1464 3.3.7 checksums
+        _ = logger.info(s"[$id] compare payload manifests of stageBag and draftBag")
+        _ <- samePayloadManifestEntries(stageBag, draftBag)
+        stageDepositDir = stageBag.baseDir.parent
+        _ = logger.info(s"[$id] set unix rights for $stageDepositDir")
+        _ <- setRightsRecursively(stageDepositDir)
+        // EASY-1464 step 3.3.9 Move copy to submit-to area
+        _ = logger.info(s"[$id] moving $stageDepositDir to $submitDir")
+        _ <- Try(stageDepositDir.moveTo(submitDir)(CopyOptions.atomically)).recoverWith {
+          case _: FileAlreadyExistsException => Failure(AlreadySubmittedException(id))
+        }
+      } yield ()
+      
+      result.doIfSuccess(_ => logger.info(s"[$id] finished with dispatched submit action"))
+        .doIfFailure { case e => logger.error(s"[$id] error in dispatched submit action ${ this.toString }: ${ e.getMessage }", e) }
     }
-  } yield ()
+
+    override def toString: String = s"<SubmitWorkerAction[id = $id, draftBag = $draftBag, stageBag = $stageBag, submitDir = $submitDir]>"
+  }
 
   private def setRightsRecursively(file: File): Try[Unit] = {
     resource.managed(Files.walk(file.path, Int.MaxValue, VisitOptions.default: _*))
