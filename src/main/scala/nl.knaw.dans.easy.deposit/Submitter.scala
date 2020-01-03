@@ -122,7 +122,7 @@ class Submitter(stagingBaseDir: File,
     override def run(): Unit = {
       logger.info(s"[$id] starting the dispatched submit action")
       logger.info(s"[$id] copy ${ draftBag.data } to ${stageBag.data / Paths.get(".").toString }")
-      
+
       // TODO cleanup!!!
       val stageBagData = stageBag.data
       val pointPath = Paths.get(".")
@@ -131,7 +131,7 @@ class Submitter(stagingBaseDir: File,
       logger.info(s"pathInData = ${ pointPath.toString }")
       logger.info(s"dest = $destPath")
       logger.info(s"equal paths: $destPath and $stageBagData --> ${ destPath == stageBagData }")
-      
+
       val result = for {
         // EASY-1464 3.3.8.b copy files
         _ <- stageBag.addPayloadFile(draftBag.data, Paths.get("."))(ImportOption.COPY)
@@ -151,9 +151,10 @@ class Submitter(stagingBaseDir: File,
           case _: FileAlreadyExistsException => Failure(AlreadySubmittedException(id))
         }
       } yield ()
-      
+
       result.doIfSuccess(_ => logger.info(s"[$id] finished with dispatched submit action"))
         .doIfFailure { case e => logger.error(s"[$id] error in dispatched submit action ${ this.toString }: ${ e.getMessage }", e) }
+//      TODO error/success handling
     }
 
     override def toString: String = s"<SubmitWorkerAction[id = $id, draftBag = $draftBag, stageBag = $stageBag, submitDir = $submitDir]>"
