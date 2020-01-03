@@ -20,7 +20,6 @@ import java.nio.file._
 import java.nio.file.attribute.PosixFilePermission._
 import java.nio.file.attribute.{ PosixFileAttributeView, UserPrincipalNotFoundException }
 import java.util.UUID
-import java.util.concurrent.ThreadPoolExecutor
 
 import better.files.File
 import better.files.File.{ CopyOptions, VisitOptions }
@@ -30,6 +29,7 @@ import nl.knaw.dans.bag.v0.DansV0Bag
 import nl.knaw.dans.easy.deposit.Errors.{ AlreadySubmittedException, InvalidDoiException }
 import nl.knaw.dans.easy.deposit.docs.StateInfo.State
 import nl.knaw.dans.easy.deposit.docs._
+import nl.knaw.dans.easy.deposit.executor.JobQueueManager
 import nl.knaw.dans.lib.error._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import nl.knaw.dans.lib.string._
@@ -49,7 +49,7 @@ class Submitter(stagingBaseDir: File,
                 submitToBaseDir: File,
                 groupName: String,
                 depositUiURL: String,
-                executor: ThreadPoolExecutor
+                jobQueue: JobQueueManager
                ) extends DebugEnhancedLogging {
   private val groupPrincipal = {
     Try {
@@ -113,7 +113,7 @@ class Submitter(stagingBaseDir: File,
       //  deal with those errors appropriately (setting state, etc.)
       // TODO (2) migrate 'workerActions' and functions that are called from there to 'SubmitJob'
       _ = logger.info(s"[${ draftDeposit.id }] dispatching submit action to async executor")
-      _ = executor.execute { workerActions(draftDeposit.id, draftBag, stageBag, submitDir) }
+      _ = jobQueue.scheduleJob { workerActions(draftDeposit.id, draftBag, stageBag, submitDir) }
     } yield submittedId
   }
 

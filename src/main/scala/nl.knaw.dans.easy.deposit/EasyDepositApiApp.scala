@@ -19,7 +19,6 @@ import java.io.InputStream
 import java.net.{ URI, URL }
 import java.nio.file.Path
 import java.util.UUID
-import java.util.concurrent.{ ThreadPoolExecutor, TimeUnit }
 
 import better.files.File.temporaryDirectory
 import better.files.{ Dispose, File }
@@ -29,7 +28,7 @@ import nl.knaw.dans.easy.deposit.authentication.{ AuthenticationProvider, LdapAu
 import nl.knaw.dans.easy.deposit.docs.StateInfo.State
 import nl.knaw.dans.easy.deposit.docs.StateInfo.State.State
 import nl.knaw.dans.easy.deposit.docs.{ DatasetMetadata, DepositInfo, StateInfo, UserInfo }
-import nl.knaw.dans.easy.deposit.executor.{ QueuedThreadPoolExecutor, SystemStatus, ThreadPoolConfig }
+import nl.knaw.dans.easy.deposit.executor.{ JobQueueManager, SystemStatus, ThreadPoolConfig }
 import nl.knaw.dans.easy.deposit.servlets.archiveContentTypeRegexp
 import nl.knaw.dans.lib.error._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
@@ -66,7 +65,7 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
 
   override def close(): Unit = {
     logger.info("terminating ThreadPoolExecutor")
-    executor.awaitTermination(20000, TimeUnit.MILLISECONDS)
+    jobQueue.close()
     logger.info("terminated ThreadPoolExecutor")
   }
 
@@ -96,7 +95,7 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
     )
   }
 
-  private val executor: QueuedThreadPoolExecutor = QueuedThreadPoolExecutor(
+  private val jobQueue: JobQueueManager = new JobQueueManager(
     ThreadPoolConfig(
       corePoolSize = properties.getInt("threadpool.core-pool-size"),
       maxPoolSize = properties.getInt("threadpool.max-pool-size"),
@@ -105,13 +104,13 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
   )
 
   def threadpoolStatus: SystemStatus = {
-    executor.getSystemStatus
+    jobQueue.getSystemStatus
   }
 
   private val submitter = {
     val groupName = properties.getString("deposit.permissions.group")
     val depositUiURL = properties.getString("easy.deposit-ui")
-    new Submitter(stagedBaseDir, submitBase, groupName, depositUiURL, executor)
+    new Submitter(stagedBaseDir, submitBase, groupName, depositUiURL, jobQueue)
   }
 
   // possible trailing slash is dropped

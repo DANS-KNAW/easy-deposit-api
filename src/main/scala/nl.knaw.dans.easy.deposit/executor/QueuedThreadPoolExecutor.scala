@@ -16,7 +16,6 @@
 package nl.knaw.dans.easy.deposit.executor
 
 import java.util.concurrent._
-import scala.collection.JavaConverters._
 
 /*
  * based on insights from:
@@ -34,15 +33,6 @@ class QueuedThreadPoolExecutor(corePoolSize: Int,
                               ) extends ThreadPoolExecutor(corePoolSize, maximumPoolSize, keepAliveTime, unit, workQueue, handler) {
   override def setRejectedExecutionHandler(handler: RejectedExecutionHandler): Unit = {
     throw new UnsupportedOperationException("Can't set rejection handler")
-  }
-
-  def getSystemStatus: SystemStatus = {
-    val queue = getQueue.asScala.toSeq.map(_.toString)
-    SystemStatus(
-      threadPoolStatus = ThreadPoolStatus.from(this),
-      queueSize = queue.size,
-      queueContent = queue
-    )
   }
 }
 object QueuedThreadPoolExecutor {
