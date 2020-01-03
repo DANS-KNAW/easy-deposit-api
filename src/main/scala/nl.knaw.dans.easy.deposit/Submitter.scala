@@ -24,7 +24,7 @@ import java.util.UUID
 import better.files.File
 import better.files.File.{ CopyOptions, VisitOptions }
 import nl.knaw.dans.bag.ChecksumAlgorithm.ChecksumAlgorithm
-import nl.knaw.dans.bag.{ DansBag, ImportOption }
+import nl.knaw.dans.bag.DansBag
 import nl.knaw.dans.bag.v0.DansV0Bag
 import nl.knaw.dans.easy.deposit.Errors.{ AlreadySubmittedException, InvalidDoiException }
 import nl.knaw.dans.easy.deposit.docs.StateInfo.State
@@ -123,18 +123,9 @@ class Submitter(stagingBaseDir: File,
       logger.info(s"[$id] starting the dispatched submit action")
       logger.info(s"[$id] copy ${ draftBag.data } to ${stageBag.data / Paths.get(".").toString }")
 
-      // TODO cleanup!!!
-      val stageBagData = stageBag.data
-      val pointPath = Paths.get(".")
-      val destPath = stageBagData / pointPath.toString
-      logger.info(s"stageBag = $stageBagData")
-      logger.info(s"pathInData = ${ pointPath.toString }")
-      logger.info(s"dest = $destPath")
-      logger.info(s"equal paths: $destPath and $stageBagData --> ${ destPath == stageBagData }")
-
       val result = for {
         // EASY-1464 3.3.8.b copy files
-        _ <- stageBag.addPayloadFile(draftBag.data, Paths.get("."))(ImportOption.COPY)
+        _ <- stageBag.addPayloadFile(draftBag.data, Paths.get("."))
         _ = logger.info(s"[$id] save changes to stageBag ${ stageBag.baseDir }")
         _ <- stageBag.save()
         _ = logger.info(s"[$id] validate stageBag ${ stageBag.baseDir }")

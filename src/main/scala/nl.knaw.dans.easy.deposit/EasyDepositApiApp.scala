@@ -21,6 +21,7 @@ import java.nio.file.Path
 import java.util.UUID
 
 import better.files.File.temporaryDirectory
+import better.files.File.newTemporaryDirectory
 import better.files.{ Dispose, File }
 import nl.knaw.dans.easy.deposit.Errors.{ ClientAbortedUploadException, ConfigurationException, InvalidContentTypeException, LeftoversOfForcedShutdownException, NoStagingDirException, OverwriteException, PendingUploadException }
 import nl.knaw.dans.easy.deposit.PidRequesterComponent.PidRequester
@@ -201,8 +202,8 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
     def submit(deposit: DepositDir, stateManager: StateManager): Try[Unit] = {
       for {
         userInfo <- getUserInfo(userId)
-        disposableStagedDir <- getStagedDir(userId, id)
-        _ <- disposableStagedDir.apply(submitter.submit(deposit, stateManager, userInfo, _))
+        disposableStagedDir <- getPerminentStagedDir(userId, id)
+        _ <- submitter.submit(deposit, stateManager, userInfo, disposableStagedDir)
       } yield ()
     }
 
@@ -373,19 +374,24 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
     } yield (disposableStagingDir, StagedFilesTarget(dataFiles.bag, destination))
   }
 
+  // the temporary directory is dropped when the disposable resource is released on completion of the request
   private def getStagedDir(userId: String, id: UUID): Try[Dispose[File]] = {
     // side effect: optimistic lock for a deposit
     val prefix = s"$userId-$id-"
     for {
-      disposableStagingDir <- createManagedTempDir(prefix)
+      disposableStagingDir <- Try { temporaryDirectory(prefix, Some(stagedBaseDir.createDirectories())) }
       _ <- atMostOneTempDir(prefix).doIfFailure { case _ => disposableStagingDir.get() }
     } yield disposableStagingDir
   }
 
-  // the temporary directory is dropped when the disposable resource is released on completion of the request,
-  // unless the directory was moved away before to ingest-flow-inbox
-  private def createManagedTempDir(prefix: String): Try[Dispose[File]] = Try {
-    temporaryDirectory(prefix, Some(stagedBaseDir.createDirectories()))
+  // the temporary directory is NOT dropped after usage is done!
+  private def getPerminentStagedDir(userId: String, id: UUID): Try[File] = {
+    // side effect: optimistic lock for a deposit
+    val prefix = s"$userId-$id-"
+    for {
+      disposableStagingDir <- Try { newTemporaryDirectory(prefix, Some(stagedBaseDir.createDirectories())) }
+      _ <- atMostOneTempDir(prefix).doIfFailure { case _ => disposableStagingDir }
+    } yield disposableStagingDir
   }
 
   // prevents concurrent uploads to a single draft deposit, requires explicit cleanup of interrupted uploads
