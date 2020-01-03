@@ -23,6 +23,7 @@ import java.util.concurrent.{ LinkedBlockingQueue, ThreadPoolExecutor, TimeUnit 
 import better.files.StringExtensions
 import nl.knaw.dans.bag.DansBag
 import nl.knaw.dans.easy.deposit.docs._
+import nl.knaw.dans.easy.deposit.executor.JobQueueManager
 import nl.knaw.dans.lib.error._
 import org.apache.commons.configuration.PropertiesConfiguration
 import org.scalamock.scalatest.MockFactory
@@ -189,7 +190,7 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
       (testDir / "submitted").createDirectories(),
       group,
       "http://does.not.exist",
-      new ThreadPoolExecutor(1, 1, 10, TimeUnit.SECONDS, new LinkedBlockingQueue()),
+      new JobQueueManager(new ThreadPoolExecutor(1, 1, 10, TimeUnit.SECONDS, new LinkedBlockingQueue())),
     )
   }
 
