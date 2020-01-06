@@ -15,12 +15,12 @@
  */
 package nl.knaw.dans.easy.deposit.authentication
 
-import nl.knaw.dans.easy.deposit.docs.UserInfo
+import nl.knaw.dans.easy.deposit.docs.UserData
 
 import scala.util.Try
 
 trait AuthenticationProvider {
   def authenticate(userName: String, password: String): Try[Option[AuthUser]]
 
-  def getUser(userName: String): Try[UserInfo]
+  def getUser(userName: String): Try[UserData]
 }

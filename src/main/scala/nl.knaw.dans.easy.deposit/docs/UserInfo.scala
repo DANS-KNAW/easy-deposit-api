@@ -31,36 +31,14 @@ case class UserInfo(userName: String,
 object UserInfo extends DebugEnhancedLogging {
   def apply(input: JsonInput): Try[UserInfo] = input.deserialize[UserInfo]
 
-  def apply(attributes: Map[String, Seq[String]]): UserInfo = {
-
-    def getOption(key: String): Option[String] = {
-      attributes
-        .getOrElse(key, Seq.empty)
-        .headOption
-    }
-
-    def getAttribute(key: String): String = {
-      getOption(key).getOrElse {
-        logger.warn(s"user has no attribute '$key' $attributes")
-        ""
-      }
-    }
-
-    // For possible attribute keys see
-    // https://github.com/DANS-KNAW/easy-app/blob/master/lib-deprecated/dans-ldap/src/main/java/nl/knaw/dans/common/ldap/management/
-    //   DANSSchema.java
-    //   EasySchema.java
-    // https://github.com/DANS-KNAW/dans.easy-test-users/blob/master/templates
+  def apply(data: UserData): UserInfo = {
     new UserInfo(
-
-      // mandatory: https://github.com/DANS-KNAW/dans.easy-ldap-dir/blob/f17c391/files/easy-schema.ldif#L83-L84
-      userName = getAttribute("uid"),
-
-      firstName = getOption("cn"),
-      prefix = getOption("dansPrefixes"),
-      lastName = getAttribute("sn"),
-      displayName = getAttribute("displayName"),
-      email = getAttribute("mail"),
+      userName = data.id,
+      firstName = data.firstName,
+      prefix = data.prefix,
+      lastName = data.lastName,
+      displayName = data.name,
+      email = data.email,
     )
   }
 }

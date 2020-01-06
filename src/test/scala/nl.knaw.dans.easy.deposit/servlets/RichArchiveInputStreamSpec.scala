@@ -17,6 +17,7 @@ package nl.knaw.dans.easy.deposit.servlets
 
 import java.io.{ ByteArrayInputStream, FileInputStream, InputStream }
 import java.nio.charset.{ Charset, StandardCharsets }
+import java.util.UUID
 import java.util.zip.ZipException
 
 import better.files.{ File, UnicodeCharset, _ }
@@ -171,7 +172,7 @@ class RichArchiveInputStreamSpec extends TestSupportFixture {
   }
 
   private def unzip(stream: ArchiveInputStream): Try[Unit] = {
-    stream.unpackPlainEntriesTo(stagingDir.createDirectories())
+    stream.unpackPlainEntriesTo(stagingDir.createDirectories(), UUID.randomUUID())
   }
 
   /** Mocks how a file item of a http request is processed by the application */

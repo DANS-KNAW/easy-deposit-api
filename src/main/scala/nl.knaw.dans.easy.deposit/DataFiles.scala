@@ -48,7 +48,7 @@ case class DataFiles(bag: DansBag) extends DebugEnhancedLogging {
   }
 
   /**
-   * Lists information about the files the directory `path` and its subdirectories.
+   * Lists information about the files in the directory `path` and its subdirectories.
    * A previous crash during a recursive delete process (deleting a directory),
    * or between deleting a single file and updating the manifest,
    * will result in showing deleted files.

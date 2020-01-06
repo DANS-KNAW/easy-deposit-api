@@ -15,23 +15,34 @@
  */
 package nl.knaw.dans.easy.deposit
 
+import java.net.{ URI, URL }
+import java.util.concurrent.ThreadPoolExecutor
 import java.util.{ TimeZone, UUID }
 
 import better.files.File
 import better.files.File._
-import nl.knaw.dans.easy.deposit.PidRequesterComponent.PidRequester
+import javax.activation.DataSource
 import nl.knaw.dans.easy.deposit.authentication.TokenSupport.TokenConfig
 import nl.knaw.dans.easy.deposit.authentication.{ AuthConfig, AuthUser, AuthenticationProvider, TokenSupport }
-import nl.knaw.dans.easy.deposit.docs.UserInfo
+import nl.knaw.dans.easy.deposit.docs.{ AgreementData, UserData }
+import nl.knaw.dans.easy.deposit.executor.JobQueueManager
 import org.apache.commons.configuration.PropertiesConfiguration
+import org.apache.commons.mail.MultiPartEmail
 import org.joda.time.{ DateTime, DateTimeUtils, DateTimeZone }
 import org.scalamock.scalatest.MockFactory
 import org.scalatest._
 import org.scalatest.enablers.Existence
+import org.slf4j.bridge.SLF4JBridgeHandler
+import scalaj.http.Http
 
 import scala.util.{ Properties, Success, Try }
 
 trait TestSupportFixture extends FlatSpec with Matchers with Inside with BeforeAndAfterEach with MockFactory {
+
+  // disable logs from okhttp3.mockwebserver
+  SLF4JBridgeHandler.removeHandlersForRootLogger()
+  SLF4JBridgeHandler.install()
+
   implicit def existenceOfFile[FILE <: better.files.File]: Existence[FILE] = _.exists
 
   lazy val testDir: File = currentWorkingDirectory / "target" / "test" / getClass.getSimpleName
@@ -54,7 +65,20 @@ trait TestSupportFixture extends FlatSpec with Matchers with Inside with BeforeA
     }
   }
 
-  val defaultUserInfo = UserInfo("user001", displayName = "fullName", email = "does.not.exist@dans.knaw.nl", lastName = "")
+  val defaultUserInfo: UserData = UserData(
+    id = "user001",
+    name = "fullName",
+    firstName = None,
+    prefix = None,
+    lastName = "",
+    address = "",
+    zipcode = "",
+    city = "",
+    country = "",
+    organisation = "",
+    phone = "",
+    email = "does.not.exist@dans.knaw.nl",
+  )
 
   def testResource(file: String): File = File(getClass.getResource(file))
 
@@ -74,7 +98,7 @@ trait TestSupportFixture extends FlatSpec with Matchers with Inside with BeforeA
   DateTimeUtils.setCurrentMillisFixed(new DateTime(nowUTC).getMillis)
   DateTimeZone.setDefault(DateTimeZone.forTimeZone(TimeZone.getTimeZone("Europe/Amsterdam")))
 
-  trait MockedPidRequester extends PidRequester with HttpContext
+  class MockedPidRequester extends PidRequester(Http, new URI("http://does.not.exist.dans.knaw.nl/pid-generator"))
 
   def mockPidRequester: PidRequester = mock[MockedPidRequester]
 
@@ -96,6 +120,17 @@ trait TestSupportFixture extends FlatSpec with Matchers with Inside with BeforeA
       addProperty("threadpool.core-pool-size", 1)
       addProperty("threadpool.max-pool-size", 2)
       addProperty("threadpool.keep-alive-time-ms", 60000L)
+      addProperty("easy.home", "https://doesNotExist.dans.knaw.nl/ui")
+      addProperty("easy.my-datasets", "https://doesNotExist.dans.knaw.nl/ui/mydatasets")
+      // lazy values in the mailer would require less parameters here,
+      // but without lazy the service fails fast when started with an invalid configuration
+      addProperty("mail.smtp.host", "http://mailerDoesNotExist.dans.knaw.nl")
+      addProperty("mail.fromAddress", "does.not.exist@dans.knaw.nl")
+      addProperty("mail.template", "src/main/assembly/dist/cfg/template")
+      addProperty("attached-file-list.limit", "500")
+      addProperty("agreement-generator.url", "http://agreementGeneratorDoesNotExist.dans.knaw.nl")
+      addProperty("agreement-generator.connection-timeout-ms", "3000")
+      addProperty("agreement-generator.read-timeout-ms", "60000")
     })
   }
 
@@ -103,8 +138,41 @@ trait TestSupportFixture extends FlatSpec with Matchers with Inside with BeforeA
     new EasyDepositApiApp(minimalAppConfig) {
       override val pidRequester: PidRequester = mockPidRequester
 
-      override def getUserInfo(user: String): Try[UserInfo] = {
+      override def getUserData(user: String): Try[UserData] = {
         Success(defaultUserInfo)
+      }
+
+      override protected val submitter: Submitter = {
+        val groupName = properties.getString("deposit.permissions.group")
+        val depositUiURL = properties.getString("easy.deposit-ui")
+        createSubmitterWithStubs(stagedBaseDir, submitBase, groupName, depositUiURL)
+      }
+    }
+  }
+
+  def mockThreadPoolExecutor: ThreadPoolExecutor = mock[ThreadPoolExecutor]
+
+  def createSubmitterWithStubs(stagedBaseDir: File, submitBase: File, groupName: String, depositUiURL: String): Submitter = {
+    new Submitter(stagedBaseDir, submitBase, groupName, depositUiURL, jobQueue = new JobQueueManager(mockThreadPoolExecutor)) {
+      // stubs
+      override val agreementGenerator: AgreementGenerator = new AgreementGenerator(Http, new URL("http://does.not.exist"), "text/html") {
+        override def generate(agreementData: AgreementData, id: UUID): Try[Array[Byte]] = {
+          Success("mocked pdf".getBytes)
+        }
+      }
+      override val mailer: Mailer = new Mailer(
+        smtpHost = "",
+        fromAddress = "",
+        bounceAddress = "",
+        bccs = Seq.empty,
+        templateDir = File("src/main/assembly/dist/cfg/template"),
+        myDatasets = new URL("http://does.not.exist")
+      ) {
+        override def buildMessage(data: AgreementData, attachments: Map[String, DataSource], depositId: UUID): Try[MultiPartEmail] = {
+          Success(new MultiPartEmail) // only cause causes the following logging:
+          // ERROR could not send deposit confirmation message
+          //java.lang.IllegalArgumentException: MimeMessage has not been created yet
+        }
       }
     }
   }

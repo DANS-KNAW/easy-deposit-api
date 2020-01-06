@@ -32,7 +32,7 @@ class AgreementsSpec extends TestSupportFixture {
         acceptDepositAgreement = false,
         privacySensitiveDataPresent = PrivacySensitiveDataPresent.no
       ),
-      userInfo = defaultUserInfo,
+      user = defaultUserInfo,
     ) should matchPattern {
       case Failure(e: InvalidDocumentException) if e.getMessage == "invalid DatasetMetadata: Please set AcceptDepositAgreement" =>
     }
@@ -45,7 +45,7 @@ class AgreementsSpec extends TestSupportFixture {
         acceptDepositAgreement = true,
         privacySensitiveDataPresent = PrivacySensitiveDataPresent.unspecified
       ),
-      userInfo = defaultUserInfo,
+      user = defaultUserInfo,
     ) should matchPattern {
       case Failure(e: InvalidDocumentException) if e.getMessage == "invalid DatasetMetadata: Please set PrivacySensitiveDataPresent" =>
     }
@@ -58,7 +58,7 @@ class AgreementsSpec extends TestSupportFixture {
         acceptDepositAgreement = true,
         privacySensitiveDataPresent = PrivacySensitiveDataPresent.no
       ),
-      userInfo = null,
+      user = null,
     ) should matchPattern {
       case Failure(e: NullPointerException) =>
     }
@@ -71,7 +71,7 @@ class AgreementsSpec extends TestSupportFixture {
         acceptDepositAgreement = true,
         privacySensitiveDataPresent = PrivacySensitiveDataPresent.no
       ),
-      userInfo = UserInfo(Map[String, Seq[String]]()),
+      user = UserData(Map[String, Seq[String]]()),
     )
     triedXML shouldBe a[Success[_]]
     val triedSchema: Try[Schema] = AgreementsXml.loadSchema

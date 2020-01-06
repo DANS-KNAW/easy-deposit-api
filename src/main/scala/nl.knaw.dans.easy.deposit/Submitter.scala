@@ -33,6 +33,7 @@ import nl.knaw.dans.easy.deposit.executor.JobQueueManager
 import nl.knaw.dans.lib.error._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import nl.knaw.dans.lib.string._
+import org.apache.commons.mail.MultiPartEmail
 import org.joda.time.DateTime
 
 import scala.collection.JavaConverters._
@@ -45,12 +46,23 @@ import scala.util.{ Failure, Success, Try }
  * @param stagingBaseDir  the base directory for staged copies
  * @param submitToBaseDir the directory to which the staged copy must be moved.
  */
-class Submitter(stagingBaseDir: File,
+abstract class Submitter(stagingBaseDir: File,
                 submitToBaseDir: File,
                 groupName: String,
                 depositUiURL: String,
-                jobQueue: JobQueueManager
+                fileLimit: Int = 200,
+                jobQueue: JobQueueManager,
                ) extends DebugEnhancedLogging {
+  val mailer: Mailer
+  val agreementGenerator: AgreementGenerator
+
+  private lazy val agreementDocName = {
+    s"agreement.${
+      if (agreementGenerator.acceptHeader.contains("html")) "html"
+      else "pdf"
+    }"
+  }
+
   private val groupPrincipal = {
     Try {
       stagingBaseDir.fileSystem.getUserPrincipalLookupService.lookupPrincipalByGroupName(groupName)
@@ -71,8 +83,11 @@ class Submitter(stagingBaseDir: File,
    * @param draftDeposit the deposit object to submit
    * @return the UUID of the deposit in the submit area (easy-ingest-flow-inbox)
    */
-  def submit(draftDeposit: DepositDir, stateManager: StateManager, user: UserInfo, stagedDir: File): Try[UUID] = {
+  def submit(draftDeposit: DepositDir, stateManager: StateManager, user: UserData, stagedDir: File): Try[UUID] = {
+    trace(user, draftDeposit, stateManager, stagedDir)
     val propsFileName = "deposit.properties"
+    val depositId = draftDeposit.id
+    logger.info(s"[$depositId] submitting deposit")
     for {
       // EASY-1464 step 3.3.4 validation
       //   [v] mandatory fields are present and not empty (by DatasetXml(datasetMetadata) in createXMLs)
@@ -82,43 +97,69 @@ class Submitter(stagingBaseDir: File,
       // EASY-1464 3.3.5.a: generate (with some implicit validation) content for metadata files
       draftBag <- draftDeposit.getDataFiles.map(_.bag)
       datasetMetadata <- draftDeposit.getDatasetMetadata
-      agreementsXml <- AgreementsXml(DateTime.now, datasetMetadata, user)
-      _ = datasetMetadata.doi.getOrElse(throw InvalidDoiException(draftDeposit.id))
+      agreementsXmlElem <- AgreementsXml(DateTime.now, datasetMetadata, user)
+      agreementsXml = agreementsXmlElem.serialize
+      _ = logger.debug(agreementsXml)
+      _ = datasetMetadata.doi.getOrElse(throw InvalidDoiException(depositId))
       _ <- draftDeposit.sameDOIs(datasetMetadata)
-      datasetXml <- DDM(datasetMetadata)
+      datasetXmlElem <- DDM(datasetMetadata)
+      datasetXml = datasetXmlElem.serialize
+      _ = logger.debug(datasetXml)
       msg4DataManager = {
         val firstPart = datasetMetadata.messageForDataManager.getOrElse("").stripLineEnd
-        val secondPart = s"The deposit can be found at $depositUiURL/${ draftDeposit.id }"
+        val secondPart = s"The deposit can be found at $depositUiURL/$depositId"
         firstPart.toOption.fold(secondPart)(_ + "\n\n" + secondPart)
       }
-      filesXml <- FilesXml(draftBag.data)
+      _ = logger.debug("Message for the datamanager: " + msg4DataManager)
+      filesXmlElem <- FilesXml(draftBag.data)
+      filesXml = filesXmlElem.serialize
+      _ = logger.debug(filesXml)
       _ <- sameFiles(draftBag.payloadManifests, draftBag.baseDir / "data")
       // from now on no more user errors but internal errors
       // EASY-1464 3.3.8.a create empty staged bag to take a copy of the deposit
       stageBag <- DansV0Bag.empty(stagedDir / bagDirName).map(_.withCreated())
       // EASY-1464 3.3.6 change state and copy with the rest of the deposit properties to staged dir
-      _ <- stateManager.changeState(StateInfo(State.submitted, "The deposit is being processed"))
+      oldStateInfo <- stateManager.getStateInfo
+      newStateInfo = StateInfo(State.submitted, "The deposit is being processed")
+      _ <- stateManager.changeState(oldStateInfo, newStateInfo)
       submittedId <- stateManager.getSubmittedBagId // created by changeState
       submitDir = submitToBaseDir / submittedId.toString
-      _ = if (submitDir.exists) throw AlreadySubmittedException(draftDeposit.id)
+      _ = if (submitDir.exists) throw AlreadySubmittedException(depositId)
       _ = (draftBag.baseDir.parent / propsFileName).copyTo(stagedDir / propsFileName)
       // EASY-1464 3.3.5.b: write files to metadata
       _ = stageBag.addMetadataFile(msg4DataManager, s"$depositorInfoDirectoryName/message-from-depositor.txt")
       _ <- stageBag.addMetadataFile(agreementsXml, s"$depositorInfoDirectoryName/agreements.xml")
       _ <- stageBag.addMetadataFile(datasetXml, "dataset.xml")
-      _ <- stageBag.addMetadataFile(filesXml, "files.xml")
+      _ <- stageBag.addMetadataFile(filesXml, "files.xml") // TODO stress test with large number of files?
+      agreementData = AgreementData(user, datasetMetadata)
+      // TODO move the rest to workerActions when actually implementing the back ground thread
+      agreement <- agreementGenerator.generate(agreementData, depositId)
+      attachments = Map(
+        agreementDocName -> Mailer.pdfDataSource(agreement),
+        "metadata.xml" -> Mailer.xmlDataSource(datasetXml),
+        "files.txt" -> Mailer.txtDataSource(serializeManifest(draftBag, fileLimit)),
+      )
+      email <- mailer.buildMessage(agreementData, attachments, depositId)
+      _ = logger.info(s"[$depositId] dispatching async deposit submit actions")
       // TODO (1) notice that this only catches errors from giving the Runnable to the executor.
       //  In other words, errors from the job itself don't end up here.
       //  Find out which errors can occur in the job itself and make the job such that it will
       //  deal with those errors appropriately (setting state, etc.)
       // TODO (2) migrate 'workerActions' and functions that are called from there to 'SubmitJob'
       _ = logger.info(s"[${ draftDeposit.id }] dispatching submit action to async executor")
-      _ = jobQueue.scheduleJob { workerActions(draftDeposit.id, draftBag, stageBag, submitDir) }
+      _ = jobQueue.scheduleJob { workerActions(draftDeposit.id, draftBag, stageBag, submitDir, email) }
     } yield submittedId
   }
 
+  private def serializeManifest(draftBag: DansBag, fileLimit: Int): String = {
+    debug("creating manifest")
+    val entries = draftBag.payloadManifests.headOption.map(_._2).getOrElse(Map.empty)
+    if (entries.size > fileLimit) "" // all files or none avoids confusion
+    else entries.map { case (file, sha) => s"$sha ${ draftBag.data.relativize(file) }" }.mkString("\n")
+  }
+
   // TODO a worker thread allows submit to return fast for large deposits.
-  private def workerActions(id: UUID, draftBag: DansBag, stageBag: DansBag, submitDir: File): Runnable = new Runnable() {
+  private def workerActions(id: UUID, draftBag: DansBag, stageBag: DansBag, submitDir: File, email: MultiPartEmail): Runnable = new Runnable() {
     override def run(): Unit = {
       logger.info(s"[$id] starting the dispatched submit action")
       logger.info(s"[$id] copy ${ draftBag.data } to ${stageBag.data / Paths.get(".").toString }")
@@ -137,10 +178,12 @@ class Submitter(stagingBaseDir: File,
         _ = logger.info(s"[$id] set unix rights for $stageDepositDir")
         _ <- setRightsRecursively(stageDepositDir)
         // EASY-1464 step 3.3.9 Move copy to submit-to area
-        _ = logger.info(s"[$id] moving $stageDepositDir to $submitDir")
+        _ = logger.info(s"[$id] move $stageDepositDir to $submitDir")
         _ <- Try(stageDepositDir.moveTo(submitDir)(CopyOptions.atomically)).recoverWith {
           case _: FileAlreadyExistsException => Failure(AlreadySubmittedException(id))
         }
+        _ = logger.info(s"[$id] send email")
+        _ = Try { Mailer.send(id, email) }.doIfFailure { case e => logger.error(s"deposit submitted but could not send confirmation message", e) }
       } yield ()
 
       result.doIfSuccess(_ => logger.info(s"[$id] finished with dispatched submit action"))

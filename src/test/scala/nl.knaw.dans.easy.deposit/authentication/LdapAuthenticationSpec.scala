@@ -125,7 +125,7 @@ class LdapAuthenticationSpec extends TestSupportFixture with MockFactory {
       })
     }).getUser("someone")
       .getOrRecover(e => fail(e))
-      .displayName shouldBe "F. Bar"
+      .name shouldBe "F. Bar"
   }
 
   it should "log a user without a display name" in {

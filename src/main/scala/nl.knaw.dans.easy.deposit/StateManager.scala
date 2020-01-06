@@ -74,7 +74,7 @@ case class StateManager(draftDeposit: DepositDir, submitBase: File, easyHome: UR
       }
   }
 
-  def canChangeState(newStateInfo: StateInfo): Try[Unit] = getStateInfo.flatMap { oldStateInfo =>
+  def canChangeState(oldStateInfo: StateInfo, newStateInfo: StateInfo): Try[Unit] = {
     // changeState returns the same exception but the submitter should not start without checking
     val oldState = oldStateInfo.state
     val newState = newStateInfo.state
@@ -85,10 +85,12 @@ case class StateManager(draftDeposit: DepositDir, submitBase: File, easyHome: UR
     }
   }
 
-  def changeState(newStateInfo: StateInfo): Try[Unit] = getStateInfo.flatMap { old =>
+  def changeState(oldStateInfo: StateInfo, newStateInfo: StateInfo): Try[Unit] = {
+    logger.info(s"[${ draftDeposit.id }] changing deposit state from $oldStateInfo to $newStateInfo")
+
     // getStateInfo has been called by canChangeState, but it is not an IO action
     // so let's keep it simple without optimisation
-    (old.state, newStateInfo.state) match {
+    (oldStateInfo.state, newStateInfo.state) match {
       case (State.draft, State.submitted) =>
         val bagStoreBagId = UUID.randomUUID()
         // probably properly saved without toString but getSubmittedBagId would throw

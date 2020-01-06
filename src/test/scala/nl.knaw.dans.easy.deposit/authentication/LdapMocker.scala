@@ -23,7 +23,7 @@ import org.scalamock.scalatest.MockFactory
 
 case class LdapMocker() extends MockFactory {
 
-  // TODO why not needed in easy-dowload?
+  // TODO why not needed in easy-download?
   class MockedSearchResult extends SearchResult("", "", new BasicAttributes())
 
   val mockedLdapContext: LdapContext = mock[LdapContext]

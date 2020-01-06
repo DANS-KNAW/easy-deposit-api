@@ -23,7 +23,7 @@ import java.util.UUID
 import better.files._
 import nl.knaw.dans.bag.v0.DansV0Bag
 import nl.knaw.dans.easy.deposit.Errors._
-import nl.knaw.dans.easy.deposit.PidRequesterComponent.{ PidRequester, PidType }
+import nl.knaw.dans.easy.deposit.PidRequester.PidType
 import nl.knaw.dans.easy.deposit.docs.JsonUtil.toJson
 import nl.knaw.dans.easy.deposit.docs._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
@@ -72,7 +72,7 @@ case class DepositDir private(draftBase: File, user: String, id: UUID) extends D
       stateInfo.stateDescription,
       created
     )
-    }.recoverWith {
+  } recoverWith {
     case t: CorruptDepositException => Failure(t)
     case t => corruptDepositFailure(t)
   }
@@ -140,7 +140,7 @@ case class DepositDir private(draftBase: File, user: String, id: UUID) extends D
     maybeDOI = Option(props.getString("identifier.doi", null))
     _ <- dm.doi.map(_ => doisMatch(dm, maybeDOI)).getOrElse(Success(()))
     maybeTriedDOI = maybeDOI.map(Success(_))
-    doi <- maybeTriedDOI.getOrElse(pidRequester.requestPid(PidType.doi))
+    doi <- maybeTriedDOI.getOrElse { pidRequester.requestPid(id, PidType.doi) }
     _ <- maybeTriedDOI.getOrElse(saveDoiProperty(doi, dm, props))
   } yield doi
 
@@ -217,6 +217,7 @@ object DepositDir {
     val depositInfo = DepositInfo()
     val deposit = DepositDir(draftDir, user, depositInfo.id)
     val depositDir = deposit.draftBase / user / depositInfo.id.toString
+    debug(s"[${ depositInfo.id }] create new draft deposit in $depositDir")
     for {
       _ <- Try { depositDir.createDirectories }
       bag <- DansV0Bag.empty(depositDir / bagDirName)

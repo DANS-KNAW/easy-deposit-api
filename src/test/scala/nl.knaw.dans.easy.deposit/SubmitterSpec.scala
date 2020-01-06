@@ -185,7 +185,7 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
   }
 
   private def createSubmitter(group: String): Submitter = {
-    new Submitter(
+    createSubmitterWithStubs(
       (testDir / "staged").createDirectories(),
       (testDir / "submitted").createDirectories(),
       group,

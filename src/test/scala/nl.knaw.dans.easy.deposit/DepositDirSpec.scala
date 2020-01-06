@@ -18,7 +18,6 @@ package nl.knaw.dans.easy.deposit
 import java.nio.file.attribute.PosixFilePermission
 
 import nl.knaw.dans.easy.deposit.Errors.CorruptDepositException
-import nl.knaw.dans.easy.deposit.PidRequesterComponent.PidType.PidType
 import nl.knaw.dans.lib.error._
 import org.apache.commons.configuration.PropertiesConfiguration
 import org.scalamock.scalatest.MockFactory
@@ -115,7 +114,7 @@ class DepositDirSpec extends TestSupportFixture with MockFactory {
     // preconditions
     mdFile.contentAsString shouldBe "{}"
     val pidMocker = mockPidRequester
-    (pidMocker.requestPid(_: PidType)) expects * once() returning Success(doi)
+    pidMocker.requestPid _ expects(*, *) once() returning Success(doi)
 
     // test
     deposit.getDOI(pidMocker) shouldBe Success(doi)

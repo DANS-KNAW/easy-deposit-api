@@ -15,14 +15,16 @@
  */
 package nl.knaw.dans.easy.deposit.servlets
 
-import nl.knaw.dans.easy.deposit.PidRequesterComponent.PidType
-import nl.knaw.dans.easy.deposit.PidRequesterComponent.PidType.PidType
+import java.util.UUID
+
+import nl.knaw.dans.easy.deposit.PidRequester.PidType
+import nl.knaw.dans.easy.deposit.PidRequester.PidType.PidType
 import nl.knaw.dans.easy.deposit.authentication.{ AuthenticationMocker, AuthenticationProvider }
 import nl.knaw.dans.easy.deposit.docs.DepositInfo
 import nl.knaw.dans.easy.deposit.{ EasyDepositApiApp, TestSupportFixture }
 import nl.knaw.dans.lib.error._
 import org.eclipse.jetty.http.HttpStatus._
-import org.scalamock.handlers.CallHandler1
+import org.scalamock.handlers.CallHandler2
 import org.scalamock.scalatest.MockFactory
 import org.scalatra.test.scalatest.ScalatraSuite
 
@@ -53,6 +55,6 @@ trait DepositServletFixture extends TestSupportFixture with ServletFixture with 
     }
   }
 
-  def mockDoiRequest(doi: String): CallHandler1[PidType, Try[String]] =
-    (app.pidRequester.requestPid(_: PidType)) expects PidType.doi returning Success(doi)
+  def mockDoiRequest(doi: String): CallHandler2[UUID, PidType, Try[String]] =
+    app.pidRequester.requestPid _ expects(*, PidType.doi) returning Success(doi)
 }

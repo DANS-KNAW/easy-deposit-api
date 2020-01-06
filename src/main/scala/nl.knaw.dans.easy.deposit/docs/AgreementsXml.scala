@@ -24,7 +24,7 @@ object AgreementsXml extends SchemedXml {
   override val schemaNameSpace = "http://easy.dans.knaw.nl/schemas/bag/metadata/agreements/"
   override val schemaLocation = "https://easy.dans.knaw.nl/schemas/bag/metadata/agreements/2019/09/agreements.xsd"
 
-  def apply(dateSubmitted: DateTime, dm: DatasetMetadata, userInfo: UserInfo): Try[Elem] = {
+  def apply(dateSubmitted: DateTime, dm: DatasetMetadata, user: UserData): Try[Elem] = {
     for {
       _ <- dm.depositAgreementAccepted
       privacy <- dm.hasPrivacySensitiveData
@@ -35,12 +35,12 @@ object AgreementsXml extends SchemedXml {
           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
           xsi:schemaLocation={s"$schemaNameSpace $schemaLocation"}>
         <depositAgreement>
-          <signerId easy-account={userInfo.userName} email={userInfo.email}>{userInfo.displayName}</signerId>
+          <signerId easy-account={user.id} email={user.email}>{user.name}</signerId>
           <dcterms:dateAccepted>{dateSubmitted}</dcterms:dateAccepted>
           <depositAgreementAccepted>{dm.acceptDepositAgreement}</depositAgreementAccepted>
         </depositAgreement>
         <personalDataStatement>
-          <signerId easy-account={userInfo.userName} email={userInfo.email}>{userInfo.displayName}</signerId>
+          <signerId easy-account={user.id} email={user.email}>{user.name}</signerId>
           <dateSigned>{dateSubmitted}</dateSigned>
           <containsPrivacySensitiveData>{privacy}</containsPrivacySensitiveData>
         </personalDataStatement>

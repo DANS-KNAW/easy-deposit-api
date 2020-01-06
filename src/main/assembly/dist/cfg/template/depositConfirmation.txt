@@ -1,0 +1,22 @@
+Dear $displayName,
+
+Thank you very much for submitting your dataset '$datasetTitle' to EASY. This E-mail contains more information regarding when your dataset will become available to the public, implementation of any changes, your data's permanent discoverability, and the deposit agreement.
+
+AVAILABILITY TO THE PUBLIC
+Within a few working days, DANS staff will make your data available to the public in accordance with the conditions indicated by you. DANS guarantees that your data will remain accessible and safely stored for the long term.
+
+You can follow the status of your dataset in 'My datasets' to see if it is already available to the public. You will see this option in EASY when you log in. Or you may use this direct link:
+$myDatasetsUrl
+
+IMPLEMENTING CHANGES
+Should you wish to implement any changes to the metadata or to upload complementary files, either now or in the future, please contact us: info@dans.knaw.nl.
+
+PERMANENT DISCOVERABILITY
+You can include the following link in your paper or electronic publication to refer to your dataset:
+     https://doi.org/$doi
+We also ask those who refer to your dataset in their publications to include this link. It contains a 'Persistent Identifier', which is coupled to your dataset and ensures that it will also remain discoverable via the Internet in the long term.
+
+Note: This link will not work until the day after your dataset becomes available to the public.
+
+DEPOSIT AGREEMENT
+Attached is a copy of the deposit agreement with the terms and conditions which you agreed upon when you deposited the data.
