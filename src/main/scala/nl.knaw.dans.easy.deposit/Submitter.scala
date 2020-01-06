@@ -119,7 +119,6 @@ abstract class Submitter(stagingBaseDir: File,
       // EASY-1464 3.3.6 change state and copy with the rest of the deposit properties to staged dir
       oldStateInfo <- stateManager.getStateInfo
       newStateInfo = StateInfo(State.submitted, "The deposit is being processed")
-      _ = logger.info(s"[$depositId] changing deposit state from $oldStateInfo to $newStateInfo")
       _ <- stateManager.changeState(oldStateInfo, newStateInfo)
       submittedId <- stateManager.getSubmittedBagId // created by changeState
       submitDir = submitToBaseDir / submittedId.toString
@@ -138,7 +137,7 @@ abstract class Submitter(stagingBaseDir: File,
         "metadata.xml" -> Mailer.xmlDataSource(datasetXml),
         "files.txt" -> Mailer.txtDataSource(serializeManifest(draftBag, fileLimit)),
       )
-      email <- mailer.buildMessage(depositId, agreementData, attachments)
+      email <- mailer.buildMessage(agreementData, attachments, depositId)
       _ = logger.info(s"[$depositId] dispatching async deposit submit actions")
       _ <- workerActions(depositId, draftBag, stageBag, submitDir, email)
     } yield submittedId

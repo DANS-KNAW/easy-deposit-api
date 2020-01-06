@@ -139,13 +139,13 @@ package object servlets extends DebugEnhancedLogging {
   }
 
   implicit class RichMultipartConfig(config: MultipartConfig) {
-    def moveNonArchive(id: UUID, srcItems: Iterator[FileItem], targetDir: File): Try[Unit] = {
+    def moveNonArchive(srcItems: Iterator[FileItem], targetDir: File, id: UUID): Try[Unit] = {
       srcItems
-        .map(moveIfNotAnArchive(id, _, targetDir))
+        .map(moveIfNotAnArchive(_, targetDir, id))
         .failFastOr(Success(()))
     }
 
-    private def moveIfNotAnArchive(id: UUID, srcItem: FileItem, targetDir: File): Try[Unit] = {
+    private def moveIfNotAnArchive(srcItem: FileItem, targetDir: File, id: UUID): Try[Unit] = {
       val target = targetDir / srcItem.name
       logger.info(s"[$id] staging upload to $target - size = ${ srcItem.size } bytes, contentType = ${ srcItem.contentType }")
       if (srcItem.name.isBlank) Success(()) // skip form field without selected files

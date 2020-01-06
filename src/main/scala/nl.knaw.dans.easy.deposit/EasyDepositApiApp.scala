@@ -23,7 +23,6 @@ import java.util.UUID
 import better.files.File.temporaryDirectory
 import better.files.{ Dispose, File }
 import nl.knaw.dans.easy.deposit.Errors.{ ClientAbortedUploadException, ConfigurationException, InvalidContentTypeException, LeftoversOfForcedShutdownException, NoStagingDirException, OverwriteException, PendingUploadException }
-import nl.knaw.dans.easy.deposit.PidRequesterComponent.PidRequester
 import nl.knaw.dans.easy.deposit.authentication.{ AuthenticationProvider, LdapAuthentication }
 import nl.knaw.dans.easy.deposit.docs.StateInfo.State
 import nl.knaw.dans.easy.deposit.docs.StateInfo.State.State
@@ -35,21 +34,17 @@ import org.apache.commons.configuration.PropertiesConfiguration
 import org.eclipse.jetty.io.EofException
 import org.joda.time.DateTime
 import org.scalatra.servlet.MultipartConfig
-import scalaj.http.BaseHttp
 
 import scala.util.{ Failure, Success, Try }
 
 class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLogging
   with LdapAuthentication
-  with PidRequesterComponent {
+  with HttpContext {
 
   val properties: PropertiesConfiguration = configuration.properties
+  override val applicationVersion: String = configuration.version
 
-  override val pidRequester: PidRequester = new PidRequester with HttpContext {
-    override val pidGeneratorService: URI = new URI(properties.getString("pids.generator-service"))
-    override val applicationVersion: String = configuration.version
-    logger.debug(s"pids.generator-service = $pidGeneratorService")
-  }
+  val pidRequester: PidRequester = new PidRequester(Http, new URI(properties.getString("pids.generator-service")))
   override val authentication: AuthenticationProvider = new Authentication {
     override val ldapUserIdAttrName: String = properties.getString("users.ldap-user-id-attr-name")
     override val ldapParentEntry: String = properties.getString("users.ldap-parent-entry")
@@ -101,7 +96,7 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
         myDatasets = new URL(properties.getString("easy.my-datasets"))
       )
       override val agreementGenerator: AgreementGenerator = AgreementGenerator(
-        new BaseHttp(userAgent = s"easy-deposit-agreement-creator/${ configuration.version }"),
+        Http,
         new URL(properties.getString("agreement-generator.url", "http://localhost")),
         properties.getString("agreement-generator.accept", "application/pdf"),
         connectionTimeoutMs = properties.getInt("agreement-generator.connection-timeout-ms"),
@@ -224,10 +219,7 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
         .doIfFailure { case _ => logger.info(s"[$id] state change from $oldStateInfo to $newStateInfo is not allowed") }
       _ <- if (newStateInfo.state == State.submitted)
              submit(deposit, stateManager) // also changes the state
-           else {
-             logger.info(s"[$id] changing deposit state from $oldStateInfo to $newStateInfo")
-             stateManager.changeState(oldStateInfo, newStateInfo)
-           }
+           else stateManager.changeState(oldStateInfo, newStateInfo)
     } yield ()
   }
 

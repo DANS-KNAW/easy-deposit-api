@@ -86,6 +86,8 @@ case class StateManager(draftDeposit: DepositDir, submitBase: File, easyHome: UR
   }
 
   def changeState(oldStateInfo: StateInfo, newStateInfo: StateInfo): Try[Unit] = {
+    logger.info(s"[${ draftDeposit.id }] changing deposit state from $oldStateInfo to $newStateInfo")
+
     // getStateInfo has been called by canChangeState, but it is not an IO action
     // so let's keep it simple without optimisation
     (oldStateInfo.state, newStateInfo.state) match {

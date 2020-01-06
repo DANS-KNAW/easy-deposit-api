@@ -21,6 +21,7 @@ import java.util.UUID
 import better.files.File
 import nl.knaw.dans.easy.deposit.docs.dm.SchemedValue
 import nl.knaw.dans.easy.deposit.docs.{ AgreementData, MinimalDatasetMetadata }
+import org.apache.velocity.exception.ResourceNotFoundException
 
 import scala.util.{ Failure, Success }
 
@@ -44,22 +45,21 @@ class MailerSpec extends TestSupportFixture {
   "buildMessage" should "succeed" in {
     val from = "does.not.exist@dans.knaw.nl"
     Mailer(smtpHost = "localhost", fromAddress = from, bounceAddress = from, bccs = Seq.empty, templateDir = File("src/main/assembly/dist/cfg/template"), url)
-      .buildMessage(UUID.randomUUID(), data, attachments) shouldBe a[Success[_]]
+          .buildMessage(data, attachments, UUID.randomUUID()) shouldBe a[Success[_]]
   }
 
   "buildMessage" should "report invalid address" in {
     val from = "dans.knaw.nl"
     Mailer(smtpHost = "localhost", fromAddress = from, bounceAddress = from, bccs = Seq.empty, templateDir = File("src/main/assembly/dist/cfg/template"), url)
-      .buildMessage(UUID.randomUUID(), data, attachments) should matchPattern {
+          .buildMessage(data, attachments, UUID.randomUUID()) should matchPattern {
       case Failure(e) if e.getMessage.matches(".*Missing final '@domain'.*dans.knaw.nl.*") =>
     }
   }
 
-  "buildMessage" should "report missing templates" in pendingUntilFixed {
+  "constructor" should "report missing templates" in {
     val from = "does.not.exist@dans.knaw.nl"
-    Mailer(smtpHost = "localhost", fromAddress = from, bounceAddress = from, bccs = Seq.empty, templateDir = File("does/not/exist"), url)
-      .buildMessage(UUID.randomUUID(), data, attachments) should matchPattern {
-      case Failure(e) if e.getMessage == "Unable to find resource 'depositConfirmation.html'" =>
-    }
+    the[ResourceNotFoundException] thrownBy 
+      Mailer(smtpHost = "localhost", fromAddress = from, bounceAddress = from, bccs = Seq.empty, templateDir = File("does/not/exist"), url) should
+      have message "Unable to find resource 'depositConfirmation.html'"
   }
 }

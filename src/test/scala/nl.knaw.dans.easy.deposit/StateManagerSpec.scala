@@ -219,13 +219,13 @@ class StateManagerSpec extends TestSupportFixture {
   it should "result in IllegalStateTransitionException when transitioning from DRAFT to ARCHIVED" in {
     val props =
       s"""state.label = DRAFT
-         |state.description = Something's rotten on the state of ...
+         |state.description = user is working on this
          |bag-store.bag-id = $submittedUuid
          |""".stripMargin
     draftPropsFile.writeText(props)
     val stateManager = StateManager(draftDeposit, submitBase, easyHome)
     stateManager.changeState(
-      oldStateInfo = StateInfo(State.draft, "Something's rotten on the state of ..."),
+      oldStateInfo = StateInfo(State.draft, "user is working on this"),
       newStateInfo = StateInfo(State.archived, "rabarbera"),
     ) should matchPattern {
       case Failure(e: IllegalStateTransitionException) if e.getMessage == "Cannot transition from DRAFT to ARCHIVED" =>

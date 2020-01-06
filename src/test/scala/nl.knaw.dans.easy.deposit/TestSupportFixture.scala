@@ -15,13 +15,12 @@
  */
 package nl.knaw.dans.easy.deposit
 
-import java.net.URL
+import java.net.{ URI, URL }
 import java.util.{ TimeZone, UUID }
 
 import better.files.File
 import better.files.File._
 import javax.activation.DataSource
-import nl.knaw.dans.easy.deposit.PidRequesterComponent.PidRequester
 import nl.knaw.dans.easy.deposit.authentication.TokenSupport.TokenConfig
 import nl.knaw.dans.easy.deposit.authentication.{ AuthConfig, AuthUser, AuthenticationProvider, TokenSupport }
 import nl.knaw.dans.easy.deposit.docs.{ AgreementData, UserData }
@@ -97,7 +96,7 @@ trait TestSupportFixture extends FlatSpec with Matchers with Inside with BeforeA
   DateTimeUtils.setCurrentMillisFixed(new DateTime(nowUTC).getMillis)
   DateTimeZone.setDefault(DateTimeZone.forTimeZone(TimeZone.getTimeZone("Europe/Amsterdam")))
 
-  trait MockedPidRequester extends PidRequester with HttpContext
+  class MockedPidRequester extends PidRequester(Http, new URI("http://does.not.exist.dans.knaw.nl/pid-generator"))
 
   def mockPidRequester: PidRequester = mock[MockedPidRequester]
 
@@ -161,7 +160,7 @@ trait TestSupportFixture extends FlatSpec with Matchers with Inside with BeforeA
         templateDir = File("src/main/assembly/dist/cfg/template"),
         myDatasets = new URL("http://does.not.exist")
       ) {
-        override def buildMessage(depositId: UUID, data: AgreementData, attachments: Map[String, DataSource]): Try[MultiPartEmail] = {
+        override def buildMessage(data: AgreementData, attachments: Map[String, DataSource], depositId: UUID): Try[MultiPartEmail] = {
           Success(new MultiPartEmail) // only cause causes the following logging:
           // ERROR could not send deposit confirmation message
           //java.lang.IllegalArgumentException: MimeMessage has not been created yet

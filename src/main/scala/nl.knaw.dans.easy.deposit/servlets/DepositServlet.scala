@@ -168,7 +168,7 @@ class DepositServlet(app: EasyDepositApiApp)
         _ <- managedStagingDir.apply(stagingDir =>
           maybeManagedArchiveInputStream
             .map(_.unpackPlainEntriesTo(stagingDir, uuid))
-            .getOrElse(app.multipartConfig.moveNonArchive(uuid, fileItems, stagingDir))
+            .getOrElse(app.multipartConfig.moveNonArchive(fileItems, stagingDir, uuid))
             .flatMap(_ => stagedFilesTarget.moveAllFrom(stagingDir))
         )
       } yield Created()

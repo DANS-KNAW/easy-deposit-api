@@ -25,24 +25,26 @@ import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.eclipse.jetty.http.HttpStatus.OK_200
 import scalaj.http.{ BaseHttp, HttpResponse }
 
-import scala.util.Try
+import scala.util.{ Failure, Success, Try }
 
 case class AgreementGenerator(http: BaseHttp, url: URL, acceptHeader: String, connectionTimeoutMs: Int = 2000, readTimeoutMs: Int = 30000) extends DebugEnhancedLogging {
   def generate(agreementData: AgreementData, id: UUID): Try[Array[Byte]] = Try {
     val json = toJson(agreementData)
     logger.info(s"[$id] calling easy-deposit-agreement-generator with body $json")
 
-    http(url.toString).timeout(connectionTimeoutMs, readTimeoutMs).postData(json)
+    http(url.toString)
+      .timeout(connectionTimeoutMs, readTimeoutMs)
+      .postData(json)
       .header("content-type", "application/json")
       .header("accept", acceptHeader)
-      .asBytes match {
-      case HttpResponse(body, OK_200, _) =>
-        logger.info(s"[$id] agreement generated successfully")
-        body
-      case HttpResponse(body, code, headers) =>
-        val stringBody = new String(body)
-        logger.info(s"[$id] agreement generation failed with code $code and body $stringBody")
-        throw GeneratorError(s"Could not generate agreement for dataset $id", HttpResponse(stringBody, code, headers))
-    }
+      .asBytes
+  } flatMap {
+    case HttpResponse(body, OK_200, _) =>
+      logger.info(s"[$id] agreement generated successfully")
+      Success(body)
+    case HttpResponse(body, code, headers) =>
+      val stringBody = new String(body)
+      logger.info(s"[$id] agreement generation failed with code $code and body $stringBody")
+      Failure(GeneratorError(s"Could not generate agreement for dataset $id", HttpResponse(stringBody, code, headers)))
   }
 }

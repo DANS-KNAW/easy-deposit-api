@@ -95,7 +95,7 @@ class RichFileItemsSpec extends TestSupportFixture with MockFactory {
       mockFileItem(""),
     ).buffered
 
-    createMultipartConfig.moveNonArchive(UUID.randomUUID(), fileItems, createStageDir) shouldBe a[Success[_]]
+    createMultipartConfig.moveNonArchive(fileItems, createStageDir, UUID.randomUUID()) shouldBe a[Success[_]]
     (testDir / "staged").list should have size 0
   }
 
@@ -107,7 +107,7 @@ class RichFileItemsSpec extends TestSupportFixture with MockFactory {
       mockFileItem("another.txt", content = "Dolor sit amet"),
     ).buffered
 
-    createMultipartConfig.moveNonArchive(UUID.randomUUID(), fileItems, createStageDir) should matchPattern {
+    createMultipartConfig.moveNonArchive(fileItems, createStageDir, UUID.randomUUID()) should matchPattern {
       case Failure(e: ArchiveMustBeOnlyFileException) if e.getMessage ==
         "A multipart/form-data message contained an archive part [some.zip] but also other parts." =>
       // moveNonZips should not have been called at all by the servlet with these items

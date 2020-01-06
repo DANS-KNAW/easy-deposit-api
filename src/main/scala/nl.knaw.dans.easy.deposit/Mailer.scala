@@ -58,7 +58,7 @@ case class Mailer(smtpHost: String,
   }
 
   /** @return messageID */
-  def buildMessage(depositId: UUID, data: AgreementData, attachments: Map[String, DataSource]): Try[MultiPartEmail] = Try {
+  def buildMessage(data: AgreementData, attachments: Map[String, DataSource], depositId: UUID): Try[MultiPartEmail] = Try {
     val context = new VelocityContext {
       put("displayName", data.depositor.name)
       put("datasetTitle", data.title)
