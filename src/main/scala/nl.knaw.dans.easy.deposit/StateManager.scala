@@ -74,6 +74,10 @@ case class StateManager(draftDeposit: DepositDir, submitBase: File, easyHome: UR
       }
   }
 
+  def setStateFailed(description: String): Try[Unit] = Try {
+    saveNewStateInDraftDeposit(StateInfo(State.submitted, description))
+  }
+
   def canChangeState(oldStateInfo: StateInfo, newStateInfo: StateInfo): Try[Unit] = {
     // changeState returns the same exception but the submitter should not start without checking
     val oldState = oldStateInfo.state

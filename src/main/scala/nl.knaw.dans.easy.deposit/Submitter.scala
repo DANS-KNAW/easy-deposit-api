@@ -132,6 +132,7 @@ class Submitter(stagingBaseDir: File,
           agreementGenerator = agreementGenerator,
           fileLimit = 200,
           mailer = mailer,
+          stateManager = stateManager,
         )
       }
     } yield submittedId

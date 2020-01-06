@@ -23,7 +23,6 @@ import better.files.File
 import javax.activation.DataSource
 import javax.mail.util.ByteArrayDataSource
 import nl.knaw.dans.easy.deposit.docs.AgreementData
-import nl.knaw.dans.lib.error._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.apache.commons.mail.{ HtmlEmail, MultiPartEmail }
 import org.apache.velocity.app.VelocityEngine
@@ -85,15 +84,6 @@ case class Mailer(smtpHost: String,
   }
 }
 object Mailer extends DebugEnhancedLogging {
-
-  def send(id: UUID, email: MultiPartEmail): Try[String] = {
-    Try(email.sendMimeMessage)
-      .map { messageId =>
-        logger.info(s"[$id] sent email $messageId")
-        messageId
-      }
-      .doIfFailure { case e => logger.error(s"[$id] could not send deposit confirmation message", e) }
-  }
 
   def pdfDataSource(data: Array[Byte]): DataSource = {
     new ByteArrayDataSource(data, "application/pdf")

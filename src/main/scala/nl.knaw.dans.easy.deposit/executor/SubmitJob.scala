@@ -16,21 +16,19 @@
 package nl.knaw.dans.easy.deposit.executor
 
 import java.io.IOException
+import java.nio.file._
 import java.nio.file.attribute.PosixFilePermission.{ GROUP_EXECUTE, GROUP_READ, GROUP_WRITE }
 import java.nio.file.attribute.{ GroupPrincipal, PosixFileAttributeView }
-import java.nio.file._
 import java.util.UUID
 
 import better.files.File
 import better.files.File.{ CopyOptions, VisitOptions }
 import nl.knaw.dans.bag.ChecksumAlgorithm.ChecksumAlgorithm
 import nl.knaw.dans.bag.DansBag
-import nl.knaw.dans.easy.deposit.Errors.AlreadySubmittedException
 import nl.knaw.dans.easy.deposit.docs.AgreementData
-import nl.knaw.dans.easy.deposit.{ AgreementGenerator, Mailer }
+import nl.knaw.dans.easy.deposit.{ AgreementGenerator, Mailer, StateManager }
 import nl.knaw.dans.lib.error._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
-import org.apache.commons.mail.MultiPartEmail
 
 import scala.collection.JavaConverters._
 import scala.util.control.NonFatal
@@ -46,6 +44,7 @@ class SubmitJob(depositId: UUID,
                 agreementGenerator: AgreementGenerator,
                 fileLimit: Int,
                 mailer: Mailer,
+                stateManager: StateManager,
                ) extends Runnable with DebugEnhancedLogging {
 
   private lazy val agreementDocName = {
@@ -57,9 +56,22 @@ class SubmitJob(depositId: UUID,
 
   override def run(): Unit = {
     logger.info(s"[$depositId] starting the dispatched submit action")
-    logger.info(s"[$depositId] copy ${ draftBag.data } to ${stageBag.data / Paths.get(".").toString }")
+    logger.info(s"[$depositId] copy ${ draftBag.data } to ${ stageBag.data / Paths.get(".").toString }")
 
-    val result = for {
+    submitDeposit() match {
+      case Failure(e) =>
+        logger.error(s"[$depositId] error in dispatched submit action ${ this.toString }", e)
+        stateManager.setStateFailed(e.getMessage)
+          .doIfFailure { case e => logger.error(s"[$depositId] could not set state to FAILED after submission failed", e) }
+      case Success(()) =>
+        sendEmail
+          .doIfSuccess(_ => logger.info(s"[$depositId] finished with dispatched submit action"))
+          .doIfFailure { case e => logger.error(s"[$depositId] deposit submitted but could not send confirmation message", e) }
+    }
+  }
+
+  private def submitDeposit(): Try[Unit] = {
+    for {
       // EASY-1464 3.3.8.b copy files
       _ <- stageBag.addPayloadFile(draftBag.data, Paths.get("."))
       _ = logger.info(s"[$depositId] save changes to stageBag ${ stageBag.baseDir }")
@@ -72,22 +84,13 @@ class SubmitJob(depositId: UUID,
       stageDepositDir = stageBag.baseDir.parent
       _ = logger.info(s"[$depositId] set unix rights for $stageDepositDir")
       _ <- setRightsRecursively(stageDepositDir)
-      email <- composeEmail
       // EASY-1464 step 3.3.9 Move copy to submit-to area
       _ = logger.info(s"[$depositId] move $stageDepositDir to $submitDir")
-      _ <- Try(stageDepositDir.moveTo(submitDir)(CopyOptions.atomically)).recoverWith {
-        case _: FileAlreadyExistsException => Failure(AlreadySubmittedException(depositId))
-      }
-      _ = logger.info(s"[$depositId] send email")
-      _ = Try { Mailer.send(depositId, email) }.doIfFailure { case e => logger.error(s"deposit submitted but could not send confirmation message", e) }
+      _ = stageDepositDir.moveTo(submitDir)(CopyOptions.atomically)
     } yield ()
-
-    result.doIfSuccess(_ => logger.info(s"[$depositId] finished with dispatched submit action"))
-      .doIfFailure { case e => logger.error(s"[$depositId] error in dispatched submit action ${ this.toString }: ${ e.getMessage }", e) }
-//      TODO error/success handling
   }
 
-  private def composeEmail: Try[MultiPartEmail] = {
+  private def sendEmail: Try[Unit] = {
     for {
       agreement <- agreementGenerator.generate(agreementData, depositId)
       attachments = Map(
@@ -96,7 +99,10 @@ class SubmitJob(depositId: UUID,
         "files.txt" -> Mailer.txtDataSource(serializeManifest(draftBag, fileLimit)),
       )
       email <- mailer.buildMessage(agreementData, attachments, depositId)
-    } yield email
+      _ = logger.info(s"[$depositId] send email")
+      messageId <- Try { email.sendMimeMessage }
+      _ = logger.info(s"[$depositId] sent email $messageId")
+    } yield ()
   }
 
   private def serializeManifest(draftBag: DansBag, fileLimit: Int): String = {
@@ -158,5 +164,5 @@ class SubmitJob(depositId: UUID,
     case NonFatal(e) => throw new IOException(s"unexpected error occured on $path", e)
   }
 
-  override def toString: String = s"<SubmitWorkerAction[id = $depositId, draftBag = ${draftBag.baseDir}, stageBag = ${stageBag.baseDir}, submitDir = $submitDir]>"
+  override def toString: String = s"<SubmitWorkerAction[id = $depositId, draftBag = ${ draftBag.baseDir }, stageBag = ${ stageBag.baseDir }, submitDir = $submitDir]>"
 }
