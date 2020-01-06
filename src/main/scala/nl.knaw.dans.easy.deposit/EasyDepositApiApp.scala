@@ -202,7 +202,7 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
     def submit(deposit: DepositDir, stateManager: StateManager): Try[Unit] = {
       for {
         userInfo <- getUserInfo(userId)
-        disposableStagedDir <- getPerminentStagedDir(userId, id)
+        disposableStagedDir <- getPermanentStagedDir(userId, id)
         _ <- submitter.submit(deposit, stateManager, userInfo, disposableStagedDir)
       } yield ()
     }
@@ -385,7 +385,7 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
   }
 
   // the temporary directory is NOT dropped after usage is done!
-  private def getPerminentStagedDir(userId: String, id: UUID): Try[File] = {
+  private def getPermanentStagedDir(userId: String, id: UUID): Try[File] = {
     // side effect: optimistic lock for a deposit
     val prefix = s"$userId-$id-"
     for {
