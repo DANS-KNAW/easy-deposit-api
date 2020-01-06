@@ -16,7 +16,7 @@
 package nl.knaw.dans.easy.deposit
 
 import java.net.{ URI, URL }
-import java.util.concurrent.ThreadPoolExecutor
+import java.util.concurrent.{ LinkedBlockingQueue, ThreadPoolExecutor, TimeUnit }
 import java.util.{ TimeZone, UUID }
 
 import better.files.File
@@ -145,15 +145,13 @@ trait TestSupportFixture extends FlatSpec with Matchers with Inside with BeforeA
       override protected val submitter: Submitter = {
         val groupName = properties.getString("deposit.permissions.group")
         val depositUiURL = properties.getString("easy.deposit-ui")
-        createSubmitterWithStubs(stagedBaseDir, submitBase, groupName, depositUiURL)
+        createSubmitterWithStubs(stagedBaseDir, submitBase, groupName, depositUiURL, new JobQueueManager(new ThreadPoolExecutor(1, 1, 10, TimeUnit.SECONDS, new LinkedBlockingQueue())))
       }
     }
   }
 
-  def mockThreadPoolExecutor: ThreadPoolExecutor = mock[ThreadPoolExecutor]
-
-  def createSubmitterWithStubs(stagedBaseDir: File, submitBase: File, groupName: String, depositUiURL: String): Submitter = {
-    new Submitter(stagedBaseDir, submitBase, groupName, depositUiURL, jobQueue = new JobQueueManager(mockThreadPoolExecutor)) {
+  def createSubmitterWithStubs(stagedBaseDir: File, submitBase: File, groupName: String, depositUiURL: String, jobQueueManager: JobQueueManager): Submitter = {
+    new Submitter(stagedBaseDir, submitBase, groupName, depositUiURL, jobQueue = jobQueueManager) {
       // stubs
       override val agreementGenerator: AgreementGenerator = new AgreementGenerator(Http, new URL("http://does.not.exist"), "text/html") {
         override def generate(agreementData: AgreementData, id: UUID): Try[Array[Byte]] = {
