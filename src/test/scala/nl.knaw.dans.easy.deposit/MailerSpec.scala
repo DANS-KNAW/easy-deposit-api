@@ -45,20 +45,20 @@ class MailerSpec extends TestSupportFixture {
   "buildMessage" should "succeed" in {
     val from = "does.not.exist@dans.knaw.nl"
     Mailer(smtpHost = "localhost", fromAddress = from, bounceAddress = from, bccs = Seq.empty, templateDir = File("src/main/assembly/dist/cfg/template"), url)
-          .buildMessage(data, attachments, UUID.randomUUID()) shouldBe a[Success[_]]
+      .buildMessage(data, attachments, UUID.randomUUID()) shouldBe a[Success[_]]
   }
 
   "buildMessage" should "report invalid address" in {
     val from = "dans.knaw.nl"
     Mailer(smtpHost = "localhost", fromAddress = from, bounceAddress = from, bccs = Seq.empty, templateDir = File("src/main/assembly/dist/cfg/template"), url)
-          .buildMessage(data, attachments, UUID.randomUUID()) should matchPattern {
+      .buildMessage(data, attachments, UUID.randomUUID()) should matchPattern {
       case Failure(e) if e.getMessage.matches(".*Missing final '@domain'.*dans.knaw.nl.*") =>
     }
   }
 
   "constructor" should "report missing templates" in {
     val from = "does.not.exist@dans.knaw.nl"
-    the[ResourceNotFoundException] thrownBy 
+    the[ResourceNotFoundException] thrownBy
       Mailer(smtpHost = "localhost", fromAddress = from, bounceAddress = from, bccs = Seq.empty, templateDir = File("does/not/exist"), url) should
       have message "Unable to find resource 'depositConfirmation.html'"
   }
