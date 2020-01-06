@@ -70,6 +70,7 @@ class DepositServlet(app: EasyDepositApiApp)
     {
       for {
         userId <- getUserId
+        _ = logger.info(s"retrieve deposits for user '$userId'")
         deposits <- app.getDeposits(userId)
       } yield Ok(body = toJson(deposits), headers = Map(contentTypeJson))
     }.getOrRecoverWithActionResult
@@ -78,7 +79,9 @@ class DepositServlet(app: EasyDepositApiApp)
     {
       for {
         userId <- getUserId
+        _ = logger.info(s"creating deposit for user '$userId'")
         depositInfo <- app.createDeposit(userId)
+        _ = logger.info(s"[${ depositInfo.id }] created deposit for user '$userId'")
         locationHeader = "Location" -> s"${ request.getRequestURL }/${ depositInfo.id }"
       } yield Created(body = toJson(depositInfo), headers = Map(contentTypeJson, locationHeader))
     }.getOrRecoverWithActionResult
@@ -87,6 +90,7 @@ class DepositServlet(app: EasyDepositApiApp)
     {
       for {
         uuid <- getUUID
+        _ = logger.info(s"[$uuid] retrieve metadata")
         dmd <- app.getDatasetMetadataForDeposit(user.id, uuid)
       } yield Ok(body = toJson(dmd), headers = Map(contentTypeJson))
     }.getOrRecoverWithActionResult
@@ -95,6 +99,7 @@ class DepositServlet(app: EasyDepositApiApp)
     {
       for {
         uuid <- getUUID
+        _ = logger.info(s"[$uuid] retrieve doi")
         doi <- app.getDoi(user.id, uuid)
       } yield Ok(body = s"""{"doi":"$doi"}""", headers = Map(contentTypeJson))
     }.getOrRecoverWithActionResult
@@ -103,6 +108,7 @@ class DepositServlet(app: EasyDepositApiApp)
     {
       for {
         uuid <- getUUID
+        _ = logger.info(s"[$uuid] saving metadata")
         managedIS = managed(request.getInputStream)
         datasetMetadata <- managedIS.apply(is => DatasetMetadata(is))
         _ <- app.checkDoi(user.id, uuid, datasetMetadata)
@@ -114,6 +120,7 @@ class DepositServlet(app: EasyDepositApiApp)
     {
       for {
         uuid <- getUUID
+        _ = logger.info(s"[$uuid] retrieve deposit state")
         depositState <- app.getDepositState(user.id, uuid)
       } yield Ok(body = toJson(depositState), headers = Map(contentTypeJson))
     }.getOrRecoverWithActionResult
@@ -124,6 +131,7 @@ class DepositServlet(app: EasyDepositApiApp)
         uuid <- getUUID
         managedIS = managed(request.getInputStream)
         stateInfo <- managedIS.apply(is => StateInfo(is))
+        _ = logger.info(s"[$uuid] changing state to $stateInfo")
         _ <- app.setDepositState(stateInfo, user.id, uuid)
       } yield NoContent()
     }.getOrRecoverWithActionResult
@@ -132,6 +140,7 @@ class DepositServlet(app: EasyDepositApiApp)
     {
       for {
         uuid <- getUUID
+        _ = logger.info(s"[$uuid] deleting deposit")
         _ <- app.deleteDeposit(user.id, uuid)
       } yield NoContent()
     }.getOrRecoverWithActionResult
@@ -141,6 +150,7 @@ class DepositServlet(app: EasyDepositApiApp)
       for {
         uuid <- getUUID
         path <- getPath
+        _ = logger.info(s"[$uuid] retrieve file info for path $path")
         contents <- app.getFileInfo(user.id, uuid, path)
       } yield Ok(body = toJson(contents), headers = Map(contentTypeJson))
     }.getOrRecoverWithActionResult
@@ -150,14 +160,15 @@ class DepositServlet(app: EasyDepositApiApp)
       for {
         uuid <- getUUID
         path <- getPath
+        _ = logger.info(s"[$uuid] upload file to path $path")
         _ <- isMultipart
         fileItems = fileMultiParams.valuesIterator.flatten.buffered
         maybeManagedArchiveInputStream <- fileItems.nextAsArchiveIfOnlyOne
         (managedStagingDir, stagedFilesTarget) <- app.stageFiles(user.id, uuid, path)
         _ <- managedStagingDir.apply(stagingDir =>
           maybeManagedArchiveInputStream
-            .map(_.unpackPlainEntriesTo(stagingDir))
-            .getOrElse(app.multipartConfig.moveNonArchive(fileItems, stagingDir))
+            .map(_.unpackPlainEntriesTo(stagingDir, uuid))
+            .getOrElse(app.multipartConfig.moveNonArchive(fileItems, stagingDir, uuid))
             .flatMap(_ => stagedFilesTarget.moveAllFrom(stagingDir))
         )
       } yield Created()
@@ -169,8 +180,10 @@ class DepositServlet(app: EasyDepositApiApp)
       for {
         uuid <- getUUID
         path <- getPath
+        _ = logger.info(s"[$uuid] upload file to path $path")
         managedIS = managed(request.getInputStream)
         newFileWasCreated <- managedIS.apply(app.writeDepositFile(_, user.id, uuid, path, Option(request.getContentType)))
+        _ = logger.info(s"[$uuid] ${if (newFileWasCreated) "no " else ""}new file was created")
       } yield if (newFileWasCreated)
                 Created(headers = Map("Location" -> request.uri.toASCIIString))
               else NoContent()
@@ -181,6 +194,7 @@ class DepositServlet(app: EasyDepositApiApp)
       for {
         uuid <- getUUID
         path <- getPath
+        _ = logger.info(s"[$uuid] deleting file $path")
         _ <- app.deleteDepositFile(user.id, uuid, path)
       } yield NoContent()
     }.getOrRecoverWithActionResult

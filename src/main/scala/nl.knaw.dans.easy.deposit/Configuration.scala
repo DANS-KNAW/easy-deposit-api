@@ -17,22 +17,18 @@ package nl.knaw.dans.easy.deposit
 
 import better.files.File
 import better.files.File._
-import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.apache.commons.configuration.PropertiesConfiguration
 
 case class Configuration(version: String, properties: PropertiesConfiguration)
 
-object Configuration extends DebugEnhancedLogging {
+object Configuration {
 
   def apply(home: File): Configuration = {
-    logger.info(s"home: $home")
     val cfgPath = Seq(
       root / "etc" / "opt" / "dans.knaw.nl" / "easy-deposit-api",
-      home / "cfg"
-    )
+      home / "cfg")
       .find(_.exists)
       .getOrElse { throw new IllegalStateException("No configuration directory found") }
-    logger.info(s"cfgPath: $cfgPath")
 
     new Configuration(
       version = (home / "bin" / "version").contentAsString.stripLineEnd,

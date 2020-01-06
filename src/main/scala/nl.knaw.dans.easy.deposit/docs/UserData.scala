@@ -38,8 +38,6 @@ object UserData extends DebugEnhancedLogging {
   def apply(input: JsonInput): Try[UserData] = input.deserialize[UserData]
 
   def apply(attributes: Map[String, Seq[String]]): UserData = {
-    logger.debug("userdata: "+attributes.keys.map(k => s"$k -> ${getAttribute(k)}").mkString(", "))
-
     def getOption(key: String): Option[String] = {
       attributes
         .getOrElse(key, Seq.empty)
@@ -48,7 +46,9 @@ object UserData extends DebugEnhancedLogging {
 
     def getAttribute(key: String): String = {
       getOption(key).getOrElse {
-        logger.warn(s"user has no attribute '$key' $attributes")
+//      TODO this may be useful for the user that is fetched for sending an email,
+//        but not for authentication with the servlet. 
+//      logger.warn(s"user has no attribute '$key' $attributes")
         ""
       }
     }

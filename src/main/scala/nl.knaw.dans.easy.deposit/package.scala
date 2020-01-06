@@ -38,7 +38,7 @@ package object deposit {
   }
   implicit class BagExtensions(val bag: DansBag) extends AnyVal {
     def addMetadataFile(content: Elem, target: String): Try[Any] = {
-      bag.addTagFile(content.serialize.inputStream, Paths.get(s"metadata/$target"))
+      addMetadataFile(content.serialize, target)
     }
 
     def addMetadataFile(content: String, target: String): Try[Any] = {

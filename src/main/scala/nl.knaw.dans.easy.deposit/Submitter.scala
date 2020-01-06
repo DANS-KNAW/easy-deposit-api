@@ -82,7 +82,10 @@ abstract class Submitter(stagingBaseDir: File,
    * @return the UUID of the deposit in the submit area (easy-ingest-flow-inbox)
    */
   def submit(draftDeposit: DepositDir, stateManager: StateManager, user: UserData, stagedDir: File): Try[UUID] = {
+    trace(user, draftDeposit, stateManager, stagedDir)
     val propsFileName = "deposit.properties"
+    val depositId = draftDeposit.id
+    logger.info(s"[$depositId] submitting deposit")
     for {
       // EASY-1464 step 3.3.4 validation
       //   [v] mandatory fields are present and not empty (by DatasetXml(datasetMetadata) in createXMLs)
@@ -92,25 +95,34 @@ abstract class Submitter(stagingBaseDir: File,
       // EASY-1464 3.3.5.a: generate (with some implicit validation) content for metadata files
       draftBag <- draftDeposit.getDataFiles.map(_.bag)
       datasetMetadata <- draftDeposit.getDatasetMetadata
-      agreementsXml <- AgreementsXml(DateTime.now, datasetMetadata, user)
-      _ = datasetMetadata.doi.getOrElse(throw InvalidDoiException(draftDeposit.id))
+      agreementsXmlElem <- AgreementsXml(DateTime.now, datasetMetadata, user)
+      agreementsXml = agreementsXmlElem.serialize
+      _ = logger.debug(agreementsXml)
+      _ = datasetMetadata.doi.getOrElse(throw InvalidDoiException(depositId))
       _ <- draftDeposit.sameDOIs(datasetMetadata)
-      datasetXml <- DDM(datasetMetadata)
+      datasetXmlElem <- DDM(datasetMetadata)
+      datasetXml = datasetXmlElem.serialize
+      _ = logger.debug(datasetXml)
       msg4DataManager = {
         val firstPart = datasetMetadata.messageForDataManager.getOrElse("").stripLineEnd
-        val secondPart = s"The deposit can be found at $depositUiURL/${ draftDeposit.id }"
+        val secondPart = s"The deposit can be found at $depositUiURL/$depositId"
         firstPart.toOption.fold(secondPart)(_ + "\n\n" + secondPart)
       }
-      filesXml <- FilesXml(draftBag.data)
+      _ = logger.debug("Message for the datamanager: " + msg4DataManager)
+      filesXmlElem <- FilesXml(draftBag.data)
+      filesXml = filesXmlElem.serialize
+      _ = logger.debug(filesXml)
       _ <- sameFiles(draftBag.payloadManifests, draftBag.baseDir / "data")
       // from now on no more user errors but internal errors
       // EASY-1464 3.3.8.a create empty staged bag to take a copy of the deposit
       stageBag <- DansV0Bag.empty(stagedDir / bagDirName).map(_.withCreated())
       // EASY-1464 3.3.6 change state and copy with the rest of the deposit properties to staged dir
-      _ <- stateManager.changeState(StateInfo(State.submitted, "The deposit is being processed"))
+      oldStateInfo <- stateManager.getStateInfo
+      newStateInfo = StateInfo(State.submitted, "The deposit is being processed")
+      _ <- stateManager.changeState(oldStateInfo, newStateInfo)
       submittedId <- stateManager.getSubmittedBagId // created by changeState
       submitDir = submitToBaseDir / submittedId.toString
-      _ = if (submitDir.exists) throw AlreadySubmittedException(draftDeposit.id)
+      _ = if (submitDir.exists) throw AlreadySubmittedException(depositId)
       _ = (draftBag.baseDir.parent / propsFileName).copyTo(stagedDir / propsFileName)
       // EASY-1464 3.3.5.b: write files to metadata
       _ = stageBag.addMetadataFile(msg4DataManager, s"$depositorInfoDirectoryName/message-from-depositor.txt")
@@ -119,17 +131,20 @@ abstract class Submitter(stagingBaseDir: File,
       _ <- stageBag.addMetadataFile(filesXml, "files.xml") // TODO stress test with large number of files?
       agreementData = AgreementData(user, datasetMetadata)
       // TODO move the rest to workerActions when actually implementing the back ground thread
-      agreement <- agreementGenerator.generate(agreementData, draftDeposit.id)
-      attachments = Map(agreementDocName -> Mailer.pdfDataSource(agreement),
-        "metadata.xml" -> Mailer.xmlDataSource(datasetXml), // TODO XML serialized here as well as by stageBag.addMetadataFile
-        "files.txt" -> Mailer.txtDataSource(serializeManifest(draftBag, fileLimit)))
-      email <- mailer.buildMessage(agreementData, attachments)
-      _ <- workerActions(draftDeposit.id, draftBag, stageBag, submitDir, email)
+      agreement <- agreementGenerator.generate(agreementData, depositId)
+      attachments = Map(
+        agreementDocName -> Mailer.pdfDataSource(agreement),
+        "metadata.xml" -> Mailer.xmlDataSource(datasetXml),
+        "files.txt" -> Mailer.txtDataSource(serializeManifest(draftBag, fileLimit)),
+      )
+      email <- mailer.buildMessage(agreementData, attachments, depositId)
+      _ = logger.info(s"[$depositId] dispatching async deposit submit actions")
+      _ <- workerActions(depositId, draftBag, stageBag, submitDir, email)
     } yield submittedId
   }
 
   private def serializeManifest(draftBag: DansBag, fileLimit: Int): String = {
-    logger.info("creating manifest")
+    debug("creating manifest")
     val entries = draftBag.payloadManifests.headOption.map(_._2).getOrElse(Map.empty)
     if (entries.size > fileLimit) "" // all files or none avoids confusion
     else entries.map { case (file, sha) => s"$sha ${ draftBag.data.relativize(file) }" }.mkString("\n")
@@ -140,15 +155,19 @@ abstract class Submitter(stagingBaseDir: File,
     // EASY-1464 3.3.8.b copy files
     _ <- stageBag.addPayloadFile(draftBag.data, Paths.get("."))
     _ <- stageBag.save()
+    _ = logger.info(s"[$id] validating bag")
     _ <- isValid(stageBag)
     // EASY-1464 3.3.7 checksums
+    _ = logger.info(s"[$id] comparing payload manifests of draft and staged bag")
     _ <- samePayloadManifestEntries(stageBag, draftBag)
-    draftDepositDir = stageBag.baseDir.parent
-    _ <- setRightsRecursively(draftDepositDir)
+    stagedDepositDir = stageBag.baseDir.parent
+    _ = logger.info(s"[$id] setting file access rights")
+    _ <- setRightsRecursively(stagedDepositDir)
     // EASY-1464 step 3.3.9 Move copy to submit-to area
-    _ = logger.info(s"moving $draftDepositDir to $submitDir")
-    _ <- move(draftDepositDir, submitDir, id)
-    _ = Try(Mailer.send(email)).doIfFailure { case e => logger.error(s"deposit submitted but could not send confirmation message", e) }
+    _ = logger.info(s"[$id] moving $stagedDepositDir to $submitDir")
+    _ <- move(stagedDepositDir, submitDir, id)
+    _ = logger.info(s"[$id] sending email")
+    _ = Try { Mailer.send(id, email) }.doIfFailure { case e => logger.error(s"deposit submitted but could not send confirmation message", e) }
   } yield ()
 
   private def move(draftDepositDir: File, submitDir: File, id: UUID) = Try(

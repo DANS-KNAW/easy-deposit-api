@@ -17,7 +17,6 @@ package nl.knaw.dans.easy.deposit.servlets
 
 import java.util.UUID
 
-import nl.knaw.dans.easy.deposit.PidRequesterComponent.PidType.PidType
 import nl.knaw.dans.easy.deposit._
 import nl.knaw.dans.easy.deposit.authentication.{ AuthenticationMocker, AuthenticationProvider }
 import nl.knaw.dans.easy.deposit.docs._
@@ -199,7 +198,7 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
 
     // expect a new doi once
     val doi = "12345"
-    (app.pidRequester.requestPid(_: PidType)) expects * once() returning Success(doi)
+    app.pidRequester.requestPid _ expects(*, *) once() returning Success(doi)
     val expectedDoiRecord = s"""{"doi":"$doi"}"""
 
     // get the doi twice

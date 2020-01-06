@@ -17,7 +17,7 @@ package nl.knaw.dans.easy.deposit
 
 import java.io.StringWriter
 import java.net.URL
-import java.util.Properties
+import java.util.{ Properties, UUID }
 
 import better.files.File
 import javax.activation.DataSource
@@ -53,21 +53,19 @@ case class Mailer(smtpHost: String,
   private def generate(template: Template, context: VelocityContext): String = {
     resource.managed(new StringWriter).acquireAndGet { writer =>
       template.merge(context, writer)
-      val string = writer.getBuffer.toString
-      logger.debug(string)
-      string
+      writer.getBuffer.toString
     }
   }
 
   /** @return messageID */
-  def buildMessage(data: AgreementData, attachments: Map[String, DataSource]): Try[MultiPartEmail] = Try {
+  def buildMessage(data: AgreementData, attachments: Map[String, DataSource], depositId: UUID): Try[MultiPartEmail] = Try {
     val context = new VelocityContext {
       put("displayName", data.depositor.name)
       put("datasetTitle", data.title)
       put("myDatasetsUrl", myDatasets.toString)
       put("doi", data.doi)
     }
-    logger.info("email placeholder values: " + context.getKeys.map(key => s"$key=${ context.get(key.toString) }").mkString(", "))
+    logger.info(s"[$depositId] email placeholder values: ${ context.getKeys.map(key => s"$key=${ context.get(key.toString) }").mkString(", ") }")
     val email = new HtmlEmail()
     email.setHtmlMsg(generate(htmlTemplate, context))
     email.setTextMsg(generate(txtTemplate, context))
@@ -88,13 +86,13 @@ case class Mailer(smtpHost: String,
 }
 object Mailer extends DebugEnhancedLogging {
 
-  def send(email: MultiPartEmail): Try[String] = {
+  def send(id: UUID, email: MultiPartEmail): Try[String] = {
     Try(email.sendMimeMessage)
       .map { messageId =>
-        logger.info(s"sent email $messageId")
+        logger.info(s"[$id] sent email $messageId")
         messageId
       }
-      .doIfFailure { case e => logger.error(s"could not send deposit confirmation message", e) }
+      .doIfFailure { case e => logger.error(s"[$id] could not send deposit confirmation message", e) }
   }
 
   def pdfDataSource(data: Array[Byte]): DataSource = {
@@ -102,7 +100,11 @@ object Mailer extends DebugEnhancedLogging {
   }
 
   def xmlDataSource(data: Elem): DataSource = {
-    new ByteArrayDataSource(data.serialize.getBytes, "text/xml")
+    xmlDataSource(data.serialize)
+  }
+
+  def xmlDataSource(data: String): DataSource = {
+    new ByteArrayDataSource(data.getBytes, "text/xml")
   }
 
   def txtDataSource(data: String): DataSource = {
