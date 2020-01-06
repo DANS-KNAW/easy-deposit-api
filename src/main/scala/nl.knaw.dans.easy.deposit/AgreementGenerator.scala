@@ -27,7 +27,12 @@ import scalaj.http.{ BaseHttp, HttpResponse }
 
 import scala.util.{ Failure, Success, Try }
 
-case class AgreementGenerator(http: BaseHttp, url: URL, acceptHeader: String, connectionTimeoutMs: Int = 2000, readTimeoutMs: Int = 30000) extends DebugEnhancedLogging {
+case class AgreementGenerator(http: BaseHttp,
+                              url: URL,
+                              acceptHeader: String,
+                              connectionTimeoutMs: Int = 2000,
+                              readTimeoutMs: Int = 30000,
+                             ) extends DebugEnhancedLogging {
   def generate(agreementData: AgreementData, id: UUID): Try[Array[Byte]] = Try {
     val json = toJson(agreementData)
     logger.info(s"[$id] calling easy-deposit-agreement-generator with body $json")

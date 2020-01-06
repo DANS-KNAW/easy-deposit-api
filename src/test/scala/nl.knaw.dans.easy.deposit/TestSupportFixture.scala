@@ -143,36 +143,46 @@ trait TestSupportFixture extends FlatSpec with Matchers with Inside with BeforeA
       }
 
       override protected val submitter: Submitter = {
-        val groupName = properties.getString("deposit.permissions.group")
-        val depositUiURL = properties.getString("easy.deposit-ui")
-        createSubmitterWithStubs(stagedBaseDir, submitBase, groupName, depositUiURL, new JobQueueManager(new ThreadPoolExecutor(1, 1, 10, TimeUnit.SECONDS, new LinkedBlockingQueue())))
+        createSubmitterWithStubs(
+          stagedBaseDir,
+          submitBase,
+          properties.getString("deposit.permissions.group"),
+          properties.getString("easy.deposit-ui"),
+          new JobQueueManager(new ThreadPoolExecutor(1, 1, 10, TimeUnit.SECONDS, new LinkedBlockingQueue())),
+        )
       }
     }
   }
 
   def createSubmitterWithStubs(stagedBaseDir: File, submitBase: File, groupName: String, depositUiURL: String, jobQueueManager: JobQueueManager): Submitter = {
-    new Submitter(stagedBaseDir, submitBase, groupName, depositUiURL, jobQueue = jobQueueManager) {
-      // stubs
-      override val agreementGenerator: AgreementGenerator = new AgreementGenerator(Http, new URL("http://does.not.exist"), "text/html") {
-        override def generate(agreementData: AgreementData, id: UUID): Try[Array[Byte]] = {
-          Success("mocked pdf".getBytes)
-        }
-      }
-      override val mailer: Mailer = new Mailer(
-        smtpHost = "",
-        fromAddress = "",
-        bounceAddress = "",
-        bccs = Seq.empty,
-        templateDir = File("src/main/assembly/dist/cfg/template"),
-        myDatasets = new URL("http://does.not.exist")
-      ) {
-        override def buildMessage(data: AgreementData, attachments: Map[String, DataSource], depositId: UUID): Try[MultiPartEmail] = {
-          Success(new MultiPartEmail) // only cause causes the following logging:
-          // ERROR could not send deposit confirmation message
-          //java.lang.IllegalArgumentException: MimeMessage has not been created yet
-        }
+    val agreementGenerator: AgreementGenerator = new AgreementGenerator(Http, new URL("http://does.not.exist"), "text/html") {
+      override def generate(agreementData: AgreementData, id: UUID): Try[Array[Byte]] = {
+        Success("mocked pdf".getBytes)
       }
     }
+    val mailer: Mailer = new Mailer(
+      smtpHost = "",
+      fromAddress = "",
+      bounceAddress = "",
+      bccs = Seq.empty,
+      templateDir = File("src/main/assembly/dist/cfg/template"),
+      myDatasets = new URL("http://does.not.exist")
+    ) {
+      override def buildMessage(data: AgreementData, attachments: Map[String, DataSource], depositId: UUID): Try[MultiPartEmail] = {
+        Success(new MultiPartEmail) // only cause causes the following logging:
+        // ERROR could not send deposit confirmation message
+        //java.lang.IllegalArgumentException: MimeMessage has not been created yet
+      }
+    }
+    new Submitter(
+      stagedBaseDir,
+      submitBase,
+      groupName,
+      depositUiURL,
+      jobQueue = jobQueueManager,
+      mailer = mailer,
+      agreementGenerator = agreementGenerator,
+    )
   }
 
   private def testSubDir(drafts: String): File = {

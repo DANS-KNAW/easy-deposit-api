@@ -103,27 +103,33 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
     jobQueue.getSystemStatus
   }
 
-  protected val submitter: Submitter = {
-    val groupName = properties.getString("deposit.permissions.group")
-    val depositUiURL = properties.getString("easy.deposit-ui")
-    new Submitter(stagedBaseDir, submitBase, groupName, depositUiURL, fileLimit = properties.getInt("attached-file-list.limit"), jobQueue = jobQueue) {
-      override val mailer: Mailer = Mailer(
-        smtpHost = properties.getString("mail.smtp.host"),
-        fromAddress = properties.getString("mail.fromAddress"),
-        bounceAddress = properties.getString("mail.bounceAddress"),
-        bccs = properties.getString("mail.bccs", "").split(" *, *").filter(_.nonEmpty),
-        templateDir = File(properties.getString("mail.template", "")),
-        myDatasets = new URL(properties.getString("easy.my-datasets")),
-      )
-      override val agreementGenerator: AgreementGenerator = AgreementGenerator(
-        Http,
-        new URL(properties.getString("agreement-generator.url", "http://localhost")),
-        properties.getString("agreement-generator.accept", "application/pdf"),
-        connectionTimeoutMs = properties.getInt("agreement-generator.connection-timeout-ms"),
-        readTimeoutMs = properties.getInt("agreement-generator.read-timeout-ms")
-      )
-    }
-  }
+  private val agreementGenerator: AgreementGenerator = AgreementGenerator(
+    http = Http,
+    url = new URL(properties.getString("agreement-generator.url", "http://localhost")),
+    acceptHeader = properties.getString("agreement-generator.accept", "application/pdf"),
+    connectionTimeoutMs = properties.getInt("agreement-generator.connection-timeout-ms"),
+    readTimeoutMs = properties.getInt("agreement-generator.read-timeout-ms")
+  )
+
+  private val mailer: Mailer = Mailer(
+    smtpHost = properties.getString("mail.smtp.host"),
+    fromAddress = properties.getString("mail.fromAddress"),
+    bounceAddress = properties.getString("mail.bounceAddress"),
+    bccs = properties.getString("mail.bccs", "").split(" *, *").filter(_.nonEmpty),
+    templateDir = File(properties.getString("mail.template", "")),
+    myDatasets = new URL(properties.getString("easy.my-datasets")),
+  )
+
+  protected val submitter: Submitter = new Submitter(
+    stagingBaseDir = stagedBaseDir,
+    submitToBaseDir = submitBase,
+    groupName = properties.getString("deposit.permissions.group"),
+    depositUiURL = properties.getString("easy.deposit-ui"),
+    fileLimit = properties.getInt("attached-file-list.limit"),
+    jobQueue = jobQueue,
+    mailer = mailer,
+    agreementGenerator = agreementGenerator,
+  )
 
   // possible trailing slash is dropped
   private val easyHome: URL = new URL(properties.getString("easy.home").replaceAll("/?$", ""))
