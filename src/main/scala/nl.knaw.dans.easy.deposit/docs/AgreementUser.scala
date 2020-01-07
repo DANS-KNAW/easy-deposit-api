@@ -31,7 +31,7 @@ case class AgreementUser(name: String,
                          email: String,
                    )
 object AgreementUser extends DebugEnhancedLogging {
-  def apply(input: JsonInput): Try[UserInfo] = input.deserialize[UserInfo]
+  def apply(input: JsonInput): Try[AgreementUser] = input.deserialize[AgreementUser]
 
   def apply(data: UserData): AgreementUser = {
     new AgreementUser(

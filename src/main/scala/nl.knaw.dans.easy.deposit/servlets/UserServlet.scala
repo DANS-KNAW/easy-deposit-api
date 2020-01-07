@@ -27,7 +27,7 @@ class UserServlet(app: EasyDepositApiApp) extends ProtectedServlet(app) {
 
   get("/") {
     Try(app.getUserData(user.id)).flatten // no throw should slip through
-      .map(userInfo => Ok(toJson(userInfo)))
+      .map(userData => Ok(toJson(UserInfo(userData))))
       .getOrRecoverWithActionResult
   }
   put("/") {
