@@ -20,3 +20,28 @@ Note: This link will not work until the day after your dataset becomes available
 
 DEPOSIT AGREEMENT
 Attached is a copy of the deposit agreement with the terms and conditions which you agreed upon when you deposited the data.
+
+#if ($hasFileListAttached)
+OTHER ATTACHMENTS
+
+Also attached are:
+- the metadata provided by you, in XML format;
+- the list of uploaded files and their SHA-1 checksums.
+#else
+METADATA
+
+Also attached is the metadata provided by you, in XML format.
+#end
+#if ($msg4Datamanager)
+
+YOUR MESSAGE FOR THE DATA MANAGER
+
+$msg4Datamanager
+#end
+
+Kind regards, 
+
+Data Archiving and Networked Services (DANS)
+DANS promotes sustained access to digital research data. 
+Please visit https://www.dans.knaw.nl for more information and contact details.
+DANS is an institute of KNAW and NWO. 

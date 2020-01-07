@@ -30,7 +30,6 @@ import org.apache.velocity.app.VelocityEngine
 import org.apache.velocity.{ Template, VelocityContext }
 
 import scala.util.Try
-import scala.xml.Elem
 
 case class Mailer(smtpHost: String,
                   fromAddress: String,
@@ -57,13 +56,22 @@ case class Mailer(smtpHost: String,
     }
   }
 
-  /** @return messageID */
-  def buildMessage(data: AgreementData, attachments: Map[String, DataSource], depositId: UUID): Try[MultiPartEmail] = Try {
+  private def hasFileList(attachments: Map[String, DataSource]): Boolean = {
+    attachments.exists { case (name, content) => name.startsWith("files.") && notEmpty(content) }
+  }
+
+  private def notEmpty(content: DataSource): Boolean = {
+    content.getInputStream.available() > 0
+  }
+
+  def buildMessage(data: AgreementData, attachments: Map[String, DataSource], depositId: UUID, msg4Datamanager: Option[String]): Try[MultiPartEmail] = Try {
     val context = new VelocityContext {
       put("displayName", data.depositor.name)
       put("datasetTitle", data.title)
       put("myDatasetsUrl", myDatasets.toString)
       put("doi", data.doi)
+      put("hasFileListAttached", hasFileList(attachments))
+      msg4Datamanager.foreach(put("msg4Datamanager", _))
     }
     logger.info(s"[$depositId] email placeholder values: ${ context.getKeys.map(key => s"$key=${ context.get(key.toString) }").mkString(", ") }")
     val email = new HtmlEmail()
@@ -74,10 +82,8 @@ case class Mailer(smtpHost: String,
     email.setFrom(fromAddress)
     email.setBounceAddress(bounceAddress)
     bccs.foreach(email.addBcc)
-    attachments.foreach { case (name, content) =>
-      // attach unless empty
-      if (content.getInputStream.available() > 0)
-        email.attach(content, name, name)
+    attachments.foreach { case (name, content) if notEmpty(content) =>
+      email.attach(content, name, name)
     }
     email.setHostName(smtpHost)
     email.buildMimeMessage()

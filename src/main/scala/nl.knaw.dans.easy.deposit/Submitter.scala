@@ -86,10 +86,10 @@ class Submitter(stagingBaseDir: File,
       datasetXmlElem <- DDM(datasetMetadata)
       datasetXml = datasetXmlElem.serialize
       _ = logger.debug(datasetXml)
-      msg4DataManager = {
-        val firstPart = datasetMetadata.messageForDataManager.getOrElse("").stripLineEnd
+      (maybeFirstPartOfMsg4DataManager, msg4DataManager) = {
+        val firstPart = datasetMetadata.messageForDataManager.getOrElse("").stripLineEnd.toOption
         val secondPart = s"The deposit can be found at $depositUiURL/$depositId"
-        firstPart.toOption.fold(secondPart)(_ + "\n\n" + secondPart)
+        firstPart -> firstPart.fold(secondPart)(_ + "\n\n" + secondPart)
       }
       _ = logger.debug("Message for the datamanager: " + msg4DataManager)
       filesXmlElem <- FilesXml(draftBag.data)
@@ -108,13 +108,14 @@ class Submitter(stagingBaseDir: File,
       _ = stageBag.addMetadataFile(msg4DataManager, s"$depositorInfoDirectoryName/message-from-depositor.txt")
       _ <- stageBag.addMetadataFile(agreementsXml, s"$depositorInfoDirectoryName/agreements.xml")
       _ <- stageBag.addMetadataFile(datasetXml, "dataset.xml")
-      _ <- stageBag.addMetadataFile(filesXml, "files.xml") // TODO stress test with large number of files?
+      _ <- stageBag.addMetadataFile(filesXml, "files.xml")
       agreementData = AgreementData(user, datasetMetadata)
       _ = logger.info(s"[$depositId] dispatching submit action to threadpool executor")
       _ <- jobQueue.scheduleJob {
         new SubmitJob(
           depositId = draftDeposit.id,
           serializedDatasetXml = datasetXml,
+          msg4Datamanager = maybeFirstPartOfMsg4DataManager,
           draftBag = draftBag,
           stageBag = stageBag,
           submitDir = submitDir,

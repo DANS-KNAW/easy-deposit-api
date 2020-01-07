@@ -35,6 +35,7 @@ import scala.util.{ Failure, Success, Try }
 
 class SubmitJob(depositId: UUID,
                 serializedDatasetXml: String,
+                msg4Datamanager: Option[String],
                 draftBag: DansBag,
                 stageBag: DansBag,
                 submitDir: File,
@@ -94,7 +95,7 @@ class SubmitJob(depositId: UUID,
         "metadata.xml" -> Mailer.xmlDataSource(serializedDatasetXml),
         "files.txt" -> Mailer.txtDataSource(serializeManifest(draftBag, fileLimit)),
       )
-      email <- mailer.buildMessage(agreementData, attachments, depositId)
+      email <- mailer.buildMessage(agreementData, attachments, depositId, msg4Datamanager)
       _ = logger.info(s"[$depositId] send email")
       messageId <- Try { email.sendMimeMessage }
       _ = logger.info(s"[$depositId] sent email $messageId")

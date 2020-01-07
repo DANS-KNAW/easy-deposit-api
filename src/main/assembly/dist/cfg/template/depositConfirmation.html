@@ -16,5 +16,27 @@ Within a few working days, DANS staff will make your data available to the publi
 <p>Note: This link will not yet work until the day after your dataset becomes available to the public.</p>
 <h4>Deposit agreement</h4>
 <p>Attached is a copy of the deposit agreement with the terms and conditions which were agreed with DANS when you deposited the data.</p>
+#if ($hasFileListAttached)
+    <h4>Other attachments</h4>
+    <p>Also attached are:</p>
+    <ul>
+        <li>the metadata provided by you, in XML format;</li>
+        <li>the list of uploaded files and their SHA-1 checksums.</li>
+    </ul>
+#else
+    <h4>Metadata</h4>
+    <p>Also attached is the metadata provided by you, in XML format.</p>
+#end
+#if ($msg4Datamanager)
+    <h4>Your message for the data manager</h4>
+    <p>$msg4Datamanager</p>
+#end
+<p>Kind regards,</p>
+<p>
+<span style="color: #d7392e;"><strong>Data Archiving and Networked Services (DANS)</strong></span><br/>
+DANS promotes sustained access to digital research data.<br/>
+Please visit <a href="https://www.dans.knaw.nl/">www.dans.knaw.nl</a> for more information and contact details.<br/>
+DANS is an institute of KNAW and NWO.<br/>
+</p>
 </body>
 </html>
