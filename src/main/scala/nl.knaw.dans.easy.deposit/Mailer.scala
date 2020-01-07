@@ -22,6 +22,7 @@ import java.util.{ Properties, UUID }
 import better.files.File
 import javax.activation.DataSource
 import javax.mail.util.ByteArrayDataSource
+import nl.knaw.dans.easy.deposit.Mailer.{ notEmpty, hasFileList }
 import nl.knaw.dans.easy.deposit.docs.AgreementData
 import nl.knaw.dans.lib.error._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
@@ -58,12 +59,15 @@ case class Mailer(smtpHost: String,
   }
 
   /** @return messageID */
-  def buildMessage(data: AgreementData, attachments: Map[String, DataSource], depositId: UUID): Try[MultiPartEmail] = Try {
+  def buildMessage(data: AgreementData, attachments: Map[String, DataSource], depositId: UUID, msg4Datamanager: String): Try[MultiPartEmail] = Try {
     val context = new VelocityContext {
       put("displayName", data.depositor.name)
       put("datasetTitle", data.title)
       put("myDatasetsUrl", myDatasets.toString)
       put("doi", data.doi)
+      put("hasFileListAttached", hasFileList(attachments))
+      if (msg4Datamanager.trim.nonEmpty)
+        put("msg4Datamanager", msg4Datamanager)
     }
     logger.info(s"[$depositId] email placeholder values: ${ context.getKeys.map(key => s"$key=${ context.get(key.toString) }").mkString(", ") }")
     val email = new HtmlEmail()
@@ -75,8 +79,7 @@ case class Mailer(smtpHost: String,
     email.setBounceAddress(bounceAddress)
     bccs.foreach(email.addBcc)
     attachments.foreach { case (name, content) =>
-      // attach unless empty
-      if (content.getInputStream.available() > 0)
+      if (notEmpty(content))
         email.attach(content, name, name)
     }
     email.setHostName(smtpHost)
@@ -85,6 +88,14 @@ case class Mailer(smtpHost: String,
   }
 }
 object Mailer extends DebugEnhancedLogging {
+
+  private def hasFileList(attachments: Map[String, DataSource]): Boolean = {
+    attachments.exists { case (name, content) => name.startsWith("files.") && notEmpty(content) }
+  }
+
+  private def notEmpty(content: DataSource): Boolean = {
+    content.getInputStream.available() > 0
+  }
 
   def send(id: UUID, email: MultiPartEmail): Try[String] = {
     Try(email.sendMimeMessage)

@@ -42,16 +42,18 @@ class MailerSpec extends TestSupportFixture {
   )
 
   private val url = new URL("http:/localhost")
+  private val validTemplateDir: File = File("src/main/assembly/dist/cfg/template")
+  private val invalidTemplateDir: File = File("does/not/exist")
   "buildMessage" should "succeed" in {
     val from = "does.not.exist@dans.knaw.nl"
-    Mailer(smtpHost = "localhost", fromAddress = from, bounceAddress = from, bccs = Seq.empty, templateDir = File("src/main/assembly/dist/cfg/template"), url)
-      .buildMessage(data, attachments, UUID.randomUUID()) shouldBe a[Success[_]]
+    Mailer(smtpHost = "localhost", fromAddress = from, bounceAddress = from, bccs = Seq.empty, validTemplateDir, url)
+      .buildMessage(data, attachments, UUID.randomUUID(), msg4Datamanager = "") shouldBe a[Success[_]]
   }
 
-  "buildMessage" should "report invalid address" in {
+  it should "report invalid address" in {
     val from = "dans.knaw.nl"
-    Mailer(smtpHost = "localhost", fromAddress = from, bounceAddress = from, bccs = Seq.empty, templateDir = File("src/main/assembly/dist/cfg/template"), url)
-      .buildMessage(data, attachments, UUID.randomUUID()) should matchPattern {
+    Mailer(smtpHost = "localhost", fromAddress = from, bounceAddress = from, bccs = Seq.empty, validTemplateDir, url)
+      .buildMessage(data, attachments, UUID.randomUUID(), msg4Datamanager = "") should matchPattern {
       case Failure(e) if e.getMessage.matches(".*Missing final '@domain'.*dans.knaw.nl.*") =>
     }
   }
@@ -59,7 +61,7 @@ class MailerSpec extends TestSupportFixture {
   "constructor" should "report missing templates" in {
     val from = "does.not.exist@dans.knaw.nl"
     the[ResourceNotFoundException] thrownBy
-      Mailer(smtpHost = "localhost", fromAddress = from, bounceAddress = from, bccs = Seq.empty, templateDir = File("does/not/exist"), url) should
+      Mailer(smtpHost = "localhost", fromAddress = from, bounceAddress = from, bccs = Seq.empty, invalidTemplateDir, url) should
       have message "Unable to find resource 'depositConfirmation.html'"
   }
 }
