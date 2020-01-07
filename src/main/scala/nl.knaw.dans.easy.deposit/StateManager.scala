@@ -46,6 +46,11 @@ case class StateManager(draftDeposit: DepositDir, submitBase: File, easyHome: UR
   private lazy val submittedProps = getProp(bagIdKey, draftProps)
     .map(submittedId => {
       val submitDepositPropsFile = submitBase / submittedId / "deposit.properties"
+      
+      // It is not certain that `submitDepositPropsFile` exists at the time of reading this parameter.
+      // Given that the submit is done asynchronously, it is possible that the next request
+      //   (e.g. deposit listing) is done before the deposit is moved to `submitBase`.
+      // In this case, the `draftProps` are read instead. 
       if (submitDepositPropsFile.exists)
         new PropertiesConfiguration(submitDepositPropsFile.toJava)
       else
