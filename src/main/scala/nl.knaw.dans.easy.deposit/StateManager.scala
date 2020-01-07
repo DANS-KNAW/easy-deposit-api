@@ -44,9 +44,14 @@ case class StateManager(draftDeposit: DepositDir, submitBase: File, easyHome: UR
     (depositDir / "deposit.properties").toJava
   )
   private lazy val submittedProps = getProp(bagIdKey, draftProps)
-    .map(submittedId =>
-      new PropertiesConfiguration((submitBase / submittedId.toString / "deposit.properties").toJava)
-    ).getOrElse(new PropertiesConfiguration)
+    .map(submittedId => {
+      val submitDepositPropsFile = submitBase / submittedId / "deposit.properties"
+      if (submitDepositPropsFile.exists)
+        new PropertiesConfiguration(submitDepositPropsFile.toJava)
+      else
+        draftProps
+    })
+    .getOrElse(new PropertiesConfiguration) // not expected to happen, since `bagIdKey` should always exist in `draftProps`
 
   /** @return the state-label/description from drafts/USER/UUID/deposit.properties
    *          unless more recent values might be available in SUBMITTED/UUID/deposit.properties
