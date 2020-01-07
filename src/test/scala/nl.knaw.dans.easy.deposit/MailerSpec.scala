@@ -36,9 +36,9 @@ class MailerSpec extends TestSupportFixture {
   )
 
   private val attachments = Map(
-    "agreement.pdf" -> Mailer.dataSource("mocked pdf".getBytes, "application/pdf"),
-    "dataset.xml" -> Mailer.xmlDataSource(<greeting>hello world</greeting>.serialize),
-    "files.xml" -> Mailer.xmlDataSource(<farewell>goodby world</farewell>.serialize),
+    Mailer.agreementFileName("application/pdf") -> Mailer.dataSource("mocked pdf".getBytes, "application/pdf"),
+    Mailer.datasetXmlAttachmentName -> Mailer.xmlDataSource(<greeting>hello world</greeting>.serialize),
+    Mailer.filesAttachmentName -> Mailer.xmlDataSource(<farewell>goodby world</farewell>.serialize),
   )
 
   private val url = new URL("http:/localhost")

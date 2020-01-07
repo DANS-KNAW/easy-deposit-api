@@ -174,10 +174,10 @@ trait TestSupportFixture extends FlatSpec with Matchers with Inside with BeforeA
         //java.lang.IllegalArgumentException: MimeMessage has not been created yet
       }
     }
+    val groupPrinciple = stagedBaseDir.fileSystem.getUserPrincipalLookupService.lookupPrincipalByGroupName(groupName)
     new Submitter(
-      stagedBaseDir,
       submitBase,
-      groupName,
+      groupPrinciple,
       depositUiURL,
       jobQueue = jobQueueManager,
       mailer = mailer,

@@ -57,7 +57,7 @@ case class Mailer(smtpHost: String,
   }
 
   private def hasFileList(attachments: Map[String, DataSource]): Boolean = {
-    attachments.exists { case (name, content) => name.startsWith("files.") && notEmpty(content) }
+    attachments.exists { case (name, content) => name == Mailer.filesAttachmentName && notEmpty(content) }
   }
 
   private def notEmpty(content: DataSource): Boolean = {
@@ -91,6 +91,16 @@ case class Mailer(smtpHost: String,
   }
 }
 object Mailer extends DebugEnhancedLogging {
+
+  val datasetXmlAttachmentName = "metadata.xml"
+  val filesAttachmentName = "files.txt"
+
+  def agreementFileName(mimeType: String): String = {
+    if (mimeType == "text/html")
+      "agreement.html"
+    else
+      "agreement.pdf"
+  }
 
   def dataSource(data: Array[Byte], mimeType: String): DataSource = {
     new ByteArrayDataSource(data, mimeType)

@@ -25,7 +25,10 @@ import better.files.File
 import better.files.File.{ CopyOptions, VisitOptions }
 import nl.knaw.dans.bag.ChecksumAlgorithm.ChecksumAlgorithm
 import nl.knaw.dans.bag.DansBag
-import nl.knaw.dans.easy.deposit.docs.AgreementData
+import nl.knaw.dans.bag.v0.DansV0Bag
+import nl.knaw.dans.easy.deposit.Errors.AlreadySubmittedException
+import nl.knaw.dans.easy.deposit.docs.StateInfo.State
+import nl.knaw.dans.easy.deposit.docs.{ AgreementData, StateInfo }
 import nl.knaw.dans.lib.error._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 
@@ -34,29 +37,27 @@ import scala.util.control.NonFatal
 import scala.util.{ Failure, Success, Try }
 
 class SubmitJob(depositId: UUID,
-                serializedDatasetXml: String,
-                msg4Datamanager: Option[String],
-                draftBag: DansBag,
-                stageBag: DansBag,
-                submitDir: File,
+                depositUiURL: String,
                 groupPrincipal: GroupPrincipal,
-                agreementData: AgreementData,
-                agreementGenerator: AgreementGenerator,
                 fileLimit: Int,
-                mailer: Mailer,
+                draftBag: DansBag,
+                stagedDir: File,
+                submitToBaseDir: File,
+                datasetXml: String,
+                filesXml: String,
+                agreementsXml: String,
+                msg4DataManager: Option[String],
+                agreementData: AgreementData,
                 stateManager: StateManager,
+                agreementGenerator: AgreementGenerator,
+                mailer: Mailer,
                ) extends Runnable with DebugEnhancedLogging {
 
-  private lazy val (agreementDocName, agreementDocMimeType) = {
-    if (agreementGenerator.acceptHeader.contains("html"))
-      ("agreement.html", "text/html")
-    else
-      ("agreement.pdf", "application/pdf")
-  }
+  private val propsFileName = "deposit.properties"
+  private val depositorInfoDirectoryName = "depositor-info"
 
   override def run(): Unit = {
     logger.info(s"[$depositId] starting the dispatched submit action")
-    logger.info(s"[$depositId] copy ${ draftBag.data } to ${ stageBag.data / Paths.get(".").toString }")
 
     submitDeposit() match {
       case Failure(e) =>
@@ -71,7 +72,24 @@ class SubmitJob(depositId: UUID,
   }
 
   private def submitDeposit(): Try[Unit] = {
+    val fullMsg4DataManager = {
+      val secondPart = s"The deposit can be found at $depositUiURL/$depositId"
+      msg4DataManager.fold(secondPart)(_ + "\n\n" + secondPart)
+    }
+    logger.debug(s"Message for the datamanager:\n$fullMsg4DataManager")
     for {
+      stageBag <- DansV0Bag.empty(stagedDir / bagDirName).map(_.withCreated())
+      oldStateInfo <- stateManager.getStateInfo
+      _ <- stateManager.changeState(oldStateInfo, StateInfo(State.submitted, "The deposit is being processed"))
+      submittedId <- stateManager.getSubmittedBagId // created by changeState
+      submitDir = submitToBaseDir / submittedId.toString
+      _ = if (submitDir.exists) throw AlreadySubmittedException(depositId)
+      _ = (draftBag.baseDir.parent / propsFileName).copyTo(stagedDir / propsFileName)
+      _ <- stageBag.addMetadataFile(fullMsg4DataManager, s"$depositorInfoDirectoryName/message-from-depositor.txt")
+      _ <- stageBag.addMetadataFile(agreementsXml, s"$depositorInfoDirectoryName/agreements.xml")
+      _ <- stageBag.addMetadataFile(datasetXml, "dataset.xml")
+      _ <- stageBag.addMetadataFile(filesXml, "files.xml")
+      _ = logger.info(s"[$depositId] copy ${ draftBag.data } to ${ stageBag.data }")
       _ <- stageBag.addPayloadFile(draftBag.data, Paths.get("."))
       _ = logger.info(s"[$depositId] save changes to stageBag ${ stageBag.baseDir }")
       _ <- stageBag.save()
@@ -91,22 +109,22 @@ class SubmitJob(depositId: UUID,
     for {
       agreement <- agreementGenerator.generate(agreementData, depositId)
       attachments = Map(
-        agreementDocName -> Mailer.dataSource(agreement, agreementDocMimeType),
-        "metadata.xml" -> Mailer.xmlDataSource(serializedDatasetXml),
-        "files.txt" -> Mailer.txtDataSource(serializeManifest(draftBag, fileLimit)),
-      )
-      email <- mailer.buildMessage(agreementData, attachments, depositId, msg4Datamanager)
+        Mailer.agreementFileName(agreementGenerator.acceptHeader) -> Some(Mailer.dataSource(agreement, agreementGenerator.acceptHeader)),
+        Mailer.datasetXmlAttachmentName -> Some(Mailer.xmlDataSource(datasetXml)),
+        Mailer.filesAttachmentName -> serializeManifest(draftBag, fileLimit).map(Mailer.txtDataSource),
+      ).collect { case (key, Some(value)) => key -> value }
+      email <- mailer.buildMessage(agreementData, attachments, depositId, msg4DataManager)
       _ = logger.info(s"[$depositId] send email")
       messageId <- Try { email.sendMimeMessage }
       _ = logger.info(s"[$depositId] sent email $messageId")
     } yield ()
   }
 
-  private def serializeManifest(draftBag: DansBag, fileLimit: Int): String = {
+  private def serializeManifest(draftBag: DansBag, fileLimit: Int): Option[String] = {
     debug("creating manifest")
     val entries = draftBag.payloadManifests.headOption.map(_._2).getOrElse(Map.empty)
-    if (entries.size > fileLimit) "" // all files or none avoids confusion
-    else entries.map { case (file, sha) => s"$sha ${ draftBag.data.relativize(file) }" }.mkString("\n")
+    if (entries.size > fileLimit) None // all files or none avoids confusion
+    else Some(entries.map { case (file, sha) => s"$sha ${ draftBag.data.relativize(file) }" }.mkString("\n"))
   }
 
   private def isValid(stageBag: DansBag): Try[Unit] = stageBag.isValid match {
@@ -161,5 +179,5 @@ class SubmitJob(depositId: UUID,
     case NonFatal(e) => throw new IOException(s"unexpected error occured on $path", e)
   }
 
-  override def toString: String = s"<SubmitWorkerAction[id = $depositId, draftBag = ${ draftBag.baseDir }, stageBag = ${ stageBag.baseDir }, submitDir = $submitDir]>"
+  override def toString: String = s"<SubmitWorkerAction[id = $depositId, draftBag = ${ draftBag.baseDir }]>"
 }

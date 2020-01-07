@@ -15,9 +15,10 @@
  */
 package nl.knaw.dans.easy.deposit
 
-import java.io.InputStream
+import java.io.{ IOException, InputStream }
 import java.net.{ URI, URL }
 import java.nio.file.Path
+import java.nio.file.attribute.UserPrincipalNotFoundException
 import java.util.UUID
 
 import better.files.File.{ newTemporaryDirectory, temporaryDirectory }
@@ -36,6 +37,7 @@ import org.eclipse.jetty.io.EofException
 import org.joda.time.DateTime
 import org.scalatra.servlet.MultipartConfig
 
+import scala.util.control.NonFatal
 import scala.util.{ Failure, Success, Try }
 
 class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLogging
@@ -78,6 +80,7 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
   private val draftBase: File = getConfiguredDirectory("deposits.drafts")
   protected val submitBase: File = getConfiguredDirectory("deposits.submit-to")
   StartupValidation.allowsAtomicMove(srcDir = stagedBaseDir, targetDir = draftBase)
+  StartupValidation.allowsAtomicMove(srcDir = stagedBaseDir, targetDir = submitBase)
 
   val multipartConfig: MultipartConfig = {
     val multipartLocation = getConfiguredDirectory("multipart.location")
@@ -120,16 +123,28 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
     myDatasets = new URL(properties.getString("easy.my-datasets")),
   )
 
-  protected val submitter: Submitter = new Submitter(
-    stagingBaseDir = stagedBaseDir,
-    submitToBaseDir = submitBase,
-    groupName = properties.getString("deposit.permissions.group"),
-    depositUiURL = properties.getString("easy.deposit-ui"),
-    fileLimit = properties.getInt("attached-file-list.limit"),
-    jobQueue = jobQueue,
-    mailer = mailer,
-    agreementGenerator = agreementGenerator,
-  )
+  protected val submitter: Submitter = {
+    val groupPrincipal = {
+      val groupName = properties.getString("deposit.permissions.group")
+      Try {
+        stagedBaseDir.fileSystem.getUserPrincipalLookupService.lookupPrincipalByGroupName(groupName)
+      }.getOrRecover {
+        case e: UserPrincipalNotFoundException => throw new IOException(s"Group $groupName could not be found", e)
+        case e: UnsupportedOperationException => throw new IOException("Not on a POSIX supported file system", e)
+        case NonFatal(e) => throw new IOException(s"unexpected error occured on $stagedBaseDir", e)
+      }
+    }
+
+    new Submitter(
+      submitToBaseDir = submitBase,
+      groupPrincipal = groupPrincipal,
+      depositUiURL = properties.getString("easy.deposit-ui"),
+      fileLimit = properties.getInt("attached-file-list.limit"),
+      jobQueue = jobQueue,
+      mailer = mailer,
+      agreementGenerator = agreementGenerator,
+    )
+  }
 
   // possible trailing slash is dropped
   private val easyHome: URL = new URL(properties.getString("easy.home").replaceAll("/?$", ""))

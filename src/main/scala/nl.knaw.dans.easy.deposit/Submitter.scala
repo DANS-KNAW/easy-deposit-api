@@ -15,53 +15,32 @@
  */
 package nl.knaw.dans.easy.deposit
 
-import java.io.IOException
-import java.nio.file.attribute.UserPrincipalNotFoundException
-import java.util.UUID
+import java.nio.file.attribute.GroupPrincipal
 
 import better.files.File
 import nl.knaw.dans.bag.ChecksumAlgorithm.ChecksumAlgorithm
-import nl.knaw.dans.bag.v0.DansV0Bag
-import nl.knaw.dans.easy.deposit.Errors.{ AlreadySubmittedException, InvalidDoiException }
-import nl.knaw.dans.easy.deposit.docs.StateInfo.State
+import nl.knaw.dans.easy.deposit.Errors.InvalidDoiException
 import nl.knaw.dans.easy.deposit.docs._
 import nl.knaw.dans.easy.deposit.executor.JobQueueManager
-import nl.knaw.dans.lib.error._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import nl.knaw.dans.lib.string._
 import org.joda.time.DateTime
 
-import scala.util.control.NonFatal
 import scala.util.{ Failure, Success, Try }
 
 /**
  * Object that contains the logic for submitting a deposit.
  *
- * @param stagingBaseDir  the base directory for staged copies
  * @param submitToBaseDir the directory to which the staged copy must be moved.
  */
-class Submitter(stagingBaseDir: File,
-                submitToBaseDir: File,
-                groupName: String,
+class Submitter(submitToBaseDir: File,
+                groupPrincipal: GroupPrincipal,
                 depositUiURL: String,
                 fileLimit: Int = 200,
                 jobQueue: JobQueueManager,
                 mailer: Mailer,
                 agreementGenerator: AgreementGenerator,
                ) extends DebugEnhancedLogging {
-
-  private val groupPrincipal = {
-    Try {
-      stagingBaseDir.fileSystem.getUserPrincipalLookupService.lookupPrincipalByGroupName(groupName)
-    }.getOrRecover {
-      case e: UserPrincipalNotFoundException => throw new IOException(s"Group $groupName could not be found", e)
-      case e: UnsupportedOperationException => throw new IOException("Not on a POSIX supported file system", e)
-      case NonFatal(e) => throw new IOException(s"unexpected error occured on $stagingBaseDir", e)
-    }
-  }
-  private val depositorInfoDirectoryName = "depositor-info"
-
-  StartupValidation.allowsAtomicMove(srcDir = stagingBaseDir, targetDir = submitToBaseDir)
 
   /**
    * Submits `depositDir` by writing the file metadata, updating the bag checksums, staging a copy
@@ -70,9 +49,8 @@ class Submitter(stagingBaseDir: File,
    * @param draftDeposit the deposit object to submit
    * @return the UUID of the deposit in the submit area (easy-ingest-flow-inbox)
    */
-  def submit(draftDeposit: DepositDir, stateManager: StateManager, user: UserData, stagedDir: File): Try[UUID] = {
+  def submit(draftDeposit: DepositDir, stateManager: StateManager, user: UserData, stagedDir: File): Try[Unit] = {
     trace(user, draftDeposit, stateManager, stagedDir)
-    val propsFileName = "deposit.properties"
     val depositId = draftDeposit.id
     logger.info(s"[$depositId] submitting deposit")
     for {
@@ -84,51 +62,35 @@ class Submitter(stagingBaseDir: File,
       _ <- draftDeposit.sameDOIs(datasetMetadata)
       datasetXml <- DDM(datasetMetadata).map(_.serialize)
       _ = logger.debug(datasetXml)
-      (maybeFirstPartOfMsg4DataManager, msg4DataManager) = getMsg4DataManager(depositId, datasetMetadata)
-      _ = logger.debug(s"Message for the datamanager:\n$msg4DataManager")
       filesXml <- FilesXml(draftBag.data).map(_.serialize)
       _ = logger.debug(filesXml)
       _ <- sameFiles(draftBag.payloadManifests, draftBag.baseDir / "data")
       // from now on no more user errors but internal errors
-      stageBag <- DansV0Bag.empty(stagedDir / bagDirName).map(_.withCreated())
-      oldStateInfo <- stateManager.getStateInfo
-      _ <- stateManager.changeState(oldStateInfo, StateInfo(State.submitted, "The deposit is being processed"))
-      submittedId <- stateManager.getSubmittedBagId // created by changeState
-      submitDir = submitToBaseDir / submittedId.toString
-      _ = if (submitDir.exists) throw AlreadySubmittedException(depositId)
-      _ = (draftBag.baseDir.parent / propsFileName).copyTo(stagedDir / propsFileName)
-      _ <- stageBag.addMetadataFile(msg4DataManager, s"$depositorInfoDirectoryName/message-from-depositor.txt")
-      _ <- stageBag.addMetadataFile(agreementsXml, s"$depositorInfoDirectoryName/agreements.xml")
-      _ <- stageBag.addMetadataFile(datasetXml, "dataset.xml")
-      _ <- stageBag.addMetadataFile(filesXml, "files.xml")
       _ = logger.info(s"[$depositId] dispatching submit action to threadpool executor")
       _ <- jobQueue.scheduleJob {
         new SubmitJob(
           depositId = draftDeposit.id,
-          serializedDatasetXml = datasetXml,
-          msg4Datamanager = maybeFirstPartOfMsg4DataManager,
-          draftBag = draftBag,
-          stageBag = stageBag,
-          submitDir = submitDir,
+          depositUiURL = depositUiURL,
           groupPrincipal = groupPrincipal,
+          fileLimit = fileLimit,
+          draftBag = draftBag,
+          stagedDir = stagedDir,
+          submitToBaseDir = submitToBaseDir,
+          datasetXml = datasetXml,
+          filesXml = filesXml,
+          agreementsXml = agreementsXml,
+          msg4DataManager = datasetMetadata.messageForDataManager.getOrElse("").stripLineEnd.toOption,
           agreementData = AgreementData(user, datasetMetadata),
-          agreementGenerator = agreementGenerator,
-          fileLimit = 200,
-          mailer = mailer,
           stateManager = stateManager,
+          agreementGenerator = agreementGenerator,
+          mailer = mailer,
         )
       }
-    } yield submittedId
+    } yield ()
   }
 
   type ManifestItems = Map[File, String]
   type ManifestMap = Map[ChecksumAlgorithm, ManifestItems]
-
-  private def getMsg4DataManager(depositId: UUID, datasetMetadata: DatasetMetadata): (Option[String], String) = {
-    val firstPart = datasetMetadata.messageForDataManager.getOrElse("").stripLineEnd.toOption
-    val secondPart = s"The deposit can be found at $depositUiURL/$depositId"
-    firstPart -> firstPart.fold(secondPart)(_ + "\n\n" + secondPart)
-  }
 
   private def sameFiles(payloadManifests: ManifestMap, dataDir: File): Try[Unit] = {
     val files = dataDir.walk().filter(!_.isDirectory).toSet
