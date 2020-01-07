@@ -78,38 +78,29 @@ class Submitter(stagingBaseDir: File,
     for {
       draftBag <- draftDeposit.getDataFiles.map(_.bag)
       datasetMetadata <- draftDeposit.getDatasetMetadata
-      agreementsXmlElem <- AgreementsXml(DateTime.now, datasetMetadata, user)
-      agreementsXml = agreementsXmlElem.serialize
+      agreementsXml <- AgreementsXml(DateTime.now, datasetMetadata, user).map(_.serialize)
       _ = logger.debug(agreementsXml)
       _ = datasetMetadata.doi.getOrElse(throw InvalidDoiException(depositId))
       _ <- draftDeposit.sameDOIs(datasetMetadata)
-      datasetXmlElem <- DDM(datasetMetadata)
-      datasetXml = datasetXmlElem.serialize
+      datasetXml <- DDM(datasetMetadata).map(_.serialize)
       _ = logger.debug(datasetXml)
-      (maybeFirstPartOfMsg4DataManager, msg4DataManager) = {
-        val firstPart = datasetMetadata.messageForDataManager.getOrElse("").stripLineEnd.toOption
-        val secondPart = s"The deposit can be found at $depositUiURL/$depositId"
-        firstPart -> firstPart.fold(secondPart)(_ + "\n\n" + secondPart)
-      }
-      _ = logger.debug("Message for the datamanager: " + msg4DataManager)
-      filesXmlElem <- FilesXml(draftBag.data)
-      filesXml = filesXmlElem.serialize
+      (maybeFirstPartOfMsg4DataManager, msg4DataManager) = getMsg4DataManager(depositId, datasetMetadata)
+      _ = logger.debug(s"Message for the datamanager:\n$msg4DataManager")
+      filesXml <- FilesXml(draftBag.data).map(_.serialize)
       _ = logger.debug(filesXml)
       _ <- sameFiles(draftBag.payloadManifests, draftBag.baseDir / "data")
       // from now on no more user errors but internal errors
       stageBag <- DansV0Bag.empty(stagedDir / bagDirName).map(_.withCreated())
       oldStateInfo <- stateManager.getStateInfo
-      newStateInfo = StateInfo(State.submitted, "The deposit is being processed")
-      _ <- stateManager.changeState(oldStateInfo, newStateInfo)
+      _ <- stateManager.changeState(oldStateInfo, StateInfo(State.submitted, "The deposit is being processed"))
       submittedId <- stateManager.getSubmittedBagId // created by changeState
       submitDir = submitToBaseDir / submittedId.toString
       _ = if (submitDir.exists) throw AlreadySubmittedException(depositId)
       _ = (draftBag.baseDir.parent / propsFileName).copyTo(stagedDir / propsFileName)
-      _ = stageBag.addMetadataFile(msg4DataManager, s"$depositorInfoDirectoryName/message-from-depositor.txt")
+      _ <- stageBag.addMetadataFile(msg4DataManager, s"$depositorInfoDirectoryName/message-from-depositor.txt")
       _ <- stageBag.addMetadataFile(agreementsXml, s"$depositorInfoDirectoryName/agreements.xml")
       _ <- stageBag.addMetadataFile(datasetXml, "dataset.xml")
       _ <- stageBag.addMetadataFile(filesXml, "files.xml")
-      agreementData = AgreementData(user, datasetMetadata)
       _ = logger.info(s"[$depositId] dispatching submit action to threadpool executor")
       _ <- jobQueue.scheduleJob {
         new SubmitJob(
@@ -120,7 +111,7 @@ class Submitter(stagingBaseDir: File,
           stageBag = stageBag,
           submitDir = submitDir,
           groupPrincipal = groupPrincipal,
-          agreementData = agreementData,
+          agreementData = AgreementData(user, datasetMetadata),
           agreementGenerator = agreementGenerator,
           fileLimit = 200,
           mailer = mailer,
@@ -132,6 +123,12 @@ class Submitter(stagingBaseDir: File,
 
   type ManifestItems = Map[File, String]
   type ManifestMap = Map[ChecksumAlgorithm, ManifestItems]
+
+  private def getMsg4DataManager(depositId: UUID, datasetMetadata: DatasetMetadata): (Option[String], String) = {
+    val firstPart = datasetMetadata.messageForDataManager.getOrElse("").stripLineEnd.toOption
+    val secondPart = s"The deposit can be found at $depositUiURL/$depositId"
+    firstPart -> firstPart.fold(secondPart)(_ + "\n\n" + secondPart)
+  }
 
   private def sameFiles(payloadManifests: ManifestMap, dataDir: File): Try[Unit] = {
     val files = dataDir.walk().filter(!_.isDirectory).toSet
