@@ -65,7 +65,7 @@ case class Mailer(smtpHost: String,
       put("datasetTitle", data.title)
       put("myDatasetsUrl", myDatasets.toString)
       put("doi", data.doi)
-      put("hasFilesXml", nrOf(attachments) > 1)
+      put("hasFilesXml", nrOf(attachments) > 2)
     }
     logger.info(s"[$depositId] email placeholder values: ${ context.getKeys.map(key => s"$key=${ context.get(key.toString) }").mkString(", ") }")
     val email = new HtmlEmail()
@@ -87,14 +87,11 @@ case class Mailer(smtpHost: String,
 }
 object Mailer extends DebugEnhancedLogging {
 
-
-  private def nrOf(attachments: Map[String, DataSource]) = {
-    attachments
-      .map { case (_, content) => notEmpty(content) }
-      .size
+  private def nrOf(attachments: Map[String, DataSource]): Int = {
+    attachments.count{ case (_, content) => notEmpty(content) }
   }
 
-  private def notEmpty(content: DataSource) = {
+  private def notEmpty(content: DataSource): Boolean = {
     content.getInputStream.available() > 0
   }
 
