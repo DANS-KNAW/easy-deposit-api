@@ -22,6 +22,7 @@ import java.util.{ Properties, UUID }
 import better.files.File
 import javax.activation.DataSource
 import javax.mail.util.ByteArrayDataSource
+import nl.knaw.dans.easy.deposit.Mailer.{ notEmpty, nrOf }
 import nl.knaw.dans.easy.deposit.docs.AgreementData
 import nl.knaw.dans.lib.error._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
@@ -64,6 +65,7 @@ case class Mailer(smtpHost: String,
       put("datasetTitle", data.title)
       put("myDatasetsUrl", myDatasets.toString)
       put("doi", data.doi)
+      put("hasFilesXml", nrOf(attachments) > 1)
     }
     logger.info(s"[$depositId] email placeholder values: ${ context.getKeys.map(key => s"$key=${ context.get(key.toString) }").mkString(", ") }")
     val email = new HtmlEmail()
@@ -75,8 +77,7 @@ case class Mailer(smtpHost: String,
     email.setBounceAddress(bounceAddress)
     bccs.foreach(email.addBcc)
     attachments.foreach { case (name, content) =>
-      // attach unless empty
-      if (content.getInputStream.available() > 0)
+      if (notEmpty(content))
         email.attach(content, name, name)
     }
     email.setHostName(smtpHost)
@@ -85,6 +86,17 @@ case class Mailer(smtpHost: String,
   }
 }
 object Mailer extends DebugEnhancedLogging {
+
+
+  private def nrOf(attachments: Map[String, DataSource]) = {
+    attachments
+      .map { case (_, content) => notEmpty(content) }
+      .size
+  }
+
+  private def notEmpty(content: DataSource) = {
+    content.getInputStream.available() > 0
+  }
 
   def send(id: UUID, email: MultiPartEmail): Try[String] = {
     Try(email.sendMimeMessage)
