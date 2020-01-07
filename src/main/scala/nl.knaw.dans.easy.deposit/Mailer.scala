@@ -17,6 +17,7 @@ package nl.knaw.dans.easy.deposit
 
 import java.io.StringWriter
 import java.net.URL
+import java.nio.charset.StandardCharsets
 import java.util.{ Properties, UUID }
 
 import better.files.File
@@ -85,19 +86,15 @@ case class Mailer(smtpHost: String,
 }
 object Mailer extends DebugEnhancedLogging {
 
-  def pdfDataSource(data: Array[Byte]): DataSource = {
-    new ByteArrayDataSource(data, "application/pdf")
-  }
-
-  def xmlDataSource(data: Elem): DataSource = {
-    xmlDataSource(data.serialize)
+  def dataSource(data: Array[Byte], mimeType: String): DataSource = {
+    new ByteArrayDataSource(data, mimeType)
   }
 
   def xmlDataSource(data: String): DataSource = {
-    new ByteArrayDataSource(data.getBytes, "text/xml")
+    dataSource(data.getBytes(StandardCharsets.UTF_8), "text/xml")
   }
 
   def txtDataSource(data: String): DataSource = {
-    new ByteArrayDataSource(data.getBytes, "text/plain")
+    dataSource(data.getBytes(StandardCharsets.UTF_8), "text/plain")
   }
 }

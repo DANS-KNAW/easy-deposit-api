@@ -46,11 +46,11 @@ class SubmitJob(depositId: UUID,
                 stateManager: StateManager,
                ) extends Runnable with DebugEnhancedLogging {
 
-  private lazy val agreementDocName = {
-    s"agreement.${
-      if (agreementGenerator.acceptHeader.contains("html")) "html"
-      else "pdf"
-    }"
+  private lazy val (agreementDocName, agreementDocMimeType) = {
+    if (agreementGenerator.acceptHeader.contains("html"))
+      ("agreement.html", "text/html")
+    else
+      ("agreement.pdf", "application/pdf")
   }
 
   override def run(): Unit = {
@@ -90,7 +90,7 @@ class SubmitJob(depositId: UUID,
     for {
       agreement <- agreementGenerator.generate(agreementData, depositId)
       attachments = Map(
-        agreementDocName -> Mailer.pdfDataSource(agreement),
+        agreementDocName -> Mailer.dataSource(agreement, agreementDocMimeType),
         "metadata.xml" -> Mailer.xmlDataSource(serializedDatasetXml),
         "files.txt" -> Mailer.txtDataSource(serializeManifest(draftBag, fileLimit)),
       )
