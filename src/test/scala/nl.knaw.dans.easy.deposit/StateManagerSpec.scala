@@ -74,7 +74,7 @@ class StateManagerSpec extends TestSupportFixture {
       """.stripMargin)
     StateManager(draftDeposit, submitBase, easyHome).getStateInfo shouldBe Success(StateInfo(
       State.submitted,
-      mailtoMessage(s"""mailto:info@dans.knaw.nl?subject=Deposit%20processing%20error:%20%20reference%20a890ad74-872b-4f21-81a8-f3ef88b944ba&body=Dear%20data%20manager%2C%0A%0ASomething%20went%20wrong%20while%20processing%20my%20deposit.%20Could%20you%20please%20investigate%20the%20issue?%0A%0ADataset%20reference:%0A%20%20%20a890ad74-872b-4f21-81a8-f3ef88b944ba%0ATitle:%0A%20%20%20%0A%0AKind%20regards%2C%0Afoo%0A""")
+      "The deposit is being processed",
     ))
   }
 
