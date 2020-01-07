@@ -56,15 +56,15 @@ class EasyDepositApiAppSpec extends TestSupportFixture {
       case Success(sortedDeposits) =>
         sortedDeposits should contain inOrderOnly(
           // first rejected deposits (newest to oldest)
-          deposit3,
           deposit1,
+          deposit3,
           // then draft deposits
           deposit4,
           // then in-progress deposits
           deposit5.copy(state = expectedState.state, stateDescription = expectedState.stateDescription),
           // and finally archived deposits (newest to oldest)
-          deposit6,
           deposit2,
+          deposit6,
         )
 
         sortedDeposits should not contain deposit7

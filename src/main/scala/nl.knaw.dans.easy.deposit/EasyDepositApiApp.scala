@@ -153,7 +153,7 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
    */
   def getDeposits(user: String): Try[Seq[DepositInfo]] = {
     trace(user)
-    implicit val timestampOrdering: Ordering[DateTime] = Ordering.fromLessThan[DateTime](_ isBefore _)
+    implicit val timestampOrdering: Ordering[DateTime] = Ordering.fromLessThan[DateTime](_ isBefore _).reverse
     implicit val tupleOrdering: Ordering[(State, DateTime)] = Ordering.Tuple2[State, DateTime]
     val deposits = DepositDir.list(draftBase, user)
     for {
