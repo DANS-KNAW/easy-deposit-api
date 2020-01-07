@@ -20,3 +20,9 @@ Note: This link will not work until the day after your dataset becomes available
 
 DEPOSIT AGREEMENT
 Attached is a copy of the deposit agreement with the terms and conditions which you agreed upon when you deposited the data.
+
+OTHER ATTACHMENTS
+
+Also attached are:
+- the metadata provided by you, in XML format;
+- the list of uploaded files and their SHA-1 checksums.
