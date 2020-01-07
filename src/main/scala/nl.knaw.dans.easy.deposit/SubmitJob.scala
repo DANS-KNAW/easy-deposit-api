@@ -71,19 +71,16 @@ class SubmitJob(depositId: UUID,
 
   private def submitDeposit(): Try[Unit] = {
     for {
-      // EASY-1464 3.3.8.b copy files
       _ <- stageBag.addPayloadFile(draftBag.data, Paths.get("."))
       _ = logger.info(s"[$depositId] save changes to stageBag ${ stageBag.baseDir }")
       _ <- stageBag.save()
       _ = logger.info(s"[$depositId] validate stageBag ${ stageBag.baseDir }")
       _ <- isValid(stageBag)
-      // EASY-1464 3.3.7 checksums
       _ = logger.info(s"[$depositId] compare payload manifests of stageBag and draftBag")
       _ <- samePayloadManifestEntries(stageBag, draftBag)
       stageDepositDir = stageBag.baseDir.parent
       _ = logger.info(s"[$depositId] set unix rights for $stageDepositDir")
       _ <- setRightsRecursively(stageDepositDir)
-      // EASY-1464 step 3.3.9 Move copy to submit-to area
       _ = logger.info(s"[$depositId] move $stageDepositDir to $submitDir")
       _ = stageDepositDir.moveTo(submitDir)(CopyOptions.atomically)
     } yield ()

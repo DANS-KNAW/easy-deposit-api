@@ -76,12 +76,6 @@ class Submitter(stagingBaseDir: File,
     val depositId = draftDeposit.id
     logger.info(s"[$depositId] submitting deposit")
     for {
-      // EASY-1464 step 3.3.4 validation
-      //   [v] mandatory fields are present and not empty (by DatasetXml(datasetMetadata) in createXMLs)
-      //   [v] DOI in json matches properties
-      //   [ ] URLs are valid
-      //   [ ] ...
-      // EASY-1464 3.3.5.a: generate (with some implicit validation) content for metadata files
       draftBag <- draftDeposit.getDataFiles.map(_.bag)
       datasetMetadata <- draftDeposit.getDatasetMetadata
       agreementsXmlElem <- AgreementsXml(DateTime.now, datasetMetadata, user)
@@ -103,9 +97,7 @@ class Submitter(stagingBaseDir: File,
       _ = logger.debug(filesXml)
       _ <- sameFiles(draftBag.payloadManifests, draftBag.baseDir / "data")
       // from now on no more user errors but internal errors
-      // EASY-1464 3.3.8.a create empty staged bag to take a copy of the deposit
       stageBag <- DansV0Bag.empty(stagedDir / bagDirName).map(_.withCreated())
-      // EASY-1464 3.3.6 change state and copy with the rest of the deposit properties to staged dir
       oldStateInfo <- stateManager.getStateInfo
       newStateInfo = StateInfo(State.submitted, "The deposit is being processed")
       _ <- stateManager.changeState(oldStateInfo, newStateInfo)
@@ -113,7 +105,6 @@ class Submitter(stagingBaseDir: File,
       submitDir = submitToBaseDir / submittedId.toString
       _ = if (submitDir.exists) throw AlreadySubmittedException(depositId)
       _ = (draftBag.baseDir.parent / propsFileName).copyTo(stagedDir / propsFileName)
-      // EASY-1464 3.3.5.b: write files to metadata
       _ = stageBag.addMetadataFile(msg4DataManager, s"$depositorInfoDirectoryName/message-from-depositor.txt")
       _ <- stageBag.addMetadataFile(agreementsXml, s"$depositorInfoDirectoryName/agreements.xml")
       _ <- stageBag.addMetadataFile(datasetXml, "dataset.xml")
