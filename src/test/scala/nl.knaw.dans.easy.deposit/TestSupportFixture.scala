@@ -160,7 +160,7 @@ trait TestSupportFixture extends FlatSpec with Matchers with Inside with BeforeA
         templateDir = File("src/main/assembly/dist/cfg/template"),
         myDatasets = new URL("http://does.not.exist")
       ) {
-        override def buildMessage(data: AgreementData, attachments: Map[String, DataSource], depositId: UUID): Try[MultiPartEmail] = {
+        override def buildMessage(data: AgreementData, attachments: Map[String, DataSource], depositId: UUID, msg: String): Try[MultiPartEmail] = {
           Success(new MultiPartEmail) // only cause causes the following logging:
           // ERROR could not send deposit confirmation message
           //java.lang.IllegalArgumentException: MimeMessage has not been created yet

@@ -59,13 +59,15 @@ case class Mailer(smtpHost: String,
   }
 
   /** @return messageID */
-  def buildMessage(data: AgreementData, attachments: Map[String, DataSource], depositId: UUID): Try[MultiPartEmail] = Try {
+  def buildMessage(data: AgreementData, attachments: Map[String, DataSource], depositId: UUID, msg4Datamanager: String): Try[MultiPartEmail] = Try {
     val context = new VelocityContext {
       put("displayName", data.depositor.name)
       put("datasetTitle", data.title)
       put("myDatasetsUrl", myDatasets.toString)
       put("doi", data.doi)
       put("hasFileListAttached", hasFileList(attachments))
+      if (msg4Datamanager.trim.nonEmpty)
+        put("msg4Datamanager", msg4Datamanager)
     }
     logger.info(s"[$depositId] email placeholder values: ${ context.getKeys.map(key => s"$key=${ context.get(key.toString) }").mkString(", ") }")
     val email = new HtmlEmail()

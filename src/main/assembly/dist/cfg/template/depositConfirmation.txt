@@ -29,5 +29,12 @@ Also attached are:
 - the list of uploaded files and their SHA-1 checksums.
 #else
 METADATA
+
 Also attached is the metadata provided by you, in XML format.
+#end
+#if ($msg4Datamanager)
+
+YOUR MESSAGE FOR THE DATA MANAGER
+
+$msg4Datamanager
 #end

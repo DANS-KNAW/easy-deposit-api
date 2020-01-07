@@ -103,10 +103,10 @@ abstract class Submitter(stagingBaseDir: File,
       datasetXmlElem <- DDM(datasetMetadata)
       datasetXml = datasetXmlElem.serialize
       _ = logger.debug(datasetXml)
+      firstPart4Datamanager = datasetMetadata.messageForDataManager.getOrElse("").stripLineEnd
       msg4DataManager = {
-        val firstPart = datasetMetadata.messageForDataManager.getOrElse("").stripLineEnd
         val secondPart = s"The deposit can be found at $depositUiURL/$depositId"
-        firstPart.toOption.fold(secondPart)(_ + "\n\n" + secondPart)
+        firstPart4Datamanager.toOption.fold(secondPart)(_ + "\n\n" + secondPart)
       }
       _ = logger.debug("Message for the datamanager: " + msg4DataManager)
       filesXmlElem <- FilesXml(draftBag.data)
@@ -128,7 +128,7 @@ abstract class Submitter(stagingBaseDir: File,
       _ = stageBag.addMetadataFile(msg4DataManager, s"$depositorInfoDirectoryName/message-from-depositor.txt")
       _ <- stageBag.addMetadataFile(agreementsXml, s"$depositorInfoDirectoryName/agreements.xml")
       _ <- stageBag.addMetadataFile(datasetXml, "dataset.xml")
-      _ <- stageBag.addMetadataFile(filesXml, "files.xml") // TODO stress test with large number of files?
+      _ <- stageBag.addMetadataFile(filesXml, "files.xml")
       agreementData = AgreementData(user, datasetMetadata)
       // TODO move the rest to workerActions when actually implementing the back ground thread
       agreement <- agreementGenerator.generate(agreementData, depositId)
@@ -137,7 +137,7 @@ abstract class Submitter(stagingBaseDir: File,
         "metadata.xml" -> Mailer.xmlDataSource(datasetXml),
         "files.txt" -> Mailer.txtDataSource(serializeManifest(draftBag, fileLimit)),
       )
-      email <- mailer.buildMessage(agreementData, attachments, depositId)
+      email <- mailer.buildMessage(agreementData, attachments, depositId, firstPart4Datamanager)
       _ = logger.info(s"[$depositId] dispatching async deposit submit actions")
       _ <- workerActions(depositId, draftBag, stageBag, submitDir, email)
     } yield submittedId
