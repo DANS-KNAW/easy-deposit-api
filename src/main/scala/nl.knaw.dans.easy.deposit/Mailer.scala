@@ -22,7 +22,7 @@ import java.util.{ Properties, UUID }
 import better.files.File
 import javax.activation.DataSource
 import javax.mail.util.ByteArrayDataSource
-import nl.knaw.dans.easy.deposit.Mailer.{ notEmpty, nrOf }
+import nl.knaw.dans.easy.deposit.Mailer.{ notEmpty, hasFileList }
 import nl.knaw.dans.easy.deposit.docs.AgreementData
 import nl.knaw.dans.lib.error._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
@@ -65,7 +65,7 @@ case class Mailer(smtpHost: String,
       put("datasetTitle", data.title)
       put("myDatasetsUrl", myDatasets.toString)
       put("doi", data.doi)
-      put("hasFilesXml", nrOf(attachments) > 2)
+      put("hasFileListAttached", hasFileList(attachments))
     }
     logger.info(s"[$depositId] email placeholder values: ${ context.getKeys.map(key => s"$key=${ context.get(key.toString) }").mkString(", ") }")
     val email = new HtmlEmail()
@@ -87,8 +87,8 @@ case class Mailer(smtpHost: String,
 }
 object Mailer extends DebugEnhancedLogging {
 
-  private def nrOf(attachments: Map[String, DataSource]): Int = {
-    attachments.count{ case (_, content) => notEmpty(content) }
+  private def hasFileList(attachments: Map[String, DataSource]): Boolean = {
+    attachments.exists { case (name, content) => name.startsWith("files.") && notEmpty(content) }
   }
 
   private def notEmpty(content: DataSource): Boolean = {

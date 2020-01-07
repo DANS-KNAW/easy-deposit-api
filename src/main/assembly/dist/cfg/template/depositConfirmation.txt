@@ -21,7 +21,7 @@ Note: This link will not work until the day after your dataset becomes available
 DEPOSIT AGREEMENT
 Attached is a copy of the deposit agreement with the terms and conditions which you agreed upon when you deposited the data.
 
-#if ($hasFilesXml)
+#if ($hasFileListAttached)
 OTHER ATTACHMENTS
 
 Also attached are:
