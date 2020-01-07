@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package nl.knaw.dans.easy.deposit.executor
+package nl.knaw.dans.easy.deposit
 
 import java.io.IOException
 import java.nio.file._
@@ -26,7 +26,6 @@ import better.files.File.{ CopyOptions, VisitOptions }
 import nl.knaw.dans.bag.ChecksumAlgorithm.ChecksumAlgorithm
 import nl.knaw.dans.bag.DansBag
 import nl.knaw.dans.easy.deposit.docs.AgreementData
-import nl.knaw.dans.easy.deposit.{ AgreementGenerator, Mailer, StateManager }
 import nl.knaw.dans.lib.error._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 
