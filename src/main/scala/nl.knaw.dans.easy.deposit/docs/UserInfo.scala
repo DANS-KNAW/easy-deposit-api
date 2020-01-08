@@ -26,7 +26,6 @@ case class UserInfo(userName: String,
                     prefix: Option[String] = None,
                     lastName: String,
                     displayName: String,
-                    email: String,
                    )
 object UserInfo extends DebugEnhancedLogging {
   def apply(input: JsonInput): Try[UserInfo] = input.deserialize[UserInfo]
@@ -38,7 +37,6 @@ object UserInfo extends DebugEnhancedLogging {
       prefix = data.prefix,
       lastName = data.lastName,
       displayName = data.name,
-      email = data.email,
     )
   }
 }

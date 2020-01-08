@@ -63,7 +63,7 @@ object UserData extends DebugEnhancedLogging {
       id = getAttribute("uid"),
 
       name = getAttribute("displayName"),
-      firstName = getOption("cn"),
+      firstName = getOption("initials"),
       prefix = getOption("dansPrefixes"),
       lastName = getAttribute("sn"),
       address = getAttribute("postalAddress"),

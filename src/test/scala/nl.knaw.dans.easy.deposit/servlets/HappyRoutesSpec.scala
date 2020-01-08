@@ -98,7 +98,7 @@ class HappyRoutesSpec extends TestSupportFixture with ServletFixture with Scalat
       uri = "/user",
       headers = Seq(fooBarBasicAuthHeader)
     ) {
-      body shouldBe """{"id":"foo","name":"Jan v.d. Berg","firstName":"Jan","prefix":"van den","lastName":"Berg","address":"Anna van Saksenlaan 51","zipcode":"2593 HW","city":"Den Haag","country":"Netherlands","organisation":"DANS","phone":"+31 70 349 44 50","email":"does.not.exist@dans.knaw.nl"}"""
+      body shouldBe """{"userName":"foo","firstName":"Jan","prefix":"van den","lastName":"Berg","displayName":"Jan v.d. Berg"}"""
       status shouldBe OK_200
     }
   }
@@ -112,7 +112,7 @@ class HappyRoutesSpec extends TestSupportFixture with ServletFixture with Scalat
       uri = "/user",
       headers = Seq(fooBarBasicAuthHeader)
     ) {
-      body shouldBe """{"id":"user001","name":"fullName","lastName":"","address":"","zipcode":"","city":"","country":"","organisation":"","phone":"","email":"does.not.exist@dans.knaw.nl"}"""
+      body shouldBe """{"userName":"user001","lastName":"","displayName":"fullName"}"""
       status shouldBe OK_200
     }
   }

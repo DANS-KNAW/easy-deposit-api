@@ -700,23 +700,22 @@ components:
         firstName: "First"
         prefix: "van"
         lastName: "Namen"
-        groups: [ "group001", "group002"]
+        displayName: "First van Namen"
       properties:
         username:
           type: "string"
         firstName:
           type: "string"
-          description: "(optional)"
+          description: "Initials of the user"
         prefix:
           type: "string"
           description: "insertions, called 'tussenvoegsels' in Dutch"
         lastName:
           type: "string"
-        groups:
-          type: array
-          items:
-            type: string
-          description: "string array with group-names this user belongs to"
+          description: "Surname of the user"
+        displayName:
+          type: "string"
+          description: "Full name of the user used for displaying"
 
     Doi:
       type: object
