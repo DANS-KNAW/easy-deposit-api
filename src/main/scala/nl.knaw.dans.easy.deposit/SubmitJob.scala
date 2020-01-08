@@ -42,13 +42,13 @@ class SubmitJob(depositId: UUID,
                 fileLimit: Int,
                 draftBag: DansBag,
                 stagedDir: File,
-                submitToBaseDir: File,
+                submitDir: File,
                 datasetXml: String,
                 filesXml: String,
                 agreementsXml: String,
                 msg4DataManager: Option[String],
                 agreementData: AgreementData,
-                stateManager: StateManager,
+                draftDepositStateManager: StateManager,
                 agreementGenerator: AgreementGenerator,
                 mailer: Mailer,
                ) extends Runnable with DebugEnhancedLogging {
@@ -62,7 +62,7 @@ class SubmitJob(depositId: UUID,
     submitDeposit() match {
       case Failure(e) =>
         logger.error(s"[$depositId] error in dispatched submit action ${ this.toString }", e)
-        stateManager.setStateFailed(e.getMessage)
+        draftDepositStateManager.setStateFailed(e.getMessage)
           .doIfFailure { case e => logger.error(s"[$depositId] could not set state to FAILED after submission failed", e) }
       case Success(()) =>
         sendEmail
@@ -79,11 +79,6 @@ class SubmitJob(depositId: UUID,
     logger.debug(s"Message for the datamanager:\n$fullMsg4DataManager")
     for {
       stageBag <- DansV0Bag.empty(stagedDir / bagDirName).map(_.withCreated())
-      oldStateInfo <- stateManager.getStateInfo
-      _ <- stateManager.changeState(oldStateInfo, StateInfo(State.submitted, "The deposit is being processed"))
-      submittedId <- stateManager.getSubmittedBagId // created by changeState
-      submitDir = submitToBaseDir / submittedId.toString
-      _ = if (submitDir.exists) throw AlreadySubmittedException(depositId)
       _ = (draftBag.baseDir.parent / propsFileName).copyTo(stagedDir / propsFileName)
       _ <- stageBag.addMetadataFile(fullMsg4DataManager, s"$depositorInfoDirectoryName/message-from-depositor.txt")
       _ <- stageBag.addMetadataFile(agreementsXml, s"$depositorInfoDirectoryName/agreements.xml")

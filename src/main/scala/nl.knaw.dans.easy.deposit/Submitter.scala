@@ -19,7 +19,8 @@ import java.nio.file.attribute.GroupPrincipal
 
 import better.files.File
 import nl.knaw.dans.bag.ChecksumAlgorithm.ChecksumAlgorithm
-import nl.knaw.dans.easy.deposit.Errors.InvalidDoiException
+import nl.knaw.dans.easy.deposit.Errors.{ AlreadySubmittedException, InvalidDoiException }
+import nl.knaw.dans.easy.deposit.docs.StateInfo.State
 import nl.knaw.dans.easy.deposit.docs._
 import nl.knaw.dans.easy.deposit.executor.JobQueueManager
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
@@ -49,8 +50,8 @@ class Submitter(submitToBaseDir: File,
    * @param draftDeposit the deposit object to submit
    * @return the UUID of the deposit in the submit area (easy-ingest-flow-inbox)
    */
-  def submit(draftDeposit: DepositDir, stateManager: StateManager, user: UserData, stagedDir: File): Try[Unit] = {
-    trace(user, draftDeposit, stateManager, stagedDir)
+  def submit(draftDeposit: DepositDir, draftDepositStateManager: StateManager, user: UserData, stagedDir: File): Try[Unit] = {
+    trace(user, draftDeposit, draftDepositStateManager, stagedDir)
     val depositId = draftDeposit.id
     logger.info(s"[$depositId] submitting deposit")
     for {
@@ -66,6 +67,11 @@ class Submitter(submitToBaseDir: File,
       _ = logger.debug(filesXml)
       _ <- sameFiles(draftBag.payloadManifests, draftBag.baseDir / "data")
       // from now on no more user errors but internal errors
+      oldStateInfo <- draftDepositStateManager.getStateInfo
+      _ <- draftDepositStateManager.changeState(oldStateInfo, StateInfo(State.submitted, "The deposit is being processed"))
+      submittedId <- draftDepositStateManager.getSubmittedBagId // created by changeState
+      submitDir = submitToBaseDir / submittedId.toString
+      _ = if (submitDir.exists) throw AlreadySubmittedException(depositId)
       _ = logger.info(s"[$depositId] dispatching submit action to threadpool executor")
       _ <- jobQueue.scheduleJob {
         new SubmitJob(
@@ -75,13 +81,13 @@ class Submitter(submitToBaseDir: File,
           fileLimit = fileLimit,
           draftBag = draftBag,
           stagedDir = stagedDir,
-          submitToBaseDir = submitToBaseDir,
+          submitDir = submitDir,
           datasetXml = datasetXml,
           filesXml = filesXml,
           agreementsXml = agreementsXml,
           msg4DataManager = datasetMetadata.messageForDataManager.getOrElse("").stripLineEnd.toOption,
           agreementData = AgreementData(user, datasetMetadata),
-          stateManager = stateManager,
+          draftDepositStateManager = draftDepositStateManager,
           agreementGenerator = agreementGenerator,
           mailer = mailer,
         )
