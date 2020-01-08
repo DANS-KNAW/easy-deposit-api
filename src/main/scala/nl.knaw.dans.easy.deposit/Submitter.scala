@@ -15,64 +15,33 @@
  */
 package nl.knaw.dans.easy.deposit
 
-import java.io.IOException
-import java.nio.file._
-import java.nio.file.attribute.PosixFilePermission._
-import java.nio.file.attribute.{ PosixFileAttributeView, UserPrincipalNotFoundException }
-import java.util.UUID
+import java.nio.file.attribute.GroupPrincipal
 
 import better.files.File
-import better.files.File.{ CopyOptions, VisitOptions }
 import nl.knaw.dans.bag.ChecksumAlgorithm.ChecksumAlgorithm
-import nl.knaw.dans.bag.DansBag
-import nl.knaw.dans.bag.v0.DansV0Bag
 import nl.knaw.dans.easy.deposit.Errors.{ AlreadySubmittedException, InvalidDoiException }
 import nl.knaw.dans.easy.deposit.docs.StateInfo.State
 import nl.knaw.dans.easy.deposit.docs._
-import nl.knaw.dans.lib.error._
+import nl.knaw.dans.easy.deposit.executor.JobQueueManager
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import nl.knaw.dans.lib.string._
-import org.apache.commons.mail.MultiPartEmail
 import org.joda.time.DateTime
 
-import scala.collection.JavaConverters._
-import scala.util.control.NonFatal
 import scala.util.{ Failure, Success, Try }
 
 /**
  * Object that contains the logic for submitting a deposit.
  *
- * @param stagingBaseDir  the base directory for staged copies
  * @param submitToBaseDir the directory to which the staged copy must be moved.
  */
-abstract class Submitter(stagingBaseDir: File,
-                         submitToBaseDir: File,
-                         groupName: String,
-                         depositUiURL: String,
-                         fileLimit: Int = 200
-                        ) extends DebugEnhancedLogging {
-  val mailer: Mailer
-  val agreementGenerator: AgreementGenerator
-
-  private lazy val agreementDocName = {
-    s"agreement.${
-      if (agreementGenerator.acceptHeader.contains("html")) "html"
-      else "pdf"
-    }"
-  }
-
-  private val groupPrincipal = {
-    Try {
-      stagingBaseDir.fileSystem.getUserPrincipalLookupService.lookupPrincipalByGroupName(groupName)
-    }.getOrRecover {
-      case e: UserPrincipalNotFoundException => throw new IOException(s"Group $groupName could not be found", e)
-      case e: UnsupportedOperationException => throw new IOException("Not on a POSIX supported file system", e)
-      case NonFatal(e) => throw new IOException(s"unexpected error occured on $stagingBaseDir", e)
-    }
-  }
-  private val depositorInfoDirectoryName = "depositor-info"
-
-  StartupValidation.allowsAtomicMove(srcDir = stagingBaseDir, targetDir = submitToBaseDir)
+class Submitter(submitToBaseDir: File,
+                groupPrincipal: GroupPrincipal,
+                depositUiURL: String,
+                fileLimit: Int = 200,
+                jobQueue: JobQueueManager,
+                mailer: Mailer,
+                agreementGenerator: AgreementGenerator,
+               ) extends DebugEnhancedLogging {
 
   /**
    * Submits `depositDir` by writing the file metadata, updating the bag checksums, staging a copy
@@ -81,127 +50,49 @@ abstract class Submitter(stagingBaseDir: File,
    * @param draftDeposit the deposit object to submit
    * @return the UUID of the deposit in the submit area (easy-ingest-flow-inbox)
    */
-  def submit(draftDeposit: DepositDir, stateManager: StateManager, user: UserData, stagedDir: File): Try[UUID] = {
-    trace(user, draftDeposit, stateManager, stagedDir)
-    val propsFileName = "deposit.properties"
+  def submit(draftDeposit: DepositDir, draftDepositStateManager: StateManager, user: UserData, stagedDir: File): Try[Unit] = {
+    trace(user, draftDeposit, draftDepositStateManager, stagedDir)
     val depositId = draftDeposit.id
     logger.info(s"[$depositId] submitting deposit")
     for {
-      // EASY-1464 step 3.3.4 validation
-      //   [v] mandatory fields are present and not empty (by DatasetXml(datasetMetadata) in createXMLs)
-      //   [v] DOI in json matches properties
-      //   [ ] URLs are valid
-      //   [ ] ...
-      // EASY-1464 3.3.5.a: generate (with some implicit validation) content for metadata files
       draftBag <- draftDeposit.getDataFiles.map(_.bag)
       datasetMetadata <- draftDeposit.getDatasetMetadata
-      agreementsXmlElem <- AgreementsXml(DateTime.now, datasetMetadata, user)
-      agreementsXml = agreementsXmlElem.serialize
+      agreementsXml <- AgreementsXml(DateTime.now, datasetMetadata, user).map(_.serialize)
       _ = logger.debug(agreementsXml)
       _ = datasetMetadata.doi.getOrElse(throw InvalidDoiException(depositId))
       _ <- draftDeposit.sameDOIs(datasetMetadata)
-      datasetXmlElem <- DDM(datasetMetadata)
-      datasetXml = datasetXmlElem.serialize
+      datasetXml <- DDM(datasetMetadata).map(_.serialize)
       _ = logger.debug(datasetXml)
-      firstPart4Datamanager = datasetMetadata.messageForDataManager.getOrElse("").stripLineEnd
-      msg4DataManager = {
-        val secondPart = s"The deposit can be found at $depositUiURL/$depositId"
-        firstPart4Datamanager.toOption.fold(secondPart)(_ + "\n\n" + secondPart)
-      }
-      _ = logger.debug("Message for the datamanager: " + msg4DataManager)
-      filesXmlElem <- FilesXml(draftBag.data)
-      filesXml = filesXmlElem.serialize
+      filesXml <- FilesXml(draftBag.data).map(_.serialize)
       _ = logger.debug(filesXml)
       _ <- sameFiles(draftBag.payloadManifests, draftBag.baseDir / "data")
       // from now on no more user errors but internal errors
-      // EASY-1464 3.3.8.a create empty staged bag to take a copy of the deposit
-      stageBag <- DansV0Bag.empty(stagedDir / bagDirName).map(_.withCreated())
-      // EASY-1464 3.3.6 change state and copy with the rest of the deposit properties to staged dir
-      oldStateInfo <- stateManager.getStateInfo
-      newStateInfo = StateInfo(State.submitted, "The deposit is being processed")
-      _ <- stateManager.changeState(oldStateInfo, newStateInfo)
-      submittedId <- stateManager.getSubmittedBagId // created by changeState
+      oldStateInfo <- draftDepositStateManager.getStateInfo
+      _ <- draftDepositStateManager.changeState(oldStateInfo, StateInfo(State.submitted, "The deposit is being processed"))
+      submittedId <- draftDepositStateManager.getSubmittedBagId // created by changeState
       submitDir = submitToBaseDir / submittedId.toString
       _ = if (submitDir.exists) throw AlreadySubmittedException(depositId)
-      _ = (draftBag.baseDir.parent / propsFileName).copyTo(stagedDir / propsFileName)
-      // EASY-1464 3.3.5.b: write files to metadata
-      _ = stageBag.addMetadataFile(msg4DataManager, s"$depositorInfoDirectoryName/message-from-depositor.txt")
-      _ <- stageBag.addMetadataFile(agreementsXml, s"$depositorInfoDirectoryName/agreements.xml")
-      _ <- stageBag.addMetadataFile(datasetXml, "dataset.xml")
-      _ <- stageBag.addMetadataFile(filesXml, "files.xml")
-      agreementData = AgreementData(user, datasetMetadata)
-      // TODO move the rest to workerActions when actually implementing the back ground thread
-      agreement <- agreementGenerator.generate(agreementData, depositId)
-      attachments = Map(
-        agreementDocName -> Mailer.pdfDataSource(agreement),
-        "metadata.xml" -> Mailer.xmlDataSource(datasetXml),
-        "files.txt" -> Mailer.txtDataSource(serializeManifest(draftBag, fileLimit)),
-      )
-      email <- mailer.buildMessage(agreementData, attachments, depositId, firstPart4Datamanager)
-      _ = logger.info(s"[$depositId] dispatching async deposit submit actions")
-      _ <- workerActions(depositId, draftBag, stageBag, submitDir, email)
-    } yield submittedId
-  }
-
-  private def serializeManifest(draftBag: DansBag, fileLimit: Int): String = {
-    debug("creating manifest")
-    val entries = draftBag.payloadManifests.headOption.map(_._2).getOrElse(Map.empty)
-    if (entries.size > fileLimit) "" // all files or none avoids confusion
-    else entries.map { case (file, sha) => s"$sha ${ draftBag.data.relativize(file) }" }.mkString("\n")
-  }
-
-  // TODO a worker thread allows submit to return fast for large deposits.
-  private def workerActions(id: UUID, draftBag: DansBag, stageBag: DansBag, submitDir: File, email: MultiPartEmail) = for {
-    // EASY-1464 3.3.8.b copy files
-    _ <- stageBag.addPayloadFile(draftBag.data, Paths.get("."))
-    _ <- stageBag.save()
-    _ = logger.info(s"[$id] validating bag")
-    _ <- isValid(stageBag)
-    // EASY-1464 3.3.7 checksums
-    _ = logger.info(s"[$id] comparing payload manifests of draft and staged bag")
-    _ <- samePayloadManifestEntries(stageBag, draftBag)
-    stagedDepositDir = stageBag.baseDir.parent
-    _ = logger.info(s"[$id] setting file access rights")
-    _ <- setRightsRecursively(stagedDepositDir)
-    // EASY-1464 step 3.3.9 Move copy to submit-to area
-    _ = logger.info(s"[$id] moving $stagedDepositDir to $submitDir")
-    _ <- move(stagedDepositDir, submitDir, id)
-    _ = logger.info(s"[$id] sending email")
-    _ = Try { Mailer.send(id, email) }.doIfFailure { case e => logger.error(s"deposit submitted but could not send confirmation message", e) }
-  } yield ()
-
-  private def move(draftDepositDir: File, submitDir: File, id: UUID) = Try(
-    draftDepositDir.moveTo(submitDir)(CopyOptions.atomically)
-  ).recoverWith {
-    case _: FileAlreadyExistsException => Failure(AlreadySubmittedException(id))
-  }
-
-  private def setRightsRecursively(file: File): Try[Unit] = {
-    resource.managed(Files.walk(file.path, Int.MaxValue, VisitOptions.default: _*))
-      .map(_.iterator().asScala.map(setRights).find(_.isFailure).getOrElse(Success(())))
-      .tried
-      .flatten
-  }
-
-  private def setRights(path: Path): Try[Unit] = Try {
-    trace(path)
-    // EASY-1932, variant of https://github.com/DANS-KNAW/easy-split-multi-deposit/blob/73189001217c2bf31b487eb8356f76ea4e9ffc31/src/main/scala/nl.knaw.dans.easy.multideposit/actions/SetDepositPermissions.scala#L72-L90
-    val file = File(path)
-    file.addPermission(GROUP_WRITE)
-    file.addPermission(GROUP_READ)
-    if (file.isDirectory)
-      file.addPermission(GROUP_EXECUTE)
-    // tried File(path).setGroup(groupPrincipal) but it causes "java.io.IOException: 'owner' parameter can't be a group"
-    Files.getFileAttributeView(
-      path,
-      classOf[PosixFileAttributeView],
-      LinkOption.NOFOLLOW_LINKS,
-    ).setGroup(groupPrincipal)
-  }.recoverWith {
-    case e: FileSystemException => throw new IOException(s"Not able to set the group to ${ groupPrincipal.getName }. Probably the current user (${ System.getProperty("user.name") }) is not part of this group.", e)
-    case e: IOException => throw new IOException(s"Could not set file permissions or group on $path", e)
-    case e: SecurityException => throw new IOException(s"Not enough privileges to set file permissions or group on $path", e)
-    case NonFatal(e) => throw new IOException(s"unexpected error occured on $path", e)
+      _ = logger.info(s"[$depositId] dispatching submit action to threadpool executor")
+      _ <- jobQueue.scheduleJob {
+        new SubmitJob(
+          depositId = draftDeposit.id,
+          depositUiURL = depositUiURL,
+          groupPrincipal = groupPrincipal,
+          fileLimit = fileLimit,
+          draftBag = draftBag,
+          stagedDir = stagedDir,
+          submitDir = submitDir,
+          datasetXml = datasetXml,
+          filesXml = filesXml,
+          agreementsXml = agreementsXml,
+          msg4DataManager = datasetMetadata.messageForDataManager.getOrElse("").stripLineEnd.toOption,
+          agreementData = AgreementData(user, datasetMetadata),
+          draftDepositStateManager = draftDepositStateManager,
+          agreementGenerator = agreementGenerator,
+          mailer = mailer,
+        )
+      }
+    } yield ()
   }
 
   type ManifestItems = Map[File, String]
@@ -213,29 +104,5 @@ abstract class Submitter(stagingBaseDir: File,
       .find(_ != files)
       .map(manifestFiles => Failure(new Exception(s"invalid bag, missing [files, checksums]: [${ manifestFiles.diff(files) }, ${ files.diff(manifestFiles) }]")))
       .getOrElse(Success(()))
-  }
-
-  private def samePayloadManifestEntries(staged: DansBag, draft: DansBag) = {
-    staged.payloadManifests.keySet.intersect(draft.payloadManifests.keySet)
-      .map { algorithm =>
-        val xs = getRelativeSet(staged, algorithm)
-        val ys = getRelativeSet(draft, algorithm)
-        (xs.diff(ys), ys.diff(xs))
-      }
-      .find(diffs => diffs._1.nonEmpty || diffs._2.nonEmpty)
-      .map(diffs => Failure(new Exception(s"staged and draft bag [${ draft.baseDir.parent }] have different payload manifest elements: $diffs")))
-      .getOrElse(Success(()))
-  }
-
-  private def getRelativeSet(bag: DansBag, algorithm: ChecksumAlgorithm): Set[(Path, String)] = {
-    val baseDir = bag.baseDir
-    bag.payloadManifests(algorithm).map {
-      case (f: File, c: String) => (baseDir.relativize(f), c)
-    }.toSet
-  }
-
-  private def isValid(stageBag: DansBag): Try[Unit] = stageBag.isValid match {
-    case Left(msg) => Failure(new Exception(msg))
-    case Right(_) => Success(())
   }
 }

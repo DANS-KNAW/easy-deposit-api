@@ -16,6 +16,7 @@
 package nl.knaw.dans.easy.deposit
 
 import java.net.{ URI, URL }
+import java.util.concurrent.{ LinkedBlockingQueue, ThreadPoolExecutor, TimeUnit }
 import java.util.{ TimeZone, UUID }
 
 import better.files.File
@@ -24,6 +25,7 @@ import javax.activation.DataSource
 import nl.knaw.dans.easy.deposit.authentication.TokenSupport.TokenConfig
 import nl.knaw.dans.easy.deposit.authentication.{ AuthConfig, AuthUser, AuthenticationProvider, TokenSupport }
 import nl.knaw.dans.easy.deposit.docs.{ AgreementData, UserData }
+import nl.knaw.dans.easy.deposit.executor.JobQueueManager
 import org.apache.commons.configuration.PropertiesConfiguration
 import org.apache.commons.mail.MultiPartEmail
 import org.joda.time.{ DateTime, DateTimeUtils, DateTimeZone }
@@ -114,6 +116,10 @@ trait TestSupportFixture extends FlatSpec with Matchers with Inside with BeforeA
       addProperty("users.ldap-user-id-attr-name", "-")
       addProperty("multipart.location", (testDir / "multipart").createDirectories().toString())
       addProperty("multipart.file-size-threshold", "3145728") // 3MB
+      addProperty("easy.home", "https://easy.dans.knaw.nl/ui")
+      addProperty("threadpool.core-pool-size", 1)
+      addProperty("threadpool.max-pool-size", 2)
+      addProperty("threadpool.keep-alive-time-ms", 60000L)
       addProperty("easy.home", "https://doesNotExist.dans.knaw.nl/ui")
       addProperty("easy.my-datasets", "https://doesNotExist.dans.knaw.nl/ui/mydatasets")
       // lazy values in the mailer would require less parameters here,
@@ -137,36 +143,46 @@ trait TestSupportFixture extends FlatSpec with Matchers with Inside with BeforeA
       }
 
       override protected val submitter: Submitter = {
-        val groupName = properties.getString("deposit.permissions.group")
-        val depositUiURL = properties.getString("easy.deposit-ui")
-        createSubmitterWithStubs(stagedBaseDir, submitBase, groupName, depositUiURL)
+        createSubmitterWithStubs(
+          stagedBaseDir,
+          submitBase,
+          properties.getString("deposit.permissions.group"),
+          properties.getString("easy.deposit-ui"),
+          new JobQueueManager(new ThreadPoolExecutor(1, 1, 10, TimeUnit.SECONDS, new LinkedBlockingQueue())),
+        )
       }
     }
   }
 
-  def createSubmitterWithStubs(stagedBaseDir: File, submitBase: File, groupName: String, depositUiURL: String): Submitter = {
-    new Submitter(stagedBaseDir, submitBase, groupName, depositUiURL) {
-      // stubs
-      override val agreementGenerator: AgreementGenerator = new AgreementGenerator(Http, new URL("http://does.not.exist"), "text/html") {
-        override def generate(agreementData: AgreementData, id: UUID): Try[Array[Byte]] = {
-          Success("mocked pdf".getBytes)
-        }
-      }
-      override val mailer: Mailer = new Mailer(
-        smtpHost = "",
-        fromAddress = "",
-        bounceAddress = "",
-        bccs = Seq.empty,
-        templateDir = File("src/main/assembly/dist/cfg/template"),
-        myDatasets = new URL("http://does.not.exist")
-      ) {
-        override def buildMessage(data: AgreementData, attachments: Map[String, DataSource], depositId: UUID, msg: String): Try[MultiPartEmail] = {
-          Success(new MultiPartEmail) // only cause causes the following logging:
-          // ERROR could not send deposit confirmation message
-          //java.lang.IllegalArgumentException: MimeMessage has not been created yet
-        }
+  def createSubmitterWithStubs(stagedBaseDir: File, submitBase: File, groupName: String, depositUiURL: String, jobQueueManager: JobQueueManager): Submitter = {
+    val agreementGenerator: AgreementGenerator = new AgreementGenerator(Http, new URL("http://does.not.exist"), "text/html") {
+      override def generate(agreementData: AgreementData, id: UUID): Try[Array[Byte]] = {
+        Success("mocked pdf".getBytes)
       }
     }
+    val mailer: Mailer = new Mailer(
+      smtpHost = "",
+      fromAddress = "",
+      bounceAddress = "",
+      bccs = Seq.empty,
+      templateDir = File("src/main/assembly/dist/cfg/template"),
+      myDatasets = new URL("http://does.not.exist")
+    ) {
+      override def buildMessage(data: AgreementData, attachments: Map[String, DataSource], depositId: UUID, msg: Option[String]): Try[MultiPartEmail] = {
+        Success(new MultiPartEmail) // only cause causes the following logging:
+        // ERROR could not send deposit confirmation message
+        //java.lang.IllegalArgumentException: MimeMessage has not been created yet
+      }
+    }
+    val groupPrinciple = stagedBaseDir.fileSystem.getUserPrincipalLookupService.lookupPrincipalByGroupName(groupName)
+    new Submitter(
+      submitBase,
+      groupPrinciple,
+      depositUiURL,
+      jobQueue = jobQueueManager,
+      mailer = mailer,
+      agreementGenerator = agreementGenerator,
+    )
   }
 
   private def testSubDir(drafts: String): File = {

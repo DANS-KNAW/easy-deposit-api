@@ -50,6 +50,7 @@ object Command extends App with DebugEnhancedLogging {
       override def run(): Unit = {
         service.stop()
         service.destroy()
+        app.close()
       }
     })
 

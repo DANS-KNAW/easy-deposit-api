@@ -15,18 +15,20 @@
  */
 package nl.knaw.dans.easy.deposit
 
-import java.io.InputStream
+import java.io.{ IOException, InputStream }
 import java.net.{ URI, URL }
 import java.nio.file.Path
+import java.nio.file.attribute.UserPrincipalNotFoundException
 import java.util.UUID
 
-import better.files.File.temporaryDirectory
+import better.files.File.{ newTemporaryDirectory, temporaryDirectory }
 import better.files.{ Dispose, File }
-import nl.knaw.dans.easy.deposit.Errors.{ ClientAbortedUploadException, ConfigurationException, InvalidContentTypeException, LeftoversOfForcedShutdownException, NoStagingDirException, OverwriteException, PendingUploadException }
+import nl.knaw.dans.easy.deposit.Errors._
 import nl.knaw.dans.easy.deposit.authentication.{ AuthenticationProvider, LdapAuthentication }
 import nl.knaw.dans.easy.deposit.docs.StateInfo.State
 import nl.knaw.dans.easy.deposit.docs.StateInfo.State.State
 import nl.knaw.dans.easy.deposit.docs.{ DatasetMetadata, DepositInfo, StateInfo, UserData }
+import nl.knaw.dans.easy.deposit.executor.{ JobQueueManager, SystemStatus, ThreadPoolConfig }
 import nl.knaw.dans.easy.deposit.servlets.archiveContentTypeRegexp
 import nl.knaw.dans.lib.error._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
@@ -35,9 +37,11 @@ import org.eclipse.jetty.io.EofException
 import org.joda.time.DateTime
 import org.scalatra.servlet.MultipartConfig
 
+import scala.util.control.NonFatal
 import scala.util.{ Failure, Success, Try }
 
 class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLogging
+  with AutoCloseable
   with LdapAuthentication
   with HttpContext {
 
@@ -57,6 +61,12 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
     logger.debug(s"users.ldap-admin-principal = $ldapAdminPrincipal")
   }
 
+  override def close(): Unit = {
+    logger.info("terminating ThreadPoolExecutor")
+    jobQueue.close()
+    logger.info("terminated ThreadPoolExecutor")
+  }
+
   def getVersion: String = {
     configuration.version
   }
@@ -70,6 +80,7 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
   private val draftBase: File = getConfiguredDirectory("deposits.drafts")
   protected val submitBase: File = getConfiguredDirectory("deposits.submit-to")
   StartupValidation.allowsAtomicMove(srcDir = stagedBaseDir, targetDir = draftBase)
+  StartupValidation.allowsAtomicMove(srcDir = stagedBaseDir, targetDir = submitBase)
 
   val multipartConfig: MultipartConfig = {
     val multipartLocation = getConfiguredDirectory("multipart.location")
@@ -83,26 +94,56 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
     )
   }
 
+  private val jobQueue: JobQueueManager = new JobQueueManager(
+    ThreadPoolConfig(
+      corePoolSize = properties.getInt("threadpool.core-pool-size"),
+      maxPoolSize = properties.getInt("threadpool.max-pool-size"),
+      keepAliveTime = properties.getLong("threadpool.keep-alive-time-ms"),
+    )
+  )
+
+  def threadpoolStatus: SystemStatus = {
+    jobQueue.getSystemStatus
+  }
+
+  private val agreementGenerator: AgreementGenerator = AgreementGenerator(
+    http = Http,
+    url = new URL(properties.getString("agreement-generator.url", "http://localhost")),
+    acceptHeader = properties.getString("agreement-generator.accept", "application/pdf"),
+    connectionTimeoutMs = properties.getInt("agreement-generator.connection-timeout-ms"),
+    readTimeoutMs = properties.getInt("agreement-generator.read-timeout-ms")
+  )
+
+  private val mailer: Mailer = Mailer(
+    smtpHost = properties.getString("mail.smtp.host"),
+    fromAddress = properties.getString("mail.fromAddress"),
+    bounceAddress = properties.getString("mail.bounceAddress"),
+    bccs = properties.getString("mail.bccs", "").split(" *, *").filter(_.nonEmpty),
+    templateDir = File(properties.getString("mail.template", "")),
+    myDatasets = new URL(properties.getString("easy.my-datasets")),
+  )
+
   protected val submitter: Submitter = {
-    val groupName = properties.getString("deposit.permissions.group")
-    val depositUiURL = properties.getString("easy.deposit-ui")
-    new Submitter(stagedBaseDir, submitBase, groupName, depositUiURL, fileLimit = properties.getInt("attached-file-list.limit")) {
-      override val mailer: Mailer = Mailer(
-        smtpHost = properties.getString("mail.smtp.host"),
-        fromAddress = properties.getString("mail.fromAddress"),
-        bounceAddress = properties.getString("mail.bounceAddress"),
-        bccs = properties.getString("mail.bccs", "").split(" *, *").filter(_.nonEmpty),
-        templateDir = File(properties.getString("mail.template", "")),
-        myDatasets = new URL(properties.getString("easy.my-datasets"))
-      )
-      override val agreementGenerator: AgreementGenerator = AgreementGenerator(
-        Http,
-        new URL(properties.getString("agreement-generator.url", "http://localhost")),
-        properties.getString("agreement-generator.accept", "application/pdf"),
-        connectionTimeoutMs = properties.getInt("agreement-generator.connection-timeout-ms"),
-        readTimeoutMs = properties.getInt("agreement-generator.read-timeout-ms")
-      )
+    val groupPrincipal = {
+      val groupName = properties.getString("deposit.permissions.group")
+      Try {
+        stagedBaseDir.fileSystem.getUserPrincipalLookupService.lookupPrincipalByGroupName(groupName)
+      }.getOrRecover {
+        case e: UserPrincipalNotFoundException => throw new IOException(s"Group $groupName could not be found", e)
+        case e: UnsupportedOperationException => throw new IOException("Not on a POSIX supported file system", e)
+        case NonFatal(e) => throw new IOException(s"unexpected error occured on $stagedBaseDir", e)
+      }
     }
+
+    new Submitter(
+      submitToBaseDir = submitBase,
+      groupPrincipal = groupPrincipal,
+      depositUiURL = properties.getString("easy.deposit-ui"),
+      fileLimit = properties.getInt("attached-file-list.limit"),
+      jobQueue = jobQueue,
+      mailer = mailer,
+      agreementGenerator = agreementGenerator,
+    )
   }
 
   // possible trailing slash is dropped
@@ -204,8 +245,8 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
       trace(deposit, stateManager)
       for {
         userData <- getUserData(userId)
-        disposableStagedDir <- getStagedDir(userId, id)
-        _ <- disposableStagedDir.apply(submitter.submit(deposit, stateManager, userData, _))
+        disposableStagedDir <- getPermanentStagedDir(userId, id)
+        _ <- submitter.submit(deposit, stateManager, userData, disposableStagedDir)
       } yield ()
     }
 
@@ -400,19 +441,24 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
     } yield (disposableStagingDir, StagedFilesTarget(dataFiles.bag, destination))
   }
 
+  // the temporary directory is dropped when the disposable resource is released on completion of the request
   private def getStagedDir(userId: String, id: UUID): Try[Dispose[File]] = {
     // side effect: optimistic lock for a deposit
     val prefix = s"$userId-$id-"
     for {
-      disposableStagingDir <- createManagedTempDir(prefix)
+      disposableStagingDir <- Try { temporaryDirectory(prefix, Some(stagedBaseDir.createDirectories())) }
       _ <- atMostOneTempDir(prefix).doIfFailure { case _ => disposableStagingDir.get() }
     } yield disposableStagingDir
   }
 
-  // the temporary directory is dropped when the disposable resource is released on completion of the request,
-  // unless the directory was moved away before to ingest-flow-inbox
-  private def createManagedTempDir(prefix: String): Try[Dispose[File]] = Try {
-    temporaryDirectory(prefix, Some(stagedBaseDir.createDirectories()))
+  // the temporary directory is NOT dropped after usage is done!
+  private def getPermanentStagedDir(userId: String, id: UUID): Try[File] = {
+    // side effect: optimistic lock for a deposit
+    val prefix = s"$userId-$id-"
+    for {
+      disposableStagingDir <- Try { newTemporaryDirectory(prefix, Some(stagedBaseDir.createDirectories())) }
+      _ <- atMostOneTempDir(prefix).doIfFailure { case _ => disposableStagingDir }
+    } yield disposableStagingDir
   }
 
   // prevents concurrent uploads to a single draft deposit, requires explicit cleanup of interrupted uploads

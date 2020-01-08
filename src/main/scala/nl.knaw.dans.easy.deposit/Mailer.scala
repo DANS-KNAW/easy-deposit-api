@@ -17,21 +17,19 @@ package nl.knaw.dans.easy.deposit
 
 import java.io.StringWriter
 import java.net.URL
+import java.nio.charset.StandardCharsets
 import java.util.{ Properties, UUID }
 
 import better.files.File
 import javax.activation.DataSource
 import javax.mail.util.ByteArrayDataSource
-import nl.knaw.dans.easy.deposit.Mailer.{ notEmpty, hasFileList }
 import nl.knaw.dans.easy.deposit.docs.AgreementData
-import nl.knaw.dans.lib.error._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.apache.commons.mail.{ HtmlEmail, MultiPartEmail }
 import org.apache.velocity.app.VelocityEngine
 import org.apache.velocity.{ Template, VelocityContext }
 
 import scala.util.Try
-import scala.xml.Elem
 
 case class Mailer(smtpHost: String,
                   fromAddress: String,
@@ -58,16 +56,22 @@ case class Mailer(smtpHost: String,
     }
   }
 
-  /** @return messageID */
-  def buildMessage(data: AgreementData, attachments: Map[String, DataSource], depositId: UUID, msg4Datamanager: String): Try[MultiPartEmail] = Try {
+  private def hasFileList(attachments: Map[String, DataSource]): Boolean = {
+    attachments.exists { case (name, content) => name == Mailer.filesAttachmentName && notEmpty(content) }
+  }
+
+  private def notEmpty(content: DataSource): Boolean = {
+    content.getInputStream.available() > 0
+  }
+
+  def buildMessage(data: AgreementData, attachments: Map[String, DataSource], depositId: UUID, msg4Datamanager: Option[String]): Try[MultiPartEmail] = Try {
     val context = new VelocityContext {
       put("displayName", data.depositor.name)
       put("datasetTitle", data.title)
       put("myDatasetsUrl", myDatasets.toString)
       put("doi", data.doi)
       put("hasFileListAttached", hasFileList(attachments))
-      if (msg4Datamanager.trim.nonEmpty)
-        put("msg4Datamanager", msg4Datamanager)
+      msg4Datamanager.foreach(put("msg4Datamanager", _))
     }
     logger.info(s"[$depositId] email placeholder values: ${ context.getKeys.map(key => s"$key=${ context.get(key.toString) }").mkString(", ") }")
     val email = new HtmlEmail()
@@ -78,9 +82,8 @@ case class Mailer(smtpHost: String,
     email.setFrom(fromAddress)
     email.setBounceAddress(bounceAddress)
     bccs.foreach(email.addBcc)
-    attachments.foreach { case (name, content) =>
-      if (notEmpty(content))
-        email.attach(content, name, name)
+    attachments.foreach { case (name, content) if notEmpty(content) =>
+      email.attach(content, name, name)
     }
     email.setHostName(smtpHost)
     email.buildMimeMessage()
@@ -89,36 +92,25 @@ case class Mailer(smtpHost: String,
 }
 object Mailer extends DebugEnhancedLogging {
 
-  private def hasFileList(attachments: Map[String, DataSource]): Boolean = {
-    attachments.exists { case (name, content) => name.startsWith("files.") && notEmpty(content) }
+  val datasetXmlAttachmentName = "metadata.xml"
+  val filesAttachmentName = "files.txt"
+
+  def agreementFileName(mimeType: String): String = {
+    if (mimeType == "text/html")
+      "agreement.html"
+    else
+      "agreement.pdf"
   }
 
-  private def notEmpty(content: DataSource): Boolean = {
-    content.getInputStream.available() > 0
-  }
-
-  def send(id: UUID, email: MultiPartEmail): Try[String] = {
-    Try(email.sendMimeMessage)
-      .map { messageId =>
-        logger.info(s"[$id] sent email $messageId")
-        messageId
-      }
-      .doIfFailure { case e => logger.error(s"[$id] could not send deposit confirmation message", e) }
-  }
-
-  def pdfDataSource(data: Array[Byte]): DataSource = {
-    new ByteArrayDataSource(data, "application/pdf")
-  }
-
-  def xmlDataSource(data: Elem): DataSource = {
-    xmlDataSource(data.serialize)
+  def dataSource(data: Array[Byte], mimeType: String): DataSource = {
+    new ByteArrayDataSource(data, mimeType)
   }
 
   def xmlDataSource(data: String): DataSource = {
-    new ByteArrayDataSource(data.getBytes, "text/xml")
+    dataSource(data.getBytes(StandardCharsets.UTF_8), "text/xml")
   }
 
   def txtDataSource(data: String): DataSource = {
-    new ByteArrayDataSource(data.getBytes, "text/plain")
+    dataSource(data.getBytes(StandardCharsets.UTF_8), "text/plain")
   }
 }

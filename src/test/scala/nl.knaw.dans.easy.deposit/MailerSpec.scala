@@ -36,9 +36,9 @@ class MailerSpec extends TestSupportFixture {
   )
 
   private val attachments = Map(
-    "agreement.pdf" -> Mailer.pdfDataSource("mocked pdf".getBytes),
-    "dataset.xml" -> Mailer.xmlDataSource(<greeting>hello world</greeting>),
-    "files.xml" -> Mailer.xmlDataSource(<farewell>goodby world</farewell>),
+    Mailer.agreementFileName("application/pdf") -> Mailer.dataSource("mocked pdf".getBytes, "application/pdf"),
+    Mailer.datasetXmlAttachmentName -> Mailer.xmlDataSource(<greeting>hello world</greeting>.serialize),
+    Mailer.filesAttachmentName -> Mailer.xmlDataSource(<farewell>goodby world</farewell>.serialize),
   )
 
   private val url = new URL("http:/localhost")
@@ -47,13 +47,13 @@ class MailerSpec extends TestSupportFixture {
   "buildMessage" should "succeed" in {
     val from = "does.not.exist@dans.knaw.nl"
     Mailer(smtpHost = "localhost", fromAddress = from, bounceAddress = from, bccs = Seq.empty, validTemplateDir, url)
-      .buildMessage(data, attachments, UUID.randomUUID(), msg4Datamanager = "") shouldBe a[Success[_]]
+      .buildMessage(data, attachments, UUID.randomUUID(), msg4Datamanager = Option("")) shouldBe a[Success[_]]
   }
 
   it should "report invalid address" in {
     val from = "dans.knaw.nl"
     Mailer(smtpHost = "localhost", fromAddress = from, bounceAddress = from, bccs = Seq.empty, validTemplateDir, url)
-      .buildMessage(data, attachments, UUID.randomUUID(), msg4Datamanager = "") should matchPattern {
+      .buildMessage(data, attachments, UUID.randomUUID(), msg4Datamanager = Option("")) should matchPattern {
       case Failure(e) if e.getMessage.matches(".*Missing final '@domain'.*dans.knaw.nl.*") =>
     }
   }

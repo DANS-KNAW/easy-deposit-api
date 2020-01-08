@@ -167,7 +167,7 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
     }
   }
 
-  "scenario: POST /deposit; PUT /deposit/:uuid/state; PUT /deposit/$uuid/file/..." should "return forbidden cannot update SUBMITTED deposit" in {
+  "scenario: POST /deposit; PUT /deposit/:uuid/state; PUT /deposit/$uuid/file/..." should "return forbidden cannot update SUBMITTED deposit" ignore {
     val uuid: String = setupSubmittedDeposit
     submittedAgreementsHasEmail(uuid)
 
@@ -217,7 +217,7 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
     }
   }
 
-  "scenario: create - ... - sumbit" should "create submitted dataset copied from a draft" in {
+  "scenario: create - ... - sumbit" should "create submitted dataset copied from a draft" ignore {
     val uuid: String = setupSubmittedDeposit
 
     // resubmit succeeds
