@@ -24,6 +24,7 @@ import nl.knaw.dans.easy.deposit.EasyDepositApiApp
 import nl.knaw.dans.easy.deposit.Errors._
 import nl.knaw.dans.easy.deposit.docs.JsonUtil.toJson
 import nl.knaw.dans.easy.deposit.docs.{ DatasetMetadata, StateInfo }
+import nl.knaw.dans.lib.string._
 import org.scalatra._
 import org.scalatra.servlet.{ FileUploadSupport, SizeConstraintExceededException }
 import org.scalatra.util.RicherString._
@@ -111,7 +112,9 @@ class DepositServlet(app: EasyDepositApiApp)
         _ = logger.info(s"[$uuid] saving metadata")
         managedIS = managed(request.getInputStream)
         datasetMetadata <- managedIS.apply(is => DatasetMetadata(is))
+        _ = logger.debug(s"[$uuid] comparing DOI in deposit.properties and newly uploaded dataset metadata")
         _ <- app.checkDoi(user.id, uuid, datasetMetadata)
+        _ = logger.debug(s"[$uuid] writing newly uploaded dataset metadata to deposit")
         _ <- app.writeDataMetadataToDeposit(datasetMetadata, user.id, uuid)
       } yield NoContent()
     }.getOrRecoverWithActionResult
@@ -131,7 +134,7 @@ class DepositServlet(app: EasyDepositApiApp)
         uuid <- getUUID
         managedIS = managed(request.getInputStream)
         stateInfo <- managedIS.apply(is => StateInfo(is))
-        _ = logger.info(s"[$uuid] changing state to $stateInfo")
+        _ = logger.info(s"[$uuid] changing state to ${ stateInfo.state } with description ${ stateInfo.stateDescription }")
         _ <- app.setDepositState(stateInfo, user.id, uuid)
       } yield NoContent()
     }.getOrRecoverWithActionResult
@@ -150,7 +153,7 @@ class DepositServlet(app: EasyDepositApiApp)
       for {
         uuid <- getUUID
         path <- getPath
-        _ = logger.info(s"[$uuid] retrieve file info for path $path")
+        _ = logger.info(s"[$uuid] retrieve file info for path '${ path.toString.toOption.getOrElse("/") }'")
         contents <- app.getFileInfo(user.id, uuid, path)
       } yield Ok(body = toJson(contents), headers = Map(contentTypeJson))
     }.getOrRecoverWithActionResult
@@ -160,7 +163,7 @@ class DepositServlet(app: EasyDepositApiApp)
       for {
         uuid <- getUUID
         path <- getPath
-        _ = logger.info(s"[$uuid] upload file to path $path")
+        _ = logger.info(s"[$uuid] upload file to path '${ path.toString.toOption.getOrElse("/") }'")
         _ <- isMultipart
         fileItems = fileMultiParams.valuesIterator.flatten.buffered
         maybeManagedArchiveInputStream <- fileItems.nextAsArchiveIfOnlyOne
@@ -180,7 +183,7 @@ class DepositServlet(app: EasyDepositApiApp)
       for {
         uuid <- getUUID
         path <- getPath
-        _ = logger.info(s"[$uuid] upload file to path $path")
+        _ = logger.info(s"[$uuid] upload file to path '${ path.toString.toOption.getOrElse("/") }'")
         managedIS = managed(request.getInputStream)
         newFileWasCreated <- managedIS.apply(app.writeDepositFile(_, user.id, uuid, path, Option(request.getContentType)))
         _ = logger.info(s"[$uuid] ${if (newFileWasCreated) "no " else ""}new file was created")
@@ -194,7 +197,7 @@ class DepositServlet(app: EasyDepositApiApp)
       for {
         uuid <- getUUID
         path <- getPath
-        _ = logger.info(s"[$uuid] deleting file $path")
+        _ = logger.info(s"[$uuid] deleting file ${ path.toString.toOption.getOrElse("/") }")
         _ <- app.deleteDepositFile(user.id, uuid, path)
       } yield NoContent()
     }.getOrRecoverWithActionResult

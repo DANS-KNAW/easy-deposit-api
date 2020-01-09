@@ -77,7 +77,7 @@ package object servlets extends DebugEnhancedLogging {
           Try((targetDir / entry.getName).createDirectories())
         }
         else {
-          logger.info(s"[$id] Extracting ${ entry.getName } size = ${ entry.getSize } bytes")
+          logger.debug(s"[$id] Extracting ${ entry.getName }")
           Try {
             (targetDir / entry.getName).parent.createDirectories() // in case a directory was not specified separately
             Files.copy(archiveInputStream, (targetDir / entry.getName).path)
@@ -107,15 +107,17 @@ package object servlets extends DebugEnhancedLogging {
              Failure(_: EOFException) => Failure(MalformedArchiveException(s"No entries found."))
         case Failure(e: ZipException) => Failure(MalformedArchiveException(e.getMessage))
         case Failure(e) => Failure(e)
-        case Success(Some(firstEntry: ArchiveEntry)) => for {
-          _ <- extract(firstEntry)
-          _ <- Stream
-            .continually(archiveInputStream.getNextEntry)
-            .takeWhile(Option(_).nonEmpty)
-            .map(extract)
-            .failFastOr(Success(()))
-          _ = targetDir.walk().foreach(cleanup)
-        } yield ()
+        case Success(Some(firstEntry: ArchiveEntry)) =>
+          logger.info(s"[$id] Extracting archive to $targetDir")
+          for {
+            _ <- extract(firstEntry)
+            _ <- Stream
+              .continually(archiveInputStream.getNextEntry)
+              .takeWhile(Option(_).nonEmpty)
+              .map(extract)
+              .failFastOr(Success(()))
+            _ = targetDir.walk().foreach(cleanup)
+          } yield ()
       }
     }
   }
@@ -147,7 +149,7 @@ package object servlets extends DebugEnhancedLogging {
 
     private def moveIfNotAnArchive(srcItem: FileItem, targetDir: File, id: UUID): Try[Unit] = {
       val target = targetDir / srcItem.name
-      logger.info(s"[$id] staging upload to $target - size = ${ srcItem.size } bytes, contentType = ${ srcItem.contentType }")
+      logger.info(s"[$id] staging upload to $target, contentType = ${ srcItem.contentType }")
       if (srcItem.name.isBlank) Success(()) // skip form field without selected files
       else if (srcItem.isArchive) Failure(ArchiveMustBeOnlyFileException(srcItem))
       else Try {

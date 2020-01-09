@@ -39,7 +39,11 @@ object Errors extends DebugEnhancedLogging {
     extends FileAlreadyExistsException(
       s"Staging area [$dir] should be empty unless a forced shutdown occurred during an upload/submit request." +
         " Directories containing bags are aborted submits, somehow (allow) resubmit if indeed not in fedora." +
-        " Other directories contain files of uploads that are not yet moved into the bag."
+        " Other directories contain files of uploads that are not yet moved into the bag." +
+        " Please consult the logs on what happened in this situation, which steps of the processing of staged" +
+        " deposits has already been completed and which steps still need to be done. These latter steps need to" +
+        " be performed manually before restarting this service. Don't delete data from this staging without careful" +
+        " consideration!"
     )
 
   abstract sealed class ServletResponseException(status: Int, httpResponseBody: String)

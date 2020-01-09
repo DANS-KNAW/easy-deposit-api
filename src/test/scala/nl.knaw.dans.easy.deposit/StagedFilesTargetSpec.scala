@@ -17,6 +17,7 @@ package nl.knaw.dans.easy.deposit
 
 import java.net.{ URL, UnknownHostException }
 import java.nio.file.Paths
+import java.util.UUID
 
 import better.files.StringExtensions
 import nl.knaw.dans.bag.v0.DansV0Bag
@@ -44,7 +45,7 @@ class StagedFilesTargetSpec extends TestSupportFixture {
     bag.data.list shouldBe empty
     bag.fetchFiles shouldBe empty
 
-    StagedFilesTarget(bag, Paths.get("path/to"))
+    StagedFilesTarget(UUID.randomUUID(), bag, Paths.get("path/to"))
       .moveAllFrom(stagedDir) shouldBe Success(())
 
     bag.fetchFiles shouldBe empty
@@ -58,7 +59,7 @@ class StagedFilesTargetSpec extends TestSupportFixture {
     val bag = newEmptyBag
     bag.save()
 
-    StagedFilesTarget(bag, Paths.get(""))
+    StagedFilesTarget(UUID.randomUUID(), bag, Paths.get(""))
       .moveAllFrom(stagedDir) shouldBe Success(())
 
     (bag.data / "some.thing").contentAsString shouldBe "new content"
@@ -80,7 +81,7 @@ class StagedFilesTargetSpec extends TestSupportFixture {
     bag.data.entries shouldBe empty
     bag.fetchFiles should not be empty
 
-    StagedFilesTarget(bag, Paths.get("path/to"))
+    StagedFilesTarget(UUID.randomUUID(), bag, Paths.get("path/to"))
       .moveAllFrom(stagedDir) shouldBe a[Success[_]]
 
     bag.data / "path" / "to" / "some.thing" should exist
@@ -94,7 +95,7 @@ class StagedFilesTargetSpec extends TestSupportFixture {
     bag.save()
     (bag.data / "path" / "to" / "some.thing").contentAsString shouldBe "Lorum ipsum"
 
-    StagedFilesTarget(bag, Paths.get("path/to"))
+    StagedFilesTarget(UUID.randomUUID(), bag, Paths.get("path/to"))
       .moveAllFrom(stagedDir) shouldBe a[Success[_]]
 
     (bag.data / "path" / "to" / "some.thing").contentAsString shouldBe "new content"
