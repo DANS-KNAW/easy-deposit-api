@@ -26,9 +26,7 @@ import better.files.File.{ CopyOptions, VisitOptions }
 import nl.knaw.dans.bag.ChecksumAlgorithm.ChecksumAlgorithm
 import nl.knaw.dans.bag.DansBag
 import nl.knaw.dans.bag.v0.DansV0Bag
-import nl.knaw.dans.easy.deposit.Errors.AlreadySubmittedException
-import nl.knaw.dans.easy.deposit.docs.StateInfo.State
-import nl.knaw.dans.easy.deposit.docs.{ AgreementData, StateInfo }
+import nl.knaw.dans.easy.deposit.docs.AgreementData
 import nl.knaw.dans.lib.error._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 
