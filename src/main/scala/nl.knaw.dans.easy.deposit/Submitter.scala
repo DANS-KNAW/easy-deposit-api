@@ -72,15 +72,18 @@ class Submitter(submitToBaseDir: File,
       submittedId <- draftDepositStateManager.getSubmittedBagId // created by changeState
       submitDir = submitToBaseDir / submittedId.toString
       _ = if (submitDir.exists) throw AlreadySubmittedException(depositId)
-      _ = logger.info(s"[$depositId] dispatching submit action to threadpool executor")
+      queueSize = jobQueue.getSystemStatus.queueSize
+      queueMsg = if (queueSize > 0) s"; currently ${ queueSize } jobs waiting to be processed"
+                 else ""
+      _ = logger.info(s"[$depositId] dispatching submit action to threadpool executor$queueMsg")
       _ <- jobQueue.scheduleJob {
         new SubmitJob(
-          depositId = draftDeposit.id,
+          draftDepositId = draftDeposit.id,
           depositUiURL = depositUiURL,
           groupPrincipal = groupPrincipal,
           fileLimit = fileLimit,
           draftBag = draftBag,
-          stagedDir = stagedDir,
+          stagedDepositDir = stagedDir,
           submitDir = submitDir,
           datasetXml = datasetXml,
           filesXml = filesXml,

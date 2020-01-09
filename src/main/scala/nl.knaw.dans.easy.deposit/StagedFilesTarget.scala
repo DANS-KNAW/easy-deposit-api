@@ -16,6 +16,7 @@
 package nl.knaw.dans.easy.deposit
 
 import java.nio.file.Path
+import java.util.UUID
 
 import better.files.File
 import nl.knaw.dans.bag.DansBag
@@ -28,7 +29,7 @@ import scala.util.{ Success, Try }
  * @param draftBag    the bag that receives the staged files as payload
  * @param destination relative location in the bag's data directory
  */
-case class StagedFilesTarget(draftBag: DansBag, destination: Path) extends DebugEnhancedLogging {
+case class StagedFilesTarget(id: UUID, draftBag: DansBag, destination: Path) extends DebugEnhancedLogging {
 
   /**
    * Moves files from stagingDir to draftBag, after deleting each file in the bag as soon as it would be overwritten.
@@ -44,10 +45,15 @@ case class StagedFilesTarget(draftBag: DansBag, destination: Path) extends Debug
       )
 
     def cleanUp(bagRelativePath: Path) = {
-      if ((draftBag.data / bagRelativePath.toString).exists)
+      val oldFile = draftBag.data / bagRelativePath.toString
+      if (oldFile.exists) {
+        logger.info(s"[$id] removing payload file $bagRelativePath to be replaced by the newly uploaded file")
         draftBag.removePayloadFile(bagRelativePath)
-      else if (fetchFiles.contains(bagRelativePath))
-             draftBag.removeFetchItem(bagRelativePath)
+      }
+      else if (fetchFiles.contains(bagRelativePath)) {
+        logger.info(s"[$id] removing fetch file $bagRelativePath to be replaced by the newly uploaded file")
+        draftBag.removeFetchItem(bagRelativePath)
+      }
       else Success(())
     }
 
@@ -57,6 +63,7 @@ case class StagedFilesTarget(draftBag: DansBag, destination: Path) extends Debug
         val bagRelativePath = destination.resolve(stagingDir.relativize(stagedFile))
         for {
           _ <- cleanUp(bagRelativePath)
+          _ = logger.info(s"[$id] moving uploaded files in $stagingDir to bag payload ${ draftBag.data }")
           _ <- draftBag.addPayloadFile(stagedFile, bagRelativePath)(ATOMIC_MOVE)
         } yield ()
       }.failFastOr(draftBag.save)

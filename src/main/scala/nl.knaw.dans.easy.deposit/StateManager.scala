@@ -46,7 +46,7 @@ case class StateManager(draftDeposit: DepositDir, submitBase: File, easyHome: UR
   private lazy val submittedProps = getProp(bagIdKey, draftProps)
     .map(submittedId => {
       val submitDepositPropsFile = submitBase / submittedId / "deposit.properties"
-      
+
       // It is not certain that `submitDepositPropsFile` exists at the time of reading this parameter.
       // Given that the submit is done asynchronously, it is possible that the next request
       //   (e.g. deposit listing) is done before the deposit is moved to `submitBase`.
@@ -100,7 +100,7 @@ case class StateManager(draftDeposit: DepositDir, submitBase: File, easyHome: UR
   }
 
   def changeState(oldStateInfo: StateInfo, newStateInfo: StateInfo): Try[Unit] = {
-    logger.info(s"[${ draftDeposit.id }] changing deposit state from $oldStateInfo to $newStateInfo")
+    logger.info(s"[${ draftDeposit.id }] changing deposit state from ${ oldStateInfo.state } to ${ newStateInfo.state } with description ${ newStateInfo.stateDescription }")
 
     // getStateInfo has been called by canChangeState, but it is not an IO action
     // so let's keep it simple without optimisation

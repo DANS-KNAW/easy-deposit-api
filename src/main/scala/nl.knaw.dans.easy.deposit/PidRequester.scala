@@ -37,7 +37,7 @@ class PidRequester(http: BaseHttp, uri: URI) extends DebugEnhancedLogging {
       .asString
   } flatMap {
     case HttpResponse(body, CREATED_201, _) =>
-      logger.info(s"[$id] agreement generated successfully")
+      logger.info(s"[$id] pid generated successfully: '$body'")
       Success(body)
     case HttpResponse(body, code, _) =>
       logger.info(s"[$id] PID generator failed with code $code and body $body")

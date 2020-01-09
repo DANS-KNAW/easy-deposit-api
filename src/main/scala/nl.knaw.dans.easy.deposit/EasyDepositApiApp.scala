@@ -255,8 +255,8 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
       stateManager <- deposit.getStateManager(submitBase, easyHome)
       oldStateInfo <- stateManager.getStateInfo
       _ <- stateManager.canChangeState(oldStateInfo, newStateInfo)
-        .doIfSuccess { _ => logger.info(s"[$id] state change from $oldStateInfo to $newStateInfo is allowed") }
-        .doIfFailure { case _ => logger.info(s"[$id] state change from $oldStateInfo to $newStateInfo is not allowed") }
+        .doIfSuccess { _ => logger.info(s"[$id] state change from ${ oldStateInfo.state } to ${ newStateInfo.state } is allowed") }
+        .doIfFailure { case _ => logger.info(s"[$id] state change from ${ oldStateInfo.state } to ${ newStateInfo.state } is not allowed") }
       _ <- if (newStateInfo.state == State.submitted)
              submit(deposit, stateManager) // also changes the state
            else stateManager.changeState(oldStateInfo, newStateInfo)
@@ -438,7 +438,7 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
       deposit <- DepositDir.get(draftBase, userId, id)
       dataFiles <- deposit.getDataFiles
       disposableStagingDir <- getStagedDir(userId, id)
-    } yield (disposableStagingDir, StagedFilesTarget(dataFiles.bag, destination))
+    } yield (disposableStagingDir, StagedFilesTarget(id, dataFiles.bag, destination))
   }
 
   // the temporary directory is dropped when the disposable resource is released on completion of the request
