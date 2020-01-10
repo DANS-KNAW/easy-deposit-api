@@ -82,8 +82,10 @@ case class Mailer(smtpHost: String,
     email.setFrom(fromAddress)
     email.setBounceAddress(bounceAddress)
     bccs.foreach(email.addBcc)
-    attachments.foreach { case (name, content) if notEmpty(content) =>
-      email.attach(content, name, name)
+    attachments.foreach {
+      case (name, content) =>
+        if (notEmpty(content))
+          email.attach(content, name, name)
     }
     email.setHostName(smtpHost)
     email.buildMimeMessage()
