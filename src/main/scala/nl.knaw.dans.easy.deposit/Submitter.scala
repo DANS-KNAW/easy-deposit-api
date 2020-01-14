@@ -76,22 +76,20 @@ class Submitter(submitToBaseDir: File,
                  else ""
       _ = logger.info(s"[$depositId] dispatching submit action to threadpool executor$queueMsg")
       _ <- jobQueue.scheduleJob {
-        new SubmitJob(
-          draftDepositId = draftDeposit.id,
-          depositUiURL = depositUiURL,
-          groupPrincipal = groupPrincipal,
+        new SubmitJob(draftDepositId = draftDeposit.id,
           draftBag = draftBag,
           stagedDepositDir = stagedDir,
-          submitDir = submitDir,
           datasetXml = datasetXml,
           filesXml = filesXml,
           agreementsXml = agreementsXml,
           msg4DataManager = datasetMetadata.messageForDataManager.getOrElse("").stripLineEnd.toOption,
           agreementData = AgreementData(user, datasetMetadata),
           draftDepositStateManager = draftDepositStateManager,
+          groupPrincipal = groupPrincipal,
+          depositUiURL = depositUiURL,
+          submitDir = submitDir,
           agreementGenerator = agreementGenerator,
-          mailer = mailer,
-        )
+          mailer = mailer)
       }
     } yield ()
   }

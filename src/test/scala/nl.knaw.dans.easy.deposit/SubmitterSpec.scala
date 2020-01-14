@@ -74,7 +74,7 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
     val (draftDeposit, draftPropertiess) = init(withDoiInProps = true)
 
     val mockedQueue = mock[JobQueueManager]
-    (() => mockedQueue.getSystemStatus) expects() returning
+    (() => mockedQueue.getSystemStatus) expects() once() returning
       SystemStatus(threadPoolStatus = null, queueSize = 2, queueContent = null)
     (mockedQueue.scheduleJob(_: Runnable)) expects * returning Success(())
 

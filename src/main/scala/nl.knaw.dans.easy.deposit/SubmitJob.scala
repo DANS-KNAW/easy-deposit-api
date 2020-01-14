@@ -34,20 +34,22 @@ import scala.collection.JavaConverters._
 import scala.util.control.NonFatal
 import scala.util.{ Failure, Success, Try }
 
-class SubmitJob(draftDepositId: UUID,
-                depositUiURL: String,
-                groupPrincipal: GroupPrincipal,
-                draftBag: DansBag,
-                stagedDepositDir: File,
-                submitDir: File,
-                datasetXml: String,
-                filesXml: String,
-                agreementsXml: String,
-                msg4DataManager: Option[String],
-                agreementData: AgreementData,
-                draftDepositStateManager: StateManager,
-                agreementGenerator: AgreementGenerator,
-                mailer: Mailer,
+class SubmitJob( // deposit values
+                 draftDepositId: UUID,
+                 draftBag: DansBag,
+                 stagedDepositDir: File,
+                 datasetXml: String,
+                 filesXml: String,
+                 agreementsXml: String,
+                 msg4DataManager: Option[String],
+                 agreementData: AgreementData,
+                 draftDepositStateManager: StateManager,
+                 // application configuration values
+                 groupPrincipal: GroupPrincipal,
+                 depositUiURL: String,
+                 submitDir: File,
+                 agreementGenerator: AgreementGenerator,
+                 mailer: Mailer,
                ) extends Runnable with DebugEnhancedLogging {
 
   private val propsFileName = "deposit.properties"
