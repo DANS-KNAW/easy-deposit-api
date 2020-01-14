@@ -143,7 +143,6 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
       submitToBaseDir = submitDir,
       groupPrincipal = null,
       depositUiURL = null,
-      fileLimit = 0,
       jobQueue = jobQueue,
       mailer = null,
       agreementGenerator = null,
