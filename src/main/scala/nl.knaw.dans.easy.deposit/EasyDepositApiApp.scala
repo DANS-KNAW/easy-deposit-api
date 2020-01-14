@@ -121,6 +121,7 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
     bccs = properties.getString("mail.bccs", "").split(" *, *").filter(_.nonEmpty),
     templateDir = File(properties.getString("mail.template", "")),
     myDatasets = new URL(properties.getString("easy.my-datasets")),
+    fileLimit = properties.getInt("attached-file-list.limit"),
   )
 
   protected val submitter: Submitter = {
@@ -139,7 +140,6 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
       submitToBaseDir = submitBase,
       groupPrincipal = groupPrincipal,
       depositUiURL = properties.getString("easy.deposit-ui"),
-      fileLimit = properties.getInt("attached-file-list.limit"),
       jobQueue = jobQueue,
       mailer = mailer,
       agreementGenerator = agreementGenerator,
