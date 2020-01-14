@@ -37,7 +37,6 @@ import scala.util.{ Failure, Success, Try }
 class SubmitJob(draftDepositId: UUID,
                 depositUiURL: String,
                 groupPrincipal: GroupPrincipal,
-                fileLimit: Int,
                 draftBag: DansBag,
                 stagedDepositDir: File,
                 submitDir: File,
@@ -107,7 +106,7 @@ class SubmitJob(draftDepositId: UUID,
       attachments = Map(
         Mailer.agreementFileName(agreementGenerator.acceptHeader) -> Some(Mailer.dataSource(agreement, agreementGenerator.acceptHeader)),
         Mailer.datasetXmlAttachmentName -> Some(Mailer.xmlDataSource(datasetXml)),
-        Mailer.filesAttachmentName -> serializeManifest(draftBag, fileLimit).map(Mailer.txtDataSource),
+        Mailer.filesAttachmentName -> serializeManifest(draftBag, mailer.fileLimit).map(Mailer.txtDataSource),
       ).collect { case (key, Some(value)) => key -> value }
       email <- mailer.buildMessage(agreementData, attachments, draftDepositId, msg4DataManager)
       _ = logger.info(s"[$draftDepositId] send email")

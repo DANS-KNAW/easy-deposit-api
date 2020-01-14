@@ -37,6 +37,7 @@ case class Mailer(smtpHost: String,
                   bccs: Seq[String],
                   templateDir: File,
                   myDatasets: URL,
+                  fileLimit: Int = 200,
                  ) extends DebugEnhancedLogging {
 
   private val engine = new VelocityEngine(new Properties() {
