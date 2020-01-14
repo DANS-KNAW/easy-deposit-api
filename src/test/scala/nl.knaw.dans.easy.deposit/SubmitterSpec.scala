@@ -41,7 +41,7 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
     .getOrRecover(e => fail("could not get test input", e))
 
   def init(datasetMetadata: DatasetMetadata = datasetMetadata,
-           withDoiInProps: Boolean = false
+           withDoiInProps: Boolean = false,
           ): (DepositDir, File) = {
 
     val deposit = DepositDir.create(testDir / "drafts", "user")
