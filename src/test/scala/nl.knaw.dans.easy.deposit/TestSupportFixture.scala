@@ -50,7 +50,7 @@ trait TestSupportFixture extends FlatSpec with Matchers with Inside with BeforeA
   val bagDirName = "bag"
 
   // modification of https://github.com/DANS-KNAW/easy-split-multi-deposit/blob/ea7c2dc3d6/src/test/scala/nl.knaw.dans.easy.multideposit/actions/SetDepositPermissionsSpec.scala#L102
-  lazy val (user, userGroup, unrelatedGroup) = {
+  lazy val (userGroup, unrelatedGroup) = {
     import scala.sys.process._
 
     // don't hardcode users and groups, since we don't know what we have on travis or personal systems
@@ -59,7 +59,7 @@ trait TestSupportFixture extends FlatSpec with Matchers with Inside with BeforeA
     val userGroups = s"id -Gn $user".!!.split(" ").toList
 
     (userGroups, allGroups.diff(userGroups)) match {
-      case (ug :: _, diff :: _) => (user, ug, diff)
+      case (ug :: _, diff :: _) => (ug, diff)
       case (Nil, _) => throw new AssertionError("no suitable user group found")
       case (_, Nil) => throw new AssertionError("no suitable unrelated group found")
     }
@@ -144,7 +144,6 @@ trait TestSupportFixture extends FlatSpec with Matchers with Inside with BeforeA
 
       override protected val submitter: Submitter = {
         createSubmitterWithStubs(
-          stagedBaseDir,
           submitBase,
           properties.getString("deposit.permissions.group"),
           properties.getString("easy.deposit-ui"),
@@ -154,7 +153,7 @@ trait TestSupportFixture extends FlatSpec with Matchers with Inside with BeforeA
     }
   }
 
-  def createSubmitterWithStubs(stagedBaseDir: File, submitBase: File, groupName: String, depositUiURL: String, jobQueueManager: JobQueueManager): Submitter = {
+  def createSubmitterWithStubs(submitBase: File, groupName: String, depositUiURL: String, jobQueueManager: JobQueueManager): Submitter = {
     val agreementGenerator: AgreementGenerator = new AgreementGenerator(Http, new URL("http://does.not.exist"), "text/html") {
       override def generate(agreementData: AgreementData, id: UUID): Try[Array[Byte]] = {
         Success("mocked pdf".getBytes)
@@ -174,7 +173,7 @@ trait TestSupportFixture extends FlatSpec with Matchers with Inside with BeforeA
         //java.lang.IllegalArgumentException: MimeMessage has not been created yet
       }
     }
-    val groupPrinciple = stagedBaseDir.fileSystem.getUserPrincipalLookupService.lookupPrincipalByGroupName(groupName)
+    val groupPrinciple = submitBase.fileSystem.getUserPrincipalLookupService.lookupPrincipalByGroupName(groupName)
     new Submitter(
       submitBase,
       groupPrinciple,

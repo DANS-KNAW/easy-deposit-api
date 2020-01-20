@@ -25,7 +25,6 @@ import nl.knaw.dans.bag.DansBag
 import nl.knaw.dans.easy.deposit.docs._
 import nl.knaw.dans.easy.deposit.executor.JobQueueManager
 import nl.knaw.dans.lib.error._
-import org.apache.commons.configuration.PropertiesConfiguration
 import org.scalamock.scalatest.MockFactory
 
 import scala.util.{ Failure, Success }
@@ -38,7 +37,6 @@ class SubmitJobSpec extends TestSupportFixture with MockFactory {
   }
 
   private val easyHome: URL = new URL("https://easy.dans.knaw.nl/ui")
-  private val customMessage = "Lorum ipsum"
   private val datasetMetadata = DatasetMetadata(getManualTestResource("datasetmetadata-from-ui-all.json"))
     .getOrRecover(e => fail("could not get test input", e))
   private val doi = datasetMetadata.doi
@@ -54,43 +52,6 @@ class SubmitJobSpec extends TestSupportFixture with MockFactory {
       case Failure(e: IOException) if e.getMessage matches
         ".*Probably the current user .* is not part of this group.*" =>
     }
-  }
-
-  it should "write all files" ignore {
-    // preparations
-    val depositDir = createDeposit(datasetMetadata.copy(messageForDataManager = Some(customMessage)))
-    val bag = getBag(depositDir)
-    addDoiToDepositProperties(bag)
-    val bagDir = bag.baseDir
-    bag.addPayloadFile("".inputStream, Paths.get("text.txt"))
-    bag.addPayloadFile("Lorum ipsum".inputStream, Paths.get("folder/text.txt"))
-    bag.save()
-
-    // preconditions
-    val mdOldSize = (bagDir / "metadata" / "dataset.json").size // should not change
-    new PropertiesConfiguration((bagDir.parent / "deposit.properties").toJava)
-      .getString("state.label") shouldBe "DRAFT"
-
-    // the test
-    val bagStoreBagID = succeedingSubmit(depositDir)
-
-    // post conditions
-    (testDir / "staged") should not(exist)
-    (bagDir / "metadata" / "dataset.json").size shouldBe mdOldSize
-    // no DOI added
-    val submittedBagDir = testDir / "submitted" / bagStoreBagID / bagDirName
-    (submittedBagDir / "metadata" / "depositor-info" / "message-from-depositor.txt").contentAsString shouldBe s"$customMessage\n\nThe deposit can be found at http://does.not.exist/${ depositDir.id }"
-    (submittedBagDir / "metadata" / "depositor-info" / "agreements.xml").lineIterator.next() shouldBe prologue
-    (submittedBagDir / "metadata" / "dataset.xml").lineIterator.next() shouldBe prologue
-    (submittedBagDir / "data").children.size shouldBe (bagDir / "data").children.size
-    (submittedBagDir / "tagmanifest-sha1.txt").lines.size shouldBe 7 // tag files including metadata/*
-    (submittedBagDir / "manifest-sha1.txt").lines.size shouldBe 2 // the data files
-    (submittedBagDir / "metadata" / "files.xml").contentAsString.matches("(?s).*(filepath=.*){2}.*") shouldBe true
-    (submittedBagDir.parent / "deposit.properties").contentAsString shouldBe
-      (bagDir.parent / "deposit.properties").contentAsString
-    depositDir.getDOI(null) shouldBe Success(doi) // no pid-requester so obtained from json and/or props
-    new PropertiesConfiguration((bagDir.parent / "deposit.properties").toJava)
-      .getString("state.label") shouldBe "SUBMITTED"
   }
 
   it should "write empty message-from-depositor file" ignore {
@@ -176,13 +137,7 @@ class SubmitJobSpec extends TestSupportFixture with MockFactory {
   }
 
   private def createSubmitter(group: String): Submitter = {
-    createSubmitterWithStubs(
-      (testDir / "staged").createDirectories(),
-      (testDir / "submitted").createDirectories(),
-      group,
-      "http://does.not.exist",
-      new JobQueueManager(new ThreadPoolExecutor(1, 1, 10, TimeUnit.SECONDS, new LinkedBlockingQueue())),
-    )
+    createSubmitterWithStubs((testDir / "submitted").createDirectories(), group, "http://does.not.exist", new JobQueueManager(new ThreadPoolExecutor(1, 1, 10, TimeUnit.SECONDS, new LinkedBlockingQueue())))
   }
 
   private def addDoiToDepositProperties(bag: DansBag): Unit = {

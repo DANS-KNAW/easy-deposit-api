@@ -17,16 +17,20 @@ package nl.knaw.dans.easy.deposit
 
 import java.io.IOException
 import java.net.URL
-import java.nio.file.NoSuchFileException
+import java.nio.file.{ NoSuchFileException, Paths }
+import java.util.UUID
 
-import better.files.File
+import better.files.{ File, StringExtensions }
+import javax.activation.DataSource
 import nl.knaw.dans.easy.deposit.Errors.{ CorruptDepositException, InvalidDocumentException }
-import nl.knaw.dans.easy.deposit.docs.DatasetMetadata
+import nl.knaw.dans.easy.deposit.docs.{ AgreementData, DatasetMetadata }
 import nl.knaw.dans.easy.deposit.executor.{ JobQueueManager, SystemStatus }
 import nl.knaw.dans.lib.error._
+import org.apache.commons.mail.MultiPartEmail
 import org.scalamock.scalatest.MockFactory
+import scalaj.http.Http
 
-import scala.util.{ Failure, Success }
+import scala.util.{ Failure, Success, Try }
 
 class SubmitterSpec extends TestSupportFixture with MockFactory {
 
@@ -37,6 +41,9 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
 
   private val submitDir: File = testDir / "submitted"
   private val stageDir: File = testDir / "staged"
+  private val depositHome = "https://easy.dans.knaw.nl/deposit"
+  private val easyHome = new URL("https://easy.dans.knaw.nl/ui")
+  private val validGroup = submitDir.fileSystem.getUserPrincipalLookupService.lookupPrincipalByGroupName(userGroup)
   private val datasetMetadata: DatasetMetadata = DatasetMetadata(getManualTestResource("datasetmetadata-from-ui-all.json"))
     .getOrRecover(e => fail("could not get test input", e))
 
@@ -58,6 +65,7 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
         .getOrElse(fail("could not get DOI from test input"))
       props.append(s"identifier.doi=${ doi }")
     }
+    submitDir.createDirectories()
     deposit -> props
   }
 
@@ -71,29 +79,24 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
   }
 
   "submit" should "schedule a job" in {
-    val (draftDeposit, draftPropertiess) = init(withDoiInProps = true)
-
-    val mockedQueue = mock[JobQueueManager]
-    (() => mockedQueue.getSystemStatus) expects() once() returning
-      SystemStatus(threadPoolStatus = null, queueSize = 2, queueContent = null)
-    (mockedQueue.scheduleJob(_: Runnable)) expects * returning Success(())
+    val (draftDeposit, draftProperties) = init(withDoiInProps = true)
 
     // pre conditions
-    draftPropertiess.contentAsString should include("DRAFT")
-    draftPropertiess.contentAsString shouldNot include("bag-store.bag-id")
+    draftProperties.contentAsString should include("DRAFT")
+    draftProperties.contentAsString shouldNot include("bag-store.bag-id")
 
-    createSubmitter(mockedQueue)
+    new Submitter(submitDir, validGroup, depositHome, jobQueue = expectsOneSubmitJob(), mailer = null, agreementGenerator = null)
       .submit(draftDeposit, createStateManager(draftDeposit), defaultUserInfo, stageDir) shouldBe a[Success[_]]
 
     // post conditions
-    draftPropertiess.contentAsString should include("SUBMITTED")
-    draftPropertiess.contentAsString should include("bag-store.bag-id")
+    draftProperties.contentAsString should include("SUBMITTED")
+    draftProperties.contentAsString should include("bag-store.bag-id")
   }
 
   it should "catch incomplete metatdata" in {
     val (draftDeposit, _) = init(DatasetMetadata())
 
-    createSubmitter()
+    new Submitter(submitDir, validGroup, depositHome, jobQueue = null, mailer = null, agreementGenerator = null)
       .submit(draftDeposit, draftDepositStateManager = null, defaultUserInfo, stageDir) should matchPattern {
       case Failure(e: InvalidDocumentException) if e.getMessage.startsWith("invalid DatasetMetadata: ") =>
     }
@@ -103,7 +106,7 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
     val (draftDeposit, _) = init()
     (draftDeposit.bagDir.parent / "deposit.properties").delete()
 
-    createSubmitter()
+    new Submitter(submitDir, validGroup, depositHome, jobQueue = null, mailer = null, agreementGenerator = null)
       .submit(draftDeposit, draftDepositStateManager = null, defaultUserInfo, stageDir) should matchPattern {
       case Failure(e: CorruptDepositException) if e.getMessage.contains("deposit.properties not found or empty") =>
     }
@@ -113,7 +116,7 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
     val (draftDeposit, _) = init(withDoiInProps = true)
     draftDeposit.bagDir.delete()
 
-    createSubmitter()
+    new Submitter(submitDir, validGroup, depositHome, jobQueue = null, mailer = null, agreementGenerator = null)
       .submit(draftDeposit, draftDepositStateManager = null, defaultUserInfo, stageDir) should matchPattern {
       case Failure(e: NoSuchFileException) if e.getMessage.contains("bag/bagit.txt") =>
     }
@@ -123,29 +126,116 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
     val (draftDeposit, _) = init(withDoiInProps = true)
     val file = (draftDeposit.bagDir / "data" / "some.file").createFile()
 
-    createSubmitter()
+    new Submitter(submitDir, validGroup, depositHome, jobQueue = null, mailer = null, agreementGenerator = null)
       .submit(draftDeposit, createStateManager(draftDeposit), defaultUserInfo, file) should matchPattern {
       case Failure(e: Exception) if e.getMessage ==
         s"invalid bag, missing [files, checksums]: [Set(), Set($file)]" =>
     }
   }
 
+  "SubmitJob.run" should "write all files" in {
+    val customMessage = "Lorum ipsum"
+    val (draftDeposit, draftProperties) = init(
+      datasetMetadata.copy(messageForDataManager = Some(customMessage)),
+      withDoiInProps = true
+    )
+    val bag = draftDeposit.getDataFiles.getOrRecover(e => fail(e.toString, e)).bag
+    bag.addPayloadFile("Lorum ipsum".inputStream, Paths.get("folder/text.txt"))
+    bag.save()
+
+    // pre conditions
+    draftProperties.contentAsString should
+      (include("DRAFT") and not include "bag-store.bag-id")
+    val jsonFile = draftDeposit.bagDir / "metadata" / "dataset.json"
+    val mdOldSize = jsonFile.size // should not change
+    stageDir should not(exist)
+    submitDir.list shouldBe empty
+
+    new Submitter(submitDir, validGroup, depositHome, jobQueue = executesOneSubmitJob(), mailer = expectsBuildMessageOnce(), agreementGenerator = expectsOneAgreement())
+      .submit(draftDeposit, createStateManager(draftDeposit), defaultUserInfo, stageDir) shouldBe Success(())
+
+    // post conditions
+    jsonFile.size shouldBe mdOldSize
+    val submittedDeposit = submitDir.children.toSeq.head
+    draftProperties.contentAsString should // compare with pre conditions
+      (include("SUBMITTED") and include("bag-store.bag-id") and be((submittedDeposit / "deposit.properties").contentAsString))
+    val submittedMetadata = submittedDeposit / "bag" / "metadata"
+    (submittedMetadata / "files.xml").contentAsString should include("""<file filepath="data/folder/text.txt">""")
+    (submittedMetadata / "depositor-info" / "message-from-depositor.txt").contentAsString shouldBe
+      s"""$customMessage
+         |
+         |The deposit can be found at $depositHome/${ draftDeposit.id }""".stripMargin
+    (draftDeposit.bagDir / "metadata").list.toSeq.map(_.name) shouldBe Seq("dataset.json") // compare with submitted metadata
+    submittedDeposit.listRecursively.toSeq should contain allElementsOf Seq(
+      "deposit.properties",
+      "bag",
+      "bag/bagit.txt",
+      "bag/bag-info.txt",
+      "bag/manifest-sha1.txt",
+      "bag/tagmanifest-sha1.txt",
+      "bag/data",
+      "bag/data/folder",
+      "bag/data/folder/text.txt",
+      "bag/metadata",
+      "bag/metadata/dataset.xml",
+      "bag/metadata/files.xml",
+      "bag/metadata/depositor-info",
+      "bag/metadata/depositor-info/agreements.xml",
+      "bag/metadata/depositor-info/message-from-depositor.txt",
+    ).map(submittedDeposit / _)
+  }
+
   /** use null instead when not expecting to arrive at requesting/changing any state */
   private def createStateManager(draftDeposit: DepositDir) = {
-    draftDeposit.getStateManager(submitDir, new URL("https://easy.dans.knaw.nl/ui"))
+    draftDeposit.getStateManager(submitDir, easyHome)
       .getOrRecover(e => fail(s"could not get stateManager of test deposit $e"))
   }
 
-  /** @param jobQueue use a mock when specified */
-  private def createSubmitter(jobQueue: JobQueueManager = null) = {
-    // the null values are only passed on to jobQueue.submitJob(new SubmitJob(...))
-    new Submitter(
-      submitToBaseDir = submitDir,
-      groupPrincipal = null,
-      depositUiURL = null,
-      jobQueue = jobQueue,
-      mailer = null,
-      agreementGenerator = null,
+  private def executesOneSubmitJob(): JobQueueManager = {
+    val mocked = mock[JobQueueManager]
+    (() => mocked.getSystemStatus) expects() once() returning
+      SystemStatus(threadPoolStatus = null, queueSize = 2, queueContent = null)
+    ((mocked.scheduleJob(_: SubmitJob)) expects *).onCall { job: SubmitJob => Try(job.run()) } once()
+    mocked
+  }
+
+  /** use null instead when not expecting to put a job on the queue */
+  private def expectsOneSubmitJob(expectedResult: Try[Unit] = Success(())): JobQueueManager = {
+    val mocked = mock[JobQueueManager]
+    (() => mocked.getSystemStatus) expects() once() returning
+      SystemStatus(threadPoolStatus = null, queueSize = 2, queueContent = null)
+    (mocked.scheduleJob(_: Runnable)) expects * once() returning expectedResult
+    mocked
+  }
+
+  /** use null instead when not expecting to generate an agreement */
+  private def expectsOneAgreement(expectedResult: Try[Array[Byte]] = Success("".getBytes)): AgreementGenerator = {
+    class Mocked() extends AgreementGenerator(Http, new URL("http://does.not.exist"), acceptHeader = "application/pdf")
+    val mocked = mock[Mocked]
+    (mocked.generate(_: AgreementData, _: UUID)
+      ) expects(*, *) once() returning expectedResult
+    mocked
+  }
+
+  /** use null instead when not expecting to compose an email */
+  private def expectsBuildMessageOnce(expectedResult: Try[MultiPartEmail] = Success(expectsSendOnce())): Mailer = {
+    class Mocked extends Mailer(
+      smtpHost = "",
+      fromAddress = "",
+      bounceAddress = "",
+      bccs = Seq.empty,
+      templateDir = File("src/main/assembly/dist/cfg/template"),
+      myDatasets = new URL(depositHome)
     )
+    val mocked = mock[Mocked]
+    (mocked.buildMessage(_: AgreementData, _: Map[String, DataSource], _: UUID, _: Option[String])
+      ) expects(*, *, *, *) once() returning expectedResult
+    mocked
+  }
+
+  private def expectsSendOnce (expectedResult: String = "123"): MultiPartEmail = {
+    val mocked = mock[MultiPartEmail]
+    (() => mocked.sendMimeMessage()) expects() once() returning expectedResult
+    mocked
   }
 }
