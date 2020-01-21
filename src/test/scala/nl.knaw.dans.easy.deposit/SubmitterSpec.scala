@@ -17,26 +17,43 @@ package nl.knaw.dans.easy.deposit
 
 import java.io.IOException
 import java.net.URL
+import java.nio.charset.StandardCharsets
 import java.nio.file.{ NoSuchFileException, Paths }
-import java.util.UUID
+import java.util.concurrent.Executor
 
 import better.files.{ File, StringExtensions }
-import javax.activation.DataSource
 import nl.knaw.dans.easy.deposit.Errors.{ CorruptDepositException, InvalidDocumentException }
-import nl.knaw.dans.easy.deposit.docs.{ AgreementData, DatasetMetadata }
+import nl.knaw.dans.easy.deposit.docs.DatasetMetadata
 import nl.knaw.dans.easy.deposit.executor.{ JobQueueManager, SystemStatus }
 import nl.knaw.dans.lib.error._
-import org.apache.commons.mail.MultiPartEmail
+import okhttp3.mockwebserver.{ MockResponse, MockWebServer }
 import org.scalamock.scalatest.MockFactory
+import org.scalatest.{ Assertion, BeforeAndAfterAll }
 import scalaj.http.Http
 
 import scala.util.{ Failure, Success, Try }
 
-class SubmitterSpec extends TestSupportFixture with MockFactory {
+class SubmitterSpec extends TestSupportFixture with MockFactory with BeforeAndAfterAll {
 
   override def beforeEach(): Unit = {
     super.beforeEach()
     clearTestDir()
+  }
+
+  case class MailExecutor() extends Executor {override def execute(command: Runnable): Unit = ??? }
+  override protected def beforeAll(): Unit = {
+    // TODO next line not effective for https://github.com/apache/commons-email/blob/3fd73a641c3f729586824da1c17aa8efd0e895f8/src/main/java/org/apache/commons/mail/Email.java#L637
+    System.setProperty("mail.event.executor", "nl.knaw.dans.easy.deposit.SubmitterSpec$MailExecutor$")
+  }
+
+  // configure the mock server
+  private val server = new MockWebServer
+  private val agreementTestServer = "/generate/"
+  private val agreementGenerator = AgreementGenerator(Http, server.url(agreementTestServer).url(), "text/html")
+
+  override protected def afterAll(): Unit = {
+    server.shutdown()
+    super.afterAll()
   }
 
   private val submitDir: File = testDir / "submitted"
@@ -134,11 +151,13 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
   }
 
   "SubmitJob.run" should "write all files" in {
+    // assemble test data
     val customMessage = "Lorum ipsum"
     val (draftDeposit, draftProperties) = init(
       datasetMetadata.copy(messageForDataManager = Some(customMessage)),
       withDoiInProps = true
     )
+    val doi = draftDeposit.getDOI(pidRequester = null).map(_.toString).getOrRecover(e => fail("could not get doi from test data", e))
     val bag = draftDeposit.getDataFiles.getOrRecover(e => fail(e.toString, e)).bag
     bag.addPayloadFile("Lorum ipsum".inputStream, Paths.get("folder/text.txt"))
     bag.save()
@@ -151,8 +170,12 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
     stageDir should not(exist)
     submitDir.list shouldBe empty
 
-    new Submitter(submitDir, validGroup, depositHome, jobQueue = executesOneSubmitJob(), mailer = expectsBuildMessageOnce(), agreementGenerator = expectsOneAgreement())
+    server.enqueue { okResponse.addHeader("Content-Type", "application/pdf").setBody("mocked pdf") } // agreement
+    server.enqueue { okResponse } // mail
+    new Submitter(submitDir, validGroup, depositHome, jobQueue = executesOneSubmitJob(), createMailer, agreementGenerator)
       .submit(draftDeposit, createStateManager(draftDeposit), defaultUserInfo, stageDir) shouldBe Success(())
+    expectedAgreementRequest(doi)
+    //expectedMailRequest()
 
     // post conditions
     jsonFile.size shouldBe mdOldSize
@@ -185,6 +208,11 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
     ).map(submittedDeposit / _)
   }
 
+  private def okResponse = {
+    new MockResponse()
+      .setResponseCode(200)
+  }
+
   /** use null instead when not expecting to arrive at requesting/changing any state */
   private def createStateManager(draftDeposit: DepositDir) = {
     draftDeposit.getStateManager(submitDir, easyHome)
@@ -195,7 +223,12 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
     val mocked = mock[JobQueueManager]
     (() => mocked.getSystemStatus) expects() once() returning
       SystemStatus(threadPoolStatus = null, queueSize = 2, queueContent = null)
-    ((mocked.scheduleJob(_: SubmitJob)) expects *).onCall { job: SubmitJob => Try(job.run()) } once()
+    ((mocked.scheduleJob(_: SubmitJob)) expects *).onCall { job: SubmitJob =>
+      // TODO sendMimeMessage throws the non-fatal
+      //  "EmailException: Sending the email to the following server failed mail.server.does.not.exist.dans.knaw.nl"
+      //  note that the required session is set by buildMimeMessage in the Mailer class
+      Try(job.run())
+    } once()
     mocked
   }
 
@@ -208,34 +241,22 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
     mocked
   }
 
-  /** use null instead when not expecting to generate an agreement */
-  private def expectsOneAgreement(expectedResult: Try[Array[Byte]] = Success("".getBytes)): AgreementGenerator = {
-    class Mocked() extends AgreementGenerator(Http, new URL("http://does.not.exist"), acceptHeader = "application/pdf")
-    val mocked = mock[Mocked]
-    (mocked.generate(_: AgreementData, _: UUID)
-      ) expects(*, *) once() returning expectedResult
-    mocked
-  }
-
   /** use null instead when not expecting to compose an email */
-  private def expectsBuildMessageOnce(expectedResult: Try[MultiPartEmail] = Success(expectsSendOnce())): Mailer = {
-    class Mocked extends Mailer(
-      smtpHost = "",
-      fromAddress = "",
-      bounceAddress = "",
-      bccs = Seq.empty,
+  private def createMailer: Mailer = {
+    new Mailer(
+      smtpHost = "mail.server.does.not.exist.dans.knaw.nl",
+      fromAddress = "from.does.not.exist@dans.knaw.nl",
+      bounceAddress = "bounce.does.not.exist@dans.knaw.nl",
+      bccs = Seq("bcc.does.not.exist@dans.knaw.nl"),
       templateDir = File("src/main/assembly/dist/cfg/template"),
       myDatasets = new URL(depositHome)
     )
-    val mocked = mock[Mocked]
-    (mocked.buildMessage(_: AgreementData, _: Map[String, DataSource], _: UUID, _: Option[String])
-      ) expects(*, *, *, *) once() returning expectedResult
-    mocked
   }
 
-  private def expectsSendOnce (expectedResult: String = "123"): MultiPartEmail = {
-    val mocked = mock[MultiPartEmail]
-    (() => mocked.sendMimeMessage()) expects() once() returning expectedResult
-    mocked
+  def expectedAgreementRequest(doi: String): Assertion = {
+    val request = server.takeRequest()
+    request.getRequestLine shouldBe s"POST $agreementTestServer HTTP/1.1"
+    request.getBody.readString(StandardCharsets.UTF_8) shouldBe
+      s"""{"depositor":{"name":"fullName","address":"","zipcode":"","city":"","country":"","organisation":"","phone":"","email":"does.not.exist@dans.knaw.nl"},"doi":"$doi","title":"title 1","dateSubmitted":"2018-03-22","dateAvailable":"2018-03-14","accessCategory":"OPEN_ACCESS","license":"http://creativecommons.org/publicdomain/zero/1.0","sample":false,"agreementVersion":"4.0","agreementLanguage":"EN"}"""
   }
 }

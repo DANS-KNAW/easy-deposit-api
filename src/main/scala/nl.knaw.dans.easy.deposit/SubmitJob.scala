@@ -67,6 +67,7 @@ class SubmitJob( // deposit values
         sendEmail
           .doIfSuccess(_ => logger.info(s"[$draftDepositId] finished with dispatched submit action"))
           .doIfFailure { case e => logger.error(s"[$draftDepositId] deposit submitted but could not send confirmation message", e) }
+        // TODO state can remain submitted but shouldn't state.label tell no message was sent? Fall back is a message when published.
     }
   }
 
