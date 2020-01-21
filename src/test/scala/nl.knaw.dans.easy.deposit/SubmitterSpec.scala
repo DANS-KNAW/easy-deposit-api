@@ -18,6 +18,7 @@ package nl.knaw.dans.easy.deposit
 import java.io.IOException
 import java.net.URL
 import java.nio.charset.StandardCharsets
+import java.nio.file.attribute.GroupPrincipal
 import java.nio.file.{ NoSuchFileException, Paths }
 import java.util.concurrent.Executor
 
@@ -155,7 +156,7 @@ class SubmitterSpec extends TestSupportFixture with MockFactory with BeforeAndAf
     val customMessage = "Lorum ipsum"
     val (draftDeposit, draftProperties) = init(
       datasetMetadata.copy(messageForDataManager = Some(customMessage)),
-      withDoiInProps = true
+      withDoiInProps = true,
     )
     val doi = draftDeposit.getDOI(pidRequester = null).map(_.toString).getOrRecover(e => fail("could not get doi from test data", e))
     val bag = draftDeposit.getDataFiles.getOrRecover(e => fail(e.toString, e)).bag
@@ -206,6 +207,41 @@ class SubmitterSpec extends TestSupportFixture with MockFactory with BeforeAndAf
       "bag/metadata/depositor-info/agreements.xml",
       "bag/metadata/depositor-info/message-from-depositor.txt",
     ).map(submittedDeposit / _)
+  }
+
+  it should "fail if the user is not part of the given group" in {
+    val (draftDeposit, draftPropertiesFile) = init(withDoiInProps = true)
+    val groupPrincipal = draftDeposit.bagDir.fileSystem.getUserPrincipalLookupService.lookupPrincipalByGroupName(unrelatedGroup)
+
+    val stateManager = createStateManager(draftDeposit)
+    new Submitter(submitDir, groupPrincipal, depositHome, jobQueue = executesOneSubmitJob(), createMailer, agreementGenerator)
+      .submit(draftDeposit, stateManager, defaultUserInfo, stageDir) shouldBe Success(())
+
+    // post conditions
+    stageDir.list shouldNot be(empty)
+    submitDir.list shouldBe empty
+    stateManager.getStateInfo.get.stateDescription should matchPattern { // TODO unsafe get, don't reveal group/user to client
+      case s: String if s.matches("Not able to set the group to .*. Probably the current user (.*) is not part of this group.") =>
+    }
+    draftPropertiesFile.contentAsString should (include("state.label = SUBMITTED") and include("bag-store.bag-id = "))
+  }
+
+  it should "fail with an unexpected exception (ProviderMismatchException)" in {
+    val (draftDeposit, draftPropertiesFile) = init(withDoiInProps = true)
+    val groupPrincipal = new GroupPrincipal() {override def getName: String = "invalidGroupPrincipal" }
+
+    new Submitter(submitDir, groupPrincipal, depositHome, jobQueue = executesOneSubmitJob(), createMailer, agreementGenerator)
+      .submit(draftDeposit, createStateManager(draftDeposit), defaultUserInfo, stageDir) shouldBe Success(())
+
+    // post conditions
+    stageDir.list shouldNot be(empty)
+    submitDir.list shouldBe empty
+    draftPropertiesFile.contentAsString should (
+      include("state.label = SUBMITTED") and
+        include("bag-store.bag-id = ") and
+        //TODO don't reveal the path to external clients
+        include(s"state.description = unexpected error occured on $stageDir")
+      )
   }
 
   private def okResponse = {

@@ -173,6 +173,9 @@ class SubmitJob( // deposit values
     case e: FileSystemException => throw new IOException(s"Not able to set the group to ${ groupPrincipal.getName }. Probably the current user (${ System.getProperty("user.name") }) is not part of this group.", e)
     case e: IOException => throw new IOException(s"Could not set file permissions or group on $path", e)
     case e: SecurityException => throw new IOException(s"Not enough privileges to set file permissions or group on $path", e)
+    case e: ProviderMismatchException =>
+    // when tested with new GroupPrincipal() {override def getName: String = "invalidGroupPrincipal" }
+      throw new IOException(s"unexpected error occured on $path", e)
     case NonFatal(e) => throw new IOException(s"unexpected error occured on $path", e)
   }
 

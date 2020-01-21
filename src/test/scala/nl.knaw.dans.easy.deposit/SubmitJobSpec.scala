@@ -15,7 +15,6 @@
  */
 package nl.knaw.dans.easy.deposit
 
-import java.io.IOException
 import java.net.URL
 import java.nio.file.Paths
 import java.util.concurrent.{ LinkedBlockingQueue, ThreadPoolExecutor, TimeUnit }
@@ -42,19 +41,7 @@ class SubmitJobSpec extends TestSupportFixture with MockFactory {
   private val doi = datasetMetadata.doi
     .getOrElse(fail("could not get DOI from test input"))
 
-  "submit" should "fail if the user is not part of the given group" ignore {
-    val depositDir = createDeposit(datasetMetadata)
-    val stateManager = depositDir.getStateManager(testDir / "submitted", easyHome)
-      .getOrRecover(e => fail(s"could not get stateManager of test deposit $e"))
-    addDoiToDepositProperties(getBag(depositDir))
-
-    createSubmitter(unrelatedGroup).submit(depositDir, stateManager, defaultUserInfo, testDir / "staged") should matchPattern {
-      case Failure(e: IOException) if e.getMessage matches
-        ".*Probably the current user .* is not part of this group.*" =>
-    }
-  }
-
-  it should "write empty message-from-depositor file" ignore {
+  "submit" should "write empty message-from-depositor file" ignore {
     val depositDir = createDeposit(datasetMetadata.copy(messageForDataManager = None))
     addDoiToDepositProperties(getBag(depositDir))
 
