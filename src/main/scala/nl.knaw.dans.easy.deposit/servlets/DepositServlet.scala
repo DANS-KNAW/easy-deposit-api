@@ -84,7 +84,7 @@ class DepositServlet(app: EasyDepositApiApp)
         depositInfo <- app.createDeposit(userId)
         _ = logger.info(s"[${ depositInfo.id }] created deposit for user '$userId'")
         locationHeader = "Location" -> s"${ request.getRequestURL }/${ depositInfo.id }"
-      } yield Created(body = toJson(depositInfo), headers = Map(contentTypeJson, locationHeader)
+      } yield Created(body = toJson(depositInfo), headers = Map(contentTypeJson, locationHeader))
     }.getOrRecoverWithActionResult
   }
   get("/:uuid/metadata") {
