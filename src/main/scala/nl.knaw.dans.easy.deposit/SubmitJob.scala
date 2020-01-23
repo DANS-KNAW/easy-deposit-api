@@ -68,7 +68,8 @@ class SubmitJob( // deposit values
         sendEmail
           .doIfSuccess(_ => logger.info(s"[$draftDepositId] finished with dispatched submit action"))
           .doIfFailure { case e =>
-            // we could apply setMailToDansDescription but the message would soon be overwritten by easy-ingest-flow
+            // applying setMailToDansDescription (with something like no confirmation message sent)
+            // could get overwritten by easy-ingest-flow, or worse: overwrite a change by easy-ingest-flow.
             logger.error(s"[$draftDepositId] deposit submitted but could not send confirmation message", e)
           }
     }
