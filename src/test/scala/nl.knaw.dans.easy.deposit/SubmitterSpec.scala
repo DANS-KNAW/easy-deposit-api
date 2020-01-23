@@ -145,8 +145,8 @@ class SubmitterSpec extends TestSupportFixture with MockFactory with BeforeAndAf
   it should "catch inconsistencies between actual payloads and manifest" in {
     val (draftDeposit, _) = init(withDoiInProps = true)
     val someFile = (draftDeposit.bagDir / "data" / "some.file").createFile()
-    val otherFile = (someFile.parent.parent / "other.file")
-    (draftDeposit.bagDir / "manifest-sha1.txt").append(s"chksum ${otherFile.name}")
+    val otherFile = someFile.parent.parent / "other.file"
+    (draftDeposit.bagDir / "manifest-sha1.txt").append(s"cheksum123 ${ otherFile.name }")
 
     new Submitter(submitDir, validGroup, depositHome, jobQueue = null, mailer = null, agreementGenerator = null)
       .submit(draftDeposit, createStateManager(draftDeposit), defaultUserInfo, someFile) should matchPattern {
@@ -162,6 +162,7 @@ class SubmitterSpec extends TestSupportFixture with MockFactory with BeforeAndAf
     val bag = draftDeposit.getDataFiles.getOrRecover(e => fail(e.toString, e)).bag
     bag.addPayloadFile("Lorum ipsum".inputStream, Paths.get("folder/text.txt"))
     bag.save()
+    val stateManager = createStateManager(draftDeposit)
 
     // pre conditions
     draftProperties.contentAsString should
@@ -174,11 +175,12 @@ class SubmitterSpec extends TestSupportFixture with MockFactory with BeforeAndAf
     server.enqueue { pdfResponse } // agreement
     server.enqueue { okResponse } // mail
     new Submitter(submitDir, validGroup, depositHome, jobQueue = executesSubmitJob(), createMailer, agreementGenerator)
-      .submit(draftDeposit, createStateManager(draftDeposit), defaultUserInfo, stageDir) shouldBe Success(())
+      .submit(draftDeposit, stateManager, defaultUserInfo, stageDir) shouldBe Success(())
     expectedAgreementRequest(doi)
 
     // post conditions
     jsonFile.size shouldBe mdOldSize
+    stateManager.getStateInfo shouldBe Success(StateInfo(State.submitted, "The deposit is being processed"))
     val submittedDeposit = submitDir.children.toSeq.head
     draftProperties.contentAsString should // compare with pre conditions
       (include("SUBMITTED") and include("bag-store.bag-id") and be((submittedDeposit / "deposit.properties").contentAsString))
@@ -259,11 +261,11 @@ class SubmitterSpec extends TestSupportFixture with MockFactory with BeforeAndAf
   }
 
   it should "report an inconsistent checksum" in {
-    val (draftDeposit, draftPropertiesFile) = init(withDoiInProps = true)
+    val (draftDeposit, _) = init(withDoiInProps = true)
     val bag = draftDeposit.getDataFiles.getOrRecover(e => fail("can't get bag of test input", e)).bag
     bag.addPayloadFile("lorum ipsum".inputStream, Paths.get("file.txt"))
     bag.save()
-    val manifest = (draftDeposit.bagDir / "manifest-sha1.txt")
+    val manifest = draftDeposit.bagDir / "manifest-sha1.txt"
     manifest.write(manifest.contentAsString.replaceAll(" +", "xxx  "))
 
     val stateManager = createStateManager(draftDeposit)
@@ -271,13 +273,13 @@ class SubmitterSpec extends TestSupportFixture with MockFactory with BeforeAndAf
     new Submitter(submitDir, validGroup, depositHome, jobQueue = executesSubmitJob(), createMailer, agreementGenerator)
       .submit(draftDeposit, stateManager, defaultUserInfo, stageDir) shouldBe Success(())
 
-    val stateDescription = stateInfo(stateManager).stateDescription
-    stateDescription shouldBe // N.B: the logged line is complete TODO change to contact dans message
-      s"staged and draft bag [${draftDeposit.bagDir.parent}] have different payload manifest elements: (Set((data/file.txt"
+    stageDir.list shouldNot be(empty)
+    submitDir.list shouldBe empty
+    stateInfoShouldHaveContactDansMessage(stateManager)
   }
 
   it should "report a group configuration problem" in {
-    val (draftDeposit, draftPropertiesFile) = init(withDoiInProps = true)
+    val (draftDeposit, _) = init(withDoiInProps = true)
     val stateManager = createStateManager(draftDeposit)
 
     new Submitter(submitDir, principalOf(unrelatedGroup), depositHome, jobQueue = executesSubmitJob(), createMailer, agreementGenerator)
@@ -286,9 +288,7 @@ class SubmitterSpec extends TestSupportFixture with MockFactory with BeforeAndAf
     // post conditions
     stageDir.list shouldNot be(empty)
     submitDir.list shouldBe empty
-    stateInfo(stateManager).stateDescription should fullyMatch regex // TODO change to contact dans message
-      "Not able to set the group to .*. Probably the current user (.*) is not part of this group."
-    draftPropertiesFile.contentAsString should (include("state.label = SUBMITTED") and include("bag-store.bag-id = "))
+    stateInfoShouldHaveContactDansMessage(stateManager)
   }
 
   it should "report an unexpected exception" in {
@@ -302,8 +302,14 @@ class SubmitterSpec extends TestSupportFixture with MockFactory with BeforeAndAf
     // post conditions
     stageDir.list shouldNot be(empty)
     submitDir.list shouldBe empty
-    stateInfo(stateManager) shouldBe StateInfo(State.submitted, s"unexpected error occurred on $stageDir") // TODO change to contact dans message
+    stateInfoShouldHaveContactDansMessage(stateManager)
     draftPropertiesFile.contentAsString should include("bag-store.bag-id = ")
+  }
+
+  private def stateInfoShouldHaveContactDansMessage(stateManager: StateManager) = {
+    stateInfo(stateManager) should matchPattern {
+      case StateInfo(State.submitted, msg) if msg.startsWith("Something went wrong while processing this deposit. Please ") =>
+    }
   }
 
   private def load(file: File) = new PropertiesConfiguration(file.toJava)

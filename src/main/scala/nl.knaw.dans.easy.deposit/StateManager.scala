@@ -22,6 +22,7 @@ import better.files.File
 import nl.knaw.dans.easy.deposit.Errors.{ IllegalStateTransitionException, InvalidPropertyException, PropertyNotFoundException }
 import nl.knaw.dans.easy.deposit.docs.StateInfo
 import nl.knaw.dans.easy.deposit.docs.StateInfo.State
+import nl.knaw.dans.easy.deposit.docs.StateInfo.State.State
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.apache.commons.configuration.{ ConfigurationException, PropertiesConfiguration }
 import org.scalatra.util.UrlCodingUtils.queryPartEncode
@@ -84,8 +85,14 @@ case class StateManager(draftDeposit: DepositDir, submitBase: File, easyHome: UR
       }
   }
 
-  def setStateFailed(description: String): Try[Unit] = Try {
-    saveNewStateInDraftDeposit(StateInfo(State.submitted, description))
+  /**
+   * please use with caution
+   *
+   * @param state TODO not using changeState may cause invalid state changes
+   */
+
+  def setStateWithMailToDansDescription(state: State): Try[Unit] = Try {
+    saveNewStateInDraftDeposit(StateInfo(state, mailToDansMessage))
   }
 
   def canChangeState(oldStateInfo: StateInfo, newStateInfo: StateInfo): Try[Unit] = {

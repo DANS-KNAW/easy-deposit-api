@@ -27,6 +27,7 @@ import nl.knaw.dans.bag.ChecksumAlgorithm.ChecksumAlgorithm
 import nl.knaw.dans.bag.DansBag
 import nl.knaw.dans.bag.v0.DansV0Bag
 import nl.knaw.dans.easy.deposit.docs.AgreementData
+import nl.knaw.dans.easy.deposit.docs.StateInfo.State
 import nl.knaw.dans.lib.error._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 
@@ -61,8 +62,8 @@ class SubmitJob( // deposit values
     submitDeposit() match {
       case Failure(e) =>
         logger.error(s"[$draftDepositId] error in dispatched submit action ${ this.toString }", e)
-        draftDepositStateManager.setStateFailed(e.getMessage)
-          .doIfFailure { case e => logger.error(s"[$draftDepositId] could not set state to FAILED after submission failed", e) }
+        draftDepositStateManager.setStateWithMailToDansDescription(State.submitted)
+          .doIfFailure { case e => logger.error(s"[$draftDepositId] could not set state description after submission failed", e) }
       case Success(()) =>
         sendEmail
           .doIfSuccess(_ => logger.info(s"[$draftDepositId] finished with dispatched submit action"))
