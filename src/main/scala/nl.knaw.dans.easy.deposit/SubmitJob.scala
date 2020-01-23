@@ -62,13 +62,15 @@ class SubmitJob( // deposit values
     submitDeposit() match {
       case Failure(e) =>
         logger.error(s"[$draftDepositId] error in dispatched submit action ${ this.toString }", e)
-        draftDepositStateManager.setStateWithMailToDansDescription(State.submitted)
+        draftDepositStateManager.setMailToDansDescription(State.submitted)
           .doIfFailure { case e => logger.error(s"[$draftDepositId] could not set state description after submission failed", e) }
       case Success(()) =>
         sendEmail
           .doIfSuccess(_ => logger.info(s"[$draftDepositId] finished with dispatched submit action"))
-          .doIfFailure { case e => logger.error(s"[$draftDepositId] deposit submitted but could not send confirmation message", e) }
-        // TODO state can remain submitted but shouldn't state.label tell no message was sent? Fall back is a message when published.
+          .doIfFailure { case e =>
+            // we could apply setMailToDansDescription but the message would soon be overwritten by easy-ingest-flow
+            logger.error(s"[$draftDepositId] deposit submitted but could not send confirmation message", e)
+          }
     }
   }
 

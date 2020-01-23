@@ -85,14 +85,10 @@ case class StateManager(draftDeposit: DepositDir, submitBase: File, easyHome: UR
       }
   }
 
-  /**
-   * please use with caution
-   *
-   * @param state TODO not using changeState may cause invalid state changes
-   */
-
-  def setStateWithMailToDansDescription(state: State): Try[Unit] = Try {
-    saveNewStateInDraftDeposit(StateInfo(state, mailToDansMessage))
+  def setMailToDansDescription(state: State): Try[Unit] = Try {
+    // using saveNewStateInDraftDeposit could inadvertently change the state
+    draftProps.setProperty(stateDescriptionKey, mailToDansMessage)
+    draftProps.save()
   }
 
   def canChangeState(oldStateInfo: StateInfo, newStateInfo: StateInfo): Try[Unit] = {
