@@ -79,8 +79,7 @@ class SubmitterSpec extends TestSupportFixture with MockFactory with BeforeAndAf
 
     deposit.writeDatasetMetadataJson(datasetMetadata)
 
-    val bag = deposit.getDataFiles
-      .getOrRecover(e => fail(e.toString, e)).bag
+    val bag = deposit.getDataFiles.getOrRecover(e => fail("can't get bag of test input", e)).bag
 
     val props = bag.baseDir.parent / "deposit.properties"
     if (withDoiInProps) {
@@ -257,6 +256,24 @@ class SubmitterSpec extends TestSupportFixture with MockFactory with BeforeAndAf
 
     // Q.E.D.
     submitDir.list.toSeq.map(_.name) should (have size 2 and contain allOf(rejectedId, resubmittedId))
+  }
+
+  it should "report an inconsistent checksum" in {
+    val (draftDeposit, draftPropertiesFile) = init(withDoiInProps = true)
+    val bag = draftDeposit.getDataFiles.getOrRecover(e => fail("can't get bag of test input", e)).bag
+    bag.addPayloadFile("lorum ipsum".inputStream, Paths.get("file.txt"))
+    bag.save()
+    val manifest = (draftDeposit.bagDir / "manifest-sha1.txt")
+    manifest.write(manifest.contentAsString.replaceAll(" +", "xxx  "))
+
+    val stateManager = createStateManager(draftDeposit)
+
+    new Submitter(submitDir, validGroup, depositHome, jobQueue = executesSubmitJob(), createMailer, agreementGenerator)
+      .submit(draftDeposit, stateManager, defaultUserInfo, stageDir) shouldBe Success(())
+
+    val stateDescription = stateInfo(stateManager).stateDescription
+    stateDescription shouldBe // N.B: the logged line is complete TODO change to contact dans message
+      s"staged and draft bag [${draftDeposit.bagDir.parent}] have different payload manifest elements: (Set((data/file.txt"
   }
 
   it should "report a group configuration problem" in {
