@@ -143,14 +143,16 @@ class SubmitterSpec extends TestSupportFixture with MockFactory with BeforeAndAf
     }
   }
 
-  it should "catch inconsistency between actual payloads and manifest" in {
+  it should "catch inconsistencies between actual payloads and manifest" in {
     val (draftDeposit, _) = init(withDoiInProps = true)
-    val file = (draftDeposit.bagDir / "data" / "some.file").createFile()
+    val someFile = (draftDeposit.bagDir / "data" / "some.file").createFile()
+    val otherFile = (someFile.parent.parent / "other.file")
+    (draftDeposit.bagDir / "manifest-sha1.txt").append(s"chksum ${otherFile.name}")
 
     new Submitter(submitDir, validGroup, depositHome, jobQueue = null, mailer = null, agreementGenerator = null)
-      .submit(draftDeposit, createStateManager(draftDeposit), defaultUserInfo, file) should matchPattern {
+      .submit(draftDeposit, createStateManager(draftDeposit), defaultUserInfo, someFile) should matchPattern {
       case Failure(e: Exception) if e.getMessage ==
-        s"invalid bag, missing [files, checksums]: [Set(), Set($file)]" =>
+        s"invalid bag, missing [files, checksums]: [Set($otherFile), Set($someFile)]" =>
     }
   }
 

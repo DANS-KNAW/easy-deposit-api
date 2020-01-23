@@ -41,23 +41,6 @@ class SubmitJobSpec extends TestSupportFixture with MockFactory {
   private val doi = datasetMetadata.doi
     .getOrElse(fail("could not get DOI from test input"))
 
-  it should "report a file missing in the draft" ignore {
-    val depositDir = createDeposit(datasetMetadata)
-    val stateManager = depositDir.getStateManager(testDir / "submitted", easyHome)
-      .getOrRecover(e => fail(s"could not get stateManager of test deposit $e"))
-    val bag = getBag(depositDir)
-    addDoiToDepositProperties(bag)
-    bag.addPayloadFile("lorum ipsum".inputStream, Paths.get("file.txt"))
-    bag.save()
-
-    // add file to manifest that does not exist
-    (bag.baseDir / "manifest-sha1.txt").append("chk file")
-
-    createSubmitter(userGroup).submit(depositDir, stateManager, defaultUserInfo, testDir / "staged") should matchPattern {
-      case Failure(e) if e.getMessage == s"invalid bag, missing [files, checksums]: [Set($testDir/drafts/user/${ depositDir.id }/bag/file), Set()]" =>
-    }
-  }
-
   it should "report an invalid checksum" ignore {
     val depositDir = createDeposit(datasetMetadata)
     val stateManager = depositDir.getStateManager(testDir / "submitted", easyHome)
