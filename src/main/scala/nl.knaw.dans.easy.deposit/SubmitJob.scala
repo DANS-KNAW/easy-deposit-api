@@ -175,8 +175,8 @@ class SubmitJob( // deposit values
     case e: SecurityException => throw new IOException(s"Not enough privileges to set file permissions or group on $path", e)
     case e: ProviderMismatchException =>
     // when tested with new GroupPrincipal() {override def getName: String = "invalidGroupPrincipal" }
-      throw new IOException(s"unexpected error occured on $path", e)
-    case NonFatal(e) => throw new IOException(s"unexpected error occured on $path", e)
+      throw new IOException(s"unexpected error occurred on $path", e)
+    case NonFatal(e) => throw new IOException(s"unexpected error occurred on $path", e)
   }
 
   override def toString: String = s"<SubmitWorkerAction[id = $draftDepositId, draftBag = ${ draftBag.baseDir }, submitDir = $submitDir]>"

@@ -132,7 +132,7 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
       }.getOrRecover {
         case e: UserPrincipalNotFoundException => throw new IOException(s"Group $groupName could not be found", e)
         case e: UnsupportedOperationException => throw new IOException("Not on a POSIX supported file system", e)
-        case NonFatal(e) => throw new IOException(s"unexpected error occured on $stagedBaseDir", e)
+        case NonFatal(e) => throw new IOException(s"unexpected error occurred on $stagedBaseDir", e)
       }
     }
 
