@@ -186,7 +186,10 @@ class DepositServlet(app: EasyDepositApiApp)
         _ = logger.info(s"[$uuid] upload file to path '${ path.toString.toOption.getOrElse("/") }'")
         managedIS = managed(request.getInputStream)
         newFileWasCreated <- managedIS.apply(app.writeDepositFile(_, user.id, uuid, path, Option(request.getContentType)))
-        _ = logger.info(s"[$uuid] ${if (newFileWasCreated) "no " else ""}new file was created")
+        _ = logger.info(s"[$uuid] ${
+          if (newFileWasCreated) "no "
+          else ""
+        }new file was created")
       } yield if (newFileWasCreated)
                 Created(headers = Map("Location" -> request.uri.toASCIIString))
               else NoContent()
@@ -210,10 +213,9 @@ class DepositServlet(app: EasyDepositApiApp)
     }
   }
 
-  private def getUUID: Try[UUID] = Try {
-    UUID.fromString(params("uuid"))
-  }.recoverWith { case t: Throwable =>
-    Failure(InvalidResourceException(s"Invalid deposit id: ${ t.getMessage }"))
+  private def getUUID: Try[UUID] = {
+    params("uuid").toUUID.toTry
+      .recoverWith { case e => Failure(InvalidResourceException(s"Invalid deposit id: ${ e.getMessage }")) }
   }
 
   private def getPath: Try[Path] = Try {
