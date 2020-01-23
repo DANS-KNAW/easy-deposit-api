@@ -26,7 +26,7 @@ import nl.knaw.dans.easy.deposit.executor.JobQueueManager
 import nl.knaw.dans.lib.error._
 import org.scalamock.scalatest.MockFactory
 
-import scala.util.{ Failure, Success }
+import scala.util.Failure
 
 class SubmitJobSpec extends TestSupportFixture with MockFactory {
   override def beforeEach(): Unit = {
@@ -40,51 +40,6 @@ class SubmitJobSpec extends TestSupportFixture with MockFactory {
     .getOrRecover(e => fail("could not get test input", e))
   private val doi = datasetMetadata.doi
     .getOrElse(fail("could not get DOI from test input"))
-
-  "submit" should "write empty message-from-depositor file" ignore {
-    val depositDir = createDeposit(datasetMetadata.copy(messageForDataManager = None))
-    addDoiToDepositProperties(getBag(depositDir))
-
-    val bagStoreBagId = succeedingSubmit(depositDir)
-
-    (testDir / "submitted" / bagStoreBagId / bagDirName / "metadata" / "depositor-info" / "message-from-depositor.txt")
-      .contentAsString shouldBe s"The deposit can be found at http://does.not.exist/${ depositDir.id }"
-  }
-
-  it should "overwrite a previous bag-store.bag-id at resubmit" ignore {
-    val depositDir = createDeposit(datasetMetadata.copy(messageForDataManager = None))
-    addDoiToDepositProperties(getBag(depositDir))
-
-    // submit twice (skipping ingest-flow or a curator changed the state to rejected)
-    val bagStoreBagId1 = succeedingSubmit(depositDir)
-    val depositProps = depositDir.bagDir.parent / "deposit.properties"
-    depositProps.write(depositProps.contentAsString.replace("SUBMITTED", "DRAFT"))
-    val bagStoreBagId2 = succeedingSubmit(depositDir)
-
-    // we have both submits
-    bagStoreBagId1 should not be depositDir.id.toString
-    bagStoreBagId2 should not be depositDir.id.toString
-    bagStoreBagId1 should not be bagStoreBagId2
-    (testDir / "submitted" / bagStoreBagId1) should exist
-    (testDir / "submitted" / bagStoreBagId2) should exist
-
-    // we only have the second bag-store.bag-id in the properties
-    bagStoreBagId1 should not be bagStoreBagId2
-    val lines = depositProps.contentAsString.split("\n")
-    lines.count(_.contains("bag-store.bag-id")) shouldBe 1
-    lines.count(_ == s"bag-store.bag-id = $bagStoreBagId2") shouldBe 1
-  }
-
-  private def succeedingSubmit(deposit: DepositDir): String = {
-    val stateManager = deposit.getStateManager(testDir / "submitted", easyHome)
-      .getOrRecover(e => fail(s"could not get stateManager of test deposit $e"))
-
-    val triedBagStoreBagID = createSubmitter(userGroup).submit(deposit, stateManager, defaultUserInfo, testDir / "staged")
-    triedBagStoreBagID shouldBe a[Success[_]]
-    triedBagStoreBagID
-      .map(_.toString)
-      .getOrElse(throw new Exception("should not get here"))
-  }
 
   it should "report a file missing in the draft" ignore {
     val depositDir = createDeposit(datasetMetadata)

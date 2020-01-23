@@ -29,6 +29,7 @@ import nl.knaw.dans.easy.deposit.docs.{ DatasetMetadata, StateInfo }
 import nl.knaw.dans.easy.deposit.executor.{ JobQueueManager, SystemStatus }
 import nl.knaw.dans.lib.error._
 import okhttp3.mockwebserver.{ MockResponse, MockWebServer }
+import org.apache.commons.configuration.PropertiesConfiguration
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{ Assertion, BeforeAndAfterAll }
 import scalaj.http.Http
@@ -67,6 +68,7 @@ class SubmitterSpec extends TestSupportFixture with MockFactory with BeforeAndAf
   private val validGroup = principalOf(userGroup)
   private val datasetMetadata: DatasetMetadata = DatasetMetadata(getManualTestResource("datasetmetadata-from-ui-all.json"))
     .getOrRecover(e => fail("could not get test input", e))
+    .copy(messageForDataManager = Some("Lorum Ipsum"))
 
   def init(datasetMetadata: DatasetMetadata = datasetMetadata,
            withDoiInProps: Boolean = false,
@@ -103,7 +105,7 @@ class SubmitterSpec extends TestSupportFixture with MockFactory with BeforeAndAf
     val (draftDeposit, draftProperties) = init(withDoiInProps = true)
 
     // pre conditions
-    draftProperties.contentAsString should (include("DRAFT") and not include ("bag-store.bag-id"))
+    draftProperties.contentAsString should (include("DRAFT") and not include "bag-store.bag-id")
 
     new Submitter(submitDir, validGroup, depositHome, jobQueue = expectsOneSubmitJob(), mailer = null, agreementGenerator = null)
       .submit(draftDeposit, createStateManager(draftDeposit), defaultUserInfo, stageDir) shouldBe a[Success[_]]
@@ -154,11 +156,7 @@ class SubmitterSpec extends TestSupportFixture with MockFactory with BeforeAndAf
 
   "SubmitJob.run" should "write all files" in {
     // assemble test data
-    val customMessage = "Lorum ipsum"
-    val (draftDeposit, draftProperties) = init(
-      datasetMetadata.copy(messageForDataManager = Some(customMessage)),
-      withDoiInProps = true,
-    )
+    val (draftDeposit, draftProperties) = init(withDoiInProps = true)
     val doi = draftDeposit.getDOI(pidRequester = null).map(_.toString).getOrRecover(e => fail("could not get doi from test data", e))
     val bag = draftDeposit.getDataFiles.getOrRecover(e => fail(e.toString, e)).bag
     bag.addPayloadFile("Lorum ipsum".inputStream, Paths.get("folder/text.txt"))
@@ -172,9 +170,9 @@ class SubmitterSpec extends TestSupportFixture with MockFactory with BeforeAndAf
     stageDir should not(exist)
     submitDir.list shouldBe empty
 
-    server.enqueue { okResponse.addHeader("Content-Type", "application/pdf").setBody("mocked pdf") } // agreement
+    server.enqueue { pdfResponse } // agreement
     server.enqueue { okResponse } // mail
-    new Submitter(submitDir, validGroup, depositHome, jobQueue = executesOneSubmitJob(), createMailer, agreementGenerator)
+    new Submitter(submitDir, validGroup, depositHome, jobQueue = executesSubmitJob(), createMailer, agreementGenerator)
       .submit(draftDeposit, createStateManager(draftDeposit), defaultUserInfo, stageDir) shouldBe Success(())
     expectedAgreementRequest(doi)
 
@@ -190,7 +188,7 @@ class SubmitterSpec extends TestSupportFixture with MockFactory with BeforeAndAf
       ("depositor-info", "agreements.xml", "message-from-depositor.txt", "dataset.xml", "files.xml"))
     (submittedMetadata / "files.xml").contentAsString should include("""<file filepath="data/folder/text.txt">""")
     (submittedMetadata / "depositor-info" / "message-from-depositor.txt").contentAsString shouldBe
-      s"""$customMessage
+      s"""Lorum Ipsum
          |
          |The deposit can be found at $depositHome/${ draftDeposit.id }""".stripMargin
     submittedDeposit.listRecursively.toSeq should contain allElementsOf Seq(
@@ -212,11 +210,58 @@ class SubmitterSpec extends TestSupportFixture with MockFactory with BeforeAndAf
     ).map(submittedDeposit / _)
   }
 
+  it should "write empty message-from-depositor file" in {
+    // prepare test data
+    val (draftDeposit, draftPropertiesFile) = init(
+      datasetMetadata.copy(messageForDataManager = None),
+      withDoiInProps = true
+    )
+
+    // expectations
+    server.enqueue { pdfResponse } // agreement
+    server.enqueue { okResponse } // mail
+
+    // test
+    new Submitter(submitDir, validGroup, depositHome, jobQueue = executesSubmitJob(), createMailer, agreementGenerator)
+      .submit(draftDeposit, createStateManager(draftDeposit), defaultUserInfo, stageDir) shouldBe Success(())
+
+    // post condition (other details in previous test)
+    val uuid = load(draftPropertiesFile).getString("bag-store.bag-id")
+    (submitDir / uuid / "bag" / "metadata" / "depositor-info" / "message-from-depositor.txt").contentAsString shouldBe
+      s"The deposit can be found at $depositHome/${ draftDeposit.id }"
+  }
+
+  it should "overwrite a previous property bag-store.bag-id at resubmit" in {
+    val (draftDeposit, draftPropertiesFile) = init(withDoiInProps = true)
+    for {_ <- Seq(1, 2)} {
+      server.enqueue { pdfResponse } // agreement
+      server.enqueue { okResponse } // mail
+    }
+    val submitter = new Submitter(submitDir, validGroup, depositHome, jobQueue = executesSubmitJob(times = 2), createMailer, agreementGenerator)
+
+    // not a val as the result changes by steps of the test scenario
+    def bagStoreBagId: String = load(draftPropertiesFile).getString("bag-store.bag-id")
+
+    bagStoreBagId shouldBe null // pre condition
+
+    // tested scenario; we need a fresh StateManager for the 2nd submit (as a 2nd service request would provide)
+
+    submitter.submit(draftDeposit, createStateManager(draftDeposit), defaultUserInfo, stageDir) shouldBe Success(())
+    draftPropertiesFile // shortcut to mimic reject by ingest-flow or archivist and subsequent save draft
+      .write(draftPropertiesFile.contentAsString.replace("SUBMITTED", "DRAFT"))
+    val rejectedId = bagStoreBagId // intermediate post condition
+    submitter.submit(draftDeposit, createStateManager(draftDeposit), defaultUserInfo, stageDir) shouldBe Success(())
+    val resubmittedId = bagStoreBagId // final post condition
+
+    // Q.E.D.
+    submitDir.list.toSeq.map(_.name) should (have size 2 and contain allOf(rejectedId, resubmittedId))
+  }
+
   it should "report a group configuration problem" in {
     val (draftDeposit, draftPropertiesFile) = init(withDoiInProps = true)
     val stateManager = createStateManager(draftDeposit)
 
-    new Submitter(submitDir, principalOf(unrelatedGroup), depositHome, jobQueue = executesOneSubmitJob(), createMailer, agreementGenerator)
+    new Submitter(submitDir, principalOf(unrelatedGroup), depositHome, jobQueue = executesSubmitJob(), createMailer, agreementGenerator)
       .submit(draftDeposit, stateManager, defaultUserInfo, stageDir) shouldBe Success(())
 
     // post conditions
@@ -232,7 +277,7 @@ class SubmitterSpec extends TestSupportFixture with MockFactory with BeforeAndAf
     val groupPrincipal = new GroupPrincipal() {override def getName: String = "invalidGroupPrincipal" } // causes ProviderMismatchException
     val stateManager = createStateManager(draftDeposit)
 
-    new Submitter(submitDir, groupPrincipal, depositHome, jobQueue = executesOneSubmitJob(), createMailer, agreementGenerator)
+    new Submitter(submitDir, groupPrincipal, depositHome, jobQueue = executesSubmitJob(), createMailer, agreementGenerator)
       .submit(draftDeposit, stateManager, defaultUserInfo, stageDir) shouldBe Success(())
 
     // post conditions
@@ -241,6 +286,8 @@ class SubmitterSpec extends TestSupportFixture with MockFactory with BeforeAndAf
     stateInfo(stateManager) shouldBe StateInfo(State.submitted, s"unexpected error occurred on $stageDir") // TODO change to contact dans message
     draftPropertiesFile.contentAsString should include("bag-store.bag-id = ")
   }
+
+  private def load(file: File) = new PropertiesConfiguration(file.toJava)
 
   private def principalOf(group: String) = {
     submitDir.fileSystem.getUserPrincipalLookupService.lookupPrincipalByGroupName(group)
@@ -252,22 +299,24 @@ class SubmitterSpec extends TestSupportFixture with MockFactory with BeforeAndAf
 
   private def okResponse = new MockResponse().setResponseCode(200)
 
+  private def pdfResponse = okResponse.addHeader("Content-Type", "application/pdf").setBody("mocked pdf")
+
   /** use null instead when not expecting to arrive at requesting/changing any state */
   private def createStateManager(draftDeposit: DepositDir) = {
     draftDeposit.getStateManager(submitDir, easyHome)
       .getOrRecover(e => fail(s"could not get stateManager of test deposit $e"))
   }
 
-  private def executesOneSubmitJob(): JobQueueManager = {
+  private def executesSubmitJob(times: Int = 1): JobQueueManager = {
     val mocked = mock[JobQueueManager]
-    (() => mocked.getSystemStatus) expects() once() returning
+    (() => mocked.getSystemStatus) expects() repeat times returning
       SystemStatus(threadPoolStatus = null, queueSize = 2, queueContent = null)
     ((mocked.scheduleJob(_: SubmitJob)) expects *).onCall { job: SubmitJob =>
       // TODO sendMimeMessage throws the non-fatal
       //  "EmailException: Sending the email to the following server failed mail.server.does.not.exist.dans.knaw.nl"
       //  note that the required session is set by buildMimeMessage in the Mailer class
       Try(job.run())
-    } once()
+    } repeat times
     mocked
   }
 
