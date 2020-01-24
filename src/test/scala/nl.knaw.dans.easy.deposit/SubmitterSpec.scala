@@ -20,7 +20,7 @@ import java.net.URL
 import java.nio.charset.StandardCharsets
 import java.nio.file.attribute.GroupPrincipal
 import java.nio.file.{ NoSuchFileException, Paths }
-import java.util.concurrent.Executor
+import java.util.concurrent.{ Executor, TimeUnit }
 
 import better.files.{ File, StringExtensions }
 import nl.knaw.dans.bag.DansBag
@@ -337,7 +337,8 @@ class SubmitterSpec extends TestSupportFixture with MockFactory with BeforeAndAf
   private def pdfResponse = okResponse.addHeader("Content-Type", contentType).setBody("mocked pdf")
 
   def takePdfAgreementRequestFromServer(doi: String): Assertion = {
-    val request = server.takeRequest()
+    val request = Option(server.takeRequest(1, TimeUnit.SECONDS))
+      .getOrElse(fail("expected pdf agreement request did not happen"))
     request.getMethod shouldBe "POST"
     request.getPath shouldBe "/generate/"
     request.getHeader("accept") shouldBe contentType
