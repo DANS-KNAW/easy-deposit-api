@@ -93,7 +93,7 @@ class SubmitJob( // deposit values
       _ <- stageBag.addMetadataFile(datasetXml, "dataset.xml")
       _ <- stageBag.addMetadataFile(filesXml, "files.xml")
       _ = logger.info(s"[$draftDepositId] copy payload to staged bag: ${ draftBag.data } to ${ stageBag.data }")
-      _ <- stageBag.addPayloadFile(draftBag.data, Paths.get("original"))
+      _ <- stageBag.addPayloadFile(draftBag.data, Paths.get("."))
       _ = logger.info(s"[$draftDepositId] save (tag)manifests to staged bag")
       _ <- stageBag.save()
       _ = logger.info(s"[$draftDepositId] validate staged bag")
