@@ -21,7 +21,7 @@ import nl.knaw.dans.easy.deposit.PidRequester.PidType
 import nl.knaw.dans.easy.deposit.PidRequester.PidType.PidType
 import nl.knaw.dans.easy.deposit.authentication.{ AuthenticationMocker, AuthenticationProvider }
 import nl.knaw.dans.easy.deposit.docs.DepositInfo
-import nl.knaw.dans.easy.deposit.{ EasyDepositApiApp, TestSupportFixture }
+import nl.knaw.dans.easy.deposit.{ EasyDepositApiApp, PidRequester, TestSupportFixture }
 import nl.knaw.dans.lib.error._
 import org.eclipse.jetty.http.HttpStatus._
 import org.scalamock.handlers.CallHandler2
@@ -31,7 +31,7 @@ import org.scalatra.test.scalatest.ScalatraSuite
 import scala.util.{ Success, Try }
 
 trait DepositServletFixture extends TestSupportFixture with ServletFixture with ScalatraSuite with MockFactory {
-  private val app: EasyDepositApiApp = createTestApp
+  private val app: EasyDepositApiApp = createTestApp(mock[PidRequester])
   private val depositServlet = new DepositServlet(app) with UndoMasking {
     override def getAuthenticationProvider: AuthenticationProvider = {
       new AuthenticationMocker() {

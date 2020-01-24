@@ -38,7 +38,7 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
     clearTestDir()
   }
 
-  private val app: EasyDepositApiApp = createTestApp
+  private val app: EasyDepositApiApp = createTestApp(mock[PidRequester])
   mountServlets(app, authMocker.mockedAuthenticationProvider)
 
   "scenario: /deposit/:uuid/metadata life cycle" should "return default dataset metadata" in {
@@ -167,7 +167,7 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
     }
   }
 
-  "scenario: POST /deposit; PUT /deposit/:uuid/state; PUT /deposit/$uuid/file/..." should "return forbidden cannot update SUBMITTED deposit" ignore {
+  "scenario: POST /deposit; PUT /deposit/:uuid/state; PUT /deposit/$uuid/file/..." should "return forbidden cannot update SUBMITTED deposit" in {
     val uuid: String = setupSubmittedDeposit
 
     authMocker.expectsUserFooBar
@@ -209,7 +209,7 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
     }
   }
 
-  "scenario: create - ... - sumbit" should "create submitted dataset copied from a draft" ignore {
+  "scenario: create - ... - sumbit" should "create submitted dataset copied from a draft" in {
     val uuid: String = setupSubmittedDeposit
 
     // resubmit succeeds
