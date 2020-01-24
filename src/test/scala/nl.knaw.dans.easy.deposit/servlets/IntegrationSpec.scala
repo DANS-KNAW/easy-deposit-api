@@ -169,7 +169,6 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
 
   "scenario: POST /deposit; PUT /deposit/:uuid/state; PUT /deposit/$uuid/file/..." should "return forbidden cannot update SUBMITTED deposit" ignore {
     val uuid: String = setupSubmittedDeposit
-    submittedAgreementsHasEmail(uuid)
 
     authMocker.expectsUserFooBar
     put(
@@ -179,13 +178,6 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
       body shouldBe "Deposit has state SUBMITTED, can only update deposits with one of the states: DRAFT"
       status shouldBe FORBIDDEN_403
     }
-  }
-
-  private def submittedAgreementsHasEmail(uuid: String) = {
-    // might be overkill with respect to AgreementsSpec
-    val submittedUUID = new PropertiesConfiguration((testDir / "drafts" / "foo" / uuid / "deposit.properties").toJava).getString("bag-store.bag-id")
-    (testDir / "easy-ingest-flow-inbox" / submittedUUID / uuid / "metadata" / "depositor-info" / "agreements.xml").contentAsString should
-      include("""<signerId easy-account="user001" email="does.not.exist@dans.knaw.nl">fullName</signerId>""")
   }
 
   "scenario: POST /deposit; twice GET /deposit/:uuid/doi" should "return 200" in {

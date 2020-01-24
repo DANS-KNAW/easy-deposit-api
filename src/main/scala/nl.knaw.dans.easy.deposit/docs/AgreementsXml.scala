@@ -28,21 +28,22 @@ object AgreementsXml extends SchemedXml {
     for {
       _ <- dm.depositAgreementAccepted
       privacy <- dm.hasPrivacySensitiveData
+      userName = Option(user.name).map(name => if (name.isEmpty) user.id else name).getOrElse(user.id)
     } yield
       <agreements
-          xmlns={schemaNameSpace}
+          xmlns={ schemaNameSpace }
           xmlns:dcterms="http://purl.org/dc/terms/"
           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-          xsi:schemaLocation={s"$schemaNameSpace $schemaLocation"}>
+          xsi:schemaLocation={ s"$schemaNameSpace $schemaLocation" }>
         <depositAgreement>
-          <signerId easy-account={user.id} email={user.email}>{user.name}</signerId>
+          <signerId easy-account={ user.id } email={ user.email }>{ userName }</signerId>
           <dcterms:dateAccepted>{dateSubmitted}</dcterms:dateAccepted>
           <depositAgreementAccepted>{dm.acceptDepositAgreement}</depositAgreementAccepted>
         </depositAgreement>
         <personalDataStatement>
-          <signerId easy-account={user.id} email={user.email}>{user.name}</signerId>
-          <dateSigned>{dateSubmitted}</dateSigned>
-          <containsPrivacySensitiveData>{privacy}</containsPrivacySensitiveData>
+          <signerId easy-account={ user.id } email={ user.email }>{ userName }</signerId>
+          <dateSigned>{ dateSubmitted }</dateSigned>
+          <containsPrivacySensitiveData>{ privacy }</containsPrivacySensitiveData>
         </personalDataStatement>
       </agreements>
   }
