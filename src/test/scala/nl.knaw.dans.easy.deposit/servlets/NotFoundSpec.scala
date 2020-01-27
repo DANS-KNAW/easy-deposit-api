@@ -16,9 +16,11 @@
 package nl.knaw.dans.easy.deposit.servlets
 
 import better.files.File
+import nl.knaw.dans.easy.deposit.PidRequester
+import nl.knaw.dans.easy.deposit.authentication.AuthenticationMocker
 import org.eclipse.jetty.http.HttpStatus._
 
-class NotFoundSpec extends DepositServletFixture {
+class NotFoundSpec extends ServletFixture {
 
   private val state =
     """{
@@ -46,6 +48,11 @@ class NotFoundSpec extends DepositServletFixture {
     status shouldBe INTERNAL_SERVER_ERROR_500
     body shouldBe "Internal Server Error"
   }
+
+  mountDepositServlet(
+    createTestApp(mock[PidRequester]),
+    AuthenticationMocker.expectsUserFooBarAnyNumberOfTimes,
+  )
 
   "404 deposit not found" should "be returned by GET /deposit/{id}/metadata" in {
     get(s"/deposit/$uuid/metadata", headers = Seq(fooBarBasicAuthHeader)) { shouldBeNoSuchDeposit }

@@ -16,16 +16,21 @@
 package nl.knaw.dans.easy.deposit.servlets
 
 import better.files.File
+import nl.knaw.dans.easy.deposit.PidRequester.PidType
+import nl.knaw.dans.easy.deposit.authentication.AuthenticationMocker
+import nl.knaw.dans.easy.deposit.{ PidRequester, TestSupportFixture }
 import org.eclipse.jetty.http.HttpStatus._
 
-class DoiSpec extends DepositServletFixture {
+import scala.util.Success
+
+class DoiSpec extends TestSupportFixture with ServletFixture {
   private def propsFile(uuid: String): File = testDir / "drafts/foo" / uuid / "deposit.properties"
 
   private def jsonFile(uuid: String): File = testDir / "drafts/foo" / uuid / bagDirName / "metadata" / "dataset.json"
 
   private val submit = """{"state":"SUBMITTED","stateDescription":"blabla"}"""
   private val doi = "10.17632/DANS.6wg5xccnjd.1"
-  private val doiForJson =s"""  "identifiers":[{"scheme":"id-type:DOI","value":"$doi"}]"""
+  private val doiForJson = s"""  "identifiers":[{"scheme":"id-type:DOI","value":"$doi"}]"""
   private val doiProperty = s"identifier.doi = $doi"
   private val mandatoryOnSubmit =
     """|  "titles": ["blabla"],
@@ -52,9 +57,15 @@ class DoiSpec extends DepositServletFixture {
     status shouldBe BAD_REQUEST_400
   }
 
+  private val mockedPidRequester: PidRequester = mock[PidRequester]
+  mountDepositServlet(
+    createTestApp(mockedPidRequester),
+    AuthenticationMocker.expectsUserFooBarAnyNumberOfTimes,
+  )
+
   "GET /deposit/{id}/doi" should "return a fresh DOI" in {
     val uuid = createDeposit
-    mockDoiRequest(doi) once()
+    mockedPidRequester.requestPid _ expects(*, PidType.doi) returning Success(doi) once()
     get(s"/deposit/$uuid/doi", headers = Seq(fooBarBasicAuthHeader)) { shouldReturnDOI }
   }
 

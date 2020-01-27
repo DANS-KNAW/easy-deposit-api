@@ -19,13 +19,14 @@ import java.nio.file.attribute.PosixFilePermission
 import java.util.UUID
 
 import better.files.File
-import nl.knaw.dans.easy.deposit.DepositDir
+import nl.knaw.dans.easy.deposit.authentication.AuthenticationMocker
 import nl.knaw.dans.easy.deposit.docs.DepositInfo
+import nl.knaw.dans.easy.deposit.{ DepositDir, PidRequester }
 import nl.knaw.dans.lib.error._
 import org.eclipse.jetty.http.HttpStatus._
 import org.scalatest.Inspectors
 
-class UploadSpec extends DepositServletFixture with Inspectors {
+class UploadSpec extends ServletFixture with Inspectors {
 
   override def beforeEach(): Unit = {
     super.beforeEach()
@@ -33,6 +34,11 @@ class UploadSpec extends DepositServletFixture with Inspectors {
     (testDir / "drafts").createDirectories()
     (testDir / "input").createDirectory()
   }
+
+  mountDepositServlet(
+    createTestApp(mock[PidRequester]),
+    AuthenticationMocker.expectsUserFooBarAnyNumberOfTimes,
+  )
 
   "POST" should "upload files from multiple form fields" in {
     val bodyParts = createBodyParts(Seq(
@@ -220,7 +226,7 @@ class UploadSpec extends DepositServletFixture with Inspectors {
       status shouldBe CREATED_201
     }
     // more extensive verifications for the zip test
-    absoluteTarget.walk().map(_.name).toList should contain ("ruimtereis01_verklaring.txt")
+    absoluteTarget.walk().map(_.name).toList should contain("ruimtereis01_verklaring.txt")
   }
 
   it should "extract all files from a ZIP, with a nested zip" in {
