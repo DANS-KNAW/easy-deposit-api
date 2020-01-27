@@ -27,7 +27,6 @@ import nl.knaw.dans.bag.ChecksumAlgorithm.ChecksumAlgorithm
 import nl.knaw.dans.bag.DansBag
 import nl.knaw.dans.bag.v0.DansV0Bag
 import nl.knaw.dans.easy.deposit.docs.AgreementData
-import nl.knaw.dans.easy.deposit.docs.StateInfo.State
 import nl.knaw.dans.lib.error._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 
@@ -60,16 +59,17 @@ class SubmitJob( // deposit values
     logger.info(s"[$draftDepositId] starting the dispatched submit action")
 
     submitDeposit() match {
-      case Failure(e) =>
+      case Failure(e) => // meaning easy-ingest-flow won't start processing
         logger.error(s"[$draftDepositId] error in dispatched submit action ${ this.toString }", e)
-        draftDepositStateManager.setMailToDansDescription(State.submitted)
+        draftDepositStateManager.setMailToDansDescription()
           .doIfFailure { case e => logger.error(s"[$draftDepositId] could not set state description after submission failed", e) }
-      case Success(()) =>
+      case Success(()) => // meaning easy-ingest-flow will start processing
         sendEmail
           .doIfSuccess(_ => logger.info(s"[$draftDepositId] finished with dispatched submit action"))
           .doIfFailure { case e =>
-            // applying setMailToDansDescription (with something like no confirmation message sent)
-            // could get overwritten by easy-ingest-flow, or worse: overwrite a change by easy-ingest-flow.
+            // changing the state description like above (with something like no confirmation message sent)
+            // would cause change conflicts with getStateInfo
+            // when it updates the state (and its description!) with info from easy-ingest-flow
             logger.error(s"[$draftDepositId] deposit submitted but could not send confirmation message", e)
           }
     }

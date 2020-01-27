@@ -76,7 +76,8 @@ class Submitter(submitToBaseDir: File,
                  else ""
       _ = logger.info(s"[$depositId] dispatching submit action to threadpool executor$queueMsg")
       _ <- jobQueue.scheduleJob {
-        new SubmitJob(draftDepositId = draftDeposit.id,
+        new SubmitJob(
+          draftDepositId = draftDeposit.id,
           draftBag = draftBag,
           stagedDepositDir = stagedDir,
           datasetXml = datasetXml,
@@ -89,7 +90,8 @@ class Submitter(submitToBaseDir: File,
           depositUiURL = depositUiURL,
           submitDir = submitDir,
           agreementGenerator = agreementGenerator,
-          mailer = mailer)
+          mailer = mailer,
+        )
       }
     } yield ()
   }
