@@ -360,10 +360,14 @@ class SubmitterSpec extends TestSupportFixture with MockFactory with BeforeAndAf
                                  times: Int = 1,
                                 ): JobQueueManager = {
     val mocked = mock[JobQueueManager]
-    (() => mocked.getSystemStatus) expects() repeat times returning
+
+    // only called when log-level is info
+    (() => mocked.getSystemStatus) expects() anyNumberOfTimes() returning
       SystemStatus(threadPoolStatus = null, queueSize = 2, queueContent = null)
+
     ((mocked.scheduleJob(_: SubmitJob)) expects *)
       .onCall { job: SubmitJob => onSchedule(job) } repeat times
+
     mocked
   }
 
