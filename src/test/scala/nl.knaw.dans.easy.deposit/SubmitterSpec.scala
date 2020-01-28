@@ -15,7 +15,7 @@
  */
 package nl.knaw.dans.easy.deposit
 
-import java.io.{ FileReader, IOException }
+import java.io.IOException
 import java.net.URL
 import java.nio.charset.StandardCharsets
 import java.nio.file.attribute.GroupPrincipal
@@ -252,9 +252,12 @@ class SubmitterSpec extends TestSupportFixture with MockFactory with BeforeAndAf
     }
 
     def mimicRejectAndSaveDraft(): Unit = {
-      draftPropertiesFile.write(draftPropertiesFile.contentAsString.replace("SUBMITTED", "DRAFT"))
       stateManager.draftProps.clear()
-      stateManager.draftProps.load(new FileReader(draftPropertiesFile.toJava))
+      stateManager.draftProps.load(
+        draftPropertiesFile.contentAsString
+          .replace("SUBMITTED", "DRAFT")
+          .reader
+      )
     }
 
     currentBagStoreBagId shouldBe null // pre condition
