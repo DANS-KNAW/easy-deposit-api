@@ -78,7 +78,7 @@ class SubmitterSpec extends TestSupportFixture with MockFactory with BeforeAndAf
 
   def prepareTestDeposit(datasetMetadata: DatasetMetadata = datasetMetadata,
                          withDoiInProps: Boolean = false,
-                        ): (DepositDir, File, DansBag, String) = {
+                        ): (DepositDir, StateManager, File, DansBag, String) = {
 
     val deposit = DepositDir.create(testDir / "drafts", "user")
       .getOrRecover(e => fail(e.toString, e))
@@ -95,7 +95,10 @@ class SubmitterSpec extends TestSupportFixture with MockFactory with BeforeAndAf
     deposit.writeDatasetMetadataJson(datasetMetadata)
     submitDir.createDirectories()
 
-    (deposit, props, bag, doi)
+    val stateManager = deposit.getStateManager(submitDir, easyHome)
+      .getOrRecover(e => fail(s"could not get stateManager of test deposit $e"))
+
+    (deposit, stateManager, props, bag, doi)
   }
 
   "constructor" should "fail if the configured group does not exist" in {
@@ -108,7 +111,7 @@ class SubmitterSpec extends TestSupportFixture with MockFactory with BeforeAndAf
   }
 
   "submit" should "schedule a job" in {
-    val (draftDeposit, draftProperties, _, _) = prepareTestDeposit(withDoiInProps = true)
+    val (draftDeposit, stateManager, draftProperties, _, _) = prepareTestDeposit(withDoiInProps = true)
 
     // pre conditions
     draftProperties.contentAsString should (include("DRAFT") and not include "bag-store.bag-id")
@@ -116,14 +119,14 @@ class SubmitterSpec extends TestSupportFixture with MockFactory with BeforeAndAf
     new Submitter(
       submitDir, validGroup, depositHome, mailer = null, agreementGenerator = null,
       jobQueue = expectsScheduleJob(onSchedule = _ => Success(())),
-    ).submit(draftDeposit, stateManagerOf(draftDeposit), defaultUserInfo, stageDir) shouldBe a[Success[_]]
+    ).submit(draftDeposit, stateManager, defaultUserInfo, stageDir) shouldBe a[Success[_]]
 
     // post conditions
     draftProperties.contentAsString should (include("SUBMITTED") and include("bag-store.bag-id"))
   }
 
   it should "catch incomplete metatdata" in {
-    val (draftDeposit, _, _, _) = prepareTestDeposit(DatasetMetadata())
+    val (draftDeposit, _, _, _, _) = prepareTestDeposit(DatasetMetadata())
 
     new Submitter(submitDir, validGroup, depositHome, jobQueue = null, mailer = null, agreementGenerator = null)
       .submit(draftDeposit, draftDepositStateManager = null, defaultUserInfo, stageDir) should matchPattern {
@@ -132,7 +135,7 @@ class SubmitterSpec extends TestSupportFixture with MockFactory with BeforeAndAf
   }
 
   it should "catch missing properties" in {
-    val (draftDeposit, _, _, _) = prepareTestDeposit()
+    val (draftDeposit, _, _, _, _) = prepareTestDeposit()
     (draftDeposit.bagDir.parent / "deposit.properties").delete()
 
     new Submitter(submitDir, validGroup, depositHome, jobQueue = null, mailer = null, agreementGenerator = null)
@@ -143,7 +146,7 @@ class SubmitterSpec extends TestSupportFixture with MockFactory with BeforeAndAf
   }
 
   it should "catch a missing bag" in {
-    val (draftDeposit, _, bag, _) = prepareTestDeposit(withDoiInProps = true)
+    val (draftDeposit, _, _, bag, _) = prepareTestDeposit(withDoiInProps = true)
     draftDeposit.bagDir.delete()
 
     new Submitter(submitDir, validGroup, depositHome, jobQueue = null, mailer = null, agreementGenerator = null)
@@ -153,13 +156,13 @@ class SubmitterSpec extends TestSupportFixture with MockFactory with BeforeAndAf
   }
 
   it should "catch inconsistencies between actual payloads and manifest" in {
-    val (draftDeposit, _, _, _) = prepareTestDeposit(withDoiInProps = true)
+    val (draftDeposit, stateManager, _, _, _) = prepareTestDeposit(withDoiInProps = true)
     val someFile = (draftDeposit.bagDir / "data" / "some.file").createFile()
     val otherFile = someFile.parent.parent / "other.file"
     (draftDeposit.bagDir / "manifest-sha1.txt").append(s"cheksum123 ${ otherFile.name }")
 
     new Submitter(submitDir, validGroup, depositHome, jobQueue = null, mailer = null, agreementGenerator = null)
-      .submit(draftDeposit, stateManagerOf(draftDeposit), defaultUserInfo, someFile) should
+      .submit(draftDeposit, stateManager, defaultUserInfo, someFile) should
       matchPattern { case Failure(e: Exception) if e.getMessage ==
         s"invalid bag, missing [files, checksums]: [Set($otherFile), Set($someFile)]" =>
       }
@@ -167,7 +170,7 @@ class SubmitterSpec extends TestSupportFixture with MockFactory with BeforeAndAf
 
   "SubmitJob.run" should "write all files" in {
     // assemble test data
-    val (draftDeposit, draftPropertiesFile, draftBag, doi) = prepareTestDeposit(withDoiInProps = true)
+    val (draftDeposit, stateManager, draftPropertiesFile, draftBag, doi) = prepareTestDeposit(withDoiInProps = true)
     draftBag.addPayloadFile("Lorum ipsum".inputStream, Paths.get("folder/text.txt"))
     draftBag.save()
 
@@ -181,7 +184,7 @@ class SubmitterSpec extends TestSupportFixture with MockFactory with BeforeAndAf
 
     server.enqueue { pdfResponse }
     new Submitter(submitDir, validGroup, depositHome, jobQueue = expectsScheduleJob(), createMailer, agreementGenerator)
-      .submit(draftDeposit, stateManagerOf(draftDeposit), defaultUserInfo, stageDir) shouldBe Success(())
+      .submit(draftDeposit, stateManager, defaultUserInfo, stageDir) shouldBe Success(())
     takePdfAgreementRequestFromServer(doi)
 
     // post conditions
@@ -189,7 +192,7 @@ class SubmitterSpec extends TestSupportFixture with MockFactory with BeforeAndAf
     draftPropertiesFile.contentAsString should // compare with pre conditions
       (include("SUBMITTED") and include("bag-store.bag-id") and be((submittedDeposit / "deposit.properties").contentAsString))
     jsonFile.size shouldBe mdOldSize
-    stateManagerOf(draftDeposit).getStateInfo shouldBe Success(StateInfo(State.submitted, "The deposit is being processed"))
+    stateManager.getStateInfo shouldBe Success(StateInfo(State.submitted, "The deposit is being processed"))
     (draftDeposit.bagDir / "metadata").list.toSeq.map(_.name) shouldBe Seq("dataset.json") // compare with submitted bag/metadata files
     val submittedMetadata = submittedDeposit / "bag" / "metadata"
     submittedDeposit.listRecursively.toSeq.map(_.toString) should contain theSameElementsAs Seq(
@@ -218,14 +221,14 @@ class SubmitterSpec extends TestSupportFixture with MockFactory with BeforeAndAf
 
   it should "write empty message-from-depositor file" in {
     // prepare test data
-    val (draftDeposit, draftPropertiesFile, _, doi) = prepareTestDeposit(
+    val (draftDeposit, stateManager, draftPropertiesFile, _, doi) = prepareTestDeposit(
       datasetMetadata.copy(messageForDataManager = None),
       withDoiInProps = true
     )
 
     server.enqueue { pdfResponse }
     new Submitter(submitDir, validGroup, depositHome, jobQueue = expectsScheduleJob(), createMailer, agreementGenerator)
-      .submit(draftDeposit, stateManagerOf(draftDeposit), defaultUserInfo, stageDir) shouldBe Success(())
+      .submit(draftDeposit, stateManager, defaultUserInfo, stageDir) shouldBe Success(())
     takePdfAgreementRequestFromServer(doi)
 
     // post condition (other details in previous test)
@@ -235,12 +238,12 @@ class SubmitterSpec extends TestSupportFixture with MockFactory with BeforeAndAf
   }
 
   it should "replace a previous property bag-store.bag-id at resubmit" in {
-    val (draftDeposit, draftPropertiesFile, _, doi) = prepareTestDeposit(withDoiInProps = true)
+    val (draftDeposit, stateManager, draftPropertiesFile, _, doi) = prepareTestDeposit(withDoiInProps = true)
     val submitter = new Submitter(submitDir, validGroup, depositHome, jobQueue = expectsScheduleJob(times = 2), createMailer, agreementGenerator)
 
     def submit = {
       server.enqueue { pdfResponse }
-      submitter.submit(draftDeposit, stateManagerOf(draftDeposit), defaultUserInfo, stageDir) shouldBe Success(())
+      submitter.submit(draftDeposit, stateManager, defaultUserInfo, stageDir) shouldBe Success(())
       takePdfAgreementRequestFromServer(doi)
     }
 
@@ -268,7 +271,7 @@ class SubmitterSpec extends TestSupportFixture with MockFactory with BeforeAndAf
   }
 
   it should "report an inconsistent checksum" in {
-    val (draftDeposit, _, _, _) = prepareTestDeposit(withDoiInProps = true)
+    val (draftDeposit, stateManager, _, _, _) = prepareTestDeposit(withDoiInProps = true)
     val bag = draftDeposit.getDataFiles.getOrRecover(e => fail("can't get bag of test input", e)).bag
     bag.addPayloadFile("lorum ipsum".inputStream, Paths.get("file.txt"))
     bag.save()
@@ -276,16 +279,15 @@ class SubmitterSpec extends TestSupportFixture with MockFactory with BeforeAndAf
     manifest.write(manifest.contentAsString.replaceAll(" +", "xxx  "))
 
     new Submitter(submitDir, validGroup, depositHome, jobQueue = expectsScheduleJob(), createMailer, agreementGenerator)
-      .submit(draftDeposit, stateManagerOf(draftDeposit), defaultUserInfo, stageDir) shouldBe Success(())
+      .submit(draftDeposit, stateManager, defaultUserInfo, stageDir) shouldBe Success(())
 
     stageDir.list shouldNot be(empty)
     submitDir.list shouldBe empty
-    stateInfoShouldHaveContactDansMessage(stateManagerOf(draftDeposit))
+    stateInfoShouldHaveContactDansMessage(stateManager)
   }
 
   it should "report a group configuration problem" in {
-    val (draftDeposit, _, _, _) = prepareTestDeposit(withDoiInProps = true)
-    val stateManager = stateManagerOf(draftDeposit)
+    val (draftDeposit, stateManager, _, _, _) = prepareTestDeposit(withDoiInProps = true)
 
     new Submitter(submitDir, principalOf(unrelatedGroup), depositHome, jobQueue = expectsScheduleJob(), createMailer, agreementGenerator)
       .submit(draftDeposit, stateManager, defaultUserInfo, stageDir) shouldBe Success(())
@@ -297,16 +299,16 @@ class SubmitterSpec extends TestSupportFixture with MockFactory with BeforeAndAf
   }
 
   it should "report an unexpected exception" in {
-    val (draftDeposit, draftPropertiesFile, _, _) = prepareTestDeposit(withDoiInProps = true)
+    val (draftDeposit, stateManager, draftPropertiesFile, _, _) = prepareTestDeposit(withDoiInProps = true)
     val groupPrincipal = new GroupPrincipal() {override def getName: String = "invalidGroupPrincipal" } // causes ProviderMismatchException
 
     new Submitter(submitDir, groupPrincipal, depositHome, jobQueue = expectsScheduleJob(), createMailer, agreementGenerator)
-      .submit(draftDeposit, stateManagerOf(draftDeposit), defaultUserInfo, stageDir) shouldBe Success(())
+      .submit(draftDeposit, stateManager, defaultUserInfo, stageDir) shouldBe Success(())
 
     // post conditions
     stageDir.list shouldNot be(empty)
     submitDir.list shouldBe empty
-    stateInfoShouldHaveContactDansMessage(stateManagerOf(draftDeposit))
+    stateInfoShouldHaveContactDansMessage(stateManager)
     draftPropertiesFile.contentAsString should include("bag-store.bag-id = ")
   }
 
@@ -344,16 +346,6 @@ class SubmitterSpec extends TestSupportFixture with MockFactory with BeforeAndAf
     request.getHeader("accept") shouldBe contentType
     request.getBody.readString(StandardCharsets.UTF_8) shouldBe
       s"""{"depositor":{"name":"fullName","address":"","zipcode":"","city":"","country":"","organisation":"","phone":"","email":"does.not.exist@dans.knaw.nl"},"doi":"$doi","title":"title 1","dateSubmitted":"2018-03-22","dateAvailable":"2018-03-14","accessCategory":"OPEN_ACCESS","license":"http://creativecommons.org/publicdomain/zero/1.0","sample":false,"agreementVersion":"4.0","agreementLanguage":"EN"}"""
-  }
-
-  /**
-   * Values are cashed so create a fresh one each time to be sure the value was flushed to the file system.
-   * After all, each service request also provides a fresh instance.
-   * Use null instead when not expecting to arrive at requesting/changing any state.
-   **/
-  private def stateManagerOf(draftDeposit: DepositDir) = {
-    draftDeposit.getStateManager(submitDir, easyHome)
-      .getOrRecover(e => fail(s"could not get stateManager of test deposit $e"))
   }
 
   private def expectsScheduleJob(onSchedule: SubmitJob => Try[Unit] = (job: SubmitJob) => Try(job.run()),
