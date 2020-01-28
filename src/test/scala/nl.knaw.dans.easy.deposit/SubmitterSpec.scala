@@ -285,14 +285,15 @@ class SubmitterSpec extends TestSupportFixture with MockFactory with BeforeAndAf
 
   it should "report a group configuration problem" in {
     val (draftDeposit, _, _, _) = prepareTestDeposit(withDoiInProps = true)
+    val stateManager = stateManagerOf(draftDeposit)
 
     new Submitter(submitDir, principalOf(unrelatedGroup), depositHome, jobQueue = expectsScheduleJob(), createMailer, agreementGenerator)
-      .submit(draftDeposit, stateManagerOf(draftDeposit), defaultUserInfo, stageDir) shouldBe Success(())
+      .submit(draftDeposit, stateManager, defaultUserInfo, stageDir) shouldBe Success(())
 
     // post conditions
     stageDir.list shouldNot be(empty)
     submitDir.list shouldBe empty
-    stateInfoShouldHaveContactDansMessage(stateManagerOf(draftDeposit))
+    stateInfoShouldHaveContactDansMessage(stateManager)
   }
 
   it should "report an unexpected exception" in {

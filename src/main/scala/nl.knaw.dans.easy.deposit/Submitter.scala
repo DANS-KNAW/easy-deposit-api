@@ -71,10 +71,7 @@ class Submitter(submitToBaseDir: File,
       submittedId <- draftDepositStateManager.getSubmittedBagId // created by changeState
       submitDir = submitToBaseDir / submittedId.toString
       _ = if (submitDir.exists) throw AlreadySubmittedException(depositId)
-      queueSize = jobQueue.getSystemStatus.queueSize
-      queueMsg = if (queueSize > 0) s"; currently ${ queueSize } jobs waiting to be processed"
-                 else ""
-      _ = logger.info(s"[$depositId] dispatching submit action to threadpool executor$queueMsg")
+      _ = logger.info(s"[$depositId] dispatching submit action to threadpool executor$queueMessage")
       _ <- jobQueue.scheduleJob {
         new SubmitJob(
           draftDepositId = draftDeposit.id,
@@ -94,6 +91,12 @@ class Submitter(submitToBaseDir: File,
         )
       }
     } yield ()
+  }
+
+  private def queueMessage = {
+    val queueSize = jobQueue.getSystemStatus.queueSize
+    if (queueSize > 0) s"; currently ${ queueSize } jobs waiting to be processed"
+    else ""
   }
 
   type ManifestItems = Map[File, String]
