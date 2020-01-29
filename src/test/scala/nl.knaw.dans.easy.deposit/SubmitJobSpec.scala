@@ -155,7 +155,7 @@ class SubmitJobSpec extends TestSupportFixture with MockFactory {
     (bag.baseDir / "manifest-sha1.txt").append("chk file")
 
     createSubmitter(userGroup).submit(depositDir, stateManager, defaultUserInfo, testDir / "staged") should matchPattern {
-      case Failure(e) if e.getMessage == s"invalid bag, missing [files, checksums]: [Set($testDir/drafts/user/${ depositDir.id }/bag/file), Set()]" =>
+      case Failure(e) if e.getMessage == s"invalid bag, missing [files, checksums]: [Set($testDir/drafts/user/${ depositDir.id }/$bagDirName/file), Set()]" =>
     }
   }
 

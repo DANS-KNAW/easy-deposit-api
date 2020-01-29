@@ -184,7 +184,7 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
   private def submittedAgreementsHasEmail(uuid: String) = {
     // might be overkill with respect to AgreementsSpec
     val submittedUUID = new PropertiesConfiguration((testDir / "drafts" / "foo" / uuid / "deposit.properties").toJava).getString("bag-store.bag-id")
-    (testDir / "easy-ingest-flow-inbox" / submittedUUID / "bag" / "metadata" / "depositor-info" / "agreements.xml").contentAsString should
+    (testDir / "easy-ingest-flow-inbox" / submittedUUID / uuid / "metadata" / "depositor-info" / "agreements.xml").contentAsString should
       include("""<signerId easy-account="user001" email="does.not.exist@dans.knaw.nl">fullName</signerId>""")
   }
 
