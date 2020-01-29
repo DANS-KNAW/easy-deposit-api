@@ -75,7 +75,7 @@ class SubmitJob(draftDepositId: UUID,
     }
     logger.debug(s"[$draftDepositId] Message for the datamanager:\n$fullMsg4DataManager")
 
-    val stagedBagDir = stagedDepositDir / bagDirName
+    val stagedBagDir = stagedDepositDir / draftDepositId.toString
     logger.info(s"[$draftDepositId] Created staged bag in ${ stagedBagDir }")
     for {
       stageBag <- DansV0Bag.empty(stagedBagDir).map(_.withCreated())
