@@ -92,6 +92,8 @@ class SubmitJobSpec extends TestSupportFixture with MockFactory {
     depositDir.getDOI(null) shouldBe Success(doi) // no pid-requester so obtained from json and/or props
     new PropertiesConfiguration((bagDir.parent / "deposit.properties").toJava)
       .getString("state.label") shouldBe "SUBMITTED"
+    new PropertiesConfiguration((testDir / "submitted" / bagStoreBagID / "deposit.properties").toJava)
+      .getString("bag-store.bag-name") shouldBe draftDepositId
   }
 
   it should "write empty message-from-depositor file" ignore {

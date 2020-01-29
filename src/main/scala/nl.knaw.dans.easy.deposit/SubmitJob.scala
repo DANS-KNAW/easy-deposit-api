@@ -29,6 +29,7 @@ import nl.knaw.dans.bag.v0.DansV0Bag
 import nl.knaw.dans.easy.deposit.docs.AgreementData
 import nl.knaw.dans.lib.error._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
+import org.apache.commons.configuration.PropertiesConfiguration
 
 import scala.collection.JavaConverters._
 import scala.util.control.NonFatal
@@ -76,10 +77,12 @@ class SubmitJob(draftDepositId: UUID,
     logger.debug(s"[$draftDepositId] Message for the datamanager:\n$fullMsg4DataManager")
 
     val stagedBagDir = stagedDepositDir / draftDepositId.toString
+    val stageDepositProperties = stagedDepositDir / propsFileName
     logger.info(s"[$draftDepositId] Created staged bag in ${ stagedBagDir }")
     for {
       stageBag <- DansV0Bag.empty(stagedBagDir).map(_.withCreated())
-      _ = (draftBag.baseDir.parent / propsFileName).copyTo(stagedDepositDir / propsFileName)
+      _ = (draftBag.baseDir.parent / propsFileName).copyTo(stageDepositProperties)
+      _ <- setStagedDepositBagName(stageDepositProperties, draftDepositId.toString)
       _ = logger.info(s"[$draftDepositId] adding metadata to staged bag")
       _ <- stageBag.addMetadataFile(fullMsg4DataManager, s"$depositorInfoDirectoryName/message-from-depositor.txt")
       _ <- stageBag.addMetadataFile(agreementsXml, s"$depositorInfoDirectoryName/agreements.xml")
@@ -98,6 +101,12 @@ class SubmitJob(draftDepositId: UUID,
       _ = logger.info(s"[$draftDepositId] move $stagedDepositDir to $submitDir")
       _ = stagedDepositDir.moveTo(submitDir)(CopyOptions.atomically)
     } yield ()
+  }
+
+  private def setStagedDepositBagName(propertiesFile: File, bagName: String): Try[Unit] = Try {
+    val props = new PropertiesConfiguration(propertiesFile.toJava)
+    props.setProperty("bag-store.bag-name", bagName)
+    props.save()
   }
 
   private def sendEmail: Try[Unit] = {
