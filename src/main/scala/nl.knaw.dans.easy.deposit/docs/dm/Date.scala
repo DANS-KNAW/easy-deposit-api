@@ -63,9 +63,8 @@ case class Date(
       this
   }
 
-  def hasValue: Boolean = value match {
-    case None |
-         Some(s) if s.isBlank => false
+  def hasValue: Boolean = value.flatMap(_.toOption) match {
+    case None => false
     case _ => true
   }
 }
