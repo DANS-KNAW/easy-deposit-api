@@ -43,3 +43,9 @@ trait AuthenticationMocker extends MockFactory {
     (mockedAuthenticationProvider.authenticate(_: String, _: String)) expects(*, *) never()
   }
 }
+object AuthenticationMocker {
+  def expectsUserFooBarAnyNumberOfTimes: AuthenticationProvider = new AuthenticationMocker() {
+    override val mockedAuthenticationProvider: AuthenticationProvider = mock[AuthenticationProvider]
+    expectsUserFooBar anyNumberOfTimes()
+  }.mockedAuthenticationProvider
+}
