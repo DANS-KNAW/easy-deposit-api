@@ -39,6 +39,8 @@ object RelationQualifier extends Enumeration {
 trait RelationType {
   /** @return this with Some-s of empty strings as None-s */
   def withCleanOptions: RelationType
+
+  def hasValue: Boolean
 }
 
 case class Relation(qualifier: Option[RelationQualifier],
@@ -49,6 +51,12 @@ case class Relation(qualifier: Option[RelationQualifier],
     url = url.flatMap(_.toOption),
     title = title.flatMap(_.toOption),
   )
+
+  override def hasValue: Boolean = (url, title) match {
+    case (None, None) |
+         (Some(url), Some(tiltle)) if url.isBlank && tiltle.isBlank => false
+    case _ => true
+  }
 }
 
 case class RelatedIdentifier(scheme: Option[String],
@@ -59,4 +67,10 @@ case class RelatedIdentifier(scheme: Option[String],
     scheme = scheme.flatMap(_.toOption),
     value = value.flatMap(_.toOption),
   )
+
+  override def hasValue: Boolean = value match {
+    case None |
+         Some(s) if s.isBlank => false
+    case _ => true
+  }
 }

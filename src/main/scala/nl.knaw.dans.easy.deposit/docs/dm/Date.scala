@@ -17,6 +17,7 @@ package nl.knaw.dans.easy.deposit.docs.dm
 
 import nl.knaw.dans.easy.deposit.docs.JsonUtil.toJson
 import nl.knaw.dans.easy.deposit.docs.dm.DateQualifier.DateQualifier
+import nl.knaw.dans.lib.string._
 import org.joda.time.DateTime
 import org.joda.time.format.ISODateTimeFormat
 
@@ -60,6 +61,12 @@ case class Date(
       copy(value = value.map(DateTime.parse(_).toString(ISODateTimeFormat.date())))
     else
       this
+  }
+
+  def hasValue: Boolean = value match {
+    case None |
+         Some(s) if s.isBlank => false
+    case _ => true
   }
 }
 

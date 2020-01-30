@@ -66,7 +66,7 @@ object DDM extends SchemedXml with DebugEnhancedLogging {
         { dm.subjects.withNonEmpty.map(details(_, "subject", lang)) }
         { dm.temporalCoverages.withNonEmpty.map(details(_, "temporal", lang)) }
         { dm.spatialCoverages.withNonEmpty.map(details(_, "spatial", lang)) }
-        { dm.otherDates.map(date => <label xsi:type={ date.scheme.nonBlankOrNull }>{ date.value.nonBlankOrEmpty }</label>.withLabel(date.qualifier)) }
+        { dm.otherDates.withNonEmpty.map(date => <label xsi:type={ date.scheme.nonBlankOrNull }>{ date.value.nonBlankOrEmpty }</label>.withLabel(date.qualifier)) }
         { dm.spatialPoints.withNonEmpty.map(point => <dcx-gml:spatial srsName={ point.srsName }>{ details(point) }</dcx-gml:spatial>) }
         { dm.spatialBoxes.withNonEmpty.map(point => <dcx-gml:spatial>{ details(point) }</dcx-gml:spatial>) }
         { dm.license.withNonEmpty.map(src => <dcterms:license xsi:type={ src.scheme.nonBlankOrNull }>{ src.value.nonBlankOrEmpty }</dcterms:license>) }
