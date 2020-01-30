@@ -25,9 +25,9 @@ object CollectionUtils {
   implicit class RichSeq[T](val sources: Seq[T]) extends AnyVal {
     def withNonEmpty: FilterMonadic[T, Seq[T]] = sources.withFilter {
       case str: String => !str.isBlank
-      case rel: RelationType => !rel.hasValue
-      case date: Date => !date.hasValue
-      case date: SchemedValue => !date.hasValue
+      case rel: RelationType => rel.hasValue
+      case date: Date => date.hasValue
+      case date: SchemedValue => date.hasValue
       case _ => true
     }
   }
