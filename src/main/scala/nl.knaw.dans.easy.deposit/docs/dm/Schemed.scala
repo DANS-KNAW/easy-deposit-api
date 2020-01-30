@@ -19,7 +19,7 @@ import nl.knaw.dans.lib.string._
 
 case class SchemedValue(scheme: Option[String],
                         value: Option[String],
-                       ) {
+                       ) extends OptionalValue {
 
   def hasValue: Boolean = value.flatMap(_.toOption).fold(false)(_ => true)
 }

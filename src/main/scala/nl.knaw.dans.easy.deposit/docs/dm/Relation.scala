@@ -46,7 +46,7 @@ trait RelationType {
 case class Relation(qualifier: Option[RelationQualifier],
                     url: Option[String],
                     title: Option[String],
-                   ) extends RelationType {
+                   ) extends RelationType with OptionalValue {
   override def withCleanOptions: RelationType = this.copy(
     url = url.flatMap(_.toOption),
     title = title.flatMap(_.toOption),
@@ -64,7 +64,7 @@ case class Relation(qualifier: Option[RelationQualifier],
 case class RelatedIdentifier(scheme: Option[String],
                              value: Option[String],
                              qualifier: Option[RelationQualifier],
-                            ) extends RelationType {
+                            ) extends RelationType with OptionalValue {
   override def withCleanOptions: RelationType = this.copy(
     scheme = scheme.flatMap(_.toOption),
     value = value.flatMap(_.toOption),
