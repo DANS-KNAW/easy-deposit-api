@@ -132,7 +132,7 @@ trait TestSupportFixture extends FlatSpec with Matchers with Inside with BeforeA
     })
   }
 
-  def createTestApp(requester: PidRequester): EasyDepositApiApp = {
+  def createTestApp(requester: PidRequester = mock[PidRequester]): EasyDepositApiApp = {
     new EasyDepositApiApp(minimalAppConfig) {
       override val pidRequester: PidRequester = requester
 

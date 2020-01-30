@@ -16,7 +16,6 @@
 package nl.knaw.dans.easy.deposit.servlets
 
 import better.files.File
-import nl.knaw.dans.easy.deposit.PidRequester
 import nl.knaw.dans.easy.deposit.authentication.AuthenticationMocker
 import org.eclipse.jetty.http.HttpStatus._
 
@@ -50,7 +49,7 @@ class NotFoundSpec extends ServletFixture {
   }
 
   mountDepositServlet(
-    createTestApp(mock[PidRequester]),
+    createTestApp(),
     AuthenticationMocker.expectsUserFooBarAnyNumberOfTimes,
   )
 

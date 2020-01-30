@@ -38,7 +38,7 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
     clearTestDir()
   }
 
-  private val app: EasyDepositApiApp = createTestApp(mock[PidRequester])
+  private val app: EasyDepositApiApp = createTestApp()
   mountServlets(app, authMocker.mockedAuthenticationProvider)
 
   "scenario: /deposit/:uuid/metadata life cycle" should "return default dataset metadata" in {

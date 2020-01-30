@@ -15,6 +15,7 @@
  */
 package nl.knaw.dans.easy.deposit.docs
 
+import nl.knaw.dans.lib.string._
 import org.joda.time.DateTime
 
 import scala.util.Try
@@ -28,7 +29,7 @@ object AgreementsXml extends SchemedXml {
     for {
       _ <- dm.depositAgreementAccepted
       privacy <- dm.hasPrivacySensitiveData
-      userName = Option(user.name).map(name => if (name.isEmpty) user.id else name).getOrElse(user.id)
+      userName = user.name.toOption.getOrElse(user.id)
     } yield
       <agreements
           xmlns={ schemaNameSpace }

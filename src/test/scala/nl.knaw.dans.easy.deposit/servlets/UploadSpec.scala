@@ -19,9 +19,9 @@ import java.nio.file.attribute.PosixFilePermission
 import java.util.UUID
 
 import better.files.File
+import nl.knaw.dans.easy.deposit.DepositDir
 import nl.knaw.dans.easy.deposit.authentication.AuthenticationMocker
 import nl.knaw.dans.easy.deposit.docs.DepositInfo
-import nl.knaw.dans.easy.deposit.{ DepositDir, PidRequester }
 import nl.knaw.dans.lib.error._
 import org.eclipse.jetty.http.HttpStatus._
 import org.scalatest.Inspectors
@@ -36,7 +36,7 @@ class UploadSpec extends ServletFixture with Inspectors {
   }
 
   mountDepositServlet(
-    createTestApp(mock[PidRequester]),
+    createTestApp(),
     AuthenticationMocker.expectsUserFooBarAnyNumberOfTimes,
   )
 

@@ -27,7 +27,7 @@ import org.joda.time.DateTimeZone.UTC
 import scala.util.Success
 
 class EasyDepositApiAppSpec extends TestSupportFixture {
-  private val app: EasyDepositApiApp = createTestApp(mock[PidRequester])
+  private val app: EasyDepositApiApp = createTestApp()
 
   private val defaultUser: String = "user001"
 
