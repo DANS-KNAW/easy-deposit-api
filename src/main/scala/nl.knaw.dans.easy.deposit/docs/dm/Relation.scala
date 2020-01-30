@@ -70,8 +70,5 @@ case class RelatedIdentifier(scheme: Option[String],
     value = value.flatMap(_.toOption),
   )
 
-  override def hasValue: Boolean = value.flatMap(_.toOption) match {
-    case None => false
-    case _ => true
-  }
+  override def hasValue: Boolean = value.flatMap(_.toOption).fold(false)(_ => true)
 }

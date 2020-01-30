@@ -160,6 +160,18 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
     }
   }
 
+  "minimal with empty date" should "fail" in {
+    val author = Author(
+      initials = Some("F.O.O."),
+      surname = Some("Bar"),
+      ids = Some(Seq(SchemedValue("dcx-dai:ISNI", "ISNI:000000012281955X")))
+    )
+    DDM(new MinimalDatasetMetadata(contributors = Some(Seq(author)))) should matchPattern {
+      case Failure(e: InvalidDocumentException) if e.getMessage ==
+        "invalid DatasetMetadata: expecting (label) or (prefix:label); got [dcx-dai:dcx-dai:ISNI] to adjust the <label> of <label>ISNI:000000012281955X</label>" =>
+    }
+  }
+
   "minimal with missing scheme for a SpatialPoint" should behave like validDatasetMetadata(
     input = Try(new MinimalDatasetMetadata(spatialPoints = Some(Seq(
       SpatialPoint(None, Some("1"), Some("2"))

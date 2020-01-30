@@ -15,7 +15,7 @@
  */
 package nl.knaw.dans.easy.deposit.docs
 
-import nl.knaw.dans.easy.deposit.docs.dm.{ Date, RelationType }
+import nl.knaw.dans.easy.deposit.docs.dm.{ Date, RelationType, SchemedValue }
 import nl.knaw.dans.lib.string._
 
 import scala.collection.generic.FilterMonadic
@@ -27,6 +27,7 @@ object CollectionUtils {
       case str: String => !str.isBlank
       case rel: RelationType => !rel.hasValue
       case date: Date => !date.hasValue
+      case date: SchemedValue => !date.hasValue
       case _ => true
     }
   }

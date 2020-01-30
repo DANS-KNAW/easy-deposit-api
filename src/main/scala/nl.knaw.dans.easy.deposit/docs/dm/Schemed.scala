@@ -15,9 +15,14 @@
  */
 package nl.knaw.dans.easy.deposit.docs.dm
 
+import nl.knaw.dans.lib.string._
+
 case class SchemedValue(scheme: Option[String],
                         value: Option[String],
-                       )
+                       ) {
+
+  def hasValue: Boolean = value.flatMap(_.toOption).fold(false)(_ => true)
+}
 object SchemedValue {
   def apply(scheme: String, value: String): SchemedValue = {
     SchemedValue(Some(scheme), Some(value))

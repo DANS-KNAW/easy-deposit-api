@@ -63,10 +63,7 @@ case class Date(
       this
   }
 
-  def hasValue: Boolean = value.flatMap(_.toOption) match {
-    case None => false
-    case _ => true
-  }
+  def hasValue: Boolean = value.flatMap(_.toOption).fold(false)(_ => true)
 }
 
 object Date {
