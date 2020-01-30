@@ -17,18 +17,50 @@ package nl.knaw.dans.easy.deposit
 
 import java.io.IOException
 import java.net.URL
-import java.nio.file.NoSuchFileException
+import java.nio.charset.StandardCharsets
+import java.nio.file.attribute.GroupPrincipal
+import java.nio.file.{ NoSuchFileException, Paths }
+import java.util.concurrent.{ Executor, TimeUnit }
 
-import better.files.File
+import better.files.{ File, StringExtensions }
+import nl.knaw.dans.bag.DansBag
 import nl.knaw.dans.easy.deposit.Errors.{ CorruptDepositException, InvalidDocumentException }
-import nl.knaw.dans.easy.deposit.docs.DatasetMetadata
+import nl.knaw.dans.easy.deposit.docs.StateInfo.State
+import nl.knaw.dans.easy.deposit.docs.{ DatasetMetadata, StateInfo }
 import nl.knaw.dans.easy.deposit.executor.{ JobQueueManager, SystemStatus }
 import nl.knaw.dans.lib.error._
+import okhttp3.mockwebserver.{ MockResponse, MockWebServer }
+import org.apache.commons.configuration.PropertiesConfiguration
 import org.scalamock.scalatest.MockFactory
+import org.scalatest.{ Assertion, BeforeAndAfterAll }
+import scalaj.http.Http
 
-import scala.util.{ Failure, Success }
+import scala.util.{ Failure, Success, Try }
 
-class SubmitterSpec extends TestSupportFixture with MockFactory {
+class SubmitterSpec extends TestSupportFixture with MockFactory with BeforeAndAfterAll {
+
+  case class MailExecutor() extends Executor {override def execute(command: Runnable): Unit = () }
+  override protected def beforeAll(): Unit = {
+    // TODO next line not effective for https://github.com/apache/commons-email/blob/3fd73a641c3f729586824da1c17aa8efd0e895f8/src/main/java/org/apache/commons/mail/Email.java#L637
+    //  see also https://github.com/m-szalik/javamail/blob/master/docs/examples/standalone-example/src/main/java/org/jsoftware/javamail/MainAppExample.java
+    //  which would write the emails to files but doesn't seem to collaborate with apache.commons.mail
+    //  Note that the required session is set by buildMimeMessage in the Mailer class.
+    //  As a result sendMimeMessage in SubmitJob.run throws the non-fatal
+    //  "EmailException: Sending the email to the following server failed mail.server.does.not.exist.dans.knaw.nl"
+    System.setProperty("mail.event.executor", "nl.knaw.dans.easy.deposit.SubmitterSpec$MailExecutor$")
+    super.beforeAll()
+  }
+
+  // configure the mock server
+  private val server = new MockWebServer
+  private val agreementTestServer = "/generate/"
+  private val contentType = "application/pdf"
+  private val agreementGenerator = AgreementGenerator(Http, server.url(agreementTestServer).url(), contentType)
+
+  override protected def afterAll(): Unit = {
+    server.shutdown()
+    super.afterAll()
+  }
 
   override def beforeEach(): Unit = {
     super.beforeEach()
@@ -37,28 +69,36 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
 
   private val submitDir: File = testDir / "submitted"
   private val stageDir: File = testDir / "staged"
+  private val depositHome = "https://easy.dans.knaw.nl/deposit"
+  private val easyHome = new URL("https://easy.dans.knaw.nl/ui")
+  private val validGroup = principalOf(userGroup)
   private val datasetMetadata: DatasetMetadata = DatasetMetadata(getManualTestResource("datasetmetadata-from-ui-all.json"))
     .getOrRecover(e => fail("could not get test input", e))
+    .copy(messageForDataManager = Some("Lorum Ipsum")) // for a short should be check
 
-  def init(datasetMetadata: DatasetMetadata = datasetMetadata,
-           withDoiInProps: Boolean = false,
-          ): (DepositDir, File) = {
+  def prepareTestDeposit(datasetMetadata: DatasetMetadata = datasetMetadata,
+                         withDoiInProps: Boolean = false,
+                        ): (DepositDir, StateManager, File, DansBag, String) = {
 
     val deposit = DepositDir.create(testDir / "drafts", "user")
       .getOrRecover(e => fail(e.toString, e))
 
-    deposit.writeDatasetMetadataJson(datasetMetadata)
-
-    val bag = deposit.getDataFiles
-      .getOrRecover(e => fail(e.toString, e)).bag
+    val bag = deposit.getDataFiles.getOrRecover(e => fail("can't get bag of test input", e)).bag
 
     val props = bag.baseDir.parent / "deposit.properties"
+    val doi: String = datasetMetadata.doi.getOrElse("")
     if (withDoiInProps) {
-      val doi: String = datasetMetadata.doi
-        .getOrElse(fail("could not get DOI from test input"))
+      if (doi.isEmpty) fail(new IllegalArgumentException("can't add to to props when metadata does not have one"))
       props.append(s"identifier.doi=${ doi }")
     }
-    deposit -> props
+
+    deposit.writeDatasetMetadataJson(datasetMetadata)
+    submitDir.createDirectories()
+
+    val stateManager = deposit.getStateManager(submitDir, easyHome)
+      .getOrRecover(e => fail(s"could not get stateManager of test deposit $e"))
+
+    (deposit, stateManager, props, bag, doi)
   }
 
   "constructor" should "fail if the configured group does not exist" in {
@@ -71,81 +111,293 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
   }
 
   "submit" should "schedule a job" in {
-    val (draftDeposit, draftPropertiess) = init(withDoiInProps = true)
-
-    val mockedQueue = mock[JobQueueManager]
-    (() => mockedQueue.getSystemStatus) expects() returning
-      SystemStatus(threadPoolStatus = null, queueSize = 2, queueContent = null)
-    (mockedQueue.scheduleJob(_: Runnable)) expects * returning Success(())
+    val (draftDeposit, stateManager, draftProperties, _, _) = prepareTestDeposit(withDoiInProps = true)
 
     // pre conditions
-    draftPropertiess.contentAsString should include("DRAFT")
-    draftPropertiess.contentAsString shouldNot include("bag-store.bag-id")
+    draftProperties.contentAsString should (include("DRAFT") and not include "bag-store.bag-id")
 
-    createSubmitter(mockedQueue)
-      .submit(draftDeposit, createStateManager(draftDeposit), defaultUserInfo, stageDir) shouldBe a[Success[_]]
+    new Submitter(
+      submitDir, validGroup, depositHome, mailer = null, agreementGenerator = null,
+      jobQueue = expectsScheduleJob(onSchedule = _ => Success(())),
+    ).submit(draftDeposit, stateManager, defaultUserInfo, stageDir) shouldBe a[Success[_]]
 
     // post conditions
-    draftPropertiess.contentAsString should include("SUBMITTED")
-    draftPropertiess.contentAsString should include("bag-store.bag-id")
+    draftProperties.contentAsString should (include("SUBMITTED") and include("bag-store.bag-id"))
   }
 
-  it should "catch incomplete metatdata" in {
-    val (draftDeposit, _) = init(DatasetMetadata())
+  it should "fail if the scheduler is broken" in {
+    val (draftDeposit, stateManager, draftProperties, _, _) = prepareTestDeposit(withDoiInProps = true)
+    val error = Failure(new Exception("AAARRGGGGHHH"))
 
-    createSubmitter()
+    // pre conditions
+    draftProperties.contentAsString should (include("DRAFT") and not include "bag-store.bag-id")
+
+    new Submitter(
+      submitDir, validGroup, depositHome, mailer = null, agreementGenerator = null,
+      jobQueue = expectsScheduleJob(onSchedule = _ => error),
+    ).submit(draftDeposit, stateManager, defaultUserInfo, stageDir) shouldBe error
+
+    // post conditions
+    draftProperties.contentAsString should (include("SUBMITTED") and include("bag-store.bag-id"))
+  }
+
+  it should "catch incomplete metadata" in {
+    val (draftDeposit, _, _, _, _) = prepareTestDeposit(DatasetMetadata())
+
+    new Submitter(submitDir, validGroup, depositHome, jobQueue = null, mailer = null, agreementGenerator = null)
       .submit(draftDeposit, draftDepositStateManager = null, defaultUserInfo, stageDir) should matchPattern {
       case Failure(e: InvalidDocumentException) if e.getMessage.startsWith("invalid DatasetMetadata: ") =>
     }
   }
 
   it should "catch missing properties" in {
-    val (draftDeposit, _) = init()
+    val (draftDeposit, _, _, _, _) = prepareTestDeposit()
     (draftDeposit.bagDir.parent / "deposit.properties").delete()
 
-    createSubmitter()
-      .submit(draftDeposit, draftDepositStateManager = null, defaultUserInfo, stageDir) should matchPattern {
-      case Failure(e: CorruptDepositException) if e.getMessage.contains("deposit.properties not found or empty") =>
-    }
+    new Submitter(submitDir, validGroup, depositHome, jobQueue = null, mailer = null, agreementGenerator = null)
+      .submit(draftDeposit, draftDepositStateManager = null, defaultUserInfo, stageDir) should
+      matchPattern { case Failure(e: CorruptDepositException) if e.getMessage ==
+        s"Invalid deposit uuid ${ draftDeposit.id } for user user: deposit.properties not found or empty" =>
+      }
   }
 
   it should "catch a missing bag" in {
-    val (draftDeposit, _) = init(withDoiInProps = true)
+    val (draftDeposit, _, _, bag, _) = prepareTestDeposit(withDoiInProps = true)
     draftDeposit.bagDir.delete()
 
-    createSubmitter()
-      .submit(draftDeposit, draftDepositStateManager = null, defaultUserInfo, stageDir) should matchPattern {
-      case Failure(e: NoSuchFileException) if e.getMessage.contains(s"$bagDirName/bagit.txt") =>
+    new Submitter(submitDir, validGroup, depositHome, jobQueue = null, mailer = null, agreementGenerator = null)
+      .submit(draftDeposit, draftDepositStateManager = null, defaultUserInfo, stageDir) should
+      matchPattern { case Failure(e: NoSuchFileException) if e.getMessage == s"${ bag.baseDir }/bagit.txt" =>
+      }
+  }
+
+  it should "catch inconsistencies between actual payloads and manifest" in {
+    val (draftDeposit, stateManager, _, _, _) = prepareTestDeposit(withDoiInProps = true)
+    val someFile = (draftDeposit.bagDir / "data" / "some.file").createFile()
+    val otherFile = someFile.parent.parent / "other.file"
+    (draftDeposit.bagDir / "manifest-sha1.txt").append(s"cheksum123 ${ otherFile.name }")
+
+    new Submitter(submitDir, validGroup, depositHome, jobQueue = null, mailer = null, agreementGenerator = null)
+      .submit(draftDeposit, stateManager, defaultUserInfo, someFile) should
+      matchPattern { case Failure(e: Exception) if e.getMessage ==
+        s"invalid bag, missing [files, checksums]: [Set($otherFile), Set($someFile)]" =>
+      }
+  }
+
+  "SubmitJob.run" should "write all files" in {
+    // assemble test data
+    val (draftDeposit, stateManager, draftPropertiesFile, draftBag, doi) = prepareTestDeposit(withDoiInProps = true)
+    draftBag.addPayloadFile("Lorum ipsum".inputStream, Paths.get("folder/text.txt"))
+    draftBag.save()
+
+    // pre conditions
+    draftPropertiesFile.contentAsString should
+      (include("DRAFT") and not include "bag-store.bag-id")
+    val jsonFile = draftDeposit.bagDir / "metadata" / "dataset.json"
+    val mdOldSize = jsonFile.size // should not change
+    stageDir should not(exist)
+    submitDir.list shouldBe empty
+
+    server.enqueue { pdfResponse }
+    new Submitter(submitDir, validGroup, depositHome, jobQueue = expectsScheduleJob(), createMailer, agreementGenerator)
+      .submit(draftDeposit, stateManager, defaultUserInfo, stageDir) shouldBe Success(())
+    takePdfAgreementRequestFromServer(doi)
+
+    // post conditions
+    val submittedDeposit = submitDir / load(draftPropertiesFile).getString("bag-store.bag-id")
+    draftPropertiesFile.contentAsString should
+      (// compare with pre conditions:
+        include("SUBMITTED") and include("bag-store.bag-id")
+          // submitted properties has another bag-store.bag-name than the draft:
+          and be((submittedDeposit / "deposit.properties").contentAsString.replace(draftDeposit.id.toString, "bag"))
+        )
+    jsonFile.size shouldBe mdOldSize
+    stateManager.getStateInfo shouldBe Success(StateInfo(State.submitted, "The deposit is being processed"))
+    (draftDeposit.bagDir / "metadata").list.toSeq.map(_.name) shouldBe Seq("dataset.json") // compare with submitted bag/metadata files
+    val submittedBag = s"$submittedDeposit/${ draftDeposit.id }"
+    submittedDeposit.listRecursively.toSeq.map(_.toString) should contain theSameElementsAs Seq(
+      s"$submittedDeposit/deposit.properties",
+      s"$submittedBag",
+      s"$submittedBag/bagit.txt",
+      s"$submittedBag/bag-info.txt",
+      s"$submittedBag/manifest-sha1.txt",
+      s"$submittedBag/tagmanifest-sha1.txt",
+      s"$submittedBag/data",
+      s"$submittedBag/data/folder",
+      s"$submittedBag/data/folder/text.txt",
+      s"$submittedBag/metadata",
+      s"$submittedBag/metadata/dataset.xml",
+      s"$submittedBag/metadata/files.xml",
+      s"$submittedBag/metadata/depositor-info",
+      s"$submittedBag/metadata/depositor-info/agreements.xml",
+      s"$submittedBag/metadata/depositor-info/message-from-depositor.txt",
+    )
+    (submittedBag / "metadata" / "files.xml").contentAsString should include("""<file filepath="data/folder/text.txt">""")
+    (submittedBag / "metadata" / "depositor-info" / "message-from-depositor.txt").contentAsString shouldBe
+      s"""Lorum Ipsum
+         |
+         |The deposit can be found at $depositHome/${ draftDeposit.id }""".stripMargin
+  }
+
+  it should "write empty message-from-depositor file" in {
+    // prepare test data
+    val (draftDeposit, stateManager, draftPropertiesFile, _, doi) = prepareTestDeposit(
+      datasetMetadata.copy(messageForDataManager = None),
+      withDoiInProps = true
+    )
+
+    server.enqueue { pdfResponse }
+    new Submitter(submitDir, validGroup, depositHome, jobQueue = expectsScheduleJob(), createMailer, agreementGenerator)
+      .submit(draftDeposit, stateManager, defaultUserInfo, stageDir) shouldBe Success(())
+    takePdfAgreementRequestFromServer(doi)
+
+    // post condition (other details in previous test)
+    val uuid = load(draftPropertiesFile).getString("bag-store.bag-id")
+    (submitDir / uuid / draftDeposit.id.toString / "metadata" / "depositor-info" / "message-from-depositor.txt").contentAsString shouldBe
+      s"The deposit can be found at $depositHome/${ draftDeposit.id }"
+  }
+
+  it should "replace a previous property bag-store.bag-id at resubmit" in {
+    val (draftDeposit, stateManager, draftPropertiesFile, _, doi) = prepareTestDeposit(withDoiInProps = true)
+    val submitter = new Submitter(submitDir, validGroup, depositHome, jobQueue = expectsScheduleJob(times = 2), createMailer, agreementGenerator)
+
+    def submit = {
+      server.enqueue { pdfResponse }
+      submitter.submit(draftDeposit, stateManager, defaultUserInfo, stageDir) shouldBe Success(())
+      takePdfAgreementRequestFromServer(doi)
+    }
+
+    def currentBagStoreBagId: String = { // the result changes by each submit
+      load(draftPropertiesFile).getString("bag-store.bag-id")
+    }
+
+    def mimicRejectAndSaveDraft(): Unit = {
+      stateManager.draftProps.clear()
+      stateManager.draftProps.load(
+        draftPropertiesFile.contentAsString
+          .replace("SUBMITTED", "DRAFT")
+          .reader
+      )
+    }
+
+    currentBagStoreBagId shouldBe null // pre condition
+
+    // tested scenario
+    submit
+    mimicRejectAndSaveDraft()
+    val rejectedId = currentBagStoreBagId // intermediate post condition
+    submit
+    val resubmittedId = currentBagStoreBagId // final post condition
+
+    // Q.E.D.
+    submitDir.list.toSeq.map(_.name) should contain theSameElementsAs Seq(rejectedId, resubmittedId)
+    readBagFiles(submitDir / rejectedId / draftDeposit.id.toString) should contain theSameElementsAs
+      readBagFiles(submitDir / resubmittedId / draftDeposit.id.toString)
+    // the deposit.properties files will have different values for the bag-store.bag-id
+  }
+
+  it should "report an inconsistent checksum" in {
+    val (draftDeposit, stateManager, _, _, _) = prepareTestDeposit(withDoiInProps = true)
+    val bag = draftDeposit.getDataFiles.getOrRecover(e => fail("can't get bag of test input", e)).bag
+    bag.addPayloadFile("lorum ipsum".inputStream, Paths.get("file.txt"))
+    bag.save()
+    val manifest = draftDeposit.bagDir / "manifest-sha1.txt"
+    manifest.write(manifest.contentAsString.replaceAll(" +", "xxx  "))
+
+    new Submitter(submitDir, validGroup, depositHome, jobQueue = expectsScheduleJob(), createMailer, agreementGenerator)
+      .submit(draftDeposit, stateManager, defaultUserInfo, stageDir) shouldBe Success(())
+
+    stageDir.list shouldNot be(empty)
+    submitDir.list shouldBe empty
+    stateInfoShouldHaveContactDansMessage(stateManager)
+  }
+
+  it should "report a group configuration problem" in {
+    val (draftDeposit, stateManager, _, _, _) = prepareTestDeposit(withDoiInProps = true)
+
+    new Submitter(submitDir, principalOf(unrelatedGroup), depositHome, jobQueue = expectsScheduleJob(), createMailer, agreementGenerator)
+      .submit(draftDeposit, stateManager, defaultUserInfo, stageDir) shouldBe Success(())
+
+    // post conditions
+    stageDir.list shouldNot be(empty)
+    submitDir.list shouldBe empty
+    stateInfoShouldHaveContactDansMessage(stateManager)
+  }
+
+  it should "report an unexpected exception" in {
+    val (draftDeposit, stateManager, draftPropertiesFile, _, _) = prepareTestDeposit(withDoiInProps = true)
+    val groupPrincipal = new GroupPrincipal() {override def getName: String = "invalidGroupPrincipal" } // causes ProviderMismatchException
+
+    new Submitter(submitDir, groupPrincipal, depositHome, jobQueue = expectsScheduleJob(), createMailer, agreementGenerator)
+      .submit(draftDeposit, stateManager, defaultUserInfo, stageDir) shouldBe Success(())
+
+    // post conditions
+    stageDir.list shouldNot be(empty)
+    submitDir.list shouldBe empty
+    stateInfoShouldHaveContactDansMessage(stateManager)
+    draftPropertiesFile.contentAsString should include("bag-store.bag-id = ")
+  }
+
+  private def readBagFiles(bag: File): Seq[String] = {
+    bag.listRecursively.toSeq
+      .withFilter(!_.isDirectory)
+      .map(_.contentAsString)
+  }
+
+  private def stateInfoShouldHaveContactDansMessage(stateManager: StateManager): Assertion = {
+    stateInfo(stateManager) should matchPattern {
+      case StateInfo(State.submitted, msg) if msg.startsWith("Something went wrong while processing this deposit. Please ") =>
     }
   }
 
-  it should "catch inconsistency between actual payloads and manifest" in {
-    val (draftDeposit, _) = init(withDoiInProps = true)
-    val file = (draftDeposit.bagDir / "data" / "some.file").createFile()
+  private def load(file: File) = new PropertiesConfiguration(file.toJava)
 
-    createSubmitter()
-      .submit(draftDeposit, createStateManager(draftDeposit), defaultUserInfo, file) should matchPattern {
-      case Failure(e: Exception) if e.getMessage ==
-        s"invalid bag, missing [files, checksums]: [Set(), Set($file)]" =>
-    }
+  private def principalOf(group: String) = {
+    submitDir.fileSystem.getUserPrincipalLookupService.lookupPrincipalByGroupName(group)
   }
 
-  /** use null instead when not expecting to arrive at requesting/changing any state */
-  private def createStateManager(draftDeposit: DepositDir) = {
-    draftDeposit.getStateManager(submitDir, new URL("https://easy.dans.knaw.nl/ui"))
-      .getOrRecover(e => fail(s"could not get stateManager of test deposit $e"))
+  private def stateInfo(stateManager: StateManager) = {
+    stateManager.getStateInfo.getOrRecover(e => fail("could not get stateInfo of tested draft deposit", e))
   }
 
-  /** @param jobQueue use a mock when specified */
-  private def createSubmitter(jobQueue: JobQueueManager = null) = {
-    // the null values are only passed on to jobQueue.submitJob(new SubmitJob(...))
-    new Submitter(
-      submitToBaseDir = submitDir,
-      groupPrincipal = null,
-      depositUiURL = null,
-      jobQueue = jobQueue,
-      mailer = null,
-      agreementGenerator = null,
+  private def okResponse = new MockResponse().setResponseCode(200)
+
+  private def pdfResponse = okResponse.addHeader("Content-Type", contentType).setBody("mocked pdf")
+
+  def takePdfAgreementRequestFromServer(doi: String): Assertion = {
+    val request = Option(server.takeRequest(1, TimeUnit.SECONDS))
+      .getOrElse(fail("expected pdf agreement request did not happen"))
+    request.getMethod shouldBe "POST"
+    request.getPath shouldBe "/generate/"
+    request.getHeader("accept") shouldBe contentType
+    request.getBody.readString(StandardCharsets.UTF_8) shouldBe
+      s"""{"depositor":{"name":"fullName","address":"","zipcode":"","city":"","country":"","organisation":"","phone":"","email":"does.not.exist@dans.knaw.nl"},"doi":"$doi","title":"title 1","dateSubmitted":"2018-03-22","dateAvailable":"2018-03-14","accessCategory":"OPEN_ACCESS","license":"http://creativecommons.org/publicdomain/zero/1.0","sample":false,"agreementVersion":"4.0","agreementLanguage":"EN"}"""
+  }
+
+  private def expectsScheduleJob(onSchedule: SubmitJob => Try[Unit] = (job: SubmitJob) => Try(job.run()),
+                                 times: Int = 1,
+                                ): JobQueueManager = {
+    val mocked = mock[JobQueueManager]
+
+    // only called when log-level is info
+    (() => mocked.getSystemStatus) expects() anyNumberOfTimes() returning
+      SystemStatus(threadPoolStatus = null, queueSize = 2, queueContent = null)
+
+    ((mocked.scheduleJob(_: SubmitJob)) expects *)
+      .onCall { job: SubmitJob => onSchedule(job) } repeat times
+
+    mocked
+  }
+
+  /** Use null instead when not expecting to compose an email. */
+  private def createMailer: Mailer = {
+    new Mailer(
+      smtpHost = "mail.server.does.not.exist.dans.knaw.nl",
+      fromAddress = "from.does.not.exist@dans.knaw.nl",
+      bounceAddress = "bounce.does.not.exist@dans.knaw.nl",
+      bccs = Seq("bcc.does.not.exist@dans.knaw.nl"),
+      templateDir = File("src/main/assembly/dist/cfg/template"),
+      myDatasets = new URL(depositHome)
     )
   }
 }
