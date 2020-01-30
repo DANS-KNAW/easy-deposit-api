@@ -112,7 +112,7 @@ class DepositServletErrorSpec extends TestSupportFixture with ServletFixture wit
       uri = s"/abc/metadata",
       headers = Seq(fooBarBasicAuthHeader)
     ) {
-      body shouldBe s"Invalid deposit id: Invalid UUID string: abc"
+      body shouldBe s"Invalid deposit id: String 'abc' is not a UUID"
       status shouldBe NOT_FOUND_404
     }
   }
