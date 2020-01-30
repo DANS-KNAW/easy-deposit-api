@@ -213,9 +213,10 @@ class DepositServlet(app: EasyDepositApiApp)
     }
   }
 
-  private def getUUID: Try[UUID] = {
-    params("uuid").toUUID.toTry
-      .recoverWith { case e => Failure(InvalidResourceException(s"Invalid deposit id: ${ e.getMessage }")) }
+  private def getUUID: Try[UUID] = Try {
+    UUID.fromString(params("uuid"))
+  }.recoverWith { case t: Throwable =>
+    Failure(InvalidResourceException(s"Invalid deposit id: ${ t.getMessage }"))
   }
 
   private def getPath: Try[Path] = Try {

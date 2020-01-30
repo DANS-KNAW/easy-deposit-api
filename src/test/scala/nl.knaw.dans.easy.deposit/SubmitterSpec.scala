@@ -189,31 +189,35 @@ class SubmitterSpec extends TestSupportFixture with MockFactory with BeforeAndAf
 
     // post conditions
     val submittedDeposit = submitDir / load(draftPropertiesFile).getString("bag-store.bag-id")
-    draftPropertiesFile.contentAsString should // compare with pre conditions
-      (include("SUBMITTED") and include("bag-store.bag-id") and be((submittedDeposit / "deposit.properties").contentAsString))
+    draftPropertiesFile.contentAsString should
+      (// compare with pre conditions:
+        include("SUBMITTED") and include("bag-store.bag-id")
+          // submitted properties has another bag-store.bag-name than the draft:
+          and be((submittedDeposit / "deposit.properties").contentAsString.replace(draftDeposit.id.toString, "bag"))
+        )
     jsonFile.size shouldBe mdOldSize
     stateManager.getStateInfo shouldBe Success(StateInfo(State.submitted, "The deposit is being processed"))
     (draftDeposit.bagDir / "metadata").list.toSeq.map(_.name) shouldBe Seq("dataset.json") // compare with submitted bag/metadata files
-    val submittedMetadata = submittedDeposit / "bag" / "metadata"
+    val submittedBag = s"$submittedDeposit/${ draftDeposit.id }"
     submittedDeposit.listRecursively.toSeq.map(_.toString) should contain theSameElementsAs Seq(
       s"$submittedDeposit/deposit.properties",
-      s"$submittedDeposit/bag",
-      s"$submittedDeposit/bag/bagit.txt",
-      s"$submittedDeposit/bag/bag-info.txt",
-      s"$submittedDeposit/bag/manifest-sha1.txt",
-      s"$submittedDeposit/bag/tagmanifest-sha1.txt",
-      s"$submittedDeposit/bag/data",
-      s"$submittedDeposit/bag/data/folder",
-      s"$submittedDeposit/bag/data/folder/text.txt",
-      s"$submittedMetadata",
-      s"$submittedMetadata/dataset.xml",
-      s"$submittedMetadata/files.xml",
-      s"$submittedMetadata/depositor-info",
-      s"$submittedMetadata/depositor-info/agreements.xml",
-      s"$submittedMetadata/depositor-info/message-from-depositor.txt",
+      s"$submittedBag",
+      s"$submittedBag/bagit.txt",
+      s"$submittedBag/bag-info.txt",
+      s"$submittedBag/manifest-sha1.txt",
+      s"$submittedBag/tagmanifest-sha1.txt",
+      s"$submittedBag/data",
+      s"$submittedBag/data/folder",
+      s"$submittedBag/data/folder/text.txt",
+      s"$submittedBag/metadata",
+      s"$submittedBag/metadata/dataset.xml",
+      s"$submittedBag/metadata/files.xml",
+      s"$submittedBag/metadata/depositor-info",
+      s"$submittedBag/metadata/depositor-info/agreements.xml",
+      s"$submittedBag/metadata/depositor-info/message-from-depositor.txt",
     )
-    (submittedMetadata / "files.xml").contentAsString should include("""<file filepath="data/folder/text.txt">""")
-    (submittedMetadata / "depositor-info" / "message-from-depositor.txt").contentAsString shouldBe
+    (submittedBag / "metadata" / "files.xml").contentAsString should include("""<file filepath="data/folder/text.txt">""")
+    (submittedBag / "metadata" / "depositor-info" / "message-from-depositor.txt").contentAsString shouldBe
       s"""Lorum Ipsum
          |
          |The deposit can be found at $depositHome/${ draftDeposit.id }""".stripMargin
@@ -233,7 +237,7 @@ class SubmitterSpec extends TestSupportFixture with MockFactory with BeforeAndAf
 
     // post condition (other details in previous test)
     val uuid = load(draftPropertiesFile).getString("bag-store.bag-id")
-    (submitDir / uuid / "bag" / "metadata" / "depositor-info" / "message-from-depositor.txt").contentAsString shouldBe
+    (submitDir / uuid / draftDeposit.id.toString / "metadata" / "depositor-info" / "message-from-depositor.txt").contentAsString shouldBe
       s"The deposit can be found at $depositHome/${ draftDeposit.id }"
   }
 
@@ -271,7 +275,8 @@ class SubmitterSpec extends TestSupportFixture with MockFactory with BeforeAndAf
 
     // Q.E.D.
     submitDir.list.toSeq.map(_.name) should contain theSameElementsAs Seq(rejectedId, resubmittedId)
-    readSubmittedBag(rejectedId) should contain theSameElementsAs readSubmittedBag(resubmittedId)
+    readBagFiles(submitDir / rejectedId / draftDeposit.id.toString) should contain theSameElementsAs
+      readBagFiles(submitDir / resubmittedId / draftDeposit.id.toString)
     // the deposit.properties files will have different values for the bag-store.bag-id
   }
 
@@ -317,8 +322,8 @@ class SubmitterSpec extends TestSupportFixture with MockFactory with BeforeAndAf
     draftPropertiesFile.contentAsString should include("bag-store.bag-id = ")
   }
 
-  private def readSubmittedBag(id: String): Seq[String] = {
-    (submitDir / id / "bag").listRecursively.toSeq
+  private def readBagFiles(bag: File): Seq[String] = {
+    bag.listRecursively.toSeq
       .withFilter(!_.isDirectory)
       .map(_.contentAsString)
   }
