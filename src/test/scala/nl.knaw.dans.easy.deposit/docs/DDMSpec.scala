@@ -32,10 +32,7 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
     .getOrRecover(fail(_))
     .copy(child = Seq())
 
-  "minimal" should behave like validDatasetMetadata(
-    input = Try(new MinimalDatasetMetadata),
-    expectedDdmContent =
-      <ddm:profile>
+  private val minimalDDM: NodeBuffer = <ddm:profile>
         <dc:title>Lorum ipsum</dc:title>
         <dcterms:description>dolor</dcterms:description>
         <dcx-dai:creatorDetails>
@@ -53,6 +50,19 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
         <dcterms:identifier xsi:type="id-type:DOI">mocked-DOI</dcterms:identifier>
         <dcterms:dateSubmitted xsi:type="dcterms:W3CDTF">2018-03-22</dcterms:dateSubmitted>
       </ddm:dcmiMetadata>
+
+  "minimal" should behave like validDatasetMetadata(
+    input = Try(new MinimalDatasetMetadata),
+    expectedDdmContent = minimalDDM
+  )
+
+  "minimal with empty date" should behave like validDatasetMetadata(
+    input = Try(new MinimalDatasetMetadata(dates = Some(Seq(
+      Date(Some(W3CDTF.toString), Some("2018-5-29"), Some(DateQualifier.created)),
+      Date(Some(W3CDTF.toString), Some("2018-07-30"), Some(DateQualifier.available)),
+      Date(Some(W3CDTF.toString), None, Some(DateQualifier.dateCopyrighted)),
+    )))),
+    expectedDdmContent = minimalDDM
   )
 
   "minimal with multiple titles" should behave like validDatasetMetadata(
@@ -149,18 +159,6 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
   }
 
   "minimal with invalid name space for author ID" should "fail" in {
-    val author = Author(
-      initials = Some("F.O.O."),
-      surname = Some("Bar"),
-      ids = Some(Seq(SchemedValue("dcx-dai:ISNI", "ISNI:000000012281955X")))
-    )
-    DDM(new MinimalDatasetMetadata(contributors = Some(Seq(author)))) should matchPattern {
-      case Failure(e: InvalidDocumentException) if e.getMessage ==
-        "invalid DatasetMetadata: expecting (label) or (prefix:label); got [dcx-dai:dcx-dai:ISNI] to adjust the <label> of <label>ISNI:000000012281955X</label>" =>
-    }
-  }
-
-  "minimal with empty date" should "fail" in {
     val author = Author(
       initials = Some("F.O.O."),
       surname = Some("Bar"),
