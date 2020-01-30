@@ -65,6 +65,13 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
     expectedDdmContent = minimalDDM
   )
 
+  "minimal with empty SchemedValue (formats)" should behave like validDatasetMetadata(
+    input = Try(new MinimalDatasetMetadata(formats = Some(Seq(
+      SchemedValue(Some(W3CDTF.toString), None),
+    )))),
+    expectedDdmContent = minimalDDM
+  )
+
   "minimal with multiple titles" should behave like validDatasetMetadata(
     input = Try(new MinimalDatasetMetadata(titles = Some(Seq("Lorum", "ipsum")))),
     subset = actualDDM => profileElements(actualDDM, "title"),
