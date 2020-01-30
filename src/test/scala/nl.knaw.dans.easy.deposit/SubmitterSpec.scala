@@ -125,7 +125,23 @@ class SubmitterSpec extends TestSupportFixture with MockFactory with BeforeAndAf
     draftProperties.contentAsString should (include("SUBMITTED") and include("bag-store.bag-id"))
   }
 
-  it should "catch incomplete metatdata" in {
+  it should "fail if the scheduler is broken" in {
+    val (draftDeposit, stateManager, draftProperties, _, _) = prepareTestDeposit(withDoiInProps = true)
+    val error = Failure(new Exception("AAARRGGGGHHH"))
+
+    // pre conditions
+    draftProperties.contentAsString should (include("DRAFT") and not include "bag-store.bag-id")
+
+    new Submitter(
+      submitDir, validGroup, depositHome, mailer = null, agreementGenerator = null,
+      jobQueue = expectsScheduleJob(onSchedule = _ => error),
+    ).submit(draftDeposit, stateManager, defaultUserInfo, stageDir) shouldBe error
+
+    // post conditions
+    draftProperties.contentAsString should (include("SUBMITTED") and include("bag-store.bag-id"))
+  }
+
+  it should "catch incomplete metadata" in {
     val (draftDeposit, _, _, _, _) = prepareTestDeposit(DatasetMetadata())
 
     new Submitter(submitDir, validGroup, depositHome, jobQueue = null, mailer = null, agreementGenerator = null)
