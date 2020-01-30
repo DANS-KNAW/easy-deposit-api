@@ -105,4 +105,15 @@ class DepositServletErrorSpec extends TestSupportFixture with ServletFixture wit
       status shouldBe INTERNAL_SERVER_ERROR_500
     }
   }
+
+  it should "report an invalid UUID" in {
+    authMocker.expectsUserFooBar
+    get(
+      uri = s"/abc/metadata",
+      headers = Seq(fooBarBasicAuthHeader)
+    ) {
+      body shouldBe s"Invalid deposit id: String 'abc' is not a UUID"
+      status shouldBe NOT_FOUND_404
+    }
+  }
 }
