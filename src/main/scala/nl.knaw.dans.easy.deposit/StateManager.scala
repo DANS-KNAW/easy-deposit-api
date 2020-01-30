@@ -44,6 +44,7 @@ case class StateManager(draftDeposit: DepositDir, submitBase: File, easyHome: UR
   val draftProps = new PropertiesConfiguration(
     (depositDir / "deposit.properties").toJava
   )
+
   private def triedSubmittedProps: Try[PropertiesConfiguration] = {
     getProp(bagIdKey, draftProps)
       .map(submittedId => {
@@ -60,15 +61,15 @@ case class StateManager(draftDeposit: DepositDir, submitBase: File, easyHome: UR
   def getStateInfo: Try[StateInfo] = {
     getProp(stateLabelKey, draftProps).map(State.withName).map {
       case draftState @ (State.draft | State.rejected | State.archived) =>
-        StateInfo(draftState, getStateDescription())
+        StateInfo(draftState, getStateDescription(draftProps))
       case draftState @ (State.submitted | State.inProgress) =>
-        triedSubmittedProps.map(newStateFromSubmitted(draftState, _)
-          .getOrElse(StateInfo(draftState, getStateDescription()))
-        ).getOrRecover[StateInfo] { e =>
-          logger.error(e.getMessage, e)
-          // saving the changed message won't change behaviour on the next call
-          StateInfo(draftState, mailToDansMessage)
-        }
+        triedSubmittedProps
+          .map(newStateFromSubmitted(draftState, _).getOrElse(StateInfo(draftState, getStateDescription(draftProps))))
+          .getOrRecover { e =>
+            logger.error(e.getMessage, e)
+            // saving the changed message won't change behaviour on the next call
+            StateInfo(draftState, mailToDansMessage)
+          }
     }
   }
 
@@ -82,7 +83,7 @@ case class StateManager(draftDeposit: DepositDir, submitBase: File, easyHome: UR
     }
 
     Option(submittedProps.getString(stateLabelKey, null)).map {
-      case "SUBMITTED" => StateInfo(draftState, getStateDescription())
+      case "SUBMITTED" => StateInfo(draftState, getStateDescription(draftProps))
       case "REJECTED" => getProp("curation.performed", submittedProps) match {
         case Success("yes") => saveInDraft(StateInfo(State.rejected, getStateDescription(submittedProps)))
         case _ => StateInfo(draftState, mailToDansMessage)
@@ -190,7 +191,7 @@ case class StateManager(draftDeposit: DepositDir, submitBase: File, easyHome: UR
     newStateInfo
   }
 
-  private def getStateDescription(props: PropertiesConfiguration = draftProps, default: String = ""): String = {
+  private def getStateDescription(props: PropertiesConfiguration, default: String = ""): String = {
     props.getString(stateDescriptionKey, default)
   }
 
