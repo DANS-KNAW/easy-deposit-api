@@ -115,7 +115,7 @@ class SubmitterSpec extends TestSupportFixture with MockFactory {
 
     createSubmitter()
       .submit(draftDeposit, draftDepositStateManager = null, defaultUserInfo, stageDir) should matchPattern {
-      case Failure(e: NoSuchFileException) if e.getMessage.contains("bag/bagit.txt") =>
+      case Failure(e: NoSuchFileException) if e.getMessage.contains(s"$bagDirName/bagit.txt") =>
     }
   }
 

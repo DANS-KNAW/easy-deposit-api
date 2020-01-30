@@ -59,6 +59,7 @@ class SubmitJobSpec extends TestSupportFixture with MockFactory {
   it should "write all files" ignore {
     // preparations
     val depositDir = createDeposit(datasetMetadata.copy(messageForDataManager = Some(customMessage)))
+    val draftDepositId = depositDir.id.toString
     val bag = getBag(depositDir)
     addDoiToDepositProperties(bag)
     val bagDir = bag.baseDir
@@ -78,7 +79,7 @@ class SubmitJobSpec extends TestSupportFixture with MockFactory {
     (testDir / "staged") should not(exist)
     (bagDir / "metadata" / "dataset.json").size shouldBe mdOldSize
     // no DOI added
-    val submittedBagDir = testDir / "submitted" / bagStoreBagID / bagDirName
+    val submittedBagDir = testDir / "submitted" / bagStoreBagID / draftDepositId
     (submittedBagDir / "metadata" / "depositor-info" / "message-from-depositor.txt").contentAsString shouldBe s"$customMessage\n\nThe deposit can be found at http://does.not.exist/${ depositDir.id }"
     (submittedBagDir / "metadata" / "depositor-info" / "agreements.xml").lineIterator.next() shouldBe prologue
     (submittedBagDir / "metadata" / "dataset.xml").lineIterator.next() shouldBe prologue
@@ -91,15 +92,18 @@ class SubmitJobSpec extends TestSupportFixture with MockFactory {
     depositDir.getDOI(null) shouldBe Success(doi) // no pid-requester so obtained from json and/or props
     new PropertiesConfiguration((bagDir.parent / "deposit.properties").toJava)
       .getString("state.label") shouldBe "SUBMITTED"
+    new PropertiesConfiguration((testDir / "submitted" / bagStoreBagID / "deposit.properties").toJava)
+      .getString("bag-store.bag-name") shouldBe draftDepositId
   }
 
   it should "write empty message-from-depositor file" ignore {
     val depositDir = createDeposit(datasetMetadata.copy(messageForDataManager = None))
+    val draftDepositId = depositDir.id.toString
     addDoiToDepositProperties(getBag(depositDir))
 
     val bagStoreBagId = succeedingSubmit(depositDir)
 
-    (testDir / "submitted" / bagStoreBagId / bagDirName / "metadata" / "depositor-info" / "message-from-depositor.txt")
+    (testDir / "submitted" / bagStoreBagId / draftDepositId / "metadata" / "depositor-info" / "message-from-depositor.txt")
       .contentAsString shouldBe s"The deposit can be found at http://does.not.exist/${ depositDir.id }"
   }
 
@@ -151,7 +155,7 @@ class SubmitJobSpec extends TestSupportFixture with MockFactory {
     (bag.baseDir / "manifest-sha1.txt").append("chk file")
 
     createSubmitter(userGroup).submit(depositDir, stateManager, defaultUserInfo, testDir / "staged") should matchPattern {
-      case Failure(e) if e.getMessage == s"invalid bag, missing [files, checksums]: [Set($testDir/drafts/user/${ depositDir.id }/bag/file), Set()]" =>
+      case Failure(e) if e.getMessage == s"invalid bag, missing [files, checksums]: [Set($testDir/drafts/user/${ depositDir.id }/$bagDirName/file), Set()]" =>
     }
   }
 
