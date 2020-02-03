@@ -56,7 +56,7 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
     expectedDdmContent = minimalDDM
   )
 
-  private val emptyAuthor: Author = Author(role = Some(SchemedKeyValue("someScheme", "someKey", "someValue")))
+  private val emptyAuthor: Author = Author(role = Some(SchemedKeyValue("someScheme0", "someKey", "someValue")))
   "minimal with empty elements" should behave like validDatasetMetadata(
     input = Try(new MinimalDatasetMetadata(
       dates = Some(Seq(
@@ -64,12 +64,22 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
         Date(Some(W3CDTF.toString), Some("2018-07-30"), Some(DateQualifier.available)),
         Date(Some(W3CDTF.toString), None, Some(DateQualifier.dateCopyrighted)),
       )),
-      types = Some(Seq(SchemedValue("someScheme", ""))),
+      types = Some(Seq(SchemedValue("someScheme1", ""))),
       formats = Some(Seq()),
       creators = new MinimalDatasetMetadata().creators.map(_ :+ emptyAuthor),
       contributors = Some(Seq()),
-      subjects = Some(Seq(SchemedKeyValue("someScheme", "someKey", ""))),
-      spatialCoverages = Some(Seq(SchemedKeyValue("someScheme", "", ""))),
+      subjects = Some(Seq(
+        SchemedKeyValue("someScheme2", "someKey", ""),
+        SchemedKeyValue("someScheme3", "", "")
+      )),
+      spatialCoverages = Some(Seq(
+        SchemedKeyValue("someScheme4", "", ""),
+        SchemedKeyValue("someScheme5", "someKey", ""),
+        // TODO
+        //  SchemedKeyValue("someScheme6", "", "someValue"),
+        //  breaks DDM validation but skipping would also skip
+        //  Goerees, Flakees, HaringVliet, Grevelingenmeer and more in "without one of the authors"
+      )),
       temporalCoverages = Some(Seq()),
     )),
     expectedDdmContent = minimalDDM
