@@ -32,7 +32,9 @@ object SchemedValue {
 case class SchemedKeyValue(scheme: Option[String],
                            key: Option[String],
                            value: Option[String],
-                          )
+                          )extends OptionalValue{
+  override def hasValue: Boolean = key.exists(!_.isBlank) || value.exists(!_.isBlank)
+}
 
 object SchemedKeyValue {
   def apply(scheme: String, key: String, value: String): SchemedKeyValue = {

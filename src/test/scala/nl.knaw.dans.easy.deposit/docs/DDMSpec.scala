@@ -56,6 +56,7 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
     expectedDdmContent = minimalDDM
   )
 
+  private val emptyAuthor: Author = Author(role = Some(SchemedKeyValue("someScheme", "someKey", "someValue")))
   "minimal with empty elements" should behave like validDatasetMetadata(
     input = Try(new MinimalDatasetMetadata(
       dates = Some(Seq(
@@ -65,10 +66,11 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
       )),
       types = Some(Seq(SchemedValue("someScheme", ""))),
       formats = Some(Seq()),
-      creators = new MinimalDatasetMetadata().creators.map(
-        _ :+ Author(role = Some(SchemedKeyValue("someScheme", "someKey", "someValue")))
-      ),
+      creators = new MinimalDatasetMetadata().creators.map(_ :+ emptyAuthor),
       contributors = Some(Seq()),
+      subjects = Some(Seq(SchemedKeyValue("someScheme", "someKey", ""))),
+      spatialCoverages = Some(Seq(SchemedKeyValue("someScheme", "", ""))),
+      temporalCoverages = Some(Seq()),
     )),
     expectedDdmContent = minimalDDM
   )
