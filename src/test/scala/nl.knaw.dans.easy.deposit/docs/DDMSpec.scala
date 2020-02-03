@@ -56,19 +56,20 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
     expectedDdmContent = minimalDDM
   )
 
-  "minimal with empty date" should behave like validDatasetMetadata(
-    input = Try(new MinimalDatasetMetadata(dates = Some(Seq(
-      Date(Some(W3CDTF.toString), Some("2018-5-29"), Some(DateQualifier.created)),
-      Date(Some(W3CDTF.toString), Some("2018-07-30"), Some(DateQualifier.available)),
-      Date(Some(W3CDTF.toString), None, Some(DateQualifier.dateCopyrighted)),
-    )))),
-    expectedDdmContent = minimalDDM
-  )
-
-  "minimal with empty SchemedValue (formats)" should behave like validDatasetMetadata(
-    input = Try(new MinimalDatasetMetadata(formats = Some(Seq(
-      SchemedValue(Some(W3CDTF.toString), None),
-    )))),
+  "minimal with empty elements" should behave like validDatasetMetadata(
+    input = Try(new MinimalDatasetMetadata(
+      dates = Some(Seq(
+        Date(Some(W3CDTF.toString), Some("2018-5-29"), Some(DateQualifier.created)),
+        Date(Some(W3CDTF.toString), Some("2018-07-30"), Some(DateQualifier.available)),
+        Date(Some(W3CDTF.toString), None, Some(DateQualifier.dateCopyrighted)),
+      )),
+      types = Some(Seq(SchemedValue("someScheme", ""))),
+      formats = Some(Seq()),
+      creators = new MinimalDatasetMetadata().creators.map(
+        _ :+ Author(role = Some(SchemedKeyValue("someScheme", "someKey", "someValue")))
+      ),
+      contributors = Some(Seq()),
+    )),
     expectedDdmContent = minimalDDM
   )
 

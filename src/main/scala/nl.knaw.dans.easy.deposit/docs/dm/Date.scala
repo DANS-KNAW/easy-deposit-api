@@ -63,7 +63,7 @@ case class Date(
       this
   }
 
-  def hasValue: Boolean = !value.exists(_.isBlank)
+  def hasValue: Boolean = value.exists(!_.isBlank)
 }
 
 object Date {

@@ -52,7 +52,7 @@ case class Relation(qualifier: Option[RelationQualifier],
     title = title.flatMap(_.toOption),
   )
 
-  override def hasValue: Boolean = !url.exists(_.isBlank) || !title.exists(_.isBlank)
+  override def hasValue: Boolean = url.exists(!_.isBlank) || title.exists(!_.isBlank)
 }
 
 case class RelatedIdentifier(scheme: Option[String],
