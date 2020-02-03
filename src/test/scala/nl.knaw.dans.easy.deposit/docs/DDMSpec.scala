@@ -81,6 +81,14 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
         //  Goerees, Flakees, HaringVliet, Grevelingenmeer and more in "without one of the authors"
       )),
       temporalCoverages = Some(Seq()),
+      relations = Some(Seq[RelationType](
+        Relation(Some(RelationQualifier.isReferencedBy),Some(""),Some("")),
+        Relation(Some(RelationQualifier.replaces),Some(""),None),
+        Relation(Some(RelationQualifier.isRequiredBy),None,None),
+        RelatedIdentifier(Some(""),Some(""),Some(RelationQualifier.isReplacedBy)),
+        RelatedIdentifier(None,Some(""),Some(RelationQualifier.references)),
+        RelatedIdentifier(None,None,Some(RelationQualifier.conformsTo)),
+      )),
     )),
     expectedDdmContent = minimalDDM
   )

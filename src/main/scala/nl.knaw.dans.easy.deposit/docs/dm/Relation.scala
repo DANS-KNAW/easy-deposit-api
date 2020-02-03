@@ -36,17 +36,15 @@ object RelationQualifier extends Enumeration {
   val conformsTo: RelationQualifier = Value("dcterms:conformsTo")
 }
 
-trait RelationType {
+trait RelationType extends OptionalValue {
   /** @return this with Some-s of empty strings as None-s */
   def withCleanOptions: RelationType
-
-  def hasValue: Boolean
 }
 
 case class Relation(qualifier: Option[RelationQualifier],
                     url: Option[String],
                     title: Option[String],
-                   ) extends RelationType with OptionalValue {
+                   ) extends RelationType {
   override def withCleanOptions: RelationType = this.copy(
     url = url.flatMap(_.toOption),
     title = title.flatMap(_.toOption),
@@ -58,11 +56,11 @@ case class Relation(qualifier: Option[RelationQualifier],
 case class RelatedIdentifier(scheme: Option[String],
                              value: Option[String],
                              qualifier: Option[RelationQualifier],
-                            ) extends RelationType with OptionalValue {
+                            ) extends RelationType {
   override def withCleanOptions: RelationType = this.copy(
     scheme = scheme.flatMap(_.toOption),
     value = value.flatMap(_.toOption),
   )
 
-  override def hasValue: Boolean = !value.exists(_.isBlank)
+  override def hasValue: Boolean = value.exists(!_.isBlank)
 }
