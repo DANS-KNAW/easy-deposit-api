@@ -52,13 +52,7 @@ case class Relation(qualifier: Option[RelationQualifier],
     title = title.flatMap(_.toOption),
   )
 
-  override def hasValue: Boolean = (
-    url.flatMap(_.toOption),
-    title.flatMap(_.toOption)
-  ) match {
-    case (None, None) => false
-    case _ => true
-  }
+  override def hasValue: Boolean = !url.exists(_.isBlank) || !title.exists(_.isBlank)
 }
 
 case class RelatedIdentifier(scheme: Option[String],
@@ -70,5 +64,5 @@ case class RelatedIdentifier(scheme: Option[String],
     value = value.flatMap(_.toOption),
   )
 
-  override def hasValue: Boolean = value.flatMap(_.toOption).fold(false)(_ => true)
+  override def hasValue: Boolean = !value.exists(_.isBlank)
 }

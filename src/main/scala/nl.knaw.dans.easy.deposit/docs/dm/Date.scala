@@ -63,7 +63,7 @@ case class Date(
       this
   }
 
-  def hasValue: Boolean = value.flatMap(_.toOption).fold(false)(_ => true)
+  def hasValue: Boolean = !value.exists(_.isBlank)
 }
 
 object Date {

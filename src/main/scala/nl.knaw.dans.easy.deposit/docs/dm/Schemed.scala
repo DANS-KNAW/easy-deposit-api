@@ -21,7 +21,7 @@ case class SchemedValue(scheme: Option[String],
                         value: Option[String],
                        ) extends OptionalValue {
 
-  def hasValue: Boolean = value.flatMap(_.toOption).fold(false)(_ => true)
+  def hasValue: Boolean = !value.exists(_.isBlank)
 }
 object SchemedValue {
   def apply(scheme: String, value: String): SchemedValue = {
