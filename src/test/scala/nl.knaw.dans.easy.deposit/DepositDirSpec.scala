@@ -113,7 +113,7 @@ class DepositDirSpec extends TestSupportFixture with MockFactory {
 
     // preconditions
     mdFile.contentAsString shouldBe "{}"
-    val pidMocker = mockPidRequester
+    val pidMocker = mock[PidRequester]
     pidMocker.requestPid _ expects(*, *) once() returning Success(doi)
 
     // test

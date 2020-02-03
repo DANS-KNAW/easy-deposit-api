@@ -19,13 +19,68 @@ import javax.xml.validation.Schema
 import nl.knaw.dans.easy.deposit.Errors.InvalidDocumentException
 import nl.knaw.dans.easy.deposit.TestSupportFixture
 import nl.knaw.dans.easy.deposit.docs.dm.PrivacySensitiveDataPresent
+import nl.knaw.dans.lib.error._
 import org.joda.time.DateTime
 
 import scala.util.{ Failure, Success, Try }
+import scala.xml.{ Elem, PrettyPrinter }
 
 class AgreementsSpec extends TestSupportFixture {
+  private val printer = new PrettyPrinter(160, 2)
 
-  "apply" should "complain about not accepted deposit agreement" in {
+  private def stripRootAttributes(xml: Elem) = { // their order is undefined
+    printer.format(xml).replaceAll("""<agreements[^>]*>""", "<agreements>")
+  }
+
+  "apply" should "have the submitters email" in {
+    val datasetMetadata: DatasetMetadata = DatasetMetadata(getManualTestResource("datasetmetadata-from-ui-all.json"))
+      .getOrRecover(e => fail("could not get test input", e))
+
+    val now = DateTime.now
+    AgreementsXml(
+      dateSubmitted = now,
+      dm = datasetMetadata,
+      user = UserData(
+        "foo", name = "bar", email = "does.not.exist@dans.knaw.nl",
+        firstName = None, prefix = None, lastName = "", phone = "",
+        organisation = "", address = "", zipcode = "", city = "", country = "",
+      ),
+    ).map(stripRootAttributes) shouldBe Success(
+      """<agreements>
+        |  <depositAgreement>
+        |    <signerId easy-account="foo" email="does.not.exist@dans.knaw.nl">bar</signerId>
+        |    <dcterms:dateAccepted>2018-03-22T21:43:01.000+01:00</dcterms:dateAccepted>
+        |    <depositAgreementAccepted>true</depositAgreementAccepted>
+        |  </depositAgreement>
+        |  <personalDataStatement>
+        |    <signerId easy-account="foo" email="does.not.exist@dans.knaw.nl">bar</signerId>
+        |    <dateSigned>2018-03-22T21:43:01.000+01:00</dateSigned>
+        |    <containsPrivacySensitiveData>false</containsPrivacySensitiveData>
+        |  </personalDataStatement>
+        |</agreements>
+        |""".stripMargin
+    )
+  }
+
+  it should "not stumble over missing user properties" in {
+    val datasetMetadata: DatasetMetadata = DatasetMetadata(getManualTestResource("datasetmetadata-from-ui-all.json"))
+      .getOrRecover(e => fail("could not get test input", e))
+
+    val now = DateTime.now
+    AgreementsXml(
+      dateSubmitted = now,
+      dm = datasetMetadata,
+      user = UserData(
+        "foo", name = "", email = null, // whatever an AuthenticationProvider may throw at us
+        firstName = None, prefix = None, lastName = "", phone = "",
+        organisation = "", address = "", zipcode = "", city = "", country = "",
+      ),
+    ).map(stripRootAttributes) should matchPattern {
+      case Success(s: String) if s.contains("""<signerId easy-account="foo">foo</signerId>""") =>
+    }
+  }
+
+  it should "complain about not accepted deposit agreement" in {
     AgreementsXml(
       dateSubmitted = DateTime.now,
       dm = DatasetMetadata().copy(

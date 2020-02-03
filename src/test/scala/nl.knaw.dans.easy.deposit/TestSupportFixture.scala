@@ -16,7 +16,7 @@
 package nl.knaw.dans.easy.deposit
 
 import java.net.{ URI, URL }
-import java.util.concurrent.{ LinkedBlockingQueue, ThreadPoolExecutor, TimeUnit }
+import java.util.concurrent.ThreadPoolExecutor
 import java.util.{ TimeZone, UUID }
 
 import better.files.File
@@ -25,7 +25,7 @@ import javax.activation.DataSource
 import nl.knaw.dans.easy.deposit.authentication.TokenSupport.TokenConfig
 import nl.knaw.dans.easy.deposit.authentication.{ AuthConfig, AuthUser, AuthenticationProvider, TokenSupport }
 import nl.knaw.dans.easy.deposit.docs.{ AgreementData, UserData }
-import nl.knaw.dans.easy.deposit.executor.JobQueueManager
+import nl.knaw.dans.easy.deposit.executor.{ JobQueueManager, SystemStatus }
 import org.apache.commons.configuration.PropertiesConfiguration
 import org.apache.commons.mail.MultiPartEmail
 import org.joda.time.{ DateTime, DateTimeUtils, DateTimeZone }
@@ -100,8 +100,6 @@ trait TestSupportFixture extends FlatSpec with Matchers with Inside with BeforeA
 
   class MockedPidRequester extends PidRequester(Http, new URI("http://does.not.exist.dans.knaw.nl/pid-generator"))
 
-  def mockPidRequester: PidRequester = mock[MockedPidRequester]
-
   def minimalAppConfig: Configuration = {
     new Configuration("", new PropertiesConfiguration() {
       addProperty("deposits.staged", testSubDir("staged").toString())
@@ -134,32 +132,52 @@ trait TestSupportFixture extends FlatSpec with Matchers with Inside with BeforeA
     })
   }
 
-  def createTestApp: EasyDepositApiApp = {
+  def createTestApp(requester: PidRequester = mock[PidRequester]): EasyDepositApiApp = {
     new EasyDepositApiApp(minimalAppConfig) {
-      override val pidRequester: PidRequester = mockPidRequester
+      override val pidRequester: PidRequester = requester
 
       override def getUserData(user: String): Try[UserData] = {
         Success(defaultUserInfo)
       }
 
       override protected val submitter: Submitter = {
-        createSubmitterWithStubs(
-          submitBase,
-          properties.getString("deposit.permissions.group"),
-          properties.getString("easy.deposit-ui"),
-          new JobQueueManager(new ThreadPoolExecutor(1, 1, 10, TimeUnit.SECONDS, new LinkedBlockingQueue())),
+        val group = properties.getString("deposit.permissions.group")
+        new Submitter(
+          submitToBaseDir = submitBase,
+          groupPrincipal = submitBase.fileSystem.getUserPrincipalLookupService.lookupPrincipalByGroupName(group),
+          depositUiURL = properties.getString("easy.deposit-ui"),
+          jobQueue = jobQueueStub(),
+          mailer = mailerStub,
+          agreementGenerator = agreementGeneratorStub,
         )
       }
     }
   }
 
-  def createSubmitterWithStubs(submitBase: File, groupName: String, depositUiURL: String, jobQueueManager: JobQueueManager): Submitter = {
-    val agreementGenerator: AgreementGenerator = new AgreementGenerator(Http, new URL("http://does.not.exist"), "text/html") {
+  private def jobQueueStub(onSchedule: SubmitJob => Try[Unit] = (job: SubmitJob) => Try(job.run()),
+                          ): JobQueueManager = {
+    val threadPoolExecutor: ThreadPoolExecutor = null
+    new JobQueueManager(threadPoolExecutor) {
+      override def getSystemStatus: SystemStatus = {
+        SystemStatus(threadPoolStatus = null, queueSize = 0, queueContent = null)
+      }
+
+      override def scheduleJob(job: Runnable): Try[Unit] = Try {
+        job.run()
+      }
+    }
+  }
+
+  private def agreementGeneratorStub = {
+    new AgreementGenerator(Http, new URL("http://does.not.exist"), "text/html") {
       override def generate(agreementData: AgreementData, id: UUID): Try[Array[Byte]] = {
         Success("mocked pdf".getBytes)
       }
     }
-    val mailer: Mailer = new Mailer(
+  }
+
+  private def mailerStub = {
+    new Mailer(
       smtpHost = "",
       fromAddress = "",
       bounceAddress = "",
@@ -173,15 +191,6 @@ trait TestSupportFixture extends FlatSpec with Matchers with Inside with BeforeA
         //java.lang.IllegalArgumentException: MimeMessage has not been created yet
       }
     }
-    val groupPrinciple = submitBase.fileSystem.getUserPrincipalLookupService.lookupPrincipalByGroupName(groupName)
-    new Submitter(
-      submitBase,
-      groupPrinciple,
-      depositUiURL,
-      jobQueue = jobQueueManager,
-      mailer = mailer,
-      agreementGenerator = agreementGenerator,
-    )
   }
 
   private def testSubDir(drafts: String): File = {
