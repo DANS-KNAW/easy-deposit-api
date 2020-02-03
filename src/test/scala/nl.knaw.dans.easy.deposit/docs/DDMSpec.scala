@@ -57,37 +57,34 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
   )
 
   private val emptyAuthor: Author = Author(role = Some(SchemedKeyValue("someScheme0", "someKey", "someValue")))
+  private val emptyDate: Date = Date(Some(W3CDTF.toString), None, Some(DateQualifier.dateCopyrighted))
+  private val minimalJson = new MinimalDatasetMetadata()
+  // empty elements should be filtered when converting json to DDM
   "minimal with empty elements" should behave like validDatasetMetadata(
     input = Try(new MinimalDatasetMetadata(
-      dates = Some(Seq(
-        Date(Some(W3CDTF.toString), Some("2018-5-29"), Some(DateQualifier.created)),
-        Date(Some(W3CDTF.toString), Some("2018-07-30"), Some(DateQualifier.available)),
-        Date(Some(W3CDTF.toString), None, Some(DateQualifier.dateCopyrighted)),
-      )),
+      dates = Some(minimalJson.datesCreated.toSeq ++ minimalJson.datesAvailable.toSeq :+ emptyDate),
       types = Some(Seq(SchemedValue("someScheme1", ""))),
       formats = Some(Seq()),
-      creators = new MinimalDatasetMetadata().creators.map(_ :+ emptyAuthor),
+      creators = minimalJson.creators.map(_ :+ emptyAuthor),
       contributors = Some(Seq()),
       subjects = Some(Seq(
         SchemedKeyValue("someScheme2", "someKey", ""),
-        SchemedKeyValue("someScheme3", "", "")
+        SchemedKeyValue("someScheme3", "", ""),
+        SchemedKeyValue("dcterms:ISO3166", "", "someValue"),
       )),
       spatialCoverages = Some(Seq(
         SchemedKeyValue("someScheme4", "", ""),
         SchemedKeyValue("someScheme5", "someKey", ""),
-        // TODO
-        //  SchemedKeyValue("someScheme6", "", "someValue"),
-        //  breaks DDM validation but skipping would also skip
-        //  Goerees, Flakees, HaringVliet, Grevelingenmeer and more in "without one of the authors"
+        SchemedKeyValue("abr:ABRcomplex", "", "someValue"),
       )),
       temporalCoverages = Some(Seq()),
       relations = Some(Seq[RelationType](
-        Relation(Some(RelationQualifier.isReferencedBy),Some(""),Some("")),
-        Relation(Some(RelationQualifier.replaces),Some(""),None),
-        Relation(Some(RelationQualifier.isRequiredBy),None,None),
-        RelatedIdentifier(Some(""),Some(""),Some(RelationQualifier.isReplacedBy)),
-        RelatedIdentifier(None,Some(""),Some(RelationQualifier.references)),
-        RelatedIdentifier(None,None,Some(RelationQualifier.conformsTo)),
+        Relation(Some(RelationQualifier.isReferencedBy), Some(""), Some("")),
+        Relation(Some(RelationQualifier.replaces), Some(""), None),
+        Relation(Some(RelationQualifier.isRequiredBy), None, None),
+        RelatedIdentifier(Some(""), Some(""), Some(RelationQualifier.isReplacedBy)),
+        RelatedIdentifier(None, Some(""), Some(RelationQualifier.references)),
+        RelatedIdentifier(None, None, Some(RelationQualifier.conformsTo)),
       )),
     )),
     expectedDdmContent = minimalDDM
@@ -114,7 +111,7 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
   )
 
   "minimal with multiple audiences" should behave like validDatasetMetadata(
-    input = Try(new MinimalDatasetMetadata().copy(audiences = Some(Seq(
+    input = Try(new MinimalDatasetMetadata(audiences = Some(Seq(
       SchemedKeyValue("blabla", "D11200", "Lorum"),
       SchemedKeyValue("blabla", "D32400", "ipsum")
     )))),

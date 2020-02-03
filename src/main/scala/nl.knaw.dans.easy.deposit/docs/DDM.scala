@@ -124,7 +124,6 @@ object DDM extends SchemedXml with DebugEnhancedLogging {
   })
 
   private def details(source: SchemedKeyValue, label: String, lang: String): Elem = {
-    val typeSchemes = Seq("abr:ABRcomplex", "abr:ABRperiode", "dcterms:ISO3166")
     (label, source) match {
       case ("subject", SchemedKeyValue(None, None, Some(value))) =>
         <label xml:lang={ lang }>{ value }</label>
@@ -132,7 +131,7 @@ object DDM extends SchemedXml with DebugEnhancedLogging {
       case (_, SchemedKeyValue(None, None, Some(value))) =>
         <label xml:lang={ lang }>{ value }</label>
           .withLabel(s"dcterms:$label")
-      case (_, SchemedKeyValue(Some(scheme), Some(key), _)) if typeSchemes.contains(scheme) =>
+      case (_, SchemedKeyValue(Some(scheme), Some(key), _)) if source.schemeNeedsKey =>
         <label xsi:type={ scheme }>{ key }</label>
           .withLabel(s"dcterms:$label")
       case (_, SchemedKeyValue(_, _, Some(value))) =>
