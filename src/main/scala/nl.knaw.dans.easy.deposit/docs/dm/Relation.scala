@@ -50,13 +50,14 @@ case class Relation(qualifier: Option[RelationQualifier],
     title = title.flatMap(_.toOption),
   )
 
-  override def hasValue: Boolean = url.exists(!_.isBlank) || title.exists(!_.isBlank)
+  override val value: Option[String] = title.orElse(url)
+  override def hasValue: Boolean = value.exists(!_.isBlank)
 }
 
 case class RelatedIdentifier(scheme: Option[String],
                              value: Option[String],
                              qualifier: Option[RelationQualifier],
-                            ) extends RelationType {
+                            ) extends RelationType with OptionalScheme with OptionalValue {
   override def withCleanOptions: RelationType = this.copy(
     scheme = scheme.flatMap(_.toOption),
     value = value.flatMap(_.toOption),

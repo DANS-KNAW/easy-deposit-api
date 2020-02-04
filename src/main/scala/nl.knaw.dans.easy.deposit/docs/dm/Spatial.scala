@@ -25,9 +25,7 @@ object Spatial {
   val RD_SRS_NAME = "http://www.opengis.net/def/crs/EPSG/0/28992"
 }
 
-trait SchemedSpatial extends OptionalValue {
-  val scheme: Option[String]
-
+trait SchemedSpatial extends OptionalValue with OptionalScheme {
   lazy val srsName: String = {
     scheme match {
       case Some("degrees") => Spatial.DEGREES_SRS_NAME
@@ -38,7 +36,7 @@ trait SchemedSpatial extends OptionalValue {
   }
 }
 
-case class SpatialPoint(override val scheme: Option[String],
+case class SpatialPoint(scheme: Option[String],
                         x: Option[String],
                         y: Option[String],
                        ) extends SchemedSpatial {
@@ -50,10 +48,11 @@ case class SpatialPoint(override val scheme: Option[String],
     case _ => s"$sy $sx"
   }
 
+  override val value: Option[String] = Some(pos)
   override def hasValue: Boolean = x.exists(!_.isBlank) || y.exists(!_.isBlank)
 }
 
-case class SpatialBox(override val scheme: Option[String],
+case class SpatialBox(scheme: Option[String],
                       north: Option[String],
                       east: Option[String],
                       south: Option[String],
@@ -90,6 +89,7 @@ case class SpatialBox(override val scheme: Option[String],
     case _ => yx
   }
 
+  override val value: Option[String] = Some(s"($lower) ($upper)")
   override def hasValue: Boolean = north.exists(!_.isBlank) &&
     east.exists(!_.isBlank) &&
     south.exists(!_.isBlank) &&

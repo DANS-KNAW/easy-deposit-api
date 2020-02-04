@@ -15,12 +15,13 @@
  */
 package nl.knaw.dans.easy.deposit.docs.dm
 
+import nl.knaw.dans.easy.deposit.docs.CollectionUtils._
 import nl.knaw.dans.easy.deposit.docs.dm.SchemedKeyValue.keyedSchemes
 import nl.knaw.dans.lib.string._
 
 case class SchemedValue(scheme: Option[String],
                         value: Option[String],
-                       ) extends OptionalValue {
+                       ) extends OptionalValue with OptionalScheme {
 
   def hasValue: Boolean = value.exists(!_.isBlank)
 }
@@ -33,7 +34,14 @@ object SchemedValue {
 case class SchemedKeyValue(scheme: Option[String],
                            key: Option[String],
                            value: Option[String],
-                          ) extends OptionalValue {
+                          ) extends OptionalValue with OptionalScheme {
+
+  /** key if available together with scheme, value otherwise */
+  lazy val keyOrValue: String = (scheme, key, value) match {
+    case (Some(_), Some(_), _) => key.nonBlankOrEmpty
+    case _ => value.nonBlankOrEmpty
+  }
+
   override def hasValue: Boolean = {
     if (schemeNeedsKey)
       key.exists(!_.isBlank)

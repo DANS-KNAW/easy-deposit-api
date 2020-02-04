@@ -17,10 +17,8 @@ package nl.knaw.dans.easy.deposit.docs.dm
 
 import nl.knaw.dans.easy.deposit.docs.CollectionUtils._
 
-trait OptionalValue {
-  val value: Option[String]
-  lazy val valueOrNull: String = value.nonBlankOrNull
-  lazy val valueOrEmpty: String = value.nonBlankOrEmpty
-
-  def hasValue: Boolean
+trait OptionalScheme {
+  val scheme: Option[String]
+  lazy val schemeOrNull: String = scheme.nonBlankOrNull
+  lazy val schemeOrEmpty: String = scheme.nonBlankOrEmpty
 }

@@ -40,5 +40,6 @@ case class Author(titles: Option[String] = None,
     }
   }
 
+  override val value: Option[String] = toString.toOption
   override def hasValue: Boolean = !toString.isBlank
 }
