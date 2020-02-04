@@ -66,7 +66,7 @@ object DDM extends SchemedXml with DebugEnhancedLogging {
         { dm.subjects.withNonEmpty.map(details(_, "subject", lang)) }
         { dm.temporalCoverages.withNonEmpty.map(details(_, "temporal", lang)) }
         { dm.spatialCoverages.withNonEmpty.map(details(_, "spatial", lang)) }
-        { dm.otherDates.map(date => <label xsi:type={ date.scheme.nonBlankOrNull }>{ date.value.nonBlankOrEmpty }</label>.withLabel(date.qualifier)) }
+        { dm.otherDates.withNonEmpty.map(date => <label xsi:type={ date.scheme.nonBlankOrNull }>{ date.value.nonBlankOrEmpty }</label>.withLabel(date.qualifier)) }
         { dm.spatialPoints.withNonEmpty.map(point => <dcx-gml:spatial srsName={ point.srsName }>{ details(point) }</dcx-gml:spatial>) }
         { dm.spatialBoxes.withNonEmpty.map(point => <dcx-gml:spatial>{ details(point) }</dcx-gml:spatial>) }
         { dm.license.withNonEmpty.map(src => <dcterms:license xsi:type={ src.scheme.nonBlankOrNull }>{ src.value.nonBlankOrEmpty }</dcterms:license>) }
@@ -109,21 +109,21 @@ object DDM extends SchemedXml with DebugEnhancedLogging {
       case RelatedIdentifier(Some("id-type:URN"), Some(value), _) => <label scheme="id-type:URN" href={ "http://persistent-identifier.nl/" + value }>{ value }</label>
       case RelatedIdentifier(Some(scheme @ ("id-type:URI" | "id-type:URL")), Some(value), _) => <label scheme={ scheme } href={ value }>{ value }</label>
       case RelatedIdentifier(scheme, Some(value), _) => <label xsi:type={ scheme.nonBlankOrNull }>{ value }</label>
-      case RelatedIdentifier(scheme, None, _) => <label xsi:type={ scheme.nonBlankOrNull }></label>
+      // should not get at the next because of withNonEmpty
       case _ => throw new IllegalArgumentException("invalid relation " + JsonUtil.toJson(relation))
     }
-  }.withLabel(relation match { // replace the namespace in case of an href=URL attribute
+    }.withLabel(relation match { // replace the namespace in case of an href=URL attribute
     case RelatedIdentifier(_, _, None) => throw new IllegalArgumentException("missing qualifier: RelatedIdentifier" + JsonUtil.toJson(relation))
     case RelatedIdentifier(Some("id-type:URI" | "id-type:URL" | "id-type:URN" | "id-type:DOI"), _, Some(qualifier)) => qualifier.toString.replace("dcterms", "ddm")
     case RelatedIdentifier(_, _, Some(qualifier)) => qualifier.toString
     case Relation(None, _, _) => throw new IllegalArgumentException("missing qualifier: Relation" + JsonUtil.toJson(relation))
     case Relation(Some(qualifier), Some(_), _) => qualifier.toString.replace("dcterms", "ddm")
     case Relation(Some(qualifier), _, _) => qualifier.toString
+    // should not get at the next because of withNonEmpty
     case _ => throw new IllegalArgumentException("invalid relation" + JsonUtil.toJson(relation))
   })
 
   private def details(source: SchemedKeyValue, label: String, lang: String): Elem = {
-    val typeSchemes = Seq("abr:ABRcomplex", "abr:ABRperiode", "dcterms:ISO3166")
     (label, source) match {
       case ("subject", SchemedKeyValue(None, None, Some(value))) =>
         <label xml:lang={ lang }>{ value }</label>
@@ -131,7 +131,7 @@ object DDM extends SchemedXml with DebugEnhancedLogging {
       case (_, SchemedKeyValue(None, None, Some(value))) =>
         <label xml:lang={ lang }>{ value }</label>
           .withLabel(s"dcterms:$label")
-      case (_, SchemedKeyValue(Some(scheme), Some(key), _)) if typeSchemes.contains(scheme) =>
+      case (_, SchemedKeyValue(Some(scheme), Some(key), _)) if source.schemeNeedsKey =>
         <label xsi:type={ scheme }>{ key }</label>
           .withLabel(s"dcterms:$label")
       case (_, SchemedKeyValue(_, _, Some(value))) =>
