@@ -40,7 +40,7 @@ case class SchemedKeyValue(scheme: Option[String],
     else value.exists(!_.isBlank)
   }
 
-  def schemeNeedsKey: Boolean = keyedSchemes.contains(scheme.getOrElse(""))
+  def schemeNeedsKey: Boolean = scheme.exists(keyedSchemes contains _)
 }
 
 object SchemedKeyValue {
