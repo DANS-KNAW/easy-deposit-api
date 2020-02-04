@@ -39,6 +39,9 @@ object RelationQualifier extends Enumeration {
 trait RelationType extends OptionalValue {
   /** @return this with Some-s of empty strings as None-s */
   def withCleanOptions: RelationType
+
+  val qualifier: Option[RelationQualifier]
+  val url: Option[String]
 }
 
 case class Relation(qualifier: Option[RelationQualifier],
@@ -51,6 +54,7 @@ case class Relation(qualifier: Option[RelationQualifier],
   )
 
   override val value: Option[String] = title.orElse(url)
+
   override def hasValue: Boolean = value.exists(!_.isBlank)
 }
 
@@ -65,10 +69,10 @@ case class RelatedIdentifier(scheme: Option[String],
 
   override def hasValue: Boolean = value.exists(!_.isBlank)
 
-  def href: String = scheme match {
-    case Some("id-type:DOI") => "https://doi.org/" + valueOrEmpty
-    case Some("id-type:URN") => "https://persistent-identifier.nl/" + valueOrEmpty
-    case Some("id-type:URI" | "id-type:URL") => valueOrEmpty
-    case _ => null
+  override val url: Option[String] = scheme.flatMap {
+    case "id-type:DOI" => value.map("https://doi.org/" + _)
+    case "id-type:URN" => value.map("https://persistent-identifier.nl/" + _)
+    case "id-type:URI" | "id-type:URL" => value
+    case _ => None
   }
 }

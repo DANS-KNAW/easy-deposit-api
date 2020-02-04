@@ -93,24 +93,19 @@ object DDM extends SchemedXml with DebugEnhancedLogging {
   }
 
   private def details(relation: RelationType, lang: String): Elem = {
-    relation.withCleanOptions match {
-      case Relation(_, Some(url: String), Some(title: String)) => <label xml:lang={ lang } href={ url }>{ title }</label>
-      case Relation(_, Some(url: String), None) => <label href={ url }>{ url }</label>
-      case Relation(_, None, Some(title: String)) => <label xml:lang={ lang }>{ title }</label>
-      case rel: RelatedIdentifier => <label scheme={ rel.schemeOrNull } href={ rel.href }>{ rel.value }</label>
-      // should not get at the next because of withNonEmpty
-      case _ => throw new IllegalArgumentException("invalid relation " + JsonUtil.toJson(relation))
-    }
-    }.withLabel(relation match { // replace the namespace in case of an href=URL attribute
-    case RelatedIdentifier(_, _, None) => throw new IllegalArgumentException("missing qualifier: RelatedIdentifier" + JsonUtil.toJson(relation))
-    case RelatedIdentifier(Some("id-type:URI" | "id-type:URL" | "id-type:URN" | "id-type:DOI"), _, Some(qualifier)) => qualifier.toString.replace("dcterms", "ddm")
-    case RelatedIdentifier(_, _, Some(qualifier)) => qualifier.toString
-    case Relation(None, _, _) => throw new IllegalArgumentException("missing qualifier: Relation" + JsonUtil.toJson(relation))
-    case Relation(Some(qualifier), Some(_), _) => qualifier.toString.replace("dcterms", "ddm")
-    case Relation(Some(qualifier), _, _) => qualifier.toString
-    // should not get at the next because of withNonEmpty
-    case _ => throw new IllegalArgumentException("invalid relation" + JsonUtil.toJson(relation))
-  })
+    lazy val urlOrNull = relation.url.nonBlankOrNull
+    lazy val valueOrEmpty = relation.valueOrEmpty
+    (relation.withCleanOptions match {
+      case Relation(_, Some(url: String), None) =>
+        <label href={ urlOrNull }>{ url }</label>
+      case _: Relation => // Relation(_,None,None) is skipped so we do have a title (via value) and therefore a language
+        <label xml:lang={ lang } href={ urlOrNull }>{ valueOrEmpty }</label>
+      case rel: RelatedIdentifier if rel.url.isEmpty =>
+        <label xsi:type={ rel.schemeOrNull }>{ valueOrEmpty }</label>
+      case rel: RelatedIdentifier =>
+        <label scheme={ rel.schemeOrNull } href={ urlOrNull }>{ valueOrEmpty }</label>
+    }).withLabel(relation)
+  }
 
   private def details(source: SchemedKeyValue, label: String, lang: String): Elem = {
     (label, source) match {
@@ -162,6 +157,17 @@ object DDM extends SchemedXml with DebugEnhancedLogging {
           s"expecting (label) or (prefix:label); got [${ a.mkString(":") }] to adjust the <${ elem.label }> of ${ trim(elem) }"
         )
       }
+    }
+
+    @throws[IllegalArgumentException]("when the relation has no qualifier")
+    def withLabel(relation: RelationType): Elem = {
+      val qualifier: String = relation.qualifier.map(_.toString)
+        .getOrElse(throw new IllegalArgumentException("missing qualifier: " + JsonUtil.toJson(relation)))
+
+      withLabel(
+        if (relation.url.isEmpty) qualifier
+        else qualifier.replace("dcterms", "ddm")
+      )
     }
 
     @throws[InvalidDocumentException]("when maybeVal does not contain a valid XML label (its .toString has more than one ':')")
