@@ -64,4 +64,11 @@ case class RelatedIdentifier(scheme: Option[String],
   )
 
   override def hasValue: Boolean = value.exists(!_.isBlank)
+
+  def href: String = scheme match {
+    case Some("id-type:DOI") => "https://doi.org/" + valueOrEmpty
+    case Some("id-type:URN") => "https://persistent-identifier.nl/" + valueOrEmpty
+    case Some("id-type:URI" | "id-type:URL") => valueOrEmpty
+    case _ => null
+  }
 }
