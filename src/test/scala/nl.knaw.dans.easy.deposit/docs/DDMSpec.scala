@@ -198,11 +198,11 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
 
   "date without qualifier" should "fail" in {
     DDM(new MinimalDatasetMetadata(
-      dates = Some(minimalJson.datesCreated.toSeq ++ minimalJson.datesAvailable.toSeq :+ Date(None,Some("2020"), None)),
+      dates = Some(minimalJson.datesCreated.toSeq ++ minimalJson.datesAvailable.toSeq :+ Date(None, Some("2020"), None)),
     )) should matchPattern {
       case Failure(e: InvalidDocumentException) if e.getMessage.startsWith( // in between randomly ordered attributes from the root of <ddm:DDM>
         """invalid DatasetMetadata: no qualifier {"value":"2020"} to adjust the <label> of <label """) && e.getMessage.endsWith(">2020</label>"
-      )=>
+      ) =>
     }
   }
 

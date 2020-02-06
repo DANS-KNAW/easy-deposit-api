@@ -22,7 +22,6 @@ import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import nl.knaw.dans.lib.string._
 
 import scala.util.{ Failure, Try }
-import scala.xml.Utility.trim
 import scala.xml._
 
 object DDM extends SchemedXml with DebugEnhancedLogging {
@@ -127,7 +126,7 @@ object DDM extends SchemedXml with DebugEnhancedLogging {
         { author.initials.withNonEmpty.map(str => <dcx-dai:initials>{ str }</dcx-dai:initials>) }
         { author.insertions.withNonEmpty.map(str => <dcx-dai:insertions>{ str }</dcx-dai:insertions>) }
         { author.surname.withNonEmpty.map(str => <dcx-dai:surname>{ str }</dcx-dai:surname>) }
-        { author.ids.withNonEmpty.map(src => <label>{ src.valueOrNull }</label>.withLabel(s"dcx-dai:${ src.schemeOrEmpty.replace("id-type:", "") }")) }
+        { author.ids.withNonEmpty.map(src => <label>{ src.valueOrEmpty }</label>.withLabel(s"dcx-dai:${ src.schemeOrEmpty.replace("id-type:", "") }")) }
         { author.role.flatMap(_.key).withNonEmpty.map(key => <dcx-dai:role>{ key }</dcx-dai:role>) }
         { author.organization.withNonEmpty.map(complexContent(_, lang, role = None)) }
       </dcx-dai:author>
@@ -172,7 +171,7 @@ object DDM extends SchemedXml with DebugEnhancedLogging {
       withLabel(qualifier)
     }
 
-    def msg = s"to adjust the <${ elem.label }> of ${ trim(elem) }"
+    def msg = s"to adjust the <${ elem.label }> of $elem"
 
     private def throwMissingQualifier(json: => String) = {
       throw new IllegalArgumentException(s"no qualifier $json $msg")

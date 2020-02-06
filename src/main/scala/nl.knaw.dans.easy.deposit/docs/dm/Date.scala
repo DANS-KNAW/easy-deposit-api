@@ -63,7 +63,7 @@ case class Date(
       this
   }
 
-  lazy val hasValue: Boolean = value.exists(!_.isBlank)
+  override lazy val hasValue: Boolean = value.exists(!_.isBlank)
 }
 
 object Date {
