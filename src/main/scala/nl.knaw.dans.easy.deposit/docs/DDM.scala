@@ -66,7 +66,7 @@ object DDM extends SchemedXml with DebugEnhancedLogging {
         { dm.subjects.withNonEmpty.map(details(_, "subject", lang)) }
         { dm.temporalCoverages.withNonEmpty.map(details(_, "temporal", lang)) }
         { dm.spatialCoverages.withNonEmpty.map(details(_, "spatial", lang)) }
-        { dm.otherDates.withNonEmpty.map(date => <label xsi:type={ date.schemeOrNull }>{ date.valueOrEmpty }</label>.withLabel(date.qualifier)) }
+        { dm.otherDates.withNonEmpty.map(date => <label xsi:type={ date.schemeOrNull }>{ date.valueOrEmpty }</label>.withLabel(date)) }
         { dm.spatialPoints.withNonEmpty.map(point => <dcx-gml:spatial srsName={ point.srsName }>{ details(point) }</dcx-gml:spatial>) }
         { dm.spatialBoxes.withNonEmpty.map(point => <dcx-gml:spatial>{ details(point) }</dcx-gml:spatial>) }
         { dm.license.withNonEmpty.map(src => <dcterms:license xsi:type={ src.schemeOrNull }>{ src.valueOrEmpty }</dcterms:license>) }
@@ -147,16 +147,15 @@ object DDM extends SchemedXml with DebugEnhancedLogging {
       str.split(":") match {
         case Array(label) if label.nonEmpty => elem.copy(label = label)
         case Array(prefix, label) => elem.copy(prefix = prefix, label = label)
-        case a => throw new IllegalArgumentException(
-          s"expecting (label) or (prefix:label); got [${ a.mkString(":") }] to adjust the <${ elem.label }> of ${ trim(elem) }"
-        )
+        case a => throw new IllegalArgumentException(s"expecting (label) or (prefix:label); got [${ a.mkString(":") }] $msg")
       }
     }
 
     @throws[IllegalArgumentException]("when the relation has no qualifier")
     def withLabel(relation: RelationType): Elem = {
-      val qualifier: String = relation.qualifier.map(_.toString)
-        .getOrElse(throw new IllegalArgumentException("missing qualifier: " + JsonUtil.toJson(relation)))
+      val qualifier: String = relation.qualifier
+        .map(_.toString)
+        .getOrElse(throwMissingQualifier(JsonUtil.toJson(relation)))
 
       withLabel(
         if (relation.url.isEmpty) qualifier
@@ -164,9 +163,19 @@ object DDM extends SchemedXml with DebugEnhancedLogging {
       )
     }
 
-    @throws[InvalidDocumentException]("when maybeVal does not contain a valid XML label (its .toString has more than one ':')")
-    def withLabel[T](maybeVal: Option[T]): Elem = {
-      withLabel(maybeVal.map(_.toString).nonBlankOrEmpty)
+    @throws[IllegalArgumentException]("when the date has no qualifier")
+    def withLabel(date: Date): Elem = {
+      val qualifier: String = date.qualifier
+        .map(_.toString)
+        .getOrElse(throwMissingQualifier(JsonUtil.toJson(date)))
+
+      withLabel(qualifier)
+    }
+
+    def msg = s"to adjust the <${ elem.label }> of ${ trim(elem) }"
+
+    private def throwMissingQualifier(json: => String) = {
+      throw new IllegalArgumentException(s"no qualifier [$json] $msg")
     }
   }
 }
