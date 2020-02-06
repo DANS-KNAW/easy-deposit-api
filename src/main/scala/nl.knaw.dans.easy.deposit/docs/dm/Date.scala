@@ -17,7 +17,6 @@ package nl.knaw.dans.easy.deposit.docs.dm
 
 import nl.knaw.dans.easy.deposit.docs.JsonUtil.toJson
 import nl.knaw.dans.easy.deposit.docs.dm.DateQualifier.DateQualifier
-import nl.knaw.dans.lib.string._
 import org.joda.time.DateTime
 import org.joda.time.format.ISODateTimeFormat
 
@@ -62,8 +61,6 @@ case class Date(
     else
       this
   }
-
-  override lazy val hasValue: Boolean = value.exists(!_.isBlank)
 }
 
 object Date {

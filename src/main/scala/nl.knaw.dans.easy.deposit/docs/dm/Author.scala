@@ -41,5 +41,4 @@ case class Author(titles: Option[String] = None,
       case (None, None) => ""
     }
     }.toOption
-  override lazy val hasValue: Boolean = value.exists(!_.isBlank)
 }

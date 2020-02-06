@@ -21,10 +21,7 @@ import nl.knaw.dans.lib.string._
 
 case class SchemedValue(scheme: Option[String],
                         value: Option[String],
-                       ) extends OptionalValue with OptionalScheme {
-
-  lazy val hasValue: Boolean = value.exists(!_.isBlank)
-}
+                       ) extends OptionalValue with OptionalScheme
 object SchemedValue {
   def apply(scheme: String, value: String): SchemedValue = {
     SchemedValue(Some(scheme), Some(value))

@@ -16,11 +16,12 @@
 package nl.knaw.dans.easy.deposit.docs.dm
 
 import nl.knaw.dans.easy.deposit.docs.CollectionUtils._
+import nl.knaw.dans.lib.string._
 
 trait OptionalValue {
   val value: Option[String]
 
-  val hasValue: Boolean
+  lazy val hasValue: Boolean = value.exists(!_.isBlank)
   lazy val valueOrNull: String = value.nonBlankOrNull
   lazy val valueOrEmpty: String = value.nonBlankOrEmpty
 }

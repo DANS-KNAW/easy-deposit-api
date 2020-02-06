@@ -15,8 +15,6 @@
  */
 package nl.knaw.dans.easy.deposit.docs.dm
 
-import nl.knaw.dans.lib.string._
-
 object Spatial {
   /** coordinate order y, x = latitude (DCX_SPATIAL_Y), longitude (DCX_SPATIAL_X) */
   val DEGREES_SRS_NAME = "http://www.opengis.net/def/crs/EPSG/0/4326"
@@ -48,8 +46,7 @@ case class SpatialPoint(scheme: Option[String],
     case _ => s"$sy $sx"
   }
 
-  override lazy val value: Option[String] = Some(pos)
-  override lazy val hasValue: Boolean = x.exists(!_.isBlank) || y.exists(!_.isBlank)
+  override lazy val value: Option[String] = x.flatMap(_ => y).map(_ => pos)
 }
 
 case class SpatialBox(scheme: Option[String],
@@ -89,9 +86,9 @@ case class SpatialBox(scheme: Option[String],
     case _ => yx
   }
 
-  override lazy val value: Option[String] = Some(s"($lower) ($upper)")
-  override lazy val hasValue: Boolean = north.exists(!_.isBlank) &&
-    east.exists(!_.isBlank) &&
-    south.exists(!_.isBlank) &&
-    west.exists(!_.isBlank)
+  override lazy val value: Option[String] = north
+    .flatMap(_ => east)
+    .flatMap(_ => south)
+    .flatMap(_ => west)
+    .map(_ => s"($lower) ($upper)")
 }

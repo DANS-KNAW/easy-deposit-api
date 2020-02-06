@@ -17,7 +17,6 @@ package nl.knaw.dans.easy.deposit.docs.dm
 
 import nl.knaw.dans.easy.deposit.docs.CollectionUtils._
 import nl.knaw.dans.easy.deposit.docs.dm.RelationQualifier.RelationQualifier
-import nl.knaw.dans.lib.string._
 
 object RelationQualifier extends Enumeration {
   type RelationQualifier = Value
@@ -48,16 +47,12 @@ case class Relation(qualifier: Option[RelationQualifier],
                     title: Option[String],
                    ) extends RelationType {
   override val value: Option[String] = title.orElse(url)
-
-  override lazy val hasValue: Boolean = value.exists(!_.isBlank)
 }
 
 case class RelatedIdentifier(scheme: Option[String],
                              value: Option[String],
                              qualifier: Option[RelationQualifier],
                             ) extends RelationType with OptionalScheme with OptionalValue {
-  override lazy val hasValue: Boolean = value.exists(!_.isBlank)
-
   override lazy val url: Option[String] = scheme.flatMap {
     case "id-type:DOI" => value.map("https://doi.org/" + _)
     case "id-type:URN" => value.map("https://persistent-identifier.nl/" + _)
