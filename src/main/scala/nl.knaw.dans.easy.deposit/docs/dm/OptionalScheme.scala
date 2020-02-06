@@ -19,6 +19,7 @@ import nl.knaw.dans.easy.deposit.docs.CollectionUtils._
 
 trait OptionalScheme {
   val scheme: Option[String]
+
   lazy val schemeOrNull: String = scheme.nonBlankOrNull
   lazy val schemeOrEmpty: String = scheme.nonBlankOrEmpty
 }

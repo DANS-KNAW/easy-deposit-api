@@ -19,8 +19,8 @@ import nl.knaw.dans.easy.deposit.docs.CollectionUtils._
 
 trait OptionalValue {
   val value: Option[String]
+
+  val hasValue: Boolean
   lazy val valueOrNull: String = value.nonBlankOrNull
   lazy val valueOrEmpty: String = value.nonBlankOrEmpty
-
-  def hasValue: Boolean
 }

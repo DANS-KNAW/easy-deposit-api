@@ -17,6 +17,7 @@ package nl.knaw.dans.easy.deposit.docs.dm
 
 import nl.knaw.dans.easy.deposit.docs.dm.RelationQualifier.RelationQualifier
 import nl.knaw.dans.lib.string._
+import nl.knaw.dans.easy.deposit.docs.CollectionUtils._
 
 object RelationQualifier extends Enumeration {
   type RelationQualifier = Value
@@ -37,39 +38,27 @@ object RelationQualifier extends Enumeration {
 }
 
 trait RelationType extends OptionalValue {
-  /** @return this with Some-s of empty strings as None-s */
-  def withCleanOptions: RelationType
-
   val qualifier: Option[RelationQualifier]
   val url: Option[String]
+  lazy val urlOrNull: String = url.nonBlankOrNull
 }
 
 case class Relation(qualifier: Option[RelationQualifier],
                     url: Option[String],
                     title: Option[String],
                    ) extends RelationType {
-  override def withCleanOptions: RelationType = this.copy(
-    url = url.flatMap(_.toOption),
-    title = title.flatMap(_.toOption),
-  )
-
   override val value: Option[String] = title.orElse(url)
 
-  override def hasValue: Boolean = value.exists(!_.isBlank)
+  override lazy val hasValue: Boolean = value.exists(!_.isBlank)
 }
 
 case class RelatedIdentifier(scheme: Option[String],
                              value: Option[String],
                              qualifier: Option[RelationQualifier],
                             ) extends RelationType with OptionalScheme with OptionalValue {
-  override def withCleanOptions: RelationType = this.copy(
-    scheme = scheme.flatMap(_.toOption),
-    value = value.flatMap(_.toOption),
-  )
+  override lazy val hasValue: Boolean = value.exists(!_.isBlank)
 
-  override def hasValue: Boolean = value.exists(!_.isBlank)
-
-  override val url: Option[String] = scheme.flatMap {
+  override lazy val url: Option[String] = scheme.flatMap {
     case "id-type:DOI" => value.map("https://doi.org/" + _)
     case "id-type:URN" => value.map("https://persistent-identifier.nl/" + _)
     case "id-type:URI" | "id-type:URL" => value

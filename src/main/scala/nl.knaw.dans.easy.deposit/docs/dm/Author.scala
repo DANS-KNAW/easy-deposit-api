@@ -25,9 +25,9 @@ case class Author(titles: Option[String] = None,
                   ids: Option[Seq[SchemedValue]] = None,
                   organization: Option[String] = None,
                  ) extends OptionalValue {
-  def isRightsHolder: Boolean = role.exists(_.key.contains("RightsHolder"))
+  lazy val isRightsHolder: Boolean = role.exists(_.key.contains("RightsHolder"))
 
-  override def toString: String = { // for <dcterms:rightsHolder>
+  override lazy val toString: String = { // for <dcterms:rightsHolder>
     def name = Seq(titles, initials, insertions, surname)
       .collect { case Some(s) if !s.isBlank => s }
       .mkString(" ")
@@ -40,6 +40,6 @@ case class Author(titles: Option[String] = None,
     }
   }
 
-  override val value: Option[String] = toString.toOption
-  override def hasValue: Boolean = !toString.isBlank
+  override lazy val value: Option[String] = toString.toOption
+  override lazy val hasValue: Boolean = !toString.isBlank
 }

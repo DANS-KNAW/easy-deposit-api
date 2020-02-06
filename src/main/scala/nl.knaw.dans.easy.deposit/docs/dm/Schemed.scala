@@ -23,7 +23,7 @@ case class SchemedValue(scheme: Option[String],
                         value: Option[String],
                        ) extends OptionalValue with OptionalScheme {
 
-  def hasValue: Boolean = value.exists(!_.isBlank)
+  lazy val hasValue: Boolean = value.exists(!_.isBlank)
 }
 object SchemedValue {
   def apply(scheme: String, value: String): SchemedValue = {
@@ -42,13 +42,15 @@ case class SchemedKeyValue(scheme: Option[String],
     case _ => value.nonBlankOrEmpty
   }
 
-  override def hasValue: Boolean = {
+  lazy val keyOrNull: String = key.nonBlankOrNull
+
+  override lazy val hasValue: Boolean = {
     if (schemeNeedsKey)
       key.exists(!_.isBlank)
     else value.exists(!_.isBlank)
   }
 
-  def schemeNeedsKey: Boolean = scheme.exists(keyedSchemes contains _)
+  lazy val schemeNeedsKey: Boolean = scheme.exists(keyedSchemes contains _)
 }
 
 object SchemedKeyValue {

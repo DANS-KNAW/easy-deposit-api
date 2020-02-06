@@ -93,34 +93,28 @@ object DDM extends SchemedXml with DebugEnhancedLogging {
   }
 
   private def details(relation: RelationType, lang: String): Elem = {
-    lazy val urlOrNull = relation.url.nonBlankOrNull
-    lazy val valueOrEmpty = relation.valueOrEmpty
-    (relation.withCleanOptions match {
+    (relation match {
       case Relation(_, Some(url: String), None) =>
-        <label href={ urlOrNull }>{ url }</label>
+        <label href={ relation.urlOrNull }>{ url }</label>
       case _: Relation => // Relation(_,None,None) is skipped so we do have a title (via value) and therefore a language
-        <label xml:lang={ lang } href={ urlOrNull }>{ valueOrEmpty }</label>
+        <label xml:lang={ lang } href={ relation.urlOrNull }>{ relation.valueOrEmpty }</label>
       case rel: RelatedIdentifier if rel.url.isEmpty =>
-        <label xsi:type={ rel.schemeOrNull }>{ valueOrEmpty }</label>
+        <label xsi:type={ rel.schemeOrNull }>{ relation.valueOrEmpty }</label>
       case rel: RelatedIdentifier =>
-        <label scheme={ rel.schemeOrNull } href={ urlOrNull }>{ valueOrEmpty }</label>
+        <label scheme={ rel.schemeOrNull } href={ relation.urlOrNull }>{ relation.valueOrEmpty }</label>
     }).withLabel(relation)
   }
 
   private def details(source: SchemedKeyValue, label: String, lang: String): Elem = {
     (label, source) match {
       case ("subject", SchemedKeyValue(None, None, Some(value))) =>
-        <label xml:lang={ lang }>{ value }</label>
-          .withLabel(s"dc:$label")
+        <label xml:lang={ lang }>{ value }</label>.withLabel(s"dc:$label")
       case (_, SchemedKeyValue(None, None, Some(value))) =>
-        <label xml:lang={ lang }>{ value }</label>
-          .withLabel(s"dcterms:$label")
+        <label xml:lang={ lang }>{ value }</label>.withLabel(s"dcterms:$label")
       case (_, SchemedKeyValue(Some(scheme), Some(key), _)) if source.schemeNeedsKey =>
-        <label xsi:type={ scheme }>{ key }</label>
-          .withLabel(s"dcterms:$label")
+        <label xsi:type={ scheme }>{ key }</label>.withLabel(s"dcterms:$label")
       case (_, SchemedKeyValue(_, _, Some(value))) =>
-        <label xml:lang={ lang } schemeURI={ source.schemeOrNull } valueURI={ source.key.nonBlankOrNull }>{ value }</label>
-          .withLabel(s"ddm:$label")
+        <label xml:lang={ lang } schemeURI={ source.schemeOrNull } valueURI={ source.keyOrNull }>{ value }</label>.withLabel(s"ddm:$label")
     }
   }
 

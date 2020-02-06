@@ -40,16 +40,16 @@ case class SpatialPoint(scheme: Option[String],
                         x: Option[String],
                         y: Option[String],
                        ) extends SchemedSpatial {
-  private val sx: String = x.getOrElse("")
-  private val sy: String = y.getOrElse("")
+  private lazy val sx: String = x.getOrElse("")
+  private lazy val sy: String = y.getOrElse("")
   lazy val pos: String = srsName match {
     case Spatial.RD_SRS_NAME => s"$sx $sy"
     case Spatial.DEGREES_SRS_NAME => s"$sy $sx"
     case _ => s"$sy $sx"
   }
 
-  override val value: Option[String] = Some(pos)
-  override def hasValue: Boolean = x.exists(!_.isBlank) || y.exists(!_.isBlank)
+  override lazy val value: Option[String] = Some(pos)
+  override lazy val hasValue: Boolean = x.exists(!_.isBlank) || y.exists(!_.isBlank)
 }
 
 case class SpatialBox(scheme: Option[String],
@@ -89,8 +89,8 @@ case class SpatialBox(scheme: Option[String],
     case _ => yx
   }
 
-  override val value: Option[String] = Some(s"($lower) ($upper)")
-  override def hasValue: Boolean = north.exists(!_.isBlank) &&
+  override lazy val value: Option[String] = Some(s"($lower) ($upper)")
+  override lazy val hasValue: Boolean = north.exists(!_.isBlank) &&
     east.exists(!_.isBlank) &&
     south.exists(!_.isBlank) &&
     west.exists(!_.isBlank)

@@ -53,7 +53,7 @@ case class Date(
    *
    * @return the day level representation of this Date
    */
-  def toDayLevel: Date = {
+  lazy val toDayLevel: Date = {
     lazy val hasW3CDTFScheme = scheme contains DateScheme.W3CDTF.toString
     lazy val hasValidValue = value.exists(_ matches "^[0-9]{4}-[0-9]{1,2}-[0-9]{1,2}(.*)$")
 
@@ -63,7 +63,7 @@ case class Date(
       this
   }
 
-  def hasValue: Boolean = value.exists(!_.isBlank)
+  lazy val hasValue: Boolean = value.exists(!_.isBlank)
 }
 
 object Date {
