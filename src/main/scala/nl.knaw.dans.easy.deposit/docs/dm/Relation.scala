@@ -15,9 +15,9 @@
  */
 package nl.knaw.dans.easy.deposit.docs.dm
 
+import nl.knaw.dans.easy.deposit.docs.CollectionUtils._
 import nl.knaw.dans.easy.deposit.docs.dm.RelationQualifier.RelationQualifier
 import nl.knaw.dans.lib.string._
-import nl.knaw.dans.easy.deposit.docs.CollectionUtils._
 
 object RelationQualifier extends Enumeration {
   type RelationQualifier = Value
