@@ -25,9 +25,11 @@ case class Author(titles: Option[String] = None,
                   ids: Option[Seq[SchemedValue]] = None,
                   organization: Option[String] = None,
                  ) extends OptionalValue {
-  lazy val isRightsHolder: Boolean = role.exists(_.key.contains("RightsHolder"))
+  lazy val rightsHolder: Option[String] = role
+    .filter(_.key.contains("RightsHolder"))
+    .flatMap(_ => value)
 
-  override lazy val toString: String = { // for <dcterms:rightsHolder>
+  override lazy val value: Option[String] = {
     def name = Seq(titles, initials, insertions, surname)
       .collect { case Some(s) if !s.isBlank => s }
       .mkString(" ")
@@ -36,10 +38,8 @@ case class Author(titles: Option[String] = None,
       case (Some(_), Some(org)) => s"$name ($org)"
       case (None, Some(org)) => org
       case (Some(_), None) => name
-      case (None, None) => "" // schema validation will fail for creator respectively contributor
+      case (None, None) => ""
     }
-  }
-
-  override lazy val value: Option[String] = toString.toOption
-  override lazy val hasValue: Boolean = !toString.isBlank
+    }.toOption
+  override lazy val hasValue: Boolean = value.exists(!_.isBlank)
 }

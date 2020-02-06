@@ -175,7 +175,7 @@ class DatasetMetadataSpec extends TestSupportFixture with OptionValues {
         |  }
         | ]
         |}""".stripMargin)
-      .map(_.rightsHolders.map(_.toString).mkString(";")) shouldBe Success("A Einstein")
+      .map(_.authors.map(_.rightsHolder).map(_.value).mkString(";")) shouldBe Success("A Einstein")
   }
 
   it should "accept an organisation as author" in {

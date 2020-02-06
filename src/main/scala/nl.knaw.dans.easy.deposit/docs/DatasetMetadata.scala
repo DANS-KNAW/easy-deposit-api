@@ -74,11 +74,7 @@ case class DatasetMetadata(identifiers: Option[Seq[SchemedValue]] = None,
     .map(_.toDayLevel)
     .separate
 
-  private lazy val authors: Seq[Author] = (contributors.toSeq ++ creators.toSeq).flatten
-  // duplicates for plain strings in dcterms (which has no place for IDs as contributors/creators do)
-  lazy val rightsHolders: Seq[String] = authors
-    .withFilter(_.isRightsHolder)
-    .map(_.toString)
+  lazy val authors: Seq[Author] = (contributors.toSeq ++ creators.toSeq).flatten
 
   lazy val allRelations: Seq[RelationType] = relations.getOrElse(Seq()) ++
     alternativeIdentifiers.getOrElse(Seq())
