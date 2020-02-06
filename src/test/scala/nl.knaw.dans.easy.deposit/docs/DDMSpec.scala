@@ -59,10 +59,11 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
   private val emptyAuthor: Author = Author(role = Some(SchemedKeyValue("someScheme0", "someKey", "someValue")))
   private val emptyDate: Date = Date(Some(W3CDTF.toString), None, Some(DateQualifier.dateCopyrighted))
   private val minimalJson = new MinimalDatasetMetadata()
+  private val mandatoryDates: Seq[Date] = minimalJson.datesCreated.toSeq ++ minimalJson.datesAvailable.toSeq
   // empty elements should be filtered when converting json to DDM
   "minimal with empty elements" should behave like validDatasetMetadata(
     input = Try(new MinimalDatasetMetadata(
-      dates = Some(minimalJson.datesCreated.toSeq ++ minimalJson.datesAvailable.toSeq :+ emptyDate),
+      dates = Some(mandatoryDates :+ emptyDate),
       types = Some(Seq(SchemedValue("someScheme1", ""))),
       formats = Some(Seq()),
       creators = minimalJson.creators.map(_ :+ emptyAuthor),
@@ -183,7 +184,7 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
     )
   }
 
-  "minimal with invalid name space for author ID" should "fail" in {
+  "invalid name space for author ID" should "fail" in {
     val author = Author(
       initials = Some("F.O.O."),
       surname = Some("Bar"),
@@ -192,6 +193,39 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
     DDM(new MinimalDatasetMetadata(contributors = Some(Seq(author)))) should matchPattern {
       case Failure(e: InvalidDocumentException) if e.getMessage ==
         "invalid DatasetMetadata: expecting (label) or (prefix:label); got [dcx-dai:dcx-dai:ISNI] to adjust the <label> of <label>ISNI:000000012281955X</label>" =>
+    }
+  }
+
+  "date without qualifier" should "fail" in {
+    DDM(new MinimalDatasetMetadata(
+      dates = Some(minimalJson.datesCreated.toSeq ++ minimalJson.datesAvailable.toSeq :+ Date(None,Some("2020"), None)),
+    )) should matchPattern {
+      case Failure(e: InvalidDocumentException) if e.getMessage.startsWith( // in between randomly ordered attributes from the root of <ddm:DDM>
+        """invalid DatasetMetadata: no qualifier {"value":"2020"} to adjust the <label> of <label """) && e.getMessage.endsWith(">2020</label>"
+      )=>
+    }
+  }
+
+  "relatedIdentifier without qualifier" should "fail" in {
+    DDM(new MinimalDatasetMetadata(
+      relations = Some(Seq[RelationType](
+        RelatedIdentifier(scheme = Some("x"), value = Some("rabarbera"), qualifier = None),
+      )),
+    )) should matchPattern {
+      case Failure(e: InvalidDocumentException) if e.getMessage ==
+        """invalid DatasetMetadata: no qualifier {"scheme":"x","value":"rabarbera"} to adjust the <label> of <label xsi:type="x">rabarbera</label>""" =>
+    }
+  }
+
+  "relation without qualifier" should "fail" in {
+    val url = "https://does.no.exist.dans.knaw.nl"
+    DDM(new MinimalDatasetMetadata(
+      relations = Some(Seq[RelationType](
+        Relation(qualifier = None, Some(url), title = Some("blabla")),
+      )),
+    )) should matchPattern {
+      case Failure(e: InvalidDocumentException) if e.getMessage ==
+        s"""invalid DatasetMetadata: no qualifier {"url":"$url","title":"blabla"} to adjust the <label> of <label href="$url">blabla</label>""" =>
     }
   }
 
@@ -422,9 +456,6 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
         </ddm:dcmiMetadata>
     )
   }
-  // the vital clue is obscured by the rest of the message: "title}' is expected"
-  val missingTitle =
-    """cvc-complex-type.2.4.a: Invalid content was found starting with element 'dcterms:description'. One of '{"http://purl.org/dc/elements/1.1/":title}' is expected."""
 
   "issue-1538.json" should behave like validDatasetMetadata(
     input = parseTestResource("issue-1538.json").map(_.setDoi("mocked_DOI"))
