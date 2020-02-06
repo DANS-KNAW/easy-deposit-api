@@ -229,10 +229,76 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
     }
   }
 
-  "minimal with missing scheme for a SpatialPoint" should behave like validDatasetMetadata(
-    input = Try(new MinimalDatasetMetadata(spatialPoints = Some(Seq(
-      SpatialPoint(None, Some("1"), Some("2"))
-    ))))
+  "minimal with SchemedKeyValue variants" should behave like validDatasetMetadata(
+    input = Try(new MinimalDatasetMetadata(
+      subjects = Some(Seq(
+        SchemedKeyValue(scheme = None, key = Some(""), value = Some("Overflakees")),
+        SchemedKeyValue(scheme = None, key = Some("FR"), value = Some("")),
+        SchemedKeyValue(scheme = None, key = Some("EN"), value = None),
+      )),
+      languagesOfFiles = Some(Seq(
+        SchemedKeyValue(scheme = None, key = Some(""), value = Some("Goerees")),
+        SchemedKeyValue(scheme = None, key = Some("NL"), value = Some("")),
+        SchemedKeyValue(scheme = None, key = Some("DE"), value = None),
+      )),
+    )),
+    subset = actualDDM => dcmiMetadata(actualDDM),
+    expectedDdmContent =
+      <ddm:dcmiMetadata>
+        <dcterms:identifier xsi:type="id-type:DOI">mocked-DOI</dcterms:identifier>
+        <dcterms:language >Overflakees</dcterms:language>
+        <dcterms:dateSubmitted xsi:type="dcterms:W3CDTF">2018-03-22</dcterms:dateSubmitted>
+        <dcterms:language >Goerees</dcterms:language>
+        <dcterms:language >NL</dcterms:language>
+        <dcterms:language >DE</dcterms:language>
+      </ddm:dcmiMetadata>
+  )
+
+  "minimal with missing spatial parts" should behave like validDatasetMetadata(
+    input = Try(new MinimalDatasetMetadata(
+      spatialPoints = Some(Seq(
+        SpatialPoint(scheme = Some("x"), x = Some("1"), y = None), // N.B: is skipped!
+        SpatialPoint(scheme = None, x = Some("1"), y = Some("2")),
+        SpatialPoint(scheme = Some("x"), x = Some("3"), y = Some("4")),
+      )),
+      spatialBoxes = Some(Seq(
+        SpatialBox(scheme = Some("x"), north = Some("1"), east = Some("2"), south = Some("3"), west = Some("4")),
+        SpatialBox(scheme = Some("x"), north = Some("1"), east = Some("2"), south = Some("3"), west = None), // N.B: is skipped!
+        SpatialBox(scheme = None, north = Some("5"), east = Some("6"), south = Some("7"), west = Some("8")),
+      )),
+    )),
+    subset = actualDDM => dcmiMetadata(actualDDM),
+    expectedDdmContent =
+      <ddm:dcmiMetadata>
+        <dcterms:identifier xsi:type="id-type:DOI">mocked-DOI</dcterms:identifier>
+        <dcterms:dateSubmitted xsi:type="dcterms:W3CDTF">2018-03-22</dcterms:dateSubmitted>
+        <dcx-gml:spatial>
+          <Point xmlns="http://www.opengis.net/gml">
+            <pos>2 1</pos>
+          </Point>
+        </dcx-gml:spatial>
+        <dcx-gml:spatial srsName="x">
+          <Point xmlns="http://www.opengis.net/gml">
+            <pos>4 3</pos>
+          </Point>
+        </dcx-gml:spatial>
+        <dcx-gml:spatial>
+          <boundedBy xmlns="http://www.opengis.net/gml">
+            <Envelope srsName="x">
+              <lowerCorner>3 4</lowerCorner>
+              <upperCorner>1 2</upperCorner>
+            </Envelope>
+          </boundedBy>
+        </dcx-gml:spatial>
+        <dcx-gml:spatial>
+          <boundedBy xmlns="http://www.opengis.net/gml">
+            <Envelope>
+              <lowerCorner>7 8</lowerCorner>
+              <upperCorner>5 6</upperCorner>
+            </Envelope>
+          </boundedBy>
+        </dcx-gml:spatial>
+      </ddm:dcmiMetadata>
   )
 
   "minimal with rightsHolders" should behave like {

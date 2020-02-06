@@ -161,7 +161,7 @@ class DatasetMetadataSpec extends TestSupportFixture with OptionValues {
     DatasetMetadata("""{ "relations": [ { "qualifier": "dcterms:hasFormat", "title": "string" } ] }""") shouldBe a[Success[_]]
   }
 
-  it should "reject a RelatedIdentifier with an empty scheme" in {
+  it should "accept a RelatedIdentifier with an empty scheme" in {
     val s = """{ "relations": [ { "scheme": "", "value": "abc", "qualifier": "dcterms:hasFormat" } ] }"""
     DatasetMetadata(s) shouldBe a[Success[_]]
   }
