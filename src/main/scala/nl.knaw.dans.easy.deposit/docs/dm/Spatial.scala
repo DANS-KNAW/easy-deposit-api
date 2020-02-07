@@ -15,6 +15,8 @@
  */
 package nl.knaw.dans.easy.deposit.docs.dm
 
+import nl.knaw.dans.easy.deposit.docs.JsonUtil.toJson
+
 object Spatial {
   /** coordinate order y, x = latitude (DCX_SPATIAL_Y), longitude (DCX_SPATIAL_X) */
   val DEGREES_SRS_NAME = "http://www.opengis.net/def/crs/EPSG/0/4326"
@@ -29,9 +31,16 @@ trait SchemedSpatial extends OptionalValue with OptionalScheme {
       case Some("degrees") => Spatial.DEGREES_SRS_NAME
       case Some("RD") => Spatial.RD_SRS_NAME
       case Some(s) if s.trim.nonEmpty => s
-      case _ => null // will suppress the XML attribute
+      case _ => throw new IllegalArgumentException(s"scheme is mandatory for $errorDetails")
     }
   }
+
+  private def errorDetails = s"${ getClass.getSimpleName }: ${ toJson(this) }"
+
+  protected def allOrNone(msg: String, args: Option[String]*): Unit =
+    if (args.map(_.isEmpty).distinct.size > 1) {
+      throw new IllegalArgumentException(s"not all of ($msg) provided by $errorDetails")
+    }
 }
 
 case class SpatialPoint(scheme: Option[String],
@@ -46,7 +55,10 @@ case class SpatialPoint(scheme: Option[String],
     case _ => s"$sy $sx"
   }
 
-  override lazy val value: Option[String] = x.flatMap(_ => y).map(_ => pos)
+  override lazy val value: Option[String] = {
+    allOrNone("x,y", x, y)
+    x.map(_ => pos)
+  }
 }
 
 case class SpatialBox(scheme: Option[String],
@@ -86,9 +98,8 @@ case class SpatialBox(scheme: Option[String],
     case _ => yx
   }
 
-  override lazy val value: Option[String] = north
-    .flatMap(_ => east)
-    .flatMap(_ => south)
-    .flatMap(_ => west)
-    .map(_ => s"($lower) ($upper)")
+  override lazy val value: Option[String] = {
+    allOrNone("north,east,south,west", north, east, south, west)
+    north.map(_ => s"($lower) ($upper)")
+  }
 }

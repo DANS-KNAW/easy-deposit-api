@@ -21,6 +21,7 @@ import nl.knaw.dans.easy.deposit.TestSupportFixture
 import nl.knaw.dans.easy.deposit.docs.dm.DateScheme.W3CDTF
 import nl.knaw.dans.easy.deposit.docs.dm._
 import nl.knaw.dans.lib.error._
+import org.scalatest.matchers.Matcher
 
 import scala.util.{ Failure, Success, Try }
 import scala.xml._
@@ -190,10 +191,8 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
       surname = Some("Bar"),
       ids = Some(Seq(SchemedValue("dcx-dai:ISNI", "ISNI:000000012281955X")))
     )
-    DDM(new MinimalDatasetMetadata(contributors = Some(Seq(author)))) should matchPattern {
-      case Failure(e: InvalidDocumentException) if e.getMessage ==
-        "invalid DatasetMetadata: expecting (label) or (prefix:label); got [dcx-dai:dcx-dai:ISNI] to adjust the <label> of <label>ISNI:000000012281955X</label>" =>
-    }
+    DDM(new MinimalDatasetMetadata(contributors = Some(Seq(author)))) should
+      beInvalidDoc("invalid DatasetMetadata: expecting (label) or (prefix:label); got [dcx-dai:dcx-dai:ISNI] to adjust the <label> of <label>ISNI:000000012281955X</label>")
   }
 
   "date without qualifier" should "fail" in {
@@ -207,26 +206,37 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
   }
 
   "relatedIdentifier without qualifier" should "fail" in {
-    DDM(new MinimalDatasetMetadata(
-      relations = Some(Seq[RelationType](
-        RelatedIdentifier(scheme = Some("x"), value = Some("rabarbera"), qualifier = None),
-      )),
-    )) should matchPattern {
-      case Failure(e: InvalidDocumentException) if e.getMessage ==
-        """invalid DatasetMetadata: no qualifier {"scheme":"x","value":"rabarbera"} to adjust the <label> of <label xsi:type="x">rabarbera</label>""" =>
-    }
+    val relatedIdentifier = RelatedIdentifier(scheme = Some("x"), value = Some("rabarbera"), qualifier = None)
+    DDM(new MinimalDatasetMetadata(relations = Some(Seq[RelationType](relatedIdentifier)))) should
+      beInvalidDoc("""invalid DatasetMetadata: no qualifier {"scheme":"x","value":"rabarbera"} to adjust the <label> of <label xsi:type="x">rabarbera</label>""")
   }
 
   "relation without qualifier" should "fail" in {
     val url = "https://does.no.exist.dans.knaw.nl"
+    val relation = Relation(qualifier = None, Some(url), title = Some("blabla"))
+    DDM(new MinimalDatasetMetadata(relations = Some(Seq[RelationType](relation)))) should
+      beInvalidDoc(s"""invalid DatasetMetadata: no qualifier {"url":"$url","title":"blabla"} to adjust the <label> of <label href="$url">blabla</label>""")
+  }
+
+  "spatial box without west" should "fail" in {
+    val box = """{"scheme":"x","north":"1","east":"2","south":"3"}"""
     DDM(new MinimalDatasetMetadata(
-      relations = Some(Seq[RelationType](
-        Relation(qualifier = None, Some(url), title = Some("blabla")),
-      )),
-    )) should matchPattern {
-      case Failure(e: InvalidDocumentException) if e.getMessage ==
-        s"""invalid DatasetMetadata: no qualifier {"url":"$url","title":"blabla"} to adjust the <label> of <label href="$url">blabla</label>""" =>
-    }
+      spatialBoxes = parse(s"""{"spatialBoxes":[$box]}""").spatialBoxes
+    )) should beInvalidDoc(s"""invalid DatasetMetadata: not all of (north,east,south,west) provided by SpatialBox: $box""")
+  }
+
+  "spatial box without scheme" should "fail" in {
+    // note the differences in white spaces and quotes for the values
+    DDM(new MinimalDatasetMetadata(
+      spatialBoxes = parse("""{"spatialBoxes":[{"north": 1, "east": 2, "south": 3, "west": 4}]}""").spatialBoxes
+    )) should beInvalidDoc("""invalid DatasetMetadata: scheme is mandatory for SpatialBox: {"north":"1","east":"2","south":"3","west":"4"}""")
+  }
+
+  "spatial point without scheme" should "fail" in {
+    val point = """{"x":"1","y":"2"}"""
+    DDM(new MinimalDatasetMetadata(
+      spatialPoints = parse(s"""{"spatialPoints":[$point]}""").spatialPoints
+    )) should beInvalidDoc(s"""invalid DatasetMetadata: scheme is mandatory for SpatialPoint: $point""")
   }
 
   "minimal with SchemedKeyValue variants" should behave like validDatasetMetadata(
@@ -243,55 +253,6 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
         <dcterms:language >Goerees</dcterms:language>
         <dcterms:language >NL</dcterms:language>
         <dcterms:language >DE</dcterms:language>
-      </ddm:dcmiMetadata>
-  )
-
-  "minimal with missing spatial parts" should behave like validDatasetMetadata(
-    input =
-      new MinimalDatasetMetadata(
-        spatialPoints = parse(
-          """{"spatialPoints":[
-            |  {"scheme":"x","x":"1"},{"x":"1","y":"2"},
-            |  {"scheme":"x","x":"3","y":"4"}
-            |]}""".stripMargin).spatialPoints,
-        spatialBoxes = parse(
-          """{"spatialBoxes":[
-            |  {"scheme":"x","north":"1","east":"2","south":"3","west":"4"},
-            |  {"scheme":"x","north":"1","east":"2","south":"3"},
-            |  {"north":"5","east":"6","south":"7","west":"8"}
-            |]}""").spatialBoxes,
-      ),
-    subset = actualDDM => dcmiMetadata(actualDDM),
-    expectedDdmContent =
-      <ddm:dcmiMetadata>
-        <dcterms:identifier xsi:type="id-type:DOI">mocked-DOI</dcterms:identifier>
-        <dcterms:dateSubmitted xsi:type="dcterms:W3CDTF">2018-03-22</dcterms:dateSubmitted>
-        <dcx-gml:spatial>
-          <Point xmlns="http://www.opengis.net/gml">
-            <pos>2 1</pos>
-          </Point>
-        </dcx-gml:spatial>
-        <dcx-gml:spatial srsName="x">
-          <Point xmlns="http://www.opengis.net/gml">
-            <pos>4 3</pos>
-          </Point>
-        </dcx-gml:spatial>
-        <dcx-gml:spatial>
-          <boundedBy xmlns="http://www.opengis.net/gml">
-            <Envelope srsName="x">
-              <lowerCorner>3 4</lowerCorner>
-              <upperCorner>1 2</upperCorner>
-            </Envelope>
-          </boundedBy>
-        </dcx-gml:spatial>
-        <dcx-gml:spatial>
-          <boundedBy xmlns="http://www.opengis.net/gml">
-            <Envelope>
-              <lowerCorner>7 8</lowerCorner>
-              <upperCorner>5 6</upperCorner>
-            </Envelope>
-          </boundedBy>
-        </dcx-gml:spatial>
       </ddm:dcmiMetadata>
   )
 
@@ -662,6 +623,13 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
     // prevent namespaces on children
     Elem("ddm", "profile", Null, emptyDDM.scope, minimizeEmpty = true, actualDDM \ "profile" \ label: _*)
   )
+
+  private def beInvalidDoc(msg: String): Matcher[Any] = {
+    matchPattern {
+      case Failure(e: InvalidDocumentException) if e.getMessage ==
+        msg =>
+    }
+  }
 
   private def parse(input: String) = {
     DatasetMetadata(input.stripMargin)

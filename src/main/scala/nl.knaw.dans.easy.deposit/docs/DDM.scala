@@ -53,22 +53,22 @@ object DDM extends SchemedXml with DebugEnhancedLogging {
         { dm.accessRights.toSeq.map(src => <ddm:accessRights>{ src.toString }</ddm:accessRights>) }
       </ddm:profile>
       <ddm:dcmiMetadata>
-        { dm.identifiers.withNonEmpty.map(id => <dcterms:identifier xsi:type={ id.schemeOrNull }>{ id.valueOrEmpty }</dcterms:identifier>) }
+        { dm.identifiers.withNonEmpty.map(id => <dcterms:identifier xsi:type={ id.schemeOrNull }>{ id.valueOrThrow }</dcterms:identifier>) }
         { dm.alternativeTitles.withNonEmpty.map(str => <dcterms:alternative xml:lang={ lang }>{ str }</dcterms:alternative>) }
         { dm.allRelations.withNonEmpty.map(basicContent(_, lang)) }
         { dm.contributors.withNonEmpty.map(author => <dcx-dai:contributorDetails>{ complexContent(author, lang) }</dcx-dai:contributorDetails>) }
         { dm.authors.map(_.rightsHolder).withNonEmpty.map(str => <dcterms:rightsHolder>{ str }</dcterms:rightsHolder>) }
         { dm.publishers.withNonEmpty.map(str => <dcterms:publisher xml:lang={ lang }>{ str }</dcterms:publisher>) }
         { dm.sources.withNonEmpty.map(str => <dc:source xml:lang={ lang }>{ str }</dc:source>) }
-        { dm.types.withNonEmpty.map(src => <dcterms:type xsi:type={ src.schemeOrNull }>{ src.valueOrEmpty }</dcterms:type>) }
-        { dm.formats.withNonEmpty.map(src => <dcterms:format xsi:type={ src.schemeOrNull }>{ src.valueOrEmpty }</dcterms:format>) }
+        { dm.types.withNonEmpty.map(src => <dcterms:type xsi:type={ src.schemeOrNull }>{ src.valueOrThrow }</dcterms:type>) }
+        { dm.formats.withNonEmpty.map(src => <dcterms:format xsi:type={ src.schemeOrNull }>{ src.valueOrThrow }</dcterms:format>) }
         { dm.subjects.withNonEmpty.map(basicContent(_, "subject", lang)) }
         { dm.temporalCoverages.withNonEmpty.map(basicContent(_, "temporal", lang)) }
         { dm.spatialCoverages.withNonEmpty.map(basicContent(_, "spatial", lang)) }
-        { dm.otherDates.withNonEmpty.map(date => <label xsi:type={ date.schemeOrNull }>{ date.valueOrEmpty }</label>.withLabel(date)) }
+        { dm.otherDates.withNonEmpty.map(date => <label xsi:type={ date.schemeOrNull }>{ date.valueOrThrow }</label>.withLabel(date)) }
         { dm.spatialPoints.withNonEmpty.map(point => <dcx-gml:spatial srsName={ point.srsName }>{ complexContent(point) }</dcx-gml:spatial>) }
         { dm.spatialBoxes.withNonEmpty.map(point => <dcx-gml:spatial>{ complexContent(point) }</dcx-gml:spatial>) }
-        { dm.license.withNonEmpty.map(src => <dcterms:license xsi:type={ src.schemeOrNull }>{ src.valueOrEmpty }</dcterms:license>) }
+        { dm.license.withNonEmpty.map(src => <dcterms:license xsi:type={ src.schemeOrNull }>{ src.valueOrThrow }</dcterms:license>) }
         { dm.languagesOfFiles.withNonEmpty.flatMap(src => <dcterms:language xsi:type ={ src.schemeOrNull  }>{ src.keyOrValue }</dcterms:language>) }
       </ddm:dcmiMetadata>
     </ddm:DDM>
@@ -96,11 +96,11 @@ object DDM extends SchemedXml with DebugEnhancedLogging {
       case Relation(_, Some(url: String), None) =>
         <label href={ relation.urlOrNull }>{ url }</label>
       case _: Relation => // Relation(_,None,None) is skipped so we do have a title (via value) and therefore a language
-        <label xml:lang={ lang } href={ relation.urlOrNull }>{ relation.valueOrEmpty }</label>
+        <label xml:lang={ lang } href={ relation.urlOrNull }>{ relation.valueOrThrow }</label>
       case rel: RelatedIdentifier if rel.url.isEmpty =>
-        <label xsi:type={ rel.schemeOrNull }>{ relation.valueOrEmpty }</label>
+        <label xsi:type={ rel.schemeOrNull }>{ relation.valueOrThrow }</label>
       case rel: RelatedIdentifier =>
-        <label scheme={ rel.schemeOrNull } href={ relation.urlOrNull }>{ relation.valueOrEmpty }</label>
+        <label scheme={ rel.schemeOrNull } href={ relation.urlOrNull }>{ relation.valueOrThrow }</label>
     }).withLabel(relation)
   }
 
@@ -126,7 +126,7 @@ object DDM extends SchemedXml with DebugEnhancedLogging {
         { author.initials.withNonEmpty.map(str => <dcx-dai:initials>{ str }</dcx-dai:initials>) }
         { author.insertions.withNonEmpty.map(str => <dcx-dai:insertions>{ str }</dcx-dai:insertions>) }
         { author.surname.withNonEmpty.map(str => <dcx-dai:surname>{ str }</dcx-dai:surname>) }
-        { author.ids.withNonEmpty.map(src => <label>{ src.valueOrEmpty }</label>.withLabel(s"dcx-dai:${ src.schemeOrEmpty.replace("id-type:", "") }")) }
+        { author.ids.withNonEmpty.map(src => <label>{ src.valueOrThrow }</label>.withLabel(s"dcx-dai:${ src.schemeOrEmpty.replace("id-type:", "") }")) }
         { author.role.flatMap(_.key).withNonEmpty.map(key => <dcx-dai:role>{ key }</dcx-dai:role>) }
         { author.organization.withNonEmpty.map(complexContent(_, lang, role = None)) }
       </dcx-dai:author>

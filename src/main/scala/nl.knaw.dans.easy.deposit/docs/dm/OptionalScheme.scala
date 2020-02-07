@@ -16,10 +16,15 @@
 package nl.knaw.dans.easy.deposit.docs.dm
 
 import nl.knaw.dans.easy.deposit.docs.CollectionUtils._
+import nl.knaw.dans.easy.deposit.docs.JsonUtil.toJson
+import nl.knaw.dans.lib.string._
 
 trait OptionalScheme {
   val scheme: Option[String]
 
   lazy val schemeOrNull: String = scheme.nonBlankOrNull
   lazy val schemeOrEmpty: String = scheme.nonBlankOrEmpty
+  lazy val schemeOrThrow: String = scheme
+    .collect { case s if !s.isBlank => s.trim }
+    .getOrElse(throw new IllegalArgumentException(s"no value found for ${ toJson(this) }"))
 }
