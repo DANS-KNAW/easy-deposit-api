@@ -65,11 +65,11 @@ object DDM extends SchemedXml with DebugEnhancedLogging {
         { dm.subjects.withNonEmpty.map(basicContent(_, "subject", lang)) }
         { dm.temporalCoverages.withNonEmpty.map(basicContent(_, "temporal", lang)) }
         { dm.spatialCoverages.withNonEmpty.map(basicContent(_, "spatial", lang)) }
-        { dm.otherDates.withNonEmpty.map(date => <label xsi:type={ date.schemeOrNull }>{ date.valueOrThrow }</label>.withLabel(date)) }
+        { dm.otherDates.withNonEmpty.map(date => <label xsi:type={ date.schemeOrNull }>{ date.valueOrThrow }</label>.withLabel(date.qualifierOrThrow)) }
         { dm.spatialPoints.withNonEmpty.map(point => <dcx-gml:spatial srsName={ point.srsName }>{ complexContent(point) }</dcx-gml:spatial>) }
         { dm.spatialBoxes.withNonEmpty.map(point => <dcx-gml:spatial>{ complexContent(point) }</dcx-gml:spatial>) }
         { dm.license.withNonEmpty.map(src => <dcterms:license xsi:type={ src.schemeOrNull }>{ src.valueOrThrow }</dcterms:license>) }
-        { dm.languagesOfFiles.withNonEmpty.flatMap(src => <dcterms:language xsi:type ={ src.schemeOrNull  }>{ src.keyOrValue }</dcterms:language>) }
+        { dm.languagesOfFiles.toNonEmptyMap(src => <dcterms:language xsi:type ={ src.schemeOrNull  }>{ src.keyOrValue }</dcterms:language>) }
       </ddm:dcmiMetadata>
     </ddm:DDM>
   }.recoverWith {
@@ -92,20 +92,26 @@ object DDM extends SchemedXml with DebugEnhancedLogging {
   }
 
   private def basicContent(relation: RelationType, lang: String): Elem = {
-    (relation match {
+    val cleanRelation = relation.withCleanOptions
+    (cleanRelation match {
       case Relation(_, Some(url: String), None) =>
         <label href={ relation.urlOrNull }>{ url }</label>
-      case _: Relation => // Relation(_,None,None) is skipped so we do have a title (via value) and therefore a language
-        <label xml:lang={ lang } href={ relation.urlOrNull }>{ relation.valueOrThrow }</label>
       case rel: RelatedIdentifier if rel.url.isEmpty =>
-        <label xsi:type={ rel.schemeOrNull }>{ relation.valueOrThrow }</label>
+        <label xsi:type={ rel.schemeOrNull }>{ rel.valueOrThrow }</label>
       case rel: RelatedIdentifier =>
-        <label scheme={ rel.schemeOrNull } href={ relation.urlOrNull }>{ relation.valueOrThrow }</label>
-    }).withLabel(relation)
+        <label scheme={ rel.schemeOrNull } href={ rel.urlOrNull }>{ rel.valueOrThrow }</label>
+      case rel: Relation => // Relation(_,None,None) is skipped so we do have a title (via value) and therefore a language
+        <label xml:lang={ lang } href={ rel.urlOrNull }>{ rel.valueOrThrow }</label>
+    }).withLabel(qualifier(cleanRelation))
+  }
+
+  private def qualifier(cleanRelation: RelationType) = {
+    if (cleanRelation.url.isEmpty) cleanRelation.qualifierOrThrow
+    else cleanRelation.qualifierOrThrow.replace("dcterms", "ddm")
   }
 
   private def basicContent(source: SchemedKeyValue, label: String, lang: String): Elem = {
-    (label, source) match {
+    (label, source.withCleanOptions) match {
       case ("subject", SchemedKeyValue(None, None, Some(value))) =>
         <label xml:lang={ lang }>{ value }</label>.withLabel(s"dc:$label")
       case (_, SchemedKeyValue(None, None, Some(value))) =>
@@ -113,7 +119,8 @@ object DDM extends SchemedXml with DebugEnhancedLogging {
       case (_, SchemedKeyValue(Some(scheme), Some(key), _)) if source.schemeNeedsKey =>
         <label xsi:type={ scheme }>{ key }</label>.withLabel(s"dcterms:$label")
       case (_, SchemedKeyValue(_, _, Some(value))) =>
-        <label xml:lang={ lang } schemeURI={ source.schemeOrNull } valueURI={ source.keyOrNull }>{ value }</label>.withLabel(s"ddm:$label")
+        <label xml:lang={ lang } schemeURI={ source.schemeOrNull } valueURI={ source.keyOrNull }>{ value }</label>
+          .withLabel(s"ddm:$label")
     }
   }
 
@@ -146,35 +153,10 @@ object DDM extends SchemedXml with DebugEnhancedLogging {
       str.split(":") match {
         case Array(label) if label.nonEmpty => elem.copy(label = label)
         case Array(prefix, label) => elem.copy(prefix = prefix, label = label)
-        case a => throw new IllegalArgumentException(s"expecting (label) or (prefix:label); got [${ a.mkString(":") }] $msg")
+        case a => throw new IllegalArgumentException(
+          s"expecting (label) or (prefix:label); got [${ a.mkString(":") }] to adjust the <${ elem.label }> of $elem"
+        )
       }
-    }
-
-    @throws[IllegalArgumentException]("when the relation has no qualifier")
-    def withLabel(relation: RelationType): Elem = {
-      val qualifier: String = relation.qualifier
-        .map(_.toString)
-        .getOrElse(throwMissingQualifier(JsonUtil.toJson(relation)))
-
-      withLabel(
-        if (relation.url.isEmpty) qualifier
-        else qualifier.replace("dcterms", "ddm")
-      )
-    }
-
-    @throws[IllegalArgumentException]("when the date has no qualifier")
-    def withLabel(date: Date): Elem = {
-      val qualifier: String = date.qualifier
-        .map(_.toString)
-        .getOrElse(throwMissingQualifier(JsonUtil.toJson(date)))
-
-      withLabel(qualifier)
-    }
-
-    def msg = s"to adjust the <${ elem.label }> of $elem"
-
-    private def throwMissingQualifier(json: => String) = {
-      throw new IllegalArgumentException(s"no qualifier $json $msg")
     }
   }
 }

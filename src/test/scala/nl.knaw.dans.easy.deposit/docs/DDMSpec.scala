@@ -198,24 +198,20 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
   "date without qualifier" should "fail" in {
     DDM(new MinimalDatasetMetadata(
       dates = Some(minimalJson.datesCreated.toSeq ++ minimalJson.datesAvailable.toSeq :+ Date(None, Some("2020"), None)),
-    )) should matchPattern {
-      case Failure(e: InvalidDocumentException) if e.getMessage.startsWith( // in between randomly ordered attributes from the root of <ddm:DDM>
-        """invalid DatasetMetadata: no qualifier {"value":"2020"} to adjust the <label> of <label """) && e.getMessage.endsWith(">2020</label>"
-      ) =>
-    }
+    )) should beInvalidDoc("""invalid DatasetMetadata: no qualifier for Date: {"value":"2020"}""")
   }
 
   "relatedIdentifier without qualifier" should "fail" in {
     val relatedIdentifier = RelatedIdentifier(scheme = Some("x"), value = Some("rabarbera"), qualifier = None)
     DDM(new MinimalDatasetMetadata(relations = Some(Seq[RelationType](relatedIdentifier)))) should
-      beInvalidDoc("""invalid DatasetMetadata: no qualifier {"scheme":"x","value":"rabarbera"} to adjust the <label> of <label xsi:type="x">rabarbera</label>""")
+      beInvalidDoc("""invalid DatasetMetadata: no qualifier for RelatedIdentifier: {"scheme":"x","value":"rabarbera"}""")
   }
 
   "relation without qualifier" should "fail" in {
     val url = "https://does.no.exist.dans.knaw.nl"
     val relation = Relation(qualifier = None, Some(url), title = Some("blabla"))
     DDM(new MinimalDatasetMetadata(relations = Some(Seq[RelationType](relation)))) should
-      beInvalidDoc(s"""invalid DatasetMetadata: no qualifier {"url":"$url","title":"blabla"} to adjust the <label> of <label href="$url">blabla</label>""")
+      beInvalidDoc(s"""invalid DatasetMetadata: no qualifier for Relation: {"url":"$url","title":"blabla"}""")
   }
 
   "spatial box without west" should "fail" in {
@@ -239,20 +235,31 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
     )) should beInvalidDoc(s"""invalid DatasetMetadata: scheme is mandatory for SpatialPoint: $point""")
   }
 
+  "language key without scheme" should "fail" in {
+    DDM(new MinimalDatasetMetadata(
+      languagesOfFiles = parse("""{"languagesOfFiles":[ {"key":"NL","value":""}]}""").languagesOfFiles,
+    )) should beInvalidDoc(s"""invalid DatasetMetadata: SchemedKeyValue needs a scheme for a key {"key":"NL","value":""}""")
+  }
+
+  "language key with empty scheme" should "fail" in {
+    DDM(new MinimalDatasetMetadata(
+      languagesOfFiles = parse("""{"languagesOfFiles":[ {"scheme":" " "key":"NL","value":""}]}""").languagesOfFiles,
+    )) should beInvalidDoc(s"""invalid DatasetMetadata: SchemedKeyValue needs a scheme for a key {"scheme":" ","key":"NL","value":""}""")
+  }
+
   "minimal with SchemedKeyValue variants" should behave like validDatasetMetadata(
     input = new MinimalDatasetMetadata(
       subjects = parse("""{"subjects":[ {"key":"","value":"Overflakees"}, {"key":"FR","value":""}, {"key":"EN"} ]}""").subjects,
-      languagesOfFiles = parse("""{"languagesOfFiles":[ {"key":"","value":"Goerees"}, {"key":"NL","value":""}, {"key":"DE"}]}""").languagesOfFiles,
+      languagesOfFiles = parse("""{"languagesOfFiles":[ {"key":" ","value":"Goerees"}, {"value":"Frysk"}, {"key":" ","value":""}]}""").languagesOfFiles,
     ),
     subset = actualDDM => dcmiMetadata(actualDDM),
     expectedDdmContent =
       <ddm:dcmiMetadata>
         <dcterms:identifier xsi:type="id-type:DOI">mocked-DOI</dcterms:identifier>
-        <dcterms:language >Overflakees</dcterms:language>
+        <dc:subject>Overflakees</dc:subject>
         <dcterms:dateSubmitted xsi:type="dcterms:W3CDTF">2018-03-22</dcterms:dateSubmitted>
-        <dcterms:language >Goerees</dcterms:language>
-        <dcterms:language >NL</dcterms:language>
-        <dcterms:language >DE</dcterms:language>
+        <dcterms:language>Goerees</dcterms:language>
+        <dcterms:language>Frysk</dcterms:language>
       </ddm:dcmiMetadata>
   )
 

@@ -26,5 +26,5 @@ trait OptionalScheme {
   lazy val schemeOrEmpty: String = scheme.nonBlankOrEmpty
   lazy val schemeOrThrow: String = scheme
     .collect { case s if !s.isBlank => s.trim }
-    .getOrElse(throw new IllegalArgumentException(s"no value found for ${ toJson(this) }"))
+    .getOrElse(throw new IllegalArgumentException(s"no value found for ${getClass.getSimpleName}: ${ toJson(this) }"))
 }

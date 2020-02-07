@@ -16,12 +16,20 @@
 package nl.knaw.dans.easy.deposit.docs.dm
 
 import nl.knaw.dans.easy.deposit.docs.CollectionUtils._
+import nl.knaw.dans.easy.deposit.docs.JsonUtil.toJson
 import nl.knaw.dans.easy.deposit.docs.dm.SchemedKeyValue.keyedSchemes
 import nl.knaw.dans.lib.string._
 
 case class SchemedValue(scheme: Option[String],
                         value: Option[String],
-                       ) extends OptionalValue with OptionalScheme
+                       ) extends OptionalValue with OptionalScheme {
+
+  /** @return this with Some-s of empty strings as None-s for proper pattern matches */
+  def withCleanOptions: SchemedValue = this.copy(
+    scheme = scheme.flatMap(_.toOption),
+    value = value.flatMap(_.toOption),
+  )
+}
 object SchemedValue {
   def apply(scheme: String, value: String): SchemedValue = {
     SchemedValue(Some(scheme), Some(value))
@@ -34,8 +42,9 @@ case class SchemedKeyValue(scheme: Option[String],
                           ) extends OptionalValue with OptionalScheme {
 
   /** key if available together with scheme, value otherwise */
-  lazy val keyOrValue: String = (scheme, key, value) match {
-    case (Some(_), Some(_), _) => key.nonBlankOrEmpty
+  lazy val keyOrValue: String = this.withCleanOptions match {
+    case SchemedKeyValue(Some(_), Some(key), _) => key
+    case SchemedKeyValue(None, Some(_), _) => throw new IllegalArgumentException(s"${getClass.getSimpleName} needs a scheme for a key ${toJson(this)}")
     case _ => value.nonBlankOrEmpty
   }
 
@@ -48,6 +57,13 @@ case class SchemedKeyValue(scheme: Option[String],
   }
 
   lazy val schemeNeedsKey: Boolean = scheme.exists(keyedSchemes contains _)
+
+  /** @return this with Some-s of empty strings as None-s for proper pattern matches */
+  def withCleanOptions: SchemedKeyValue = this.copy(
+    scheme = scheme.flatMap(_.toOption),
+    key = key.flatMap(_.toOption),
+    value = value.flatMap(_.toOption),
+  )
 }
 
 object SchemedKeyValue {

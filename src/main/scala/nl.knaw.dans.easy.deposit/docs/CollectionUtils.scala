@@ -19,6 +19,7 @@ import nl.knaw.dans.easy.deposit.docs.dm.OptionalValue
 import nl.knaw.dans.lib.string._
 
 import scala.collection.generic.FilterMonadic
+import scala.xml.Elem
 
 object CollectionUtils {
 
@@ -31,7 +32,16 @@ object CollectionUtils {
   }
 
   implicit class RichOptionSeq[T](val sources: Option[Seq[T]]) extends AnyVal {
+
+    /** filters elements without a value (before mapping) */
     def withNonEmpty: FilterMonadic[T, Seq[T]] = sources.toSeq.flatten.withNonEmpty
+
+    /** filters empty XML elements after mapping (in case another field is mapped to a value) */
+    def toNonEmptyMap(f: T => Elem): Seq[Elem] = {
+      sources.toSeq.flatten
+        .map(f)
+        .filter(_.text.toOption.isDefined)
+    }
   }
 
   implicit class RichSeqOption[T](val sources: Seq[Option[T]]) extends AnyVal {
