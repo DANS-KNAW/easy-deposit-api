@@ -15,7 +15,6 @@
  */
 package nl.knaw.dans.easy.deposit.docs.dm
 
-import nl.knaw.dans.easy.deposit.docs.CollectionUtils._
 import nl.knaw.dans.easy.deposit.docs.dm.RelationQualifier.RelationQualifier
 import nl.knaw.dans.lib.string._
 
@@ -40,7 +39,7 @@ object RelationQualifier extends Enumeration {
 trait RelationType extends OptionalValue with OptionalQualifier[RelationQualifier] {
   val qualifier: Option[RelationQualifier]
   val url: Option[String]
-  lazy val urlOrNull: String = url.nonBlankOrNull
+  lazy val urlOrNull: String = url.orNull
 
   /** @return this with Some-s of empty strings as None-s for proper pattern matches */
   def withCleanOptions: RelationType
@@ -61,7 +60,7 @@ case class Relation(qualifier: Option[RelationQualifier],
 case class RelatedIdentifier(scheme: Option[String],
                              value: Option[String],
                              qualifier: Option[RelationQualifier],
-                            ) extends RelationType with OptionalScheme with OptionalValue {
+                            ) extends RelationType with OptionalValue {
   override def withCleanOptions: RelationType = this.copy(
     scheme = scheme.flatMap(_.toOption),
     value = value.flatMap(_.toOption),

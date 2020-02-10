@@ -50,15 +50,12 @@ object CollectionUtils {
 
   implicit class RichOption[T](val sources: Option[T]) extends AnyVal {
     def withNonEmpty: FilterMonadic[T, Seq[T]] = sources.toSeq.withNonEmpty
-  }
 
-  implicit class RichOptionString(val optionalString: Option[String]) extends AnyVal {
+    def orEmpty: String = trimmed.getOrElse("")
 
-    // null omits attribute rendering
-    def nonBlankOrNull: String = optionalString
-      .collect { case s if !s.isBlank => s.trim }.orNull
+    /** null omits attribute rendering */
+    def orOmit: String = trimmed.orNull
 
-    def nonBlankOrEmpty: String = optionalString.
-      collect { case s if !s.isBlank => s.trim }.getOrElse("")
+    private def trimmed: Option[String] = sources.flatMap(_.toString.trim.toOption)
   }
 }

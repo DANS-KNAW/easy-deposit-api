@@ -15,7 +15,6 @@
  */
 package nl.knaw.dans.easy.deposit.docs.dm
 
-import nl.knaw.dans.easy.deposit.docs.JsonUtil.toJson
 import nl.knaw.dans.lib.string._
 
 trait OptionalValue {
@@ -23,9 +22,4 @@ trait OptionalValue {
 
   @throws[IllegalArgumentException]("when only some of the mandatory value parts are available")
   lazy val hasValue: Boolean = value.exists(!_.isBlank)
-
-  @throws[IllegalArgumentException]("when the value was retrieved without a filter like 'withNonEmpty'.")
-  lazy val valueOrThrow: String = value
-    .collect { case s if !s.isBlank => s.trim }
-    .getOrElse(throw new IllegalArgumentException(s"no value found for ${getClass.getSimpleName}: ${ toJson(this)}"))
 }

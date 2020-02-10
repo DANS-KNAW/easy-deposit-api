@@ -42,7 +42,7 @@ case class Date(
                  scheme: Option[String],
                  value: Option[String],
                  qualifier: Option[DateQualifier],
-               ) extends OptionalValue with OptionalScheme with OptionalQualifier[DateQualifier] {
+               ) extends OptionalValue with OptionalQualifier[DateQualifier] {
 
   /**
    * If the scheme is present and is equal to DateScheme.W3CDTF and

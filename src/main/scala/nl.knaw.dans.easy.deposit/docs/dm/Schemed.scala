@@ -22,7 +22,7 @@ import nl.knaw.dans.lib.string._
 
 case class SchemedValue(scheme: Option[String],
                         value: Option[String],
-                       ) extends OptionalValue with OptionalScheme {
+                       ) extends OptionalValue {
 
   /** @return this with Some-s of empty strings as None-s for proper pattern matches */
   def withCleanOptions: SchemedValue = this.copy(
@@ -39,16 +39,16 @@ object SchemedValue {
 case class SchemedKeyValue(scheme: Option[String],
                            key: Option[String],
                            value: Option[String],
-                          ) extends OptionalValue with OptionalScheme {
+                          ) extends OptionalValue {
 
   /** key if available together with scheme, value otherwise */
   lazy val keyOrValue: String = this.withCleanOptions match {
     case SchemedKeyValue(Some(_), Some(key), _) => key
     case SchemedKeyValue(None, Some(_), _) => throw new IllegalArgumentException(s"${getClass.getSimpleName} needs a scheme for a key ${toJson(this)}")
-    case _ => value.nonBlankOrEmpty
+    case _ => value.orEmpty
   }
 
-  lazy val keyOrNull: String = key.nonBlankOrNull
+  lazy val keyOrNull: String = key.orNull
 
   override lazy val hasValue: Boolean = {
     if (schemeNeedsKey)
