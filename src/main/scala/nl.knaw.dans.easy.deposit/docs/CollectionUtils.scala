@@ -19,12 +19,11 @@ import nl.knaw.dans.easy.deposit.docs.dm.OptionalValue
 import nl.knaw.dans.lib.string._
 
 import scala.collection.generic.FilterMonadic
-import scala.xml.Elem
 
 object CollectionUtils {
 
   implicit class RichSeq[T](val sources: Seq[T]) extends AnyVal {
-    def withNonEmpty: FilterMonadic[T, Seq[T]] = sources.withFilter {
+    def withValue: FilterMonadic[T, Seq[T]] = sources.withFilter {
       case str: String => !str.isBlank
       case x: OptionalValue => x.hasValue
       case _ => true
@@ -34,22 +33,15 @@ object CollectionUtils {
   implicit class RichOptionSeq[T](val sources: Option[Seq[T]]) extends AnyVal {
 
     /** filters elements without a value (before mapping) */
-    def withNonEmpty: FilterMonadic[T, Seq[T]] = sources.toSeq.flatten.withNonEmpty
-
-    /** filters empty XML elements after mapping (in case another field is mapped to a value) */
-    def toNonEmptyMap(f: T => Elem): Seq[Elem] = {
-      sources.toSeq.flatten
-        .map(f)
-        .filter(_.text.toOption.isDefined)
-    }
+    def withValue: FilterMonadic[T, Seq[T]] = sources.toSeq.flatten.withValue
   }
 
   implicit class RichSeqOption[T](val sources: Seq[Option[T]]) extends AnyVal {
-    def withNonEmpty: FilterMonadic[T, Seq[T]] = sources.flatMap(_.toSeq).withNonEmpty
+    def withValue: FilterMonadic[T, Seq[T]] = sources.flatMap(_.toSeq).withValue
   }
 
   implicit class RichOption[T](val sources: Option[T]) extends AnyVal {
-    def withNonEmpty: FilterMonadic[T, Seq[T]] = sources.toSeq.withNonEmpty
+    def withValue: FilterMonadic[T, Seq[T]] = sources.toSeq.withValue
 
     def orEmpty: String = trimmed.getOrElse("")
 
