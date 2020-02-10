@@ -197,7 +197,7 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
 
   "date without qualifier" should "fail" in {
     DDM(new MinimalDatasetMetadata(
-      dates = Some(minimalJson.datesCreated.toSeq ++ minimalJson.datesAvailable.toSeq :+ Date(None, Some("2020"), None)),
+      dates = Some(mandatoryDates :+ Date(None, Some("2020"), None)),
     )) should beInvalidDoc("""invalid DatasetMetadata: no qualifier for Date: {"value":"2020"}""")
   }
 
@@ -245,6 +245,19 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
     DDM(new MinimalDatasetMetadata(
       languagesOfFiles = parse("""{"languagesOfFiles":[ {"scheme":" " "key":"NL","value":""}]}""").languagesOfFiles,
     )) should beInvalidDoc(s"""invalid DatasetMetadata: SchemedKeyValue needs a scheme for a key {"scheme":" ","key":"NL","value":""}""")
+  }
+
+  "multiple datesCreated" should "fail" in {
+    the[IllegalArgumentException] thrownBy new DatasetMetadata(
+      dates = Some(mandatoryDates ++ mandatoryDates),
+    ) should have message
+      """requirement failed: At most one allowed; got [{"scheme":"dcterms:W3CDTF","value":"2018-05-29","qualifier":"dcterms:created"},{"scheme":"dcterms:W3CDTF","value":"2018-05-29","qualifier":"dcterms:created"}]"""
+  }
+
+  "metadata without datesCreated" should "fail" in {
+    DDM(new MinimalDatasetMetadata( // TODO DDM would not validate
+      dates = Some(Seq.empty),
+    )) should beInvalidDoc("invalid DatasetMetadata: no dates created")
   }
 
   "minimal with SchemedKeyValue variants" should behave like validDatasetMetadata(
