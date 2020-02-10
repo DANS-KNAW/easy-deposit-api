@@ -69,14 +69,12 @@ object DDM extends SchemedXml with DebugEnhancedLogging {
         { dm.spatialPoints.withValue.map(point => <dcx-gml:spatial srsName={ point.srsName }>{ complexContent(point) }</dcx-gml:spatial>) }
         { dm.spatialBoxes.withValue.map(point => <dcx-gml:spatial>{ complexContent(point) }</dcx-gml:spatial>) }
         { dm.license.withValue.map(src => <dcterms:license xsi:type={ src.scheme.orOmit }>{ src.value.orEmpty }</dcterms:license>) }
-        { dm.languagesOfFiles.toSeq.flatten.map(src => <dcterms:language xsi:type ={ src.scheme.orOmit  }>{ src.keyOrValue }</dcterms:language>).filter(hasText) }
+        { dm.languagesOfFiles.toSeq.flatten.withFilter(!_.keyOrValue.isEmpty).map(src => <dcterms:language xsi:type ={ src.scheme.orOmit  }>{ src.keyOrValue }</dcterms:language>) }
       </ddm:dcmiMetadata>
     </ddm:DDM>
   }.recoverWith {
     case e: IllegalArgumentException => Failure(InvalidDocumentException("DatasetMetadata", e))
   }
-
-  private def hasText(e: Elem) = e.text.toOption.isDefined
 
   private def complexContent(point: SpatialPoint): Elem = {
     <Point xmlns="http://www.opengis.net/gml">
