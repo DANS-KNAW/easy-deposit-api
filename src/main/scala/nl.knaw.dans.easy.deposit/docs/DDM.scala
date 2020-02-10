@@ -109,10 +109,7 @@ object DDM extends SchemedXml with DebugEnhancedLogging {
 
   @throws[IllegalArgumentException]("when no qualifier is availble")
   private def qualifierOrThrow(cleanRelation: RelationType) = {
-    val qualifier = cleanRelation.qualifier.map(_.toString)
-      .getOrElse(throw new IllegalArgumentException(
-        s"no qualifier for ${getClass.getSimpleName}: ${JsonUtil.toJson(cleanRelation)}"
-      ))
+    val qualifier = cleanRelation.qualifierOrThrow
     cleanRelation.url
       .map(_ => qualifier.replace("dcterms", "ddm"))
       .getOrElse(qualifier)
