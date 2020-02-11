@@ -431,6 +431,13 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
     }
   }
 
+  /**
+   *
+   * @param userId      id of the user uploading files
+   * @param id          draft bag receiving the uploads
+   * @param destination relative location in the bag's data directory
+   * @return
+   */
   def stageFiles(userId: String, id: UUID, destination: Path): Try[(Dispose[File], StagedFilesTarget)] = {
     trace(userId, id, destination)
     for {

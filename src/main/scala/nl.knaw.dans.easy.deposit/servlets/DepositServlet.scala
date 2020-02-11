@@ -152,8 +152,7 @@ class DepositServlet(app: EasyDepositApiApp)
     {
       for {
         uuid <- getUUID
-        path <- getPath
-        _ = logger.info(s"[$uuid] retrieve file info for path '${ path.toString.toOption.getOrElse("/") }'")
+        path <- getRelativeLocationInBagData(s"[$uuid] retrieve file info for path")
         contents <- app.getFileInfo(user.id, uuid, path)
       } yield Ok(body = toJson(contents), headers = Map(contentTypeJson))
     }.getOrRecoverWithActionResult
@@ -162,8 +161,7 @@ class DepositServlet(app: EasyDepositApiApp)
     {
       for {
         uuid <- getUUID
-        path <- getPath
-        _ = logger.info(s"[$uuid] upload file to path '${ path.toString.toOption.getOrElse("/") }'")
+        path <- getRelativeLocationInBagData(s"[$uuid] upload files to path") // plural)
         _ <- isMultipart
         fileItems = fileMultiParams.valuesIterator.flatten.buffered
         maybeManagedArchiveInputStream <- fileItems.nextAsArchiveIfOnlyOne
@@ -182,8 +180,7 @@ class DepositServlet(app: EasyDepositApiApp)
     {
       for {
         uuid <- getUUID
-        path <- getPath
-        _ = logger.info(s"[$uuid] upload file to path '${ path.toString.toOption.getOrElse("/") }'")
+        path <- getRelativeLocationInBagData(s"[$uuid] upload file to path") // single
         managedIS = managed(request.getInputStream)
         newFileWasCreated <- managedIS.apply(app.writeDepositFile(_, user.id, uuid, path, Option(request.getContentType)))
         _ = logger.info(s"[$uuid] ${
@@ -199,8 +196,7 @@ class DepositServlet(app: EasyDepositApiApp)
     {
       for {
         uuid <- getUUID
-        path <- getPath
-        _ = logger.info(s"[$uuid] deleting file ${ path.toString.toOption.getOrElse("/") }")
+        path <- getRelativeLocationInBagData(s"[$uuid] deleting file")
         _ <- app.deleteDepositFile(user.id, uuid, path)
       } yield NoContent()
     }.getOrRecoverWithActionResult
@@ -218,8 +214,13 @@ class DepositServlet(app: EasyDepositApiApp)
       .recoverWith { case e => Failure(InvalidResourceException(s"Invalid deposit id: ${ e.getMessage }")) }
   }
 
-  private def getPath: Try[Path] = Try {
-    Paths.get(multiParams("splat").find(!_.trim.isEmpty).getOrElse(""))
+  private def getRelativeLocationInBagData(logPrefix: String): Try[Path] = Try {
+    val splat = multiParams("splat")
+      .find(!_.trim.isEmpty)
+      .getOrElse("")
+    val path = Paths.get(splat)
+    logger.info(s"$logPrefix '${ splat.toOption.getOrElse("/") }'")
+    Paths.get("original").resolve(path)
   }.recoverWith { // invalid characters, or other file system specific reasons.
     case t: InvalidPathException => Failure(InvalidResourceException(s"Invalid path: ${ t.getMessage }"))
   }
