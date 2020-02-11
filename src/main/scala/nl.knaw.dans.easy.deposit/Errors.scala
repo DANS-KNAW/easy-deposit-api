@@ -139,7 +139,7 @@ object Errors extends DebugEnhancedLogging {
     logger.info(s"Deposit [$user/$id] not found: ${ cause.getMessage }")
   }
 
-  case class NoSuchFileInDepositException(absPath: File, relPath: Path)
+  case class NoSuchFileInDepositException(relPath: Path)
     extends ServletResponseException(NOT_FOUND_404, s"$relPath not found in deposit") {
     logger.info(s"$relPath not found")
   }

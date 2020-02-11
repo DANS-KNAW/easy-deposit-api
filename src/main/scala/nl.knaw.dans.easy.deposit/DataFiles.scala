@@ -37,6 +37,7 @@ import scala.util.{ Failure, Success, Try }
  * @param bag the bag containing the data files
  */
 case class DataFiles(bag: DansBag) extends DebugEnhancedLogging {
+  private val uploadRoot = bag.data / DepositServlet.uploadRoot
 
   /**
    * Returns 'true' if the path points to a directory.
@@ -76,10 +77,8 @@ case class DataFiles(bag: DansBag) extends DebugEnhancedLogging {
       .getOrElse(Failure(new Exception(s"no algorithm for ${ bag.baseDir }")))
   }
 
-  def toFileInfo(file: File, checksum: String): FileInfo = {
-    val path = (bag.data / DepositServlet.uploadRoot)
-      .relativize(file.parent)
-    FileInfo(file.name, path, checksum)
+  private def toFileInfo(file: File, checksum: String): FileInfo = {
+    FileInfo(file.name, uploadRoot.relativize(file.parent), checksum)
   }
 
   /**
@@ -94,7 +93,11 @@ case class DataFiles(bag: DansBag) extends DebugEnhancedLogging {
     val absolutePath = bag.data / path.toString
     val fileExists = manifests.get.contains(absolutePath)
     if (fileExists) Success(toFileInfo(absolutePath, checksum = manifests get absolutePath))
-    else Failure(NoSuchFileInDepositException(absolutePath, path))
+    else {
+      val path1 = uploadRoot.relativize(absolutePath)
+      println(s"=========== $path $path1 $absolutePath")
+      Failure(NoSuchFileInDepositException(path1))
+    }
   }
 
   /**
@@ -122,7 +125,11 @@ case class DataFiles(bag: DansBag) extends DebugEnhancedLogging {
    */
   def delete(path: Path): Try[Unit] = {
     val file = bag.data / path.toString
-    if (!file.exists) Failure(NoSuchFileInDepositException(file, path))
+    if (!file.exists) {
+      val relPath = uploadRoot.relativize(file)
+      println(s"=========== $path $relPath $file ")
+      Failure(NoSuchFileInDepositException(relPath))
+    }
     else (if (file.isDirectory) removeDir(file.walk().toStream)
           else bag.removePayloadFile(path)
       ).flatMap(_.save)

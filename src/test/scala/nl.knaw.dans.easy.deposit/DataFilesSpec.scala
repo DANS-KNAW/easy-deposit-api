@@ -94,7 +94,7 @@ class DataFilesSpec extends TestSupportFixture {
   }
 
   it should "report a non existing file" in {
-    createDatafiles.delete(Paths.get("file.txt")) should matchPattern {
+    createDatafiles.delete(Paths.get("original/file.txt")) should matchPattern {
       case Failure(e: NoSuchFileInDepositException) if e.getMessage == "file.txt not found in deposit" =>
     }
   }
