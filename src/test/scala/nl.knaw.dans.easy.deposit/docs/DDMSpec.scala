@@ -254,11 +254,38 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
       """requirement failed: At most one allowed; got [{"scheme":"dcterms:W3CDTF","value":"2018-05-29","qualifier":"dcterms:created"},{"scheme":"dcterms:W3CDTF","value":"2018-05-29","qualifier":"dcterms:created"}]"""
   }
 
-  "metadata without datesCreated" should "fail" in {
-    DDM(new MinimalDatasetMetadata( // TODO DDM would not validate
-      dates = Some(Seq.empty),
-    )) should beInvalidDoc("invalid DatasetMetadata: no dates created")
-  }
+  "metadata without instructionsForReuse" should behave like validDatasetMetadata(
+    // the only element of <ddm:profile> that is not mandatory
+    input = new MinimalDatasetMetadata(instructionsForReuse = None)
+  )
+
+  "metadata without titles" should behave like validDatasetMetadata(
+    input = new MinimalDatasetMetadata(titles = None)
+  )
+
+  "minimal without descriptions" should behave like validDatasetMetadata(
+      input = new MinimalDatasetMetadata(descriptions = None)
+  )
+
+  "metadata without audiences" should behave like validDatasetMetadata(
+    input = new MinimalDatasetMetadata(audiences = None)
+  )
+
+  "metadata without creators" should behave like validDatasetMetadata(
+    input = new MinimalDatasetMetadata(creators = None)
+  )
+
+  "metadata without dateCreated" should behave like validDatasetMetadata(
+    input = new MinimalDatasetMetadata(dates = Some(Seq(mandatoryDates.head)))
+  )
+
+  "metadata without dateAvailable" should behave like validDatasetMetadata(
+    input = new MinimalDatasetMetadata(dates = Some(Seq(mandatoryDates.last)))
+  )
+
+  "metadata without accessRights" should behave like validDatasetMetadata(
+    input = new MinimalDatasetMetadata(accessRights = None)
+  )
 
   "minimal with SchemedKeyValue variants" should behave like validDatasetMetadata(
     input = new MinimalDatasetMetadata(
