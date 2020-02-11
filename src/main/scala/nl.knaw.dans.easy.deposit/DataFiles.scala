@@ -23,6 +23,7 @@ import nl.knaw.dans.bag.ChecksumAlgorithm.SHA1
 import nl.knaw.dans.bag.DansBag
 import nl.knaw.dans.easy.deposit.Errors.NoSuchFileInDepositException
 import nl.knaw.dans.easy.deposit.docs.FileInfo
+import nl.knaw.dans.easy.deposit.servlets.DepositServlet
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 
 import scala.language.postfixOps
@@ -76,7 +77,7 @@ case class DataFiles(bag: DansBag) extends DebugEnhancedLogging {
   }
 
   def toFileInfo(file: File, checksum: String): FileInfo = {
-    val path = (bag.data / "original")
+    val path = (bag.data / DepositServlet.uploadRoot)
       .relativize(file.parent)
     FileInfo(file.name, path, checksum)
   }

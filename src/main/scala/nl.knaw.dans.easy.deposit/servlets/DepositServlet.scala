@@ -24,6 +24,7 @@ import nl.knaw.dans.easy.deposit.EasyDepositApiApp
 import nl.knaw.dans.easy.deposit.Errors._
 import nl.knaw.dans.easy.deposit.docs.JsonUtil.toJson
 import nl.knaw.dans.easy.deposit.docs.{ DatasetMetadata, StateInfo }
+import nl.knaw.dans.easy.deposit.servlets.DepositServlet.uploadRoot
 import nl.knaw.dans.lib.string._
 import org.scalatra._
 import org.scalatra.servlet.{ FileUploadSupport, SizeConstraintExceededException }
@@ -220,7 +221,7 @@ class DepositServlet(app: EasyDepositApiApp)
       .getOrElse("")
     val path = Paths.get(splat)
     logger.info(s"$logPrefix '${ splat.toOption.getOrElse("/") }'")
-    Paths.get("original").resolve(path)
+    Paths.get(uploadRoot).resolve(path)
   }.recoverWith { // invalid characters, or other file system specific reasons.
     case t: InvalidPathException => Failure(InvalidResourceException(s"Invalid path: ${ t.getMessage }"))
   }
@@ -232,4 +233,7 @@ class DepositServlet(app: EasyDepositApiApp)
       case x => Failure(InvalidContentTypeException(x, s"""must start with "$multiPart"."""))
     }
   }
+}
+object DepositServlet {
+  val uploadRoot = "original"
 }
