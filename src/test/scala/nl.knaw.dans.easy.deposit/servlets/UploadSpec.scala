@@ -204,9 +204,9 @@ class UploadSpec extends ServletFixture with Inspectors {
       headers = Seq(fooBarBasicAuthHeader),
     ) {
       status shouldBe OK_200
-      body should include("""{"filename":"readme.md","dirpath":"original/path/to/dir",""")
-      body should include("""{"filename":"upload.html","dirpath":"original/path/to/dir",""")
-      body should include("""{"filename":"login.html","dirpath":"original/path/to/dir",""")
+      body should include("""{"filename":"readme.md","dirpath":"path/to/dir",""")
+      body should include("""{"filename":"upload.html","dirpath":"path/to/dir",""")
+      body should include("""{"filename":"login.html","dirpath":"path/to/dir",""")
     }
   }
 
@@ -259,10 +259,10 @@ class UploadSpec extends ServletFixture with Inspectors {
       headers = Seq(fooBarBasicAuthHeader),
     ) {
       status shouldBe OK_200
-      body should include("""{"filename":"deeper.zip","dirpath":"original/path/to/dir/myCompress",""")
-      body should include("""{"filename":"test_file.txt","dirpath":"original/path/to/dir/myCompress",""")
-      body should include("""{"filename":".DS_Store","dirpath":"original/path/to/dir/myCompress",""")
-      body should include("""{"filename":"test.txt","dirpath":"original/path/to/dir/myCompress/secondLayer",""")
+      body should include("""{"filename":"deeper.zip","dirpath":"path/to/dir/myCompress",""")
+      body should include("""{"filename":"test_file.txt","dirpath":"path/to/dir/myCompress",""")
+      body should include("""{"filename":".DS_Store","dirpath":"path/to/dir/myCompress",""")
+      body should include("""{"filename":"test.txt","dirpath":"path/to/dir/myCompress/secondLayer",""")
     }
   }
 
@@ -295,9 +295,9 @@ class UploadSpec extends ServletFixture with Inspectors {
       headers = Seq(fooBarBasicAuthHeader),
     ) {
       status shouldBe OK_200
-      body should include("""{"filename":"readme.md","dirpath":"original",""")
-      body should include("""{"filename":"upload.html","dirpath":"original",""")
-      body should include("""{"filename":"login.html","dirpath":"original",""")
+      body should include("""{"filename":"readme.md","dirpath":"",""")
+      body should include("""{"filename":"upload.html","dirpath":"",""")
+      body should include("""{"filename":"login.html","dirpath":"",""")
     }
   }
 
@@ -365,7 +365,7 @@ class UploadSpec extends ServletFixture with Inspectors {
       headers = Seq(fooBarBasicAuthHeader),
     ) {
       status shouldBe OK_200
-      body shouldBe s"""[{"filename":"text.txt","dirpath":"original/path/to","sha1sum":"$sha"}]"""
+      body shouldBe s"""[{"filename":"text.txt","dirpath":"path/to","sha1sum":"$sha"}]"""
     }
   }
 
@@ -391,7 +391,7 @@ class UploadSpec extends ServletFixture with Inspectors {
       headers = Seq(fooBarBasicAuthHeader),
     ) {
       status shouldBe OK_200
-      body shouldBe s"""[{"filename":"text.txt","dirpath":"original","sha1sum":"$sha"}]"""
+      body shouldBe s"""[{"filename":"text.txt","dirpath":"","sha1sum":"$sha"}]"""
     }
   }
 
