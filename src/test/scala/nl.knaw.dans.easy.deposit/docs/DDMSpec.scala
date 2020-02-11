@@ -254,38 +254,45 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
       """requirement failed: At most one allowed; got [{"scheme":"dcterms:W3CDTF","value":"2018-05-29","qualifier":"dcterms:created"},{"scheme":"dcterms:W3CDTF","value":"2018-05-29","qualifier":"dcterms:created"}]"""
   }
 
+  "metadata without titles" should "fail" in {
+    DDM(new MinimalDatasetMetadata(titles = None)) should
+      beInvalidDoc("invalid DatasetMetadata: missing mandatory metadata")
+  }
+
+  "minimal without descriptions" should "fail" in {
+    DDM(new MinimalDatasetMetadata(descriptions = None)) should
+      beInvalidDoc("invalid DatasetMetadata: missing mandatory metadata")
+  }
+
   "metadata without instructionsForReuse" should behave like validDatasetMetadata(
     // the only element of <ddm:profile> that is not mandatory
     input = new MinimalDatasetMetadata(instructionsForReuse = None)
   )
 
-  "metadata without titles" should behave like validDatasetMetadata(
-    input = new MinimalDatasetMetadata(titles = None)
-  )
+  "metadata without audiences" should "fail" in {
+    DDM(new MinimalDatasetMetadata(audiences = None)) should
+      beInvalidDoc("invalid DatasetMetadata: missing mandatory metadata")
+  }
 
-  "minimal without descriptions" should behave like validDatasetMetadata(
-      input = new MinimalDatasetMetadata(descriptions = None)
-  )
+  "metadata without creators" should "fail" in {
+    DDM(new MinimalDatasetMetadata(creators = None)) should
+      beInvalidDoc("invalid DatasetMetadata: missing mandatory metadata")
+  }
 
-  "metadata without audiences" should behave like validDatasetMetadata(
-    input = new MinimalDatasetMetadata(audiences = None)
-  )
+  "metadata without dateCreated" should "fail" in {
+    DDM(new MinimalDatasetMetadata(dates = Some(Seq(mandatoryDates.head)))) should
+      beInvalidDoc("invalid DatasetMetadata: missing mandatory metadata")
+  }
 
-  "metadata without creators" should behave like validDatasetMetadata(
-    input = new MinimalDatasetMetadata(creators = None)
-  )
+  "metadata without dateAvailable" should "fail" in {
+    DDM(new MinimalDatasetMetadata(dates = Some(Seq(mandatoryDates.last)))) should
+      beInvalidDoc("invalid DatasetMetadata: missing mandatory metadata")
+  }
 
-  "metadata without dateCreated" should behave like validDatasetMetadata(
-    input = new MinimalDatasetMetadata(dates = Some(Seq(mandatoryDates.head)))
-  )
-
-  "metadata without dateAvailable" should behave like validDatasetMetadata(
-    input = new MinimalDatasetMetadata(dates = Some(Seq(mandatoryDates.last)))
-  )
-
-  "metadata without accessRights" should behave like validDatasetMetadata(
-    input = new MinimalDatasetMetadata(accessRights = None)
-  )
+  "metadata without accessRights" should "fail" in {
+    DDM(new MinimalDatasetMetadata(accessRights = None)) should
+      beInvalidDoc("invalid DatasetMetadata: missing mandatory metadata")
+  }
 
   "minimal with SchemedKeyValue variants" should behave like validDatasetMetadata(
     input = new MinimalDatasetMetadata(
