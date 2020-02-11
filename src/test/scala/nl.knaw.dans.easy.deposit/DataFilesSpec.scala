@@ -27,7 +27,6 @@ import nl.knaw.dans.easy.deposit.Errors.NoSuchFileInDepositException
 import nl.knaw.dans.easy.deposit.docs.FileInfo
 import nl.knaw.dans.lib.error._
 
-import scala.collection.JavaConverters._
 import scala.util.{ Failure, Success }
 
 class DataFilesSpec extends TestSupportFixture {
@@ -103,18 +102,18 @@ class DataFilesSpec extends TestSupportFixture {
   "list" should "return files grouped by folder" in {
     val bag = DansV0Bag
       .empty(testDir / "testBag").getOrRecover(fail("could not create test bag", _))
-      .addPayloadFile(randomContent, Paths.get("1.txt")).getOrRecover(payloadFailure)
-      .addPayloadFile(randomContent, Paths.get("folder1/b/x.txt")).getOrRecover(payloadFailure)
-      .addPayloadFile(randomContent, Paths.get("folder1#b/x.txt")).getOrRecover(payloadFailure)
-      .addPayloadFile(randomContent, Paths.get("folder1.x/y.txt")).getOrRecover(payloadFailure)
-      .addPayloadFile(randomContent, Paths.get("folder1y/x.txt")).getOrRecover(payloadFailure)
-      .addPayloadFile(randomContent, Paths.get("folder1/3.txt")).getOrRecover(payloadFailure)
-      .addPayloadFile(randomContent, Paths.get(".hidden")).getOrRecover(payloadFailure)
-      .addPayloadFile(randomContent, Paths.get("#/1.txt")).getOrRecover(payloadFailure)
-      .addPayloadFile(randomContent, Paths.get("folder2/4.txt")).getOrRecover(payloadFailure)
-      .addPayloadFile(randomContent, Paths.get("foo.txt")).getOrRecover(payloadFailure)
-      .addPayloadFile(randomContent, Paths.get("folder11/4.txt")).getOrRecover(payloadFailure)
-      .addPayloadFile(randomContent, Paths.get("folder1/5.txt")).getOrRecover(payloadFailure)
+      .addPayloadFile(randomContent, Paths.get("original/1.txt")).getOrRecover(payloadFailure)
+      .addPayloadFile(randomContent, Paths.get("original/folder1/b/x.txt")).getOrRecover(payloadFailure)
+      .addPayloadFile(randomContent, Paths.get("original/folder1#b/x.txt")).getOrRecover(payloadFailure)
+      .addPayloadFile(randomContent, Paths.get("original/folder1.x/y.txt")).getOrRecover(payloadFailure)
+      .addPayloadFile(randomContent, Paths.get("original/folder1y/x.txt")).getOrRecover(payloadFailure)
+      .addPayloadFile(randomContent, Paths.get("original/folder1/3.txt")).getOrRecover(payloadFailure)
+      .addPayloadFile(randomContent, Paths.get("original/.hidden")).getOrRecover(payloadFailure)
+      .addPayloadFile(randomContent, Paths.get("original/#/1.txt")).getOrRecover(payloadFailure)
+      .addPayloadFile(randomContent, Paths.get("original/folder2/4.txt")).getOrRecover(payloadFailure)
+      .addPayloadFile(randomContent, Paths.get("original/foo.txt")).getOrRecover(payloadFailure)
+      .addPayloadFile(randomContent, Paths.get("original/folder11/4.txt")).getOrRecover(payloadFailure)
+      .addPayloadFile(randomContent, Paths.get("original/folder1/5.txt")).getOrRecover(payloadFailure)
     bag.save()
 
     DataFiles(bag).list(Paths.get(""))
@@ -156,13 +155,13 @@ class DataFilesSpec extends TestSupportFixture {
     )
     val bag = DansV0Bag
       .empty(testDir / "testBag").getOrRecover(fail("could not create test bag", _))
-      .addPayloadFile("lorum ipsum".inputStream, Paths.get("some/1.txt")).getOrRecover(payloadFailure)
-      .addPayloadFile("doler it".inputStream, Paths.get("some/folder/2.txt")).getOrRecover(payloadFailure)
+      .addPayloadFile("lorum ipsum".inputStream, Paths.get("original/some/1.txt")).getOrRecover(payloadFailure)
+      .addPayloadFile("doler it".inputStream, Paths.get("original/some/folder/2.txt")).getOrRecover(payloadFailure)
     bag.save()
     val dataFiles = DataFiles(bag)
 
     // get FileInfo for a singe file, alias GET /deposit/{id}/file/some/folder/2.txt
-    dataFiles.get(Paths.get("some/folder/2.txt")) should matchPattern {
+    dataFiles.get(Paths.get("original/some/folder/2.txt")) should matchPattern {
       case Success(FileInfo("2.txt", p, _)) if p.toString == "some/folder" =>
     }
 
@@ -172,7 +171,7 @@ class DataFilesSpec extends TestSupportFixture {
     }
 
     // get FileInfo recursively for a subfolder, alias GET /deposit/{id}/file/some
-    inside(dataFiles.list(Paths.get("some"))) { case Success(infos: Seq[_]) =>
+    inside(dataFiles.list(Paths.get("original/some"))) { case Success(infos: Seq[_]) =>
       infos should contain theSameElementsAs expected
     }
   }

@@ -60,10 +60,6 @@ case class DataFiles(bag: DansBag) extends DebugEnhancedLogging {
     val parentPath = bag.data / path.toString
     val manifestMap = bag.payloadManifests
 
-    def toFileInfo(file: File, checksum: String): FileInfo = {
-      FileInfo(file.name, bag.data.relativize(file.parent), checksum)
-    }
-
     def convert(items: Map[File, String]) = {
       items
         .withFilter(_._1.isChildOf(parentPath))
@@ -79,6 +75,12 @@ case class DataFiles(bag: DansBag) extends DebugEnhancedLogging {
       .getOrElse(Failure(new Exception(s"no algorithm for ${ bag.baseDir }")))
   }
 
+  def toFileInfo(file: File, checksum: String): FileInfo = {
+    val path = (bag.data / "original")
+      .relativize(file.parent)
+    FileInfo(file.name, path, checksum)
+  }
+
   /**
    * Lists information about a file.
    *
@@ -90,13 +92,8 @@ case class DataFiles(bag: DansBag) extends DebugEnhancedLogging {
     val manifests = manifestMap.get(SHA1).orElse(manifestMap.values.headOption)
     val absolutePath = bag.data / path.toString
     val fileExists = manifests.get.contains(absolutePath)
-    if (fileExists) {
-      val checksum = manifests get absolutePath
-      Success(FileInfo(path.getFileName.toString, bag.data.relativize(absolutePath.parent), checksum))
-    }
-    else {
-      Failure(NoSuchFileInDepositException(absolutePath, path))
-    }
+    if (fileExists) Success(toFileInfo(absolutePath, checksum = manifests get absolutePath))
+    else Failure(NoSuchFileInDepositException(absolutePath, path))
   }
 
   /**
