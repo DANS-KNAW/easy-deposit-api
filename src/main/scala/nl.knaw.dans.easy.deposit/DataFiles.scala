@@ -95,7 +95,6 @@ case class DataFiles(bag: DansBag) extends DebugEnhancedLogging {
     if (fileExists) Success(toFileInfo(absolutePath, checksum = manifests get absolutePath))
     else {
       val path1 = uploadRoot.relativize(absolutePath)
-      println(s"=========== $path $path1 $absolutePath")
       Failure(NoSuchFileInDepositException(path1))
     }
   }
@@ -127,7 +126,6 @@ case class DataFiles(bag: DansBag) extends DebugEnhancedLogging {
     val file = bag.data / path.toString
     if (!file.exists) {
       val relPath = uploadRoot.relativize(file)
-      println(s"=========== $path $relPath $file ")
       Failure(NoSuchFileInDepositException(relPath))
     }
     else (if (file.isDirectory) removeDir(file.walk().toStream)

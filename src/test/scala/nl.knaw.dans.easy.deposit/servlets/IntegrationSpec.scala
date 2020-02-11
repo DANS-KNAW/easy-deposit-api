@@ -101,7 +101,7 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
     val uuid = createDeposit
 
     // upload files in a folder (more variations in UploadSpec)
-    val dataFilesBase = DepositDir(testDir / "drafts", "foo", UUID.fromString(uuid)).getDataFiles.get.bag.data / "original"
+    val dataFilesBase = DepositDir(testDir / "drafts", "foo", UUID.fromString(uuid)).getDataFiles.get.bag.data / DepositServlet.uploadRoot
 
     // upload without content type
     authMocker.expectsUserFooBar
