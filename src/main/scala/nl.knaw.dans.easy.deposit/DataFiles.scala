@@ -127,8 +127,7 @@ case class DataFiles(bag: DansBag) extends DebugEnhancedLogging {
     if (!file.exists) {
       val relPath = uploadRoot.relativize(file)
       Failure(NoSuchFileInDepositException(relPath))
-    }
-    else (if (file.isDirectory) removeDir(file.walk().toStream)
+    } else (if (file.isDirectory) removeDir(file.walk().toStream)
           else bag.removePayloadFile(path)
       ).flatMap(_.save)
   }

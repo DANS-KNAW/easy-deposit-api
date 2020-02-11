@@ -19,7 +19,6 @@ import java.nio.file.attribute.PosixFilePermission
 import java.util.UUID
 
 import better.files.File
-import nl.knaw.dans.easy.deposit.DepositDir
 import nl.knaw.dans.easy.deposit.authentication.AuthenticationMocker
 import nl.knaw.dans.easy.deposit.docs.DepositInfo
 import nl.knaw.dans.lib.error._
@@ -58,7 +57,7 @@ class UploadSpec extends ServletFixture with Inspectors {
       body shouldBe ""
       status shouldBe CREATED_201
     }
-    val bagDir = testDir / "drafts/foo" / uuid.toString / bagDirName
+    val bagDir = bagDirOf(uuid)
     val uploaded = (uploadRootOf(bagDir) / relativeTarget).list
     uploaded.size shouldBe bodyParts.size
     forEvery(uploaded.toList) { file =>
@@ -86,7 +85,7 @@ class UploadSpec extends ServletFixture with Inspectors {
       status shouldBe CONFLICT_409
       body shouldBe "Another upload or submit is pending."
     }
-    val bagDir = testDir / "drafts/foo" / uuid.toString / bagDirName
+    val bagDir = bagDirOf(uuid)
     (bagDir / "data").entries shouldBe empty
     (bagDir / "manifest-sha1.txt").lines shouldBe empty
     (testDir / "staged").entries.map(_.name).toList should contain only s"foo-$uuid-XYZ"
@@ -100,7 +99,7 @@ class UploadSpec extends ServletFixture with Inspectors {
     ))
     val uuid = createDeposit
     val relativeTarget = "path/to/dir"
-    val absoluteTarget = uploadRootOf(testDir / "drafts" / "foo" / uuid.toString / bagDirName) / relativeTarget
+    val absoluteTarget = uploadRootOf(bagDirOf(uuid)) / relativeTarget
     absoluteTarget
       .createDirectories()
       .removePermission(PosixFilePermission.OWNER_WRITE)
@@ -124,7 +123,7 @@ class UploadSpec extends ServletFixture with Inspectors {
     ))
     val uuid = createDeposit
     val relativeTarget = "path/to/dir"
-    val absoluteTarget = (testDir / "drafts" / "foo" / uuid.toString / bagDirName / "data" / relativeTarget).createDirectories()
+    val absoluteTarget = (uploadRootOf(bagDirOf(uuid)) / relativeTarget).createDirectories()
     post(
       uri = s"/deposit/$uuid/file/$relativeTarget",
       params = Iterable(),
@@ -144,7 +143,7 @@ class UploadSpec extends ServletFixture with Inspectors {
     ))
     val uuid = createDeposit
     val relativeTarget = "path/to/dir"
-    val absoluteTarget = (testDir / "drafts" / "foo" / uuid.toString / bagDirName / "data" / relativeTarget).createDirectories()
+    val absoluteTarget = (uploadRootOf(bagDirOf(uuid)) / relativeTarget).createDirectories()
     post(
       uri = s"/deposit/$uuid/file/$relativeTarget",
       params = Iterable(),
@@ -161,7 +160,7 @@ class UploadSpec extends ServletFixture with Inspectors {
     val bodyParts = createBodyParts(Seq(("some", "1.zip", "invalid zip content")))
     val uuid = createDeposit
     val relativeTarget = "path/to/dir"
-    val absoluteTarget = (testDir / "drafts" / "foo" / uuid.toString / bagDirName / "data" / relativeTarget).createDirectories()
+    val absoluteTarget = (uploadRootOf(bagDirOf(uuid)) / relativeTarget).createDirectories()
     post(
       uri = s"/deposit/$uuid/file/$relativeTarget",
       params = Iterable(),
@@ -177,7 +176,7 @@ class UploadSpec extends ServletFixture with Inspectors {
   it should "extract the files of a zip into the relative target" in {
     val uuid = createDeposit
     val relativeTarget = "path/to/dir"
-    val bagDir = testDir / "drafts" / "foo" / uuid.toString / bagDirName
+    val bagDir = bagDirOf(uuid)
     val absoluteTarget = (uploadRootOf(bagDir) / relativeTarget).createDirectories()
     absoluteTarget.entries shouldBe empty // precondition
     post(
@@ -213,8 +212,7 @@ class UploadSpec extends ServletFixture with Inspectors {
   it should "extract the files of a tar into the relative target" in {
     val uuid = createDeposit
     val relativeTarget = "path/to/dir"
-    val bagDir = testDir / "drafts" / "foo" / uuid.toString / bagDirName
-    val absoluteTarget = (uploadRootOf(bagDir) / relativeTarget).createDirectories()
+    val absoluteTarget = (uploadRootOf(bagDirOf(uuid)) / relativeTarget).createDirectories()
     absoluteTarget.entries shouldBe empty // precondition
     post(
       uri = s"/deposit/$uuid/file/$relativeTarget", // another post-URI tested with the same zip
@@ -232,7 +230,7 @@ class UploadSpec extends ServletFixture with Inspectors {
   it should "extract all files from a ZIP, with a nested zip" in {
     val uuid = createDeposit
     val relativeTarget = "path/to/dir"
-    val bagDir = testDir / "drafts" / "foo" / uuid.toString / bagDirName
+    val bagDir = bagDirOf(uuid)
     val absoluteTarget = (uploadRootOf(bagDir) / relativeTarget).createDirectories()
     absoluteTarget.entries shouldBe empty // precondition
     post(
@@ -268,8 +266,8 @@ class UploadSpec extends ServletFixture with Inspectors {
 
   it should "extract ZIP to root of data dir in the bag" in {
     val uuid = createDeposit
-    val bagDir = testDir / "drafts" / "foo" / uuid.toString / bagDirName
-    val absoluteTarget = (bagDir / "data").createDirectories()
+    val bagDir = bagDirOf(uuid)
+    val absoluteTarget = uploadRootOf(bagDir).createDirectories()
     absoluteTarget.entries shouldBe empty // precondition
     post(
       uri = s"/deposit/$uuid/file/", // another post-URI tested with the same zip
@@ -281,7 +279,7 @@ class UploadSpec extends ServletFixture with Inspectors {
       status shouldBe CREATED_201
     }
     absoluteTarget.walk().map(_.name).toList should contain theSameElementsAs List(
-      "data", DepositServlet.uploadRoot, "login.html", "readme.md", "upload.html"
+      DepositServlet.uploadRoot, "login.html", "readme.md", "upload.html"
     )
     (bagDir / "manifest-sha1.txt")
       .lines
@@ -332,7 +330,7 @@ class UploadSpec extends ServletFixture with Inspectors {
   "PUT" should "return 201 for a new respectively 204 for a replaced file" in {
     val uuid = createDeposit
 
-    val bagBase = DepositDir(testDir / "drafts", "foo", UUID.fromString(uuid.toString)).getDataFiles.get.bag
+    val bagBase = bagDirOf(uuid)
     val shortContent = "Lorum ipsum"
     val longContent = "dolor sit amet"
 
@@ -372,7 +370,7 @@ class UploadSpec extends ServletFixture with Inspectors {
   it should "upload file to root of data folder" in {
     val uuid = createDeposit
 
-    val bagBase = DepositDir(testDir / "drafts", "foo", UUID.fromString(uuid.toString)).getDataFiles.get.bag
+    val bagBase = bagDirOf(uuid)
     val shortContent = "Lorum ipsum"
     val sha = "c5b8de8cc3587aef4e118a481115391033621e06"
     put(
@@ -395,9 +393,9 @@ class UploadSpec extends ServletFixture with Inspectors {
     }
   }
 
-  private def uploadRootOf(bagDir: File) = {
-    bagDir / "data" / DepositServlet.uploadRoot
-  }
+  private def bagDirOf(uuid: String) = testDir / "drafts" / "foo" / uuid / bagDirName
+
+  private def uploadRootOf(bagDir: File) = bagDir / "data" / DepositServlet.uploadRoot
 
   private def createBodyParts(files: Seq[(String, String, String)]): Seq[(String, java.io.File)] = {
     bodyParts(testDir / "input", files)
