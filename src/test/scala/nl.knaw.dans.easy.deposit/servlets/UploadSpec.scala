@@ -48,7 +48,7 @@ class UploadSpec extends ServletFixture with Inspectors {
       ("more", "4.txt", "Ut enim ad minim veniam"),
     ))
     val uuid = createDeposit
-    val relativeTarget = "path/to/dir"
+    val relativeTarget = "original/path/to/dir"
     post(
       uri = s"/deposit/$uuid/file/$relativeTarget",
       params = Iterable(),
@@ -59,7 +59,7 @@ class UploadSpec extends ServletFixture with Inspectors {
       status shouldBe CREATED_201
     }
     val bagDir = testDir / "drafts/foo" / uuid.toString / bagDirName
-    val uploaded = (bagDir / "data" / relativeTarget).list
+    val uploaded = (bagDir / "data" / "original" / relativeTarget).list
     uploaded.size shouldBe bodyParts.size
     forEvery(uploaded.toList) { file =>
       file.contentAsString shouldBe (testDir / "input" / file.name).contentAsString
@@ -100,7 +100,7 @@ class UploadSpec extends ServletFixture with Inspectors {
     ))
     val uuid = createDeposit
     val relativeTarget = "path/to/dir"
-    val absoluteTarget = testDir / "drafts" / "foo" / uuid.toString / bagDirName / "data" / relativeTarget
+    val absoluteTarget = testDir / "drafts" / "foo" / uuid.toString / bagDirName / "data" / "original" / relativeTarget
     absoluteTarget
       .createDirectories()
       .removePermission(PosixFilePermission.OWNER_WRITE)
@@ -178,7 +178,7 @@ class UploadSpec extends ServletFixture with Inspectors {
     val uuid = createDeposit
     val relativeTarget = "path/to/dir"
     val bagDir = testDir / "drafts" / "foo" / uuid.toString / bagDirName
-    val absoluteTarget = (bagDir / "data" / relativeTarget).createDirectories()
+    val absoluteTarget = (bagDir / "data" / "original" / relativeTarget).createDirectories()
     absoluteTarget.entries shouldBe empty // precondition
     post(
       uri = s"/deposit/$uuid/file/$relativeTarget", // another post-URI tested with the same zip
@@ -196,7 +196,7 @@ class UploadSpec extends ServletFixture with Inspectors {
       .lines
       .map(_.replaceAll(".* +", "")) should contain theSameElementsAs List(
       "login.html", "readme.md", "upload.html"
-    ).map(s"data/$relativeTarget/" + _)
+    ).map(s"data/original/$relativeTarget/" + _)
 
     // get should show uploaded files
     get(
@@ -204,9 +204,9 @@ class UploadSpec extends ServletFixture with Inspectors {
       headers = Seq(fooBarBasicAuthHeader),
     ) {
       status shouldBe OK_200
-      body should include("""{"filename":"readme.md","dirpath":"path/to/dir",""")
-      body should include("""{"filename":"upload.html","dirpath":"path/to/dir",""")
-      body should include("""{"filename":"login.html","dirpath":"path/to/dir",""")
+      body should include("""{"filename":"readme.md","dirpath":"original/path/to/dir",""")
+      body should include("""{"filename":"upload.html","dirpath":"original/path/to/dir",""")
+      body should include("""{"filename":"login.html","dirpath":"original/path/to/dir",""")
     }
   }
 
@@ -214,7 +214,7 @@ class UploadSpec extends ServletFixture with Inspectors {
     val uuid = createDeposit
     val relativeTarget = "path/to/dir"
     val bagDir = testDir / "drafts" / "foo" / uuid.toString / bagDirName
-    val absoluteTarget = (bagDir / "data" / relativeTarget).createDirectories()
+    val absoluteTarget = (bagDir / "data" / "original" / relativeTarget).createDirectories()
     absoluteTarget.entries shouldBe empty // precondition
     post(
       uri = s"/deposit/$uuid/file/$relativeTarget", // another post-URI tested with the same zip
@@ -233,7 +233,7 @@ class UploadSpec extends ServletFixture with Inspectors {
     val uuid = createDeposit
     val relativeTarget = "path/to/dir"
     val bagDir = testDir / "drafts" / "foo" / uuid.toString / bagDirName
-    val absoluteTarget = (bagDir / "data" / relativeTarget).createDirectories()
+    val absoluteTarget = (bagDir / "data" / "original" / relativeTarget).createDirectories()
     absoluteTarget.entries shouldBe empty // precondition
     post(
       uri = s"/deposit/$uuid/file/$relativeTarget",
@@ -251,7 +251,7 @@ class UploadSpec extends ServletFixture with Inspectors {
       .lines
       .map(_.replaceAll(".* +", "")) should contain theSameElementsAs List(
       "myCompress/test_file.txt", "myCompress/.DS_Store", "myCompress/secondLayer/test.txt", "myCompress/deeper.zip"
-    ).map("data/path/to/dir/" + _)
+    ).map("data/original/path/to/dir/" + _)
 
     // get should show uploaded files
     get(
@@ -259,10 +259,10 @@ class UploadSpec extends ServletFixture with Inspectors {
       headers = Seq(fooBarBasicAuthHeader),
     ) {
       status shouldBe OK_200
-      body should include("""{"filename":"deeper.zip","dirpath":"path/to/dir/myCompress",""")
-      body should include("""{"filename":"test_file.txt","dirpath":"path/to/dir/myCompress",""")
-      body should include("""{"filename":".DS_Store","dirpath":"path/to/dir/myCompress",""")
-      body should include("""{"filename":"test.txt","dirpath":"path/to/dir/myCompress/secondLayer",""")
+      body should include("""{"filename":"deeper.zip","dirpath":"original/path/to/dir/myCompress",""")
+      body should include("""{"filename":"test_file.txt","dirpath":"original/path/to/dir/myCompress",""")
+      body should include("""{"filename":".DS_Store","dirpath":"original/path/to/dir/myCompress",""")
+      body should include("""{"filename":"test.txt","dirpath":"original/path/to/dir/myCompress/secondLayer",""")
     }
   }
 
@@ -281,13 +281,13 @@ class UploadSpec extends ServletFixture with Inspectors {
       status shouldBe CREATED_201
     }
     absoluteTarget.walk().map(_.name).toList should contain theSameElementsAs List(
-      "data", "login.html", "readme.md", "upload.html"
+      "data", "original", "login.html", "readme.md", "upload.html"
     )
     (bagDir / "manifest-sha1.txt")
       .lines
       .map(_.replaceAll(".* +", "")) should contain theSameElementsAs List(
       "login.html", "readme.md", "upload.html"
-    ).map("data/" + _)
+    ).map("data/original/" + _)
 
     // get should show uploaded files
     get(
@@ -295,9 +295,9 @@ class UploadSpec extends ServletFixture with Inspectors {
       headers = Seq(fooBarBasicAuthHeader),
     ) {
       status shouldBe OK_200
-      body should include("""{"filename":"readme.md","dirpath":"",""")
-      body should include("""{"filename":"upload.html","dirpath":"",""")
-      body should include("""{"filename":"login.html","dirpath":"",""")
+      body should include("""{"filename":"readme.md","dirpath":"original",""")
+      body should include("""{"filename":"upload.html","dirpath":"original",""")
+      body should include("""{"filename":"login.html","dirpath":"original",""")
     }
   }
 
@@ -344,8 +344,8 @@ class UploadSpec extends ServletFixture with Inspectors {
     ) {
       status shouldBe CREATED_201
     }
-    (bagBase / "data/path/to/text.txt").contentAsString shouldBe longContent
-    (bagBase / "manifest-sha1.txt").contentAsString shouldBe "0d21d1af59b36f0bee70fd034e931ec72f04f1cd  data/path/to/text.txt\n"
+    (bagBase / "data/original/path/to/text.txt").contentAsString shouldBe longContent
+    (bagBase / "manifest-sha1.txt").contentAsString shouldBe "0d21d1af59b36f0bee70fd034e931ec72f04f1cd  data/original/path/to/text.txt\n"
 
     // second upload of same file
     val sha = "c5b8de8cc3587aef4e118a481115391033621e06"
@@ -356,8 +356,8 @@ class UploadSpec extends ServletFixture with Inspectors {
     ) {
       status shouldBe NO_CONTENT_204
     }
-    (bagBase / "data/path/to/text.txt").contentAsString shouldBe shortContent
-    (bagBase / "manifest-sha1.txt").contentAsString shouldBe s"$sha  data/path/to/text.txt\n"
+    (bagBase / "data/original/path/to/text.txt").contentAsString shouldBe shortContent
+    (bagBase / "manifest-sha1.txt").contentAsString shouldBe s"$sha  data/original/path/to/text.txt\n"
 
     // get should show uploaded file once
     get(
@@ -365,7 +365,7 @@ class UploadSpec extends ServletFixture with Inspectors {
       headers = Seq(fooBarBasicAuthHeader),
     ) {
       status shouldBe OK_200
-      body shouldBe s"""[{"filename":"text.txt","dirpath":"path/to","sha1sum":"$sha"}]"""
+      body shouldBe s"""[{"filename":"text.txt","dirpath":"original/path/to","sha1sum":"$sha"}]"""
     }
   }
 
@@ -382,8 +382,8 @@ class UploadSpec extends ServletFixture with Inspectors {
     ) {
       status shouldBe CREATED_201
     }
-    (bagBase / "data/text.txt").contentAsString shouldBe shortContent
-    (bagBase / "manifest-sha1.txt").contentAsString shouldBe s"$sha  data/text.txt\n"
+    (bagBase / "data/original/text.txt").contentAsString shouldBe shortContent
+    (bagBase / "manifest-sha1.txt").contentAsString shouldBe s"$sha  data/original/text.txt\n"
 
     // get should show uploaded file once
     get(
@@ -391,7 +391,7 @@ class UploadSpec extends ServletFixture with Inspectors {
       headers = Seq(fooBarBasicAuthHeader),
     ) {
       status shouldBe OK_200
-      body shouldBe s"""[{"filename":"text.txt","dirpath":"","sha1sum":"$sha"}]"""
+      body shouldBe s"""[{"filename":"text.txt","dirpath":"original","sha1sum":"$sha"}]"""
     }
   }
 
