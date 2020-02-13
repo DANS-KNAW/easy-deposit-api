@@ -231,11 +231,26 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
     )
   }
 
-  "spatial box without west" should "fail" in {
+  "spatial box with default zero for west" should behave like {
     val box = """{"scheme":"x","north":"1","east":"2","south":"3"}"""
-    DDM(new MinimalDatasetMetadata(
-      spatialBoxes = parse(s"""{"spatialBoxes":[$box]}""").spatialBoxes
-    )) should beInvalidDoc(s"""invalid DatasetMetadata: not all of (north,east,south,west) provided by SpatialBox: $box""")
+    validDatasetMetadata(
+      input = new MinimalDatasetMetadata(
+        spatialBoxes = parse(s"""{"spatialBoxes":[$box]}""").spatialBoxes
+      ),
+      subset = actualDDM => dcmiMetadata(actualDDM),
+      expectedDdmContent = <ddm:dcmiMetadata>
+        <dcterms:identifier xsi:type="id-type:DOI">mocked-DOI</dcterms:identifier>
+        <dcterms:dateSubmitted xsi:type="dcterms:W3CDTF">2018-03-22</dcterms:dateSubmitted>
+        <dcx-gml:spatial>
+          <boundedBy xmlns="http://www.opengis.net/gml">
+            <Envelope srsName="x">
+              <lowerCorner>3 0</lowerCorner>
+              <upperCorner>1 2</upperCorner>
+            </Envelope>
+          </boundedBy>
+        </dcx-gml:spatial>
+      </ddm:dcmiMetadata>
+    )
   }
 
   "spatial box without scheme" should "fail" in {

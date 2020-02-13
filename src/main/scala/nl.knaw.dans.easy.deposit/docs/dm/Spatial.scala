@@ -38,20 +38,14 @@ trait SchemedSpatial extends OptionalValue {
   }
 
   private def errorDetails = s"${ getClass.getSimpleName }: ${ toJson(this) }"
-
-  @throws[IllegalArgumentException]("when some but not all args are specified")
-  protected def allOrNone(msg: String, args: Option[String]*): Unit =
-    if (args.map(_.isEmpty).distinct.size > 1) {
-      throw new IllegalArgumentException(s"not all of ($msg) provided by $errorDetails")
-    }
 }
 
 case class SpatialPoint(scheme: Option[String],
                         x: Option[String],
                         y: Option[String],
                        ) extends SchemedSpatial {
-  private lazy val sx: String = x.getOrElse("")
-  private lazy val sy: String = y.getOrElse("")
+  private lazy val sx: String = x.getOrElse("0")
+  private lazy val sy: String = y.getOrElse("0")
   lazy val pos: String = srsName match {
     case Spatial.RD_SRS_NAME => s"$sx $sy"
     case Spatial.DEGREES_SRS_NAME => s"$sy $sx"
@@ -60,7 +54,6 @@ case class SpatialPoint(scheme: Option[String],
 
   @throws[IllegalArgumentException]("when only one of the coordinate components is specified")
   override lazy val value: Option[String] = {
-    allOrNone("x,y", x, y)
     x.map(_ => pos)
   }
 }
@@ -71,10 +64,10 @@ case class SpatialBox(scheme: Option[String],
                       south: Option[String],
                       west: Option[String],
                      ) extends SchemedSpatial {
-  private lazy val sWest: String = west.getOrElse("")
-  private lazy val sSouth: String = south.getOrElse("")
-  private lazy val sNorth: String = north.getOrElse("")
-  private lazy val sEast: String = east.getOrElse("")
+  private lazy val sWest: String = west.getOrElse("0")
+  private lazy val sSouth: String = south.getOrElse("0")
+  private lazy val sNorth: String = north.getOrElse("0")
+  private lazy val sEast: String = east.getOrElse("0")
   private lazy val xy = (s"$sWest $sSouth", s"$sEast $sNorth")
   private lazy val yx = (s"$sSouth $sWest", s"$sNorth $sEast")
   /*
@@ -104,7 +97,6 @@ case class SpatialBox(scheme: Option[String],
 
   @throws[IllegalArgumentException]("when some but not all coordinate components are specified")
   override lazy val value: Option[String] = {
-    allOrNone("north,east,south,west", north, east, south, west)
     north.map(_ => s"($lower) ($upper)")
   }
 }
