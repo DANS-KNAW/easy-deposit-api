@@ -252,17 +252,17 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
     )) should beInvalidDoc(s"""invalid DatasetMetadata: scheme is mandatory for SpatialPoint: $point""")
   }
 
-  "language key without scheme" should "fail" in {
-    DDM(new MinimalDatasetMetadata(
+  "language key without scheme" should behave like validDatasetMetadata(
+    input = new MinimalDatasetMetadata(
       languagesOfFiles = parse("""{"languagesOfFiles":[ {"key":"NL","value":""}]}""").languagesOfFiles,
-    )) should beInvalidDoc(s"""invalid DatasetMetadata: SchemedKeyValue needs a scheme for a key {"key":"NL","value":""}""")
-  }
+    )
+  )
 
-  "language key with empty scheme" should "fail" in {
-    DDM(new MinimalDatasetMetadata(
+  "language key with empty scheme" should behave like validDatasetMetadata(
+    input = new MinimalDatasetMetadata(
       languagesOfFiles = parse("""{"languagesOfFiles":[ {"scheme":" " "key":"NL","value":""}]}""").languagesOfFiles,
-    )) should beInvalidDoc(s"""invalid DatasetMetadata: SchemedKeyValue needs a scheme for a key {"scheme":" ","key":"NL","value":""}""")
-  }
+    )
+  )
 
   "multiple datesCreated" should "fail" in {
     the[IllegalArgumentException] thrownBy new DatasetMetadata(
