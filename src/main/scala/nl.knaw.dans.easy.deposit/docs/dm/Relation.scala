@@ -43,6 +43,8 @@ trait RelationType extends OptionalValue with OptionalQualifier[RelationQualifie
 
   /** @return this with Some-s of empty strings as None-s for proper pattern matches */
   def withCleanOptions: RelationType
+
+  override val qualifierAsString: String = qualifier.getOrElse(RelationQualifier.relation).toString
 }
 
 case class Relation(qualifier: Option[RelationQualifier],

@@ -195,23 +195,40 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
       beInvalidDoc("invalid DatasetMetadata: expecting (label) or (prefix:label); got [dcx-dai:dcx-dai:ISNI] to adjust the <label> of <label>ISNI:000000012281955X</label>")
   }
 
-  "date without qualifier" should "fail" in {
-    DDM(new MinimalDatasetMetadata(
-      dates = Some(mandatoryDates :+ Date(None, Some("2020"), None)),
-    )) should beInvalidDoc("""invalid DatasetMetadata: no qualifier for Date: {"value":"2020"}""")
+  "date without qualifier" should behave like validDatasetMetadata(
+    input = new MinimalDatasetMetadata(dates = Some(mandatoryDates :+ Date(None, Some("2020"), None))),
+    subset = actualDDM => dcmiMetadata(actualDDM),
+    expectedDdmContent = <ddm:dcmiMetadata>
+        <dcterms:identifier xsi:type="id-type:DOI">mocked-DOI</dcterms:identifier>
+        <dcterms:dateSubmitted xsi:type="dcterms:W3CDTF">2018-03-22</dcterms:dateSubmitted>
+        <dcterms:date>2020</dcterms:date>
+      </ddm:dcmiMetadata>
+  )
+
+  "relatedIdentifier without qualifier" should behave like {
+    val relatedIdentifier = RelatedIdentifier(scheme = Some("id-type:ISSN"), value = Some("rabarbera"), qualifier = None)
+    validDatasetMetadata(
+      input = new MinimalDatasetMetadata(relations = Some(Seq[RelationType](relatedIdentifier))),
+      subset = actualDDM => dcmiMetadata(actualDDM),
+      expectedDdmContent = <ddm:dcmiMetadata>
+        <dcterms:identifier xsi:type="id-type:DOI">mocked-DOI</dcterms:identifier>
+        <dcterms:relation xsi:type="id-type:ISSN">rabarbera</dcterms:relation>
+        <dcterms:dateSubmitted xsi:type="dcterms:W3CDTF">2018-03-22</dcterms:dateSubmitted>
+      </ddm:dcmiMetadata>
+    )
   }
 
-  "relatedIdentifier without qualifier" should "fail" in {
-    val relatedIdentifier = RelatedIdentifier(scheme = Some("x"), value = Some("rabarbera"), qualifier = None)
-    DDM(new MinimalDatasetMetadata(relations = Some(Seq[RelationType](relatedIdentifier)))) should
-      beInvalidDoc("""invalid DatasetMetadata: no qualifier for RelatedIdentifier: {"scheme":"x","value":"rabarbera"}""")
-  }
-
-  "relation without qualifier" should "fail" in {
-    val url = "https://does.no.exist.dans.knaw.nl"
-    val relation = Relation(qualifier = None, Some(url), title = Some("blabla"))
-    DDM(new MinimalDatasetMetadata(relations = Some(Seq[RelationType](relation)))) should
-      beInvalidDoc(s"""invalid DatasetMetadata: no qualifier for Relation: {"url":"$url","title":"blabla"}""")
+  "relation without qualifier" should behave like {
+    val relation = Relation(qualifier = None, Some("https://does.no.exist.dans.knaw.nl"), title = Some("blabla"))
+    validDatasetMetadata(
+      input = new MinimalDatasetMetadata(relations = Some(Seq[RelationType](relation))),
+      subset = actualDDM => dcmiMetadata(actualDDM),
+      expectedDdmContent = <ddm:dcmiMetadata>
+        <dcterms:identifier xsi:type="id-type:DOI">mocked-DOI</dcterms:identifier>
+        <ddm:relation href="https://does.no.exist.dans.knaw.nl">blabla</ddm:relation>
+        <dcterms:dateSubmitted xsi:type="dcterms:W3CDTF">2018-03-22</dcterms:dateSubmitted>
+      </ddm:dcmiMetadata>
+    )
   }
 
   "spatial box without west" should "fail" in {
@@ -270,14 +287,14 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
   it should "report missing descriptions" in {
     validate(new MinimalDatasetMetadata(descriptions = None)) should
       matchPattern { case Failure(e: SAXParseException) if e.getMessage.matches
-      (".*Invalid content was found starting with element 'ddm:accessRights'. One of '.*:audience.' is expected.") =>
+      (".*Invalid content was found starting with element 'dcx-dai:creatorDetails'. One of '.*:title, .*:description.' is expected.") =>
       }
   }
 
   it should "report missing audiences" in {
     validate(new MinimalDatasetMetadata(audiences = None)) should
       matchPattern { case Failure(e: SAXParseException) if e.getMessage.matches
-      (".*Invalid content was found starting with element 'ddm:audience'. One of '.*:available.' is expected.") =>
+      (".*Invalid content was found starting with element 'ddm:accessRights'. One of '.*:audience.' is expected.") =>
       }
   }
 

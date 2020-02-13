@@ -61,6 +61,7 @@ case class Date(
     else
       this
   }
+  override lazy val qualifierAsString: String = qualifier.getOrElse(DateQualifier.date).toString
 }
 
 object Date {

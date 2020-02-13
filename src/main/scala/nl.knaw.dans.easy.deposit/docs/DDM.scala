@@ -65,7 +65,7 @@ object DDM extends SchemedXml with DebugEnhancedLogging {
         { dm.subjects.withValue.map(basicContent(_, "subject", lang)) }
         { dm.temporalCoverages.withValue.map(basicContent(_, "temporal", lang)) }
         { dm.spatialCoverages.withValue.map(basicContent(_, "spatial", lang)) }
-        { dm.otherDates.withValue.map(date => <label xsi:type={ date.scheme.orOmit }>{ date.value.orEmpty }</label>.withLabel(date.qualifierOrThrow)) }
+        { dm.otherDates.withValue.map(date => <label xsi:type={ date.scheme.orOmit }>{ date.value.orEmpty }</label>.withLabel(date.qualifierAsString)) }
         { dm.spatialPoints.withValue.map(point => <dcx-gml:spatial srsName={ point.srsName }>{ complexContent(point) }</dcx-gml:spatial>) }
         { dm.spatialBoxes.withValue.map(point => <dcx-gml:spatial>{ complexContent(point) }</dcx-gml:spatial>) }
         { dm.license.withValue.map(src => <dcterms:license xsi:type={ src.scheme.orOmit }>{ src.value.orEmpty }</dcterms:license>) }
@@ -102,12 +102,11 @@ object DDM extends SchemedXml with DebugEnhancedLogging {
         <label scheme={ rel.scheme.orOmit } href={ rel.urlOrNull }>{ rel.value.orEmpty }</label>
       case rel: Relation => // Relation(_,None,None) is skipped so we do have a title (via value) and therefore a language
         <label xml:lang={ lang } href={ rel.urlOrNull }>{ rel.value.orEmpty }</label>
-    }).withLabel(qualifierOrThrow(cleanRelation))
+    }).withLabel(qualifier(cleanRelation))
   }
 
-  @throws[IllegalArgumentException]("when no qualifier is availble")
-  private def qualifierOrThrow(cleanRelation: RelationType) = {
-    val qualifier = cleanRelation.qualifierOrThrow
+  private def qualifier(cleanRelation: RelationType) = {
+    val qualifier = cleanRelation.qualifierAsString
     cleanRelation.url
       .map(_ => qualifier.replace("dcterms", "ddm"))
       .getOrElse(qualifier)
