@@ -22,6 +22,7 @@ import java.util.UUID
 
 import better.files._
 import nl.knaw.dans.bag.v0.DansV0Bag
+import nl.knaw.dans.easy.deposit.DepositDir.bagDirName
 import nl.knaw.dans.easy.deposit.Errors._
 import nl.knaw.dans.easy.deposit.PidRequester.PidType
 import nl.knaw.dans.easy.deposit.docs.JsonUtil.toJson
@@ -170,6 +171,8 @@ case class DepositDir private(draftBase: File, user: String, id: UUID) extends D
 }
 
 object DepositDir {
+
+  private val bagDirName = "bag"
 
   /**
    * Lists the deposits of the specified user.

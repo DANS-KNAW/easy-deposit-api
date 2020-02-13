@@ -15,9 +15,15 @@
  */
 package nl.knaw.dans.easy.deposit.docs.dm
 
+import nl.knaw.dans.easy.deposit.docs.dm.SchemedKeyValue.keyedSchemes
+import nl.knaw.dans.lib.string._
+
 case class SchemedValue(scheme: Option[String],
                         value: Option[String],
-                       )
+                       ) extends OptionalValue {
+
+  def hasValue: Boolean = value.exists(!_.isBlank)
+}
 object SchemedValue {
   def apply(scheme: String, value: String): SchemedValue = {
     SchemedValue(Some(scheme), Some(value))
@@ -27,9 +33,19 @@ object SchemedValue {
 case class SchemedKeyValue(scheme: Option[String],
                            key: Option[String],
                            value: Option[String],
-                          )
+                          ) extends OptionalValue {
+  override def hasValue: Boolean = {
+    if (schemeNeedsKey)
+      key.exists(!_.isBlank)
+    else value.exists(!_.isBlank)
+  }
+
+  def schemeNeedsKey: Boolean = scheme.exists(keyedSchemes contains _)
+}
 
 object SchemedKeyValue {
+  private val keyedSchemes = Seq("abr:ABRcomplex", "abr:ABRperiode", "dcterms:ISO3166")
+
   def apply(scheme: String, key: String, value: String): SchemedKeyValue = {
     SchemedKeyValue(Some(scheme), Some(key), Some(value))
   }

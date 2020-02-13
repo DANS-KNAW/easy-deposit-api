@@ -24,7 +24,7 @@ case class Author(titles: Option[String] = None,
                   role: Option[SchemedKeyValue] = None,
                   ids: Option[Seq[SchemedValue]] = None,
                   organization: Option[String] = None,
-                 ) {
+                 ) extends OptionalValue {
   def isRightsHolder: Boolean = role.exists(_.key.contains("RightsHolder"))
 
   override def toString: String = { // for <dcterms:rightsHolder>
@@ -39,4 +39,6 @@ case class Author(titles: Option[String] = None,
       case (None, None) => "" // schema validation will fail for creator respectively contributor
     }
   }
+
+  override def hasValue: Boolean = !toString.isBlank
 }

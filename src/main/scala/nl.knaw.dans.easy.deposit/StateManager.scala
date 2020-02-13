@@ -22,6 +22,7 @@ import better.files.File
 import nl.knaw.dans.easy.deposit.Errors.{ IllegalStateTransitionException, InvalidPropertyException, PropertyNotFoundException }
 import nl.knaw.dans.easy.deposit.docs.StateInfo
 import nl.knaw.dans.easy.deposit.docs.StateInfo.State
+import nl.knaw.dans.lib.error._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.apache.commons.configuration.{ ConfigurationException, PropertiesConfiguration }
 import org.scalatra.util.UrlCodingUtils.queryPartEncode
@@ -43,49 +44,64 @@ case class StateManager(draftDeposit: DepositDir, submitBase: File, easyHome: UR
   val draftProps = new PropertiesConfiguration(
     (depositDir / "deposit.properties").toJava
   )
-  private lazy val submittedProps = getProp(bagIdKey, draftProps)
-    .map(submittedId => {
-      val submitDepositPropsFile = submitBase / submittedId / "deposit.properties"
 
-      // It is not certain that `submitDepositPropsFile` exists at the time of reading this parameter.
-      // Given that the submit is done asynchronously, it is possible that the next request
-      //   (e.g. deposit listing) is done before the deposit is moved to `submitBase`.
-      // In this case, the `draftProps` are read instead. 
-      if (submitDepositPropsFile.exists)
-        new PropertiesConfiguration(submitDepositPropsFile.toJava)
-      else
-        draftProps
-    })
-    .getOrElse(new PropertiesConfiguration) // not expected to happen, since `bagIdKey` should always exist in `draftProps`
+  private def triedSubmittedProps: Try[PropertiesConfiguration] = {
+    getProp(bagIdKey, draftProps)
+      .map(submittedId => {
+        val submitDepositPropsFile = submitBase / submittedId / "deposit.properties"
+        if (submitDepositPropsFile.exists)
+          new PropertiesConfiguration(submitDepositPropsFile.toJava)
+        else new PropertiesConfiguration // when the next request is done before the deposit is moved to `submitBase`.
+      })
+  }
 
   /** @return the state-label/description from drafts/USER/UUID/deposit.properties
    *          unless more recent values might be available in SUBMITTED/UUID/deposit.properties
    */
-  def getStateInfo: Try[StateInfo] = getStateInDraftDeposit.flatMap {
-    case draftState @ (State.draft | State.rejected | State.archived) =>
-      Success(StateInfo(draftState, getStateDescription(draftProps)))
-    case stateInDraftDeposit @ (State.submitted | State.inProgress) =>
-      getProp(stateLabelKey, submittedProps).map {
-        case "SUBMITTED" => StateInfo(stateInDraftDeposit, getStateDescription(draftProps))
-        case "REJECTED" => getProp("curation.performed", submittedProps) match {
-          case Success("yes") => saveNewStateInDraftDeposit(StateInfo(State.rejected, getStateDescription(submittedProps)))
-          case _ => StateInfo(stateInDraftDeposit, mailToDansMessage)
-        }
-        case "FAILED" => StateInfo(stateInDraftDeposit, mailToDansMessage)
-        case "IN_REVIEW" => saveNewStateInDraftDeposit(StateInfo(State.inProgress, landingPage("The deposit is available at")))
-        case "FEDORA_ARCHIVED" |
-             "ARCHIVED" => saveNewStateInDraftDeposit(StateInfo(State.archived, landingPage("The dataset is published at")))
-        case str =>
-          logger.error(InvalidPropertyException(stateLabelKey, str, submittedProps).getMessage)
-          StateInfo(stateInDraftDeposit, mailToDansMessage)
-      }.recoverWith { case e =>
-        logger.error(s"Could not find state of submitted deposit [draft = $relativeDraftDir]: ${ e.getMessage }")
-        Success(StateInfo(stateInDraftDeposit, mailToDansMessage))
-      }
+  def getStateInfo: Try[StateInfo] = {
+    getProp(stateLabelKey, draftProps).map(State.withName).map {
+      case draftState @ (State.draft | State.rejected | State.archived) =>
+        StateInfo(draftState, getStateDescription(draftProps))
+      case draftState @ (State.submitted | State.inProgress) =>
+        triedSubmittedProps
+          .map(newStateFromSubmitted(draftState, _).getOrElse(StateInfo(draftState, getStateDescription(draftProps))))
+          .getOrRecover { e =>
+            logger.error(e.getMessage, e)
+            // saving the changed message won't change behaviour on the next call
+            StateInfo(draftState, mailToDansMessage)
+          }
+    }
   }
 
-  def setStateFailed(description: String): Try[Unit] = Try {
-    saveNewStateInDraftDeposit(StateInfo(State.submitted, description))
+  private def newStateFromSubmitted(draftState: State.State, submittedProps: PropertiesConfiguration): Option[StateInfo] = {
+
+    def landingPage(msgStart: String): String = {
+      val url = getProp("identifier.fedora", submittedProps)
+        .map(id => s"$easyHome/datasets/id/$id")
+        .getOrElse(s"$easyHome/mydatasets") // fall back
+      s"""$msgStart <a href="$url" target="_blank">$url</a>"""
+    }
+
+    Option(submittedProps.getString(stateLabelKey, null)).map {
+      case "SUBMITTED" => StateInfo(draftState, getStateDescription(draftProps))
+      case "REJECTED" => getProp("curation.performed", submittedProps) match {
+        case Success("yes") => saveInDraft(StateInfo(State.rejected, getStateDescription(submittedProps)))
+        case _ => StateInfo(draftState, mailToDansMessage)
+      }
+      case "FAILED" => StateInfo(draftState, mailToDansMessage)
+      case "IN_REVIEW" => saveInDraft(StateInfo(State.inProgress, landingPage("The deposit is available at")))
+      case "FEDORA_ARCHIVED" |
+           "ARCHIVED" => saveInDraft(StateInfo(State.archived, landingPage("The dataset is published at")))
+      case str =>
+        logger.error(InvalidPropertyException(stateLabelKey, str, submittedProps).getMessage)
+        StateInfo(draftState, mailToDansMessage)
+    }
+  }
+
+  def setMailToDansDescription(): Try[Unit] = Try {
+    // using saveNewStateInDraftDeposit could inadvertently change the state
+    draftProps.setProperty(stateDescriptionKey, mailToDansMessage)
+    draftProps.save()
   }
 
   def canChangeState(oldStateInfo: StateInfo, newStateInfo: StateInfo): Try[Unit] = {
@@ -110,11 +126,11 @@ case class StateManager(draftDeposit: DepositDir, submitBase: File, easyHome: UR
         // probably properly saved without toString but getSubmittedBagId would throw
         // ConversionException: 'bag-store.bag-id' doesn't map to a String object
         draftProps.setProperty(bagIdKey, bagStoreBagId.toString)
-        saveNewStateInDraftDeposit(newStateInfo)
+        saveInDraft(newStateInfo)
         Success(())
       case (State.rejected, State.draft) =>
         draftProps.clearProperty(bagIdKey)
-        saveNewStateInDraftDeposit(newStateInfo)
+        saveInDraft(newStateInfo)
         Success(())
       case (oldState, newState) =>
         Failure(IllegalStateTransitionException(oldState, newState))
@@ -168,26 +184,15 @@ case class StateManager(draftDeposit: DepositDir, submitBase: File, easyHome: UR
     s"""Something went wrong while processing this deposit. Please <a href="mailto:info@dans.knaw.nl?subject=$subject&body=$body">contact DANS</a>"""
   }
 
-  private def landingPage(msgStart: String): String = {
-    val url = getProp("identifier.fedora", submittedProps)
-      .map(id => s"$easyHome/datasets/id/$id")
-      .getOrElse(s"$easyHome/mydatasets") // fall back
-    s"""$msgStart <a href="$url" target="_blank">$url</a>"""
-  }
-
-  private def saveNewStateInDraftDeposit(newStateInfo: StateInfo): StateInfo = {
+  private def saveInDraft(newStateInfo: StateInfo): StateInfo = {
     draftProps.setProperty(stateLabelKey, newStateInfo.state.toString)
     draftProps.setProperty(stateDescriptionKey, newStateInfo.stateDescription)
     draftProps.save()
     newStateInfo
   }
 
-  private def getStateInDraftDeposit: Try[State.Value] = {
-    getProp(stateLabelKey, draftProps).map(State.withName)
-  }
-
   private def getStateDescription(props: PropertiesConfiguration, default: String = ""): String = {
-    getProp(stateDescriptionKey, props).getOrElse(default)
+    props.getString(stateDescriptionKey, default)
   }
 
   private def getProp(key: String, props: PropertiesConfiguration): Try[String] = Try {

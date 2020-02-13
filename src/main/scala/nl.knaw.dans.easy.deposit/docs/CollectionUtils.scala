@@ -15,6 +15,7 @@
  */
 package nl.knaw.dans.easy.deposit.docs
 
+import nl.knaw.dans.easy.deposit.docs.dm.OptionalValue
 import nl.knaw.dans.lib.string._
 
 import scala.collection.generic.FilterMonadic
@@ -24,6 +25,7 @@ object CollectionUtils {
   implicit class RichSeq[T](val sources: Seq[T]) extends AnyVal {
     def withNonEmpty: FilterMonadic[T, Seq[T]] = sources.withFilter {
       case str: String => !str.isBlank
+      case x: OptionalValue => x.hasValue
       case _ => true
     }
   }

@@ -29,25 +29,28 @@ import nl.knaw.dans.bag.v0.DansV0Bag
 import nl.knaw.dans.easy.deposit.docs.AgreementData
 import nl.knaw.dans.lib.error._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
+import org.apache.commons.configuration.PropertiesConfiguration
 
 import scala.collection.JavaConverters._
 import scala.util.control.NonFatal
 import scala.util.{ Failure, Success, Try }
 
-class SubmitJob(draftDepositId: UUID,
-                depositUiURL: String,
-                groupPrincipal: GroupPrincipal,
-                draftBag: DansBag,
-                stagedDepositDir: File,
-                submitDir: File,
-                datasetXml: String,
-                filesXml: String,
-                agreementsXml: String,
-                msg4DataManager: Option[String],
-                agreementData: AgreementData,
-                draftDepositStateManager: StateManager,
-                agreementGenerator: AgreementGenerator,
-                mailer: Mailer,
+class SubmitJob( // deposit values
+                 draftDepositId: UUID,
+                 draftBag: DansBag,
+                 stagedDepositDir: File,
+                 datasetXml: String,
+                 filesXml: String,
+                 agreementsXml: String,
+                 msg4DataManager: Option[String],
+                 agreementData: AgreementData,
+                 draftDepositStateManager: StateManager,
+                 // application configuration values
+                 groupPrincipal: GroupPrincipal,
+                 depositUiURL: String,
+                 submitDir: File,
+                 agreementGenerator: AgreementGenerator,
+                 mailer: Mailer,
                ) extends Runnable with DebugEnhancedLogging {
 
   private val propsFileName = "deposit.properties"
@@ -57,14 +60,19 @@ class SubmitJob(draftDepositId: UUID,
     logger.info(s"[$draftDepositId] starting the dispatched submit action")
 
     submitDeposit() match {
-      case Failure(e) =>
+      case Failure(e) => // meaning easy-ingest-flow won't start processing
         logger.error(s"[$draftDepositId] error in dispatched submit action ${ this.toString }", e)
-        draftDepositStateManager.setStateFailed(e.getMessage)
-          .doIfFailure { case e => logger.error(s"[$draftDepositId] could not set state to FAILED after submission failed", e) }
-      case Success(()) =>
+        draftDepositStateManager.setMailToDansDescription()
+          .doIfFailure { case e => logger.error(s"[$draftDepositId] could not set state description after submission failed", e) }
+      case Success(()) => // meaning easy-ingest-flow will start processing
         sendEmail
           .doIfSuccess(_ => logger.info(s"[$draftDepositId] finished with dispatched submit action"))
-          .doIfFailure { case e => logger.error(s"[$draftDepositId] deposit submitted but could not send confirmation message", e) }
+          .doIfFailure { case e =>
+            // changing the state description like above (with something like no confirmation message sent)
+            // would cause change conflicts with getStateInfo
+            // when it updates the state (and its description!) with info from easy-ingest-flow
+            logger.error(s"[$draftDepositId] deposit submitted but could not send confirmation message", e)
+          }
     }
   }
 
@@ -75,11 +83,13 @@ class SubmitJob(draftDepositId: UUID,
     }
     logger.debug(s"[$draftDepositId] Message for the datamanager:\n$fullMsg4DataManager")
 
-    val stagedBagDir = stagedDepositDir / bagDirName
+    val stagedBagDir = stagedDepositDir / draftDepositId.toString
+    val stageDepositProperties = stagedDepositDir / propsFileName
     logger.info(s"[$draftDepositId] Created staged bag in ${ stagedBagDir }")
     for {
       stageBag <- DansV0Bag.empty(stagedBagDir).map(_.withCreated())
-      _ = (draftBag.baseDir.parent / propsFileName).copyTo(stagedDepositDir / propsFileName)
+      _ = (draftBag.baseDir.parent / propsFileName).copyTo(stageDepositProperties)
+      _ <- setStagedDepositBagName(stageDepositProperties, draftDepositId.toString)
       _ = logger.info(s"[$draftDepositId] adding metadata to staged bag")
       _ <- stageBag.addMetadataFile(fullMsg4DataManager, s"$depositorInfoDirectoryName/message-from-depositor.txt")
       _ <- stageBag.addMetadataFile(agreementsXml, s"$depositorInfoDirectoryName/agreements.xml")
@@ -98,6 +108,12 @@ class SubmitJob(draftDepositId: UUID,
       _ = logger.info(s"[$draftDepositId] move $stagedDepositDir to $submitDir")
       _ = stagedDepositDir.moveTo(submitDir)(CopyOptions.atomically)
     } yield ()
+  }
+
+  private def setStagedDepositBagName(propertiesFile: File, bagName: String): Try[Unit] = Try {
+    val props = new PropertiesConfiguration(propertiesFile.toJava)
+    props.setProperty("bag-store.bag-name", bagName)
+    props.save()
   }
 
   private def sendEmail: Try[Unit] = {
@@ -170,7 +186,10 @@ class SubmitJob(draftDepositId: UUID,
     case e: FileSystemException => throw new IOException(s"Not able to set the group to ${ groupPrincipal.getName }. Probably the current user (${ System.getProperty("user.name") }) is not part of this group.", e)
     case e: IOException => throw new IOException(s"Could not set file permissions or group on $path", e)
     case e: SecurityException => throw new IOException(s"Not enough privileges to set file permissions or group on $path", e)
-    case NonFatal(e) => throw new IOException(s"unexpected error occured on $path", e)
+    case e: ProviderMismatchException =>
+      // when tested with new GroupPrincipal() {override def getName: String = "invalidGroupPrincipal" }
+      throw new IOException(s"unexpected error occurred on $path", e)
+    case NonFatal(e) => throw new IOException(s"unexpected error occurred on $path", e)
   }
 
   override def toString: String = s"<SubmitWorkerAction[id = $draftDepositId, draftBag = ${ draftBag.baseDir }, submitDir = $submitDir]>"

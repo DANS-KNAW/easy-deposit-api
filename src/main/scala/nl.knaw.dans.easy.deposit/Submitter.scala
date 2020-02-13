@@ -71,29 +71,32 @@ class Submitter(submitToBaseDir: File,
       submittedId <- draftDepositStateManager.getSubmittedBagId // created by changeState
       submitDir = submitToBaseDir / submittedId.toString
       _ = if (submitDir.exists) throw AlreadySubmittedException(depositId)
-      queueSize = jobQueue.getSystemStatus.queueSize
-      queueMsg = if (queueSize > 0) s"; currently ${ queueSize } jobs waiting to be processed"
-                 else ""
-      _ = logger.info(s"[$depositId] dispatching submit action to threadpool executor$queueMsg")
+      _ = logger.info(s"[$depositId] dispatching submit action to threadpool executor$queueMessage")
       _ <- jobQueue.scheduleJob {
         new SubmitJob(
           draftDepositId = draftDeposit.id,
-          depositUiURL = depositUiURL,
-          groupPrincipal = groupPrincipal,
           draftBag = draftBag,
           stagedDepositDir = stagedDir,
-          submitDir = submitDir,
           datasetXml = datasetXml,
           filesXml = filesXml,
           agreementsXml = agreementsXml,
           msg4DataManager = datasetMetadata.messageForDataManager.getOrElse("").stripLineEnd.toOption,
           agreementData = AgreementData(user, datasetMetadata),
           draftDepositStateManager = draftDepositStateManager,
+          groupPrincipal = groupPrincipal,
+          depositUiURL = depositUiURL,
+          submitDir = submitDir,
           agreementGenerator = agreementGenerator,
           mailer = mailer,
         )
       }
     } yield ()
+  }
+
+  private def queueMessage = {
+    val queueSize = jobQueue.getSystemStatus.queueSize
+    if (queueSize > 0) s"; currently ${ queueSize } jobs waiting to be processed"
+    else ""
   }
 
   type ManifestItems = Map[File, String]
