@@ -253,18 +253,13 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
     )
   }
 
-  "spatial box without scheme" should "fail" in {
-    // note the differences in white spaces and quotes for the values
-    DDM(new MinimalDatasetMetadata(
-      spatialBoxes = parse("""{"spatialBoxes":[{"north": 1, "east": 2, "south": 3, "west": 4}]}""").spatialBoxes
-    )) should beInvalidDoc("""invalid DatasetMetadata: scheme is mandatory for SpatialBox: {"north":"1","east":"2","south":"3","west":"4"}""")
-  }
-
-  "spatial point without scheme" should "fail" in {
+  "spatial point without scheme" should behave like {
     val point = """{"x":"1","y":"2"}"""
-    DDM(new MinimalDatasetMetadata(
-      spatialPoints = parse(s"""{"spatialPoints":[$point]}""").spatialPoints
-    )) should beInvalidDoc(s"""invalid DatasetMetadata: scheme is mandatory for SpatialPoint: $point""")
+    validDatasetMetadata(
+      input = new MinimalDatasetMetadata(
+        spatialPoints = parse(s"""{"spatialPoints":[$point]}""").spatialPoints
+      )
+    )
   }
 
   "language key without scheme" should behave like validDatasetMetadata(
@@ -292,7 +287,7 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
   )
 
   // showing input errors not detected at submit but bij validation of ingest-flow
-  "triedSchema.validate" should "report missing titles" in {
+  "Schema.validate(DDM(json))" should "report missing titles" in {
     validate(new MinimalDatasetMetadata(titles = None)) should
       matchPattern { case Failure(e: SAXParseException) if e.getMessage.matches
       (".*Invalid content was found starting with element 'dcterms:description'. One of '.*:title.' is expected.") =>
@@ -339,6 +334,15 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
       matchPattern { case Failure(e: SAXParseException) if e.getMessage.matches
       (".*The content of element 'ddm:profile' is not complete. One of '.*:audience, .*:accessRights.' is expected.") =>
       }
+  }
+
+  it should "report spatial box without scheme" in {
+    validate(new MinimalDatasetMetadata(
+      spatialBoxes = parse("""{"spatialBoxes":[{"north": 1, "east": 2, "south": 3, "west": 4}]}""").spatialBoxes
+    )) should
+      matchPattern { case Failure(e: SAXParseException) if e.getMessage.matches
+      (".*Attribute 'srsName' must appear on element 'Envelope'.") =>
+    }
   }
 
   "minimal with SchemedKeyValue variants" should behave like validDatasetMetadata(

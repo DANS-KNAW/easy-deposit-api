@@ -33,7 +33,7 @@ trait SchemedSpatial extends OptionalValue {
       case Some("degrees") => Spatial.DEGREES_SRS_NAME
       case Some("RD") => Spatial.RD_SRS_NAME
       case Some(s) if s.trim.nonEmpty => s
-      case _ => throw new IllegalArgumentException(s"scheme is mandatory for $errorDetails")
+      case _ => null // will suppress the XML attribute
     }
   }
 
