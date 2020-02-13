@@ -146,6 +146,30 @@ class DataFilesSpec extends TestSupportFixture {
     ))
   }
 
+  it should " return an empty list on a new bag" in {
+    val bag = DansV0Bag
+      .empty(testDir / "testBag").getOrRecover(fail("could not create test bag", _))
+    bag.save()
+    val dataFiles = DataFiles(bag)
+    dataFiles.list() shouldBe Success(Seq.empty)
+  }
+
+  it should " return an empty list on original of a new bag" in {
+    val bag = DansV0Bag
+      .empty(testDir / "testBag").getOrRecover(fail("could not create test bag", _))
+    bag.save()
+    val dataFiles = DataFiles(bag)
+    dataFiles.list(Paths.get("original")) shouldBe Success(Seq.empty)
+  }
+
+  it should " return an empty list on foo/bar of a new bag" in {
+    val bag = DansV0Bag
+      .empty(testDir / "testBag").getOrRecover(fail("could not create test bag", _))
+    bag.save()
+    val dataFiles = DataFiles(bag)
+    dataFiles.list(Paths.get("foo/bar")) shouldBe Success(Seq.empty)
+  }
+
   "fileInfo" should "contain proper information about the files" in {
     val sha1 = "a57ec0c3239f30b29f1e9270581be50a70c74c04"
     val sha2 = "815bc8056fe15e00f24514051f1d06016852360c"

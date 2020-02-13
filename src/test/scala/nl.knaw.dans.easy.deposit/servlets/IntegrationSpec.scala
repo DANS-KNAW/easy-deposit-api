@@ -41,6 +41,31 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
   private val app: EasyDepositApiApp = createTestApp()
   mountServlets(app, authMocker.mockedAuthenticationProvider)
 
+  "webui new deposit requests (create, state, file, metadata)" should "all succeed" in {
+    authMocker.expectsUserFooBar
+    val uuid = createDeposit
+    val uri = s"/deposit/$uuid/"
+
+    // get dataset metadata
+    authMocker.expectsUserFooBar
+    get(uri + "metadata", headers = Seq(fooBarBasicAuthHeader)) {
+      status shouldBe OK_200
+      body shouldBe """{"privacySensitiveDataPresent":"unspecified","acceptDepositAgreement":false}"""
+    }
+
+    authMocker.expectsUserFooBar
+    get(uri + "state", headers = Seq(fooBarBasicAuthHeader)) {
+      status shouldBe OK_200
+      body shouldBe """{"state":"DRAFT","stateDescription":"Deposit is open for changes."}"""
+    }
+
+    authMocker.expectsUserFooBar
+    get(uri + "file/", headers = Seq(fooBarBasicAuthHeader)) {
+      status shouldBe OK_200
+      body shouldBe """[]"""
+    }
+  }
+
   "scenario: /deposit/:uuid/metadata life cycle" should "return default dataset metadata" in {
     authMocker.expectsUserFooBar
     val uuid = createDeposit

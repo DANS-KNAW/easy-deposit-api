@@ -46,7 +46,8 @@ case class DataFiles(bag: DansBag) extends DebugEnhancedLogging {
    * @return 'true' if directory, else 'false'
    */
   def isDirectory(path: Path): Boolean = {
-    bag.data / path.toString isDirectory
+    val file = bag.data / path.toString
+    file == uploadRoot || file.isDirectory
   }
 
   /**
