@@ -52,7 +52,6 @@ case class SpatialPoint(scheme: Option[String],
     case _ => s"$sy $sx"
   }
 
-  @throws[IllegalArgumentException]("when only one of the coordinate components is specified")
   override lazy val value: Option[String] = {
     x.map(_ => pos)
   }
@@ -95,7 +94,6 @@ case class SpatialBox(scheme: Option[String],
     case _ => yx
   }
 
-  @throws[IllegalArgumentException]("when some but not all coordinate components are specified")
   override lazy val value: Option[String] = {
     north.map(_ => s"($lower) ($upper)")
   }

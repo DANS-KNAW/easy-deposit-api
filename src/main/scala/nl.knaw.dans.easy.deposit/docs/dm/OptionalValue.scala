@@ -20,6 +20,5 @@ import nl.knaw.dans.lib.string._
 trait OptionalValue {
   val value: Option[String]
 
-  @throws[IllegalArgumentException]("when only some of the mandatory value parts are available")
   lazy val hasValue: Boolean = value.exists(!_.isBlank)
 }
