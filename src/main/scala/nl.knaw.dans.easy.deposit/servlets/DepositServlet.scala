@@ -162,7 +162,7 @@ class DepositServlet(app: EasyDepositApiApp)
     {
       for {
         uuid <- getUUID
-        path <- getRelativeLocationInBagData(s"[$uuid] upload files to path") // plural)
+        path <- getRelativeLocationInBagData(s"[$uuid] upload files to path") // plural
         _ <- isMultipart
         fileItems = fileMultiParams.valuesIterator.flatten.buffered
         maybeManagedArchiveInputStream <- fileItems.nextAsArchiveIfOnlyOne

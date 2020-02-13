@@ -47,7 +47,7 @@ class UploadSpec extends ServletFixture with Inspectors {
       ("more", "4.txt", "Ut enim ad minim veniam"),
     ))
     val uuid = createDeposit
-    val relativeTarget = "original/path/to/dir"
+    val relativeTarget = DepositServlet.uploadRoot + "/path/to/dir"
     post(
       uri = s"/deposit/$uuid/file/$relativeTarget",
       params = Iterable(),

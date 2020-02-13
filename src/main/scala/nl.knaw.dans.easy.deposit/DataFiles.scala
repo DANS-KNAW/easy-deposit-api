@@ -95,8 +95,8 @@ case class DataFiles(bag: DansBag) extends DebugEnhancedLogging {
     val fileExists = manifests.get.contains(absolutePath)
     if (fileExists) Success(toFileInfo(absolutePath, checksum = manifests get absolutePath))
     else {
-      val path1 = uploadRoot.relativize(absolutePath)
-      Failure(NoSuchFileInDepositException(path1))
+      val relativePath = uploadRoot.relativize(absolutePath)
+      Failure(NoSuchFileInDepositException(relativePath))
     }
   }
 
@@ -128,9 +128,11 @@ case class DataFiles(bag: DansBag) extends DebugEnhancedLogging {
     if (!file.exists) {
       val relPath = uploadRoot.relativize(file)
       Failure(NoSuchFileInDepositException(relPath))
-    } else (if (file.isDirectory) removeDir(file.walk().toStream)
-          else bag.removePayloadFile(path)
-      ).flatMap(_.save)
+    } else {
+      val triedBag = if (file.isDirectory) removeDir(file.walk().toStream)
+                     else bag.removePayloadFile(path)
+      triedBag.flatMap(_.save)
+    }
   }
 
   private def removeDir(files: Stream[File]): Try[DansBag] = {
