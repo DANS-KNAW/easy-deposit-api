@@ -36,14 +36,6 @@ object CollectionUtils {
     def withValue: FilterMonadic[T, Seq[T]] = sources.toSeq.flatten.withValue
   }
 
-  implicit class RichElemSeq[T](val sources: Seq[T]) extends AnyVal {
-
-    def mandatory: Seq[T] = {
-      if (sources.isEmpty) throw new IllegalArgumentException("missing mandatory metadata")
-      sources
-    }
-  }
-
   implicit class RichSeqOption[T](val sources: Seq[Option[T]]) extends AnyVal {
     def withValue: FilterMonadic[T, Seq[T]] = sources.flatMap(_.toSeq).withValue
   }

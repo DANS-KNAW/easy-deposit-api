@@ -254,44 +254,59 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
       """requirement failed: At most one allowed; got [{"scheme":"dcterms:W3CDTF","value":"2018-05-29","qualifier":"dcterms:created"},{"scheme":"dcterms:W3CDTF","value":"2018-05-29","qualifier":"dcterms:created"}]"""
   }
 
-  "metadata without titles" should "fail" in {
-    DDM(new MinimalDatasetMetadata(titles = None)) should
-      beInvalidDoc("invalid DatasetMetadata: missing mandatory metadata")
-  }
-
-  "minimal without descriptions" should "fail" in {
-    DDM(new MinimalDatasetMetadata(descriptions = None)) should
-      beInvalidDoc("invalid DatasetMetadata: missing mandatory metadata")
-  }
-
   "metadata without instructionsForReuse" should behave like validDatasetMetadata(
     // the only element of <ddm:profile> that is not mandatory
     input = new MinimalDatasetMetadata(instructionsForReuse = None)
   )
 
-  "metadata without audiences" should "fail" in {
-    DDM(new MinimalDatasetMetadata(audiences = None)) should
-      beInvalidDoc("invalid DatasetMetadata: missing mandatory metadata")
+  // showing input errors not detected at submit but bij validation of ingest-flow
+  "triedSchema.validate" should "report missing titles" in {
+    validate(new MinimalDatasetMetadata(titles = None)) should
+      matchPattern { case Failure(e: SAXParseException) if e.getMessage.matches
+      (".*Invalid content was found starting with element 'dcterms:description'. One of '.*:title.' is expected.") =>
+      }
   }
 
-  "metadata without creators" should "fail" in {
-    DDM(new MinimalDatasetMetadata(creators = None)) should
-      beInvalidDoc("invalid DatasetMetadata: missing mandatory metadata")
+  it should "report missing descriptions" in {
+    validate(new MinimalDatasetMetadata(descriptions = None)) should
+      matchPattern { case Failure(e: SAXParseException) if e.getMessage.matches
+      (".*Invalid content was found starting with element 'ddm:accessRights'. One of '.*:audience.' is expected.") =>
+      }
   }
 
-  "metadata without dateCreated" should "fail" in {
-    DDM(new MinimalDatasetMetadata(dates = Some(Seq(mandatoryDates.head)))) should
-      beInvalidDoc("invalid DatasetMetadata: missing mandatory metadata")
+  it should "report missing audiences" in {
+    validate(new MinimalDatasetMetadata(audiences = None)) should
+      matchPattern { case Failure(e: SAXParseException) if e.getMessage.matches
+      (".*Invalid content was found starting with element 'ddm:audience'. One of '.*:available.' is expected.") =>
+      }
   }
 
-  "metadata without dateAvailable" should "fail" in {
-    DDM(new MinimalDatasetMetadata(dates = Some(Seq(mandatoryDates.last)))) should
-      beInvalidDoc("invalid DatasetMetadata: missing mandatory metadata")
+  it should "report missing creators" in {
+    validate(new MinimalDatasetMetadata(creators = None)) should
+      matchPattern { case Failure(e: SAXParseException) if e.getMessage.matches
+      (".*Invalid content was found starting with element 'ddm:created'. One of '.*:description, .*:creator.' is expected.") =>
+      }
   }
 
-  "metadata without accessRights" should "fail" in {
-    DDM(new MinimalDatasetMetadata(accessRights = None)) should
-      beInvalidDoc("invalid DatasetMetadata: missing mandatory metadata")
+  it should "report missing dateCreated" in {
+    validate(new MinimalDatasetMetadata(dates = Some(Seq(mandatoryDates.head)))) should
+      matchPattern { case Failure(e: SAXParseException) if e.getMessage.matches
+      (".*Invalid content was found starting with element 'ddm:audience'. One of '.*:available.' is expected.") =>
+      }
+  }
+
+  it should "report missing dateAvailable" in {
+    validate(new MinimalDatasetMetadata(dates = Some(Seq(mandatoryDates.last)))) should
+      matchPattern { case Failure(e: SAXParseException) if e.getMessage.matches
+      (".*Invalid content was found starting with element 'ddm:available'. One of '.*:creator, .*:created.' is expected.") =>
+      }
+  }
+
+  it should "report missing accessRights" in {
+    validate(new MinimalDatasetMetadata(accessRights = None)) should
+      matchPattern { case Failure(e: SAXParseException) if e.getMessage.matches
+      (".*The content of element 'ddm:profile' is not complete. One of '.*:audience, .*:accessRights.' is expected.") =>
+      }
   }
 
   "minimal with SchemedKeyValue variants" should behave like validDatasetMetadata(
@@ -694,6 +709,11 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
     Try(getManualTestResource(file))
       .flatMap(DatasetMetadata(_))
       .getOrRecover(e => fail(s"could not parse test inpyt $file", e))
+  }
+
+  private def validate(metadata: MinimalDatasetMetadata) = {
+    val ddm = DDM(metadata).getOrRecover(e => fail("could not create test data", e))
+    triedSchema.validate(ddm)
   }
 }
 
