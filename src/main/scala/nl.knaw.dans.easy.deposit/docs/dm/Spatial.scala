@@ -15,8 +15,6 @@
  */
 package nl.knaw.dans.easy.deposit.docs.dm
 
-import nl.knaw.dans.easy.deposit.docs.JsonUtil.toJson
-
 object Spatial {
   /** coordinate order y, x = latitude (DCX_SPATIAL_Y), longitude (DCX_SPATIAL_X) */
   val DEGREES_SRS_NAME = "http://www.opengis.net/def/crs/EPSG/0/4326"
@@ -36,8 +34,6 @@ trait SchemedSpatial extends OptionalValue {
       case _ => null // will suppress the XML attribute
     }
   }
-
-  private def errorDetails = s"${ getClass.getSimpleName }: ${ toJson(this) }"
 }
 
 case class SpatialPoint(scheme: Option[String],
@@ -53,7 +49,8 @@ case class SpatialPoint(scheme: Option[String],
   }
 
   override lazy val value: Option[String] = {
-    x.map(_ => pos)
+    (x ++ y).headOption
+      .map(_ => pos)
   }
 }
 
@@ -95,6 +92,7 @@ case class SpatialBox(scheme: Option[String],
   }
 
   override lazy val value: Option[String] = {
-    north.map(_ => s"($lower) ($upper)")
+    (north ++ east ++ south++ west).headOption
+      .map(_ => s"($lower) ($upper)")
   }
 }
