@@ -46,7 +46,7 @@ object DDM extends SchemedXml with DebugEnhancedLogging {
         { dm.titles.withValue.map(str => <dc:title xml:lang={ lang }>{ str }</dc:title>) }
         { dm.descriptions.withValue.map(str => <dcterms:description xml:lang={ lang }>{ str }</dcterms:description>) }
         { dm.instructionsForReuse.withValue.map(str => <ddm:description descriptionType="TechnicalInfo">{ str }</ddm:description>) }
-        { dm.creators.withValue.map(author => <dcx-dai:creatorDetails>{ complexContent(author, lang) }</dcx-dai:creatorDetails>) }
+        { dm.creators.withValue.map(author => <dcx-dai:creatorDetails>{ nestedXML(author, lang) }</dcx-dai:creatorDetails>) }
         { dm.datesCreated.withValue.map(src => <ddm:created>{ src.value.orEmpty }</ddm:created>) }
         { dm.datesAvailable.withValue.map(src => <ddm:available>{ src.value.orEmpty }</ddm:available>) }
         { dm.audiences.toSeq.flatten.map(_.key).withValue.map(key => <ddm:audience>{ key }</ddm:audience>) }
@@ -56,7 +56,7 @@ object DDM extends SchemedXml with DebugEnhancedLogging {
         { dm.identifiers.withValue.map(id => <dcterms:identifier xsi:type={ id.scheme.orOmit }>{ id.value.orEmpty }</dcterms:identifier>) }
         { dm.alternativeTitles.withValue.map(str => <dcterms:alternative xml:lang={ lang }>{ str }</dcterms:alternative>) }
         { dm.allRelations.withValue.map(basicContent(_, lang)) }
-        { dm.contributors.withValue.map(author => <dcx-dai:contributorDetails>{ complexContent(author, lang) }</dcx-dai:contributorDetails>) }
+        { dm.contributors.withValue.map(author => <dcx-dai:contributorDetails>{ nestedXML(author, lang) }</dcx-dai:contributorDetails>) }
         { dm.authors.map(_.rightsHolder).withValue.map(str => <dcterms:rightsHolder>{ str }</dcterms:rightsHolder>) }
         { dm.publishers.withValue.map(str => <dcterms:publisher xml:lang={ lang }>{ str }</dcterms:publisher>) }
         { dm.sources.withValue.map(str => <dc:source xml:lang={ lang }>{ str }</dc:source>) }
@@ -66,8 +66,8 @@ object DDM extends SchemedXml with DebugEnhancedLogging {
         { dm.temporalCoverages.withValue.map(basicContent(_, "temporal", lang)) }
         { dm.spatialCoverages.withValue.map(basicContent(_, "spatial", lang)) }
         { dm.otherDates.withValue.map(date => <label xsi:type={ date.scheme.orOmit }>{ date.value.orEmpty }</label>.withLabel(date.qualifierAsString)) }
-        { dm.spatialPoints.withValue.map(point => <dcx-gml:spatial srsName={ point.srsName }>{ complexContent(point) }</dcx-gml:spatial>) }
-        { dm.spatialBoxes.withValue.map(point => <dcx-gml:spatial>{ complexContent(point) }</dcx-gml:spatial>) }
+        { dm.spatialPoints.withValue.map(point => <dcx-gml:spatial srsName={ point.srsName }>{ nestedXML(point) }</dcx-gml:spatial>) }
+        { dm.spatialBoxes.withValue.map(point => <dcx-gml:spatial>{ nestedXML(point) }</dcx-gml:spatial>) }
         { dm.license.withValue.map(src => <dcterms:license xsi:type={ src.scheme.orOmit }>{ src.value.orEmpty }</dcterms:license>) }
         { dm.languagesOfFiles.toSeq.flatten.withFilter(!_.keyOrValue.isEmpty).map(src => <dcterms:language xsi:type ={ src.scheme.orOmit  }>{ src.keyOrValue }</dcterms:language>) }
       </ddm:dcmiMetadata>
@@ -76,13 +76,13 @@ object DDM extends SchemedXml with DebugEnhancedLogging {
     case e: IllegalArgumentException => Failure(InvalidDocumentException("DatasetMetadata", e))
   }
 
-  private def complexContent(point: SpatialPoint): Elem = {
+  private def nestedXML(point: SpatialPoint): Elem = {
     <Point xmlns="http://www.opengis.net/gml">
         <pos>{ point.pos }</pos>
     </Point>
   }
 
-  private def complexContent(box: SpatialBox): Elem = {
+  private def nestedXML(box: SpatialBox): Elem = {
     <boundedBy xmlns="http://www.opengis.net/gml">
         <Envelope srsName={ box.srsName }>
             <lowerCorner>{ box.lower }</lowerCorner>
@@ -126,9 +126,9 @@ object DDM extends SchemedXml with DebugEnhancedLogging {
     }
   }
 
-  private def complexContent(author: Author, lang: String): Seq[Node] = {
+  private def nestedXML(author: Author, lang: String): Seq[Node] = {
     if (author.surname.forall(_.isBlank))
-      author.organization.toSeq.map(complexContent(_, lang, author.role))
+      author.organization.toSeq.map(nestedXML(_, lang, author.role))
     else
       <dcx-dai:author>
         { author.titles.withValue.map(str => <dcx-dai:titles xml:lang={ lang }>{ str }</dcx-dai:titles>) }
@@ -137,7 +137,7 @@ object DDM extends SchemedXml with DebugEnhancedLogging {
         { author.surname.withValue.map(str => <dcx-dai:surname>{ str }</dcx-dai:surname>) }
         { author.ids.withValue.map(src => { <label>{ src.value.orEmpty }</label>.withLabel(daiLabel(src.scheme)) }) }
         { author.role.flatMap(_.key).withValue.map(key => <dcx-dai:role>{ key }</dcx-dai:role>) }
-        { author.organization.withValue.map(complexContent(_, lang, role = None)) }
+        { author.organization.withValue.map(nestedXML(_, lang, role = None)) }
       </dcx-dai:author>
   }
 
@@ -145,7 +145,7 @@ object DDM extends SchemedXml with DebugEnhancedLogging {
     s"dcx-dai:${ empty.orEmpty.replace("id-type:", "") }"
   }
 
-  private def complexContent(organization: String, lang: String, role: Option[SchemedKeyValue]): Elem =
+  private def nestedXML(organization: String, lang: String, role: Option[SchemedKeyValue]): Elem =
       <dcx-dai:organization>
         { <dcx-dai:name xml:lang={ lang }>{ organization }</dcx-dai:name> }
         { role.flatMap(_.key).withValue.map(key => <dcx-dai:role>{ key }</dcx-dai:role>) }
