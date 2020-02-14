@@ -21,7 +21,6 @@ import nl.knaw.dans.easy.deposit.TestSupportFixture
 import nl.knaw.dans.easy.deposit.docs.dm.DateScheme.W3CDTF
 import nl.knaw.dans.easy.deposit.docs.dm._
 import nl.knaw.dans.lib.error._
-import org.scalatest.matchers.Matcher
 
 import scala.util.{ Failure, Success, Try }
 import scala.xml._
@@ -192,7 +191,10 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
       ids = Some(Seq(SchemedValue("dcx-dai:ISNI", "ISNI:000000012281955X")))
     )
     DDM(new MinimalDatasetMetadata(contributors = Some(Seq(author)))) should
-      beInvalidDoc("invalid DatasetMetadata: expecting (label) or (prefix:label); got [dcx-dai:dcx-dai:ISNI] to adjust the <label> of <label>ISNI:000000012281955X</label>")
+      matchPattern {
+        case Failure(e: InvalidDocumentException) if e.getMessage ==
+          "invalid DatasetMetadata: expecting (label) or (prefix:label); got [dcx-dai:dcx-dai:ISNI] to adjust the <label> of <label>ISNI:000000012281955X</label>" =>
+      }
   }
 
   "date without qualifier" should behave like validDatasetMetadata(
@@ -286,63 +288,46 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
     input = new MinimalDatasetMetadata(instructionsForReuse = None)
   )
 
-  // showing input errors not detected at submit but bij validation of ingest-flow
+  // documenting what the client should validate to get the metadata ingested
   "Schema.validate(DDM(json))" should "report missing titles" in {
     validate(new MinimalDatasetMetadata(titles = None)) should
-      matchPattern { case Failure(e: SAXParseException) if e.getMessage.matches
-      (".*Invalid content was found starting with element 'dcterms:description'. One of '.*:title.' is expected.") =>
-      }
+      matchSaxMessage(".*Invalid content was found starting with element 'dcterms:description'. One of '.*:title.' is expected.")
   }
 
   it should "report missing descriptions" in {
     validate(new MinimalDatasetMetadata(descriptions = None)) should
-      matchPattern { case Failure(e: SAXParseException) if e.getMessage.matches
-      (".*Invalid content was found starting with element 'dcx-dai:creatorDetails'. One of '.*:title, .*:description.' is expected.") =>
-      }
+      matchSaxMessage(".*Invalid content was found starting with element 'dcx-dai:creatorDetails'. One of '.*:title, .*:description.' is expected.")
   }
 
   it should "report missing audiences" in {
     validate(new MinimalDatasetMetadata(audiences = None)) should
-      matchPattern { case Failure(e: SAXParseException) if e.getMessage.matches
-      (".*Invalid content was found starting with element 'ddm:accessRights'. One of '.*:audience.' is expected.") =>
-      }
+      matchSaxMessage(".*Invalid content was found starting with element 'ddm:accessRights'. One of '.*:audience.' is expected.")
   }
 
   it should "report missing creators" in {
     validate(new MinimalDatasetMetadata(creators = None)) should
-      matchPattern { case Failure(e: SAXParseException) if e.getMessage.matches
-      (".*Invalid content was found starting with element 'ddm:created'. One of '.*:description, .*:creator.' is expected.") =>
-      }
+      matchSaxMessage(".*Invalid content was found starting with element 'ddm:created'. One of '.*:description, .*:creator.' is expected.")
   }
 
   it should "report missing dateCreated" in {
     validate(new MinimalDatasetMetadata(dates = Some(Seq(mandatoryDates.head)))) should
-      matchPattern { case Failure(e: SAXParseException) if e.getMessage.matches
-      (".*Invalid content was found starting with element 'ddm:audience'. One of '.*:available.' is expected.") =>
-      }
+      matchSaxMessage(".*Invalid content was found starting with element 'ddm:audience'. One of '.*:available.' is expected.")
   }
 
   it should "report missing dateAvailable" in {
     validate(new MinimalDatasetMetadata(dates = Some(Seq(mandatoryDates.last)))) should
-      matchPattern { case Failure(e: SAXParseException) if e.getMessage.matches
-      (".*Invalid content was found starting with element 'ddm:available'. One of '.*:creator, .*:created.' is expected.") =>
-      }
+      matchSaxMessage(".*Invalid content was found starting with element 'ddm:available'. One of '.*:creator, .*:created.' is expected.")
   }
 
   it should "report missing accessRights" in {
     validate(new MinimalDatasetMetadata(accessRights = None)) should
-      matchPattern { case Failure(e: SAXParseException) if e.getMessage.matches
-      (".*The content of element 'ddm:profile' is not complete. One of '.*:audience, .*:accessRights.' is expected.") =>
-      }
+      matchSaxMessage(".*The content of element 'ddm:profile' is not complete. One of '.*:audience, .*:accessRights.' is expected.")
   }
 
   it should "report spatial box without scheme" in {
     validate(new MinimalDatasetMetadata(
       spatialBoxes = parse("""{"spatialBoxes":[{"north": 1, "east": 2, "south": 3, "west": 4}]}""").spatialBoxes
-    )) should
-      matchPattern { case Failure(e: SAXParseException) if e.getMessage.matches
-      (".*Attribute 'srsName' must appear on element 'Envelope'.") =>
-    }
+    )) should matchSaxMessage(".*Attribute 'srsName' must appear on element 'Envelope'.")
   }
 
   "minimal with SchemedKeyValue variants" should behave like validDatasetMetadata(
@@ -729,11 +714,8 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
     Elem("ddm", "profile", Null, emptyDDM.scope, minimizeEmpty = true, actualDDM \ "profile" \ label: _*)
   )
 
-  private def beInvalidDoc(msg: String): Matcher[Any] = {
-    matchPattern {
-      case Failure(e: InvalidDocumentException) if e.getMessage ==
-        msg =>
-    }
+  private def matchSaxMessage(regexp: String) = {
+    matchPattern { case Failure(e: SAXParseException) if e.getMessage.matches(regexp) => }
   }
 
   private def parse(input: String) = {
