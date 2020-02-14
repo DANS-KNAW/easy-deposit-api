@@ -135,10 +135,14 @@ object DDM extends SchemedXml with DebugEnhancedLogging {
         { author.initials.withValue.map(str => <dcx-dai:initials>{ str }</dcx-dai:initials>) }
         { author.insertions.withValue.map(str => <dcx-dai:insertions>{ str }</dcx-dai:insertions>) }
         { author.surname.withValue.map(str => <dcx-dai:surname>{ str }</dcx-dai:surname>) }
-        { author.ids.withValue.map(src => <label>{ src.value.orEmpty }</label>.withLabel(s"dcx-dai:${ src.scheme.orEmpty.replace("id-type:", "") }")) }
+        { author.ids.withValue.map(src => { <label>{ src.value.orEmpty }</label>.withLabel(daiLabel(src.scheme)) }) }
         { author.role.flatMap(_.key).withValue.map(key => <dcx-dai:role>{ key }</dcx-dai:role>) }
         { author.organization.withValue.map(complexContent(_, lang, role = None)) }
       </dcx-dai:author>
+  }
+
+  private def daiLabel(empty: Option[String]) = {
+    s"dcx-dai:${ empty.orEmpty.replace("id-type:", "") }"
   }
 
   private def complexContent(organization: String, lang: String, role: Option[SchemedKeyValue]): Elem =
@@ -150,14 +154,10 @@ object DDM extends SchemedXml with DebugEnhancedLogging {
   /** @param elem XML element to be adjusted */
   private implicit class RichElem(val elem: Elem) extends AnyVal {
     /** @param str the desired label, optionally with name space prefix */
-    @throws[InvalidDocumentException]("when str is not a valid XML label (has more than one ':')")
     def withLabel(str: String): Elem = {
-      str.split(":") match {
+      str.split(":", 2) match {
         case Array(label) if label.nonEmpty => elem.copy(label = label)
         case Array(prefix, label) => elem.copy(prefix = prefix, label = label)
-        case a => throw new IllegalArgumentException(
-          s"expecting (label) or (prefix:label); got [${ a.mkString(":") }] to adjust the <${ elem.label }> of $elem"
-        )
       }
     }
   }

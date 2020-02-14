@@ -16,7 +16,6 @@
 package nl.knaw.dans.easy.deposit.docs
 
 import javax.xml.validation.Schema
-import nl.knaw.dans.easy.deposit.Errors.InvalidDocumentException
 import nl.knaw.dans.easy.deposit.TestSupportFixture
 import nl.knaw.dans.easy.deposit.docs.dm.DateScheme.W3CDTF
 import nl.knaw.dans.easy.deposit.docs.dm._
@@ -184,19 +183,6 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
       </ddm:dcmiMetadata>
   )
 
-  "invalid name space for author ID" should "fail" in {
-    val author = Author(
-      initials = Some("F.O.O."),
-      surname = Some("Bar"),
-      ids = Some(Seq(SchemedValue("dcx-dai:ISNI", "ISNI:000000012281955X")))
-    )
-    DDM(new MinimalDatasetMetadata(contributors = Some(Seq(author)))) should
-      matchPattern {
-        case Failure(e: InvalidDocumentException) if e.getMessage ==
-          "invalid DatasetMetadata: expecting (label) or (prefix:label); got [dcx-dai:dcx-dai:ISNI] to adjust the <label> of <label>ISNI:000000012281955X</label>" =>
-      }
-  }
-
   "date without qualifier" should behave like validDatasetMetadata(
     input = new MinimalDatasetMetadata(dates = Some(mandatoryDates :+ Date(None, Some("2020"), None))),
     subset = actualDDM => dcmiMetadata(actualDDM),
@@ -288,7 +274,7 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
     input = new MinimalDatasetMetadata(instructionsForReuse = None)
   )
 
-  // documenting what the client should validate to get the metadata ingested
+  // documenting (not exhaustive) what the client should validate to get the metadata ingested
   "Schema.validate(DDM(json))" should "report missing titles" in {
     validate(new MinimalDatasetMetadata(titles = None)) should
       matchSaxMessage(".*Invalid content was found starting with element 'dcterms:description'. One of '.*:title.' is expected.")
@@ -328,6 +314,28 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
     validate(new MinimalDatasetMetadata(
       spatialBoxes = parse("""{"spatialBoxes":[{"north": 1, "east": 2, "south": 3, "west": 4}]}""").spatialBoxes
     )) should matchSaxMessage(".*Attribute 'srsName' must appear on element 'Envelope'.")
+  }
+
+  it should "report an invalid name space for author ID" in {
+    val author = Author(
+      initials = Some("F.O.O."),
+      surname = Some("Bar"),
+      ids = Some(Seq(SchemedValue("dcx-dai:ISNI", "ISNI:000000012281955X")))
+    )
+    val ddm = toDDM(new MinimalDatasetMetadata(contributors = Some(Seq(author))))
+    prettyPrinter.format(ddm) should include("<dcx-dai:dcx-dai:ISNI>ISNI:000000012281955X</dcx-dai:dcx-dai:ISNI>")
+    triedSchema.validate(ddm) should matchSaxMessage(".*dcx-dai:dcx-dai.*") // note the duplication
+  }
+
+  it should "report an invalid id-type for author" in {
+    val author = Author(
+      initials = Some("F.O.O."),
+      surname = Some("Bar"),
+      ids = Some(Seq(SchemedValue("id-type:foo", "bar")))
+    )
+    val ddm = toDDM(new MinimalDatasetMetadata(contributors = Some(Seq(author))))
+    prettyPrinter.format(ddm) should include("<dcx-dai:foo>bar</dcx-dai:foo>")
+    triedSchema.validate(ddm) should matchSaxMessage(".*dcx-dai:foo.*")
   }
 
   "minimal with SchemedKeyValue variants" should behave like validDatasetMetadata(
@@ -730,8 +738,11 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
   }
 
   private def validate(metadata: MinimalDatasetMetadata) = {
-    val ddm = DDM(metadata).getOrRecover(e => fail("could not create test data", e))
-    triedSchema.validate(ddm)
+    triedSchema.validate(toDDM(metadata))
+  }
+
+  private def toDDM(metadata: MinimalDatasetMetadata) = {
+    DDM(metadata).getOrRecover(e => fail("could not create test data", e))
   }
 }
 
