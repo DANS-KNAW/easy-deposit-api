@@ -38,7 +38,7 @@ class DataFilesSpec extends TestSupportFixture {
   }
 
   private val draftsDir = testDir / "drafts"
-  private val uploadRoot = DepositServlet.uploadRoot
+  private val uploadRoot = DataFiles.uploadRootName
 
   "write" should "write content to the path specified" in {
     val dataFiles = createDatafiles

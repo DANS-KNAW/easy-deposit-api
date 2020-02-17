@@ -23,7 +23,6 @@ import nl.knaw.dans.bag.ChecksumAlgorithm.SHA1
 import nl.knaw.dans.bag.DansBag
 import nl.knaw.dans.easy.deposit.Errors.NoSuchFileInDepositException
 import nl.knaw.dans.easy.deposit.docs.FileInfo
-import nl.knaw.dans.easy.deposit.servlets.DepositServlet
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 
 import scala.language.postfixOps
@@ -37,7 +36,7 @@ import scala.util.{ Failure, Success, Try }
  * @param bag the bag containing the data files
  */
 case class DataFiles(bag: DansBag) extends DebugEnhancedLogging {
-  private val uploadRoot = bag.data / DepositServlet.uploadRoot
+  private val uploadRoot = bag.data / DataFiles.uploadRootName
 
   /**
    * Returns 'true' if the path points to a directory.
@@ -141,4 +140,7 @@ case class DataFiles(bag: DansBag) extends DebugEnhancedLogging {
       .map(f => bag.removePayloadFile(bag.data.relativize(f)))
       .failFastOr(Success(bag))
   }
+}
+object DataFiles {
+  val uploadRootName = "original"
 }
