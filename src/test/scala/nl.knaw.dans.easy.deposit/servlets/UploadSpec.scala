@@ -19,7 +19,6 @@ import java.nio.file.attribute.PosixFilePermission
 import java.util.UUID
 
 import better.files.File
-import nl.knaw.dans.easy.deposit.DataFiles
 import nl.knaw.dans.easy.deposit.authentication.AuthenticationMocker
 import nl.knaw.dans.easy.deposit.docs.DepositInfo
 import nl.knaw.dans.lib.error._
@@ -48,7 +47,7 @@ class UploadSpec extends ServletFixture with Inspectors {
       ("more", "4.txt", "Ut enim ad minim veniam"),
     ))
     val uuid = createDeposit
-    val relativeTarget = DataFiles.uploadRootName + "/path/to/dir"
+    val relativeTarget = "path/to/dir"
     post(
       uri = s"/deposit/$uuid/file/$relativeTarget",
       params = Iterable(),
@@ -280,7 +279,7 @@ class UploadSpec extends ServletFixture with Inspectors {
       status shouldBe CREATED_201
     }
     absoluteTarget.walk().map(_.name).toList should contain theSameElementsAs List(
-      DataFiles.uploadRootName, "login.html", "readme.md", "upload.html"
+      "original", "login.html", "readme.md", "upload.html"
     )
     (bagDir / "manifest-sha1.txt")
       .lines
@@ -396,7 +395,7 @@ class UploadSpec extends ServletFixture with Inspectors {
 
   private def bagDirOf(uuid: String) = testDir / "drafts" / "foo" / uuid / bagDirName
 
-  private def uploadRootOf(bagDir: File) = bagDir / "data" / DataFiles.uploadRootName
+  private def uploadRootOf(bagDir: File) = bagDir / "data" / "original"
 
   private def createBodyParts(files: Seq[(String, String, String)]): Seq[(String, java.io.File)] = {
     bodyParts(testDir / "input", files)

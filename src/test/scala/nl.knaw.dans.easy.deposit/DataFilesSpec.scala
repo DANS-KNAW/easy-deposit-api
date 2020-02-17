@@ -25,7 +25,6 @@ import better.files.StringExtensions
 import nl.knaw.dans.bag.v0.DansV0Bag
 import nl.knaw.dans.easy.deposit.Errors.NoSuchFileInDepositException
 import nl.knaw.dans.easy.deposit.docs.FileInfo
-import nl.knaw.dans.easy.deposit.servlets.DepositServlet
 import nl.knaw.dans.lib.error._
 
 import scala.util.{ Failure, Success }
@@ -38,8 +37,6 @@ class DataFilesSpec extends TestSupportFixture {
   }
 
   private val draftsDir = testDir / "drafts"
-  private val uploadRoot = DataFiles.uploadRootName
-
   "write" should "write content to the path specified" in {
     val dataFiles = createDatafiles
     val content = "Lorem ipsum est"
@@ -48,7 +45,7 @@ class DataFilesSpec extends TestSupportFixture {
 
     dataFiles.write(inputStream, Paths.get(fileInBag)) shouldBe Success(true)
 
-    (dataFiles.bag.data / fileInBag).contentAsString shouldBe content
+    (dataFiles.bag.data / "original" / fileInBag).contentAsString shouldBe content
     inputStream.close()
   }
 
@@ -60,15 +57,15 @@ class DataFilesSpec extends TestSupportFixture {
     val inputStream = new ByteArrayInputStream("Lorem ipsum est".getBytes(StandardCharsets.UTF_8))
 
     dataFiles.write(inputStream, Paths.get("location/in/data/dir/test.txt")).toString shouldBe
-      Failure(new AccessDeniedException((dataFiles.bag.data / "location").toString())).toString
+      Failure(new AccessDeniedException((dataFiles.bag.data / "original").toString())).toString
     inputStream.close()
   }
 
   "delete" should "delete a file" in {
     val bag = DansV0Bag.empty(testDir / bagDirName).getOrRecover(e => fail(s"could not create test bag $e"))
-    bag.addPayloadFile("Lorum ipsum est".inputStream, Paths.get("file.txt"))
+    bag.addPayloadFile("Lorum ipsum est".inputStream, Paths.get("original/file.txt"))
     bag.save
-    (bag.data / "file.txt") should exist
+    (bag.data / "original" / "file.txt") should exist
     (bag.data.parent / "manifest-sha1.txt").lines.size shouldBe 1
 
     DataFiles(bag)
@@ -80,12 +77,12 @@ class DataFilesSpec extends TestSupportFixture {
 
   it should "recursively delete files" in {
     val bag = DansV0Bag.empty(testDir / bagDirName).getOrRecover(e => fail(s"could not create test bag $e"))
-    bag.addPayloadFile("Lorum ipsum est".inputStream, Paths.get("file.txt"))
+    bag.addPayloadFile("Lorum ipsum est".inputStream, Paths.get("original/file.txt"))
     (0 until 5).foreach { n =>
-      bag.addPayloadFile(s"$n Lorum ipsum est".inputStream, Paths.get(s"path/to/file$n.txt"))
+      bag.addPayloadFile(s"$n Lorum ipsum est".inputStream, Paths.get(s"original/path/to/file$n.txt"))
     }
     bag.save
-    bag.data.children.size shouldBe 2 // one file one folder
+    (bag.data / "original").children.size shouldBe 2 // one file one folder
     (bag.baseDir / "manifest-sha1.txt").lines.size shouldBe 6
 
     DataFiles(bag)
@@ -96,7 +93,7 @@ class DataFilesSpec extends TestSupportFixture {
   }
 
   it should "report a non existing file" in {
-    createDatafiles.delete(Paths.get(s"$uploadRoot/file.txt")) should matchPattern {
+    createDatafiles.delete(Paths.get("file.txt")) should matchPattern {
       case Failure(e: NoSuchFileInDepositException) if e.getMessage == "file.txt not found in deposit" =>
     }
   }
@@ -104,18 +101,18 @@ class DataFilesSpec extends TestSupportFixture {
   "list" should "return files grouped by folder" in {
     val bag = DansV0Bag
       .empty(testDir / "testBag").getOrRecover(fail("could not create test bag", _))
-      .addPayloadFile(randomContent, Paths.get(s"$uploadRoot/1.txt")).getOrRecover(payloadFailure)
-      .addPayloadFile(randomContent, Paths.get(s"$uploadRoot/folder1/b/x.txt")).getOrRecover(payloadFailure)
-      .addPayloadFile(randomContent, Paths.get(s"$uploadRoot/folder1#b/x.txt")).getOrRecover(payloadFailure)
-      .addPayloadFile(randomContent, Paths.get(s"$uploadRoot/folder1.x/y.txt")).getOrRecover(payloadFailure)
-      .addPayloadFile(randomContent, Paths.get(s"$uploadRoot/folder1y/x.txt")).getOrRecover(payloadFailure)
-      .addPayloadFile(randomContent, Paths.get(s"$uploadRoot/folder1/3.txt")).getOrRecover(payloadFailure)
-      .addPayloadFile(randomContent, Paths.get(s"$uploadRoot/.hidden")).getOrRecover(payloadFailure)
-      .addPayloadFile(randomContent, Paths.get(s"$uploadRoot/#/1.txt")).getOrRecover(payloadFailure)
-      .addPayloadFile(randomContent, Paths.get(s"$uploadRoot/folder2/4.txt")).getOrRecover(payloadFailure)
-      .addPayloadFile(randomContent, Paths.get(s"$uploadRoot/foo.txt")).getOrRecover(payloadFailure)
-      .addPayloadFile(randomContent, Paths.get(s"$uploadRoot/folder11/4.txt")).getOrRecover(payloadFailure)
-      .addPayloadFile(randomContent, Paths.get(s"$uploadRoot/folder1/5.txt")).getOrRecover(payloadFailure)
+      .addPayloadFile(randomContent, Paths.get("original/1.txt")).getOrRecover(payloadFailure)
+      .addPayloadFile(randomContent, Paths.get("original/folder1/b/x.txt")).getOrRecover(payloadFailure)
+      .addPayloadFile(randomContent, Paths.get("original/folder1#b/x.txt")).getOrRecover(payloadFailure)
+      .addPayloadFile(randomContent, Paths.get("original/folder1.x/y.txt")).getOrRecover(payloadFailure)
+      .addPayloadFile(randomContent, Paths.get("original/folder1y/x.txt")).getOrRecover(payloadFailure)
+      .addPayloadFile(randomContent, Paths.get("original/folder1/3.txt")).getOrRecover(payloadFailure)
+      .addPayloadFile(randomContent, Paths.get("original/.hidden")).getOrRecover(payloadFailure)
+      .addPayloadFile(randomContent, Paths.get("original/#/1.txt")).getOrRecover(payloadFailure)
+      .addPayloadFile(randomContent, Paths.get("original/folder2/4.txt")).getOrRecover(payloadFailure)
+      .addPayloadFile(randomContent, Paths.get("original/foo.txt")).getOrRecover(payloadFailure)
+      .addPayloadFile(randomContent, Paths.get("original/folder11/4.txt")).getOrRecover(payloadFailure)
+      .addPayloadFile(randomContent, Paths.get("original/folder1/5.txt")).getOrRecover(payloadFailure)
     bag.save()
 
     DataFiles(bag).list(Paths.get(""))
@@ -181,13 +178,13 @@ class DataFilesSpec extends TestSupportFixture {
     )
     val bag = DansV0Bag
       .empty(testDir / "testBag").getOrRecover(fail("could not create test bag", _))
-      .addPayloadFile("lorum ipsum".inputStream, Paths.get(s"$uploadRoot/some/1.txt")).getOrRecover(payloadFailure)
-      .addPayloadFile("doler it".inputStream, Paths.get(s"$uploadRoot/some/folder/2.txt")).getOrRecover(payloadFailure)
+      .addPayloadFile("lorum ipsum".inputStream, Paths.get("original/some/1.txt")).getOrRecover(payloadFailure)
+      .addPayloadFile("doler it".inputStream, Paths.get("original/some/folder/2.txt")).getOrRecover(payloadFailure)
     bag.save()
     val dataFiles = DataFiles(bag)
 
     // get FileInfo for a singe file, alias GET /deposit/{id}/file/some/folder/2.txt
-    dataFiles.get(Paths.get(s"$uploadRoot/some/folder/2.txt")) should matchPattern {
+    dataFiles.get(Paths.get("some/folder/2.txt")) should matchPattern {
       case Success(FileInfo("2.txt", p, _)) if p.toString == "some/folder" =>
     }
 
@@ -197,7 +194,7 @@ class DataFilesSpec extends TestSupportFixture {
     }
 
     // get FileInfo recursively for a subfolder, alias GET /deposit/{id}/file/some
-    inside(dataFiles.list(Paths.get(s"$uploadRoot/some"))) { case Success(infos: Seq[_]) =>
+    inside(dataFiles.list(Paths.get("some"))) { case Success(infos: Seq[_]) =>
       infos should contain theSameElementsAs expected
     }
   }

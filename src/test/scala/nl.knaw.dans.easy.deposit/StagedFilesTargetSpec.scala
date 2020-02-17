@@ -49,8 +49,8 @@ class StagedFilesTargetSpec extends TestSupportFixture {
       .moveAllFrom(stagedDir) shouldBe Success(())
 
     bag.fetchFiles shouldBe empty
-    (bag.data / "path" / "to" / "some.thing").contentAsString shouldBe "more content"
-    (bag.data / "path" / "to" / "sub" / "path" / "some.thing").contentAsString shouldBe "new content"
+    (bag.data / "original" / "path" / "to" / "some.thing").contentAsString shouldBe "more content"
+    (bag.data / "original" / "path" / "to" / "sub" / "path" / "some.thing").contentAsString shouldBe "new content"
     stagedDir.walk().filter(!_.isDirectory) shouldBe empty
   }
 
@@ -62,7 +62,7 @@ class StagedFilesTargetSpec extends TestSupportFixture {
     StagedFilesTarget(UUID.randomUUID(), bag, Paths.get(""))
       .moveAllFrom(stagedDir) shouldBe Success(())
 
-    (bag.data / "some.thing").contentAsString shouldBe "new content"
+    (bag.data / "original" / "some.thing").contentAsString shouldBe "new content"
     bag.fetchFiles shouldBe empty
     stagedDir.walk().filter(!_.isDirectory) shouldBe empty
   }
@@ -84,7 +84,7 @@ class StagedFilesTargetSpec extends TestSupportFixture {
     StagedFilesTarget(UUID.randomUUID(), bag, Paths.get("path/to"))
       .moveAllFrom(stagedDir) shouldBe a[Success[_]]
 
-    bag.data / "path" / "to" / "some.thing" should exist
+    bag.data / "original" / "path" / "to" / "some.thing" should exist
     bag.fetchFiles shouldBe empty
     stagedDir.walk().filter(!_.isDirectory) shouldBe empty
   }
@@ -98,7 +98,7 @@ class StagedFilesTargetSpec extends TestSupportFixture {
     StagedFilesTarget(UUID.randomUUID(), bag, Paths.get("path/to"))
       .moveAllFrom(stagedDir) shouldBe a[Success[_]]
 
-    (bag.data / "path" / "to" / "some.thing").contentAsString shouldBe "new content"
+    (bag.data / "original" / "path" / "to" / "some.thing").contentAsString shouldBe "new content"
     bag.fetchFiles shouldBe empty
     stagedDir.walk().filter(!_.isDirectory) shouldBe empty
   }

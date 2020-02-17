@@ -21,6 +21,7 @@ import java.nio.file.{ Path, Paths }
 import better.files._
 import nl.knaw.dans.bag.ChecksumAlgorithm.SHA1
 import nl.knaw.dans.bag.DansBag
+import nl.knaw.dans.bag.ImportOption.ATOMIC_MOVE
 import nl.knaw.dans.easy.deposit.Errors.NoSuchFileInDepositException
 import nl.knaw.dans.easy.deposit.docs.FileInfo
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
@@ -36,7 +37,7 @@ import scala.util.{ Failure, Success, Try }
  * @param bag the bag containing the data files
  */
 case class DataFiles(bag: DansBag) extends DebugEnhancedLogging {
-  private val uploadRoot = bag.data / DataFiles.uploadRootName
+  private val uploadRoot = bag.data / "original"
 
   /**
    * Returns 'true' if the path points to a directory.
@@ -45,8 +46,8 @@ case class DataFiles(bag: DansBag) extends DebugEnhancedLogging {
    * @return 'true' if directory, else 'false'
    */
   def isDirectory(path: Path): Boolean = {
-    val file = bag.data / path.toString
-    file == uploadRoot || file.isDirectory
+    // TODO so far this is the only method with backward compatibility (determines whether list or get is called)
+    (uploadRoot / path.toString).isDirectory || (bag.data / path.toString).isDirectory
   }
 
   /**
@@ -59,8 +60,7 @@ case class DataFiles(bag: DansBag) extends DebugEnhancedLogging {
    * @return a list of FileInfo objects
    */
   def list(path: Path = Paths.get("")): Try[Seq[FileInfo]] = {
-    val parentPath = bag.data / path.toString
-    val manifestMap = bag.payloadManifests
+    val parentPath = uploadRoot / path.toString
 
     def convert(items: Map[File, String]) = {
       items
@@ -70,9 +70,7 @@ case class DataFiles(bag: DansBag) extends DebugEnhancedLogging {
         .sortBy(fileInfo => (File(fileInfo.dirpath) / fileInfo.filename).path)
     }
 
-    manifestMap
-      .get(SHA1)
-      .orElse(manifestMap.values.headOption)
+    payloadManifest
       .map(items => Success(convert(items)))
       .getOrElse(Failure(new Exception(s"no algorithm for ${ bag.baseDir }")))
   }
@@ -88,15 +86,19 @@ case class DataFiles(bag: DansBag) extends DebugEnhancedLogging {
    * @return a FileInfo object
    */
   def get(path: Path = Paths.get("")): Try[FileInfo] = {
-    val manifestMap = bag.payloadManifests
-    val manifests = manifestMap.get(SHA1).orElse(manifestMap.values.headOption)
-    val absolutePath = bag.data / path.toString
-    val fileExists = manifests.get.contains(absolutePath)
-    if (fileExists) Success(toFileInfo(absolutePath, checksum = manifests get absolutePath))
-    else {
-      val relativePath = uploadRoot.relativize(absolutePath)
-      Failure(NoSuchFileInDepositException(relativePath))
-    }
+    val requestedFile = uploadRoot / path.toString
+    payloadManifest.map {
+      fileToString => fileToString
+        .find(_._1 == requestedFile)
+        .map((toFileInfo _).tupled)
+        .map(Success(_))
+        .getOrElse(Failure(NoSuchFileInDepositException(path)))
+    } getOrElse (Failure(new Exception(s"no manifest for ${ bag.baseDir }")))
+  }
+
+  private def payloadManifest = {
+    val manifests = bag.payloadManifests
+    manifests.get(SHA1).orElse(manifests.values.headOption)
   }
 
   /**
@@ -107,13 +109,19 @@ case class DataFiles(bag: DansBag) extends DebugEnhancedLogging {
    * @return `true` if a new file was created, `false` if an existing file was overwritten
    */
   def write(is: InputStream, path: Path): Try[Boolean] = {
-    val fileExists = (bag.data / path.toString).exists
+    val fileExists = (uploadRoot / path.toString).exists
+    val pathInDataDir = bag.data.relativize((uploadRoot / path.toString))
     for {
-      _ <- if (fileExists) bag.removePayloadFile(path)
+      _ <- if (fileExists) bag.removePayloadFile(pathInDataDir) // TODO see fetchFiles in StagedFilesTarget
            else Success(())
-      _ <- bag.addPayloadFile(is, path)
+      _ <- bag.addPayloadFile(is, pathInDataDir)
       _ <- bag.save
     } yield !fileExists
+  }
+
+  def move(staged: File, path: Path): Try[DansBag] = {
+    val pathInDataDir = bag.data.relativize((uploadRoot / path.toString))
+    bag.addPayloadFile(staged, pathInDataDir)(ATOMIC_MOVE)
   }
 
   /**
@@ -123,13 +131,13 @@ case class DataFiles(bag: DansBag) extends DebugEnhancedLogging {
    * @param path the relative path of the file or directory to delete
    */
   def delete(path: Path): Try[Unit] = {
-    val file = bag.data / path.toString
+    val file = uploadRoot / path.toString
     if (!file.exists) {
-      val relPath = uploadRoot.relativize(file)
-      Failure(NoSuchFileInDepositException(relPath))
-    } else {
+      Failure(NoSuchFileInDepositException(path))
+    }
+    else {
       val triedBag = if (file.isDirectory) removeDir(file.walk().toStream)
-                     else bag.removePayloadFile(path)
+                     else bag.removePayloadFile(bag.data.relativize(file))
       triedBag.flatMap(_.save)
     }
   }
@@ -140,7 +148,4 @@ case class DataFiles(bag: DansBag) extends DebugEnhancedLogging {
       .map(f => bag.removePayloadFile(bag.data.relativize(f)))
       .failFastOr(Success(bag))
   }
-}
-object DataFiles {
-  val uploadRootName = "original"
 }

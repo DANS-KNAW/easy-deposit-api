@@ -20,7 +20,6 @@ import java.util.UUID
 
 import better.files.File
 import nl.knaw.dans.bag.DansBag
-import nl.knaw.dans.bag.ImportOption.ATOMIC_MOVE
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 
 import scala.util.{ Success, Try }
@@ -30,6 +29,8 @@ import scala.util.{ Success, Try }
  * @param destination relative location in the bag's data directory
  */
 case class StagedFilesTarget(id: UUID, draftBag: DansBag, destination: Path) extends DebugEnhancedLogging {
+
+  private val dataFiles = DataFiles(draftBag)
 
   /**
    * Moves files from stagingDir to draftBag, after deleting each file in the bag as soon as it would be overwritten.
@@ -64,7 +65,7 @@ case class StagedFilesTarget(id: UUID, draftBag: DansBag, destination: Path) ext
         for {
           _ <- cleanUp(bagRelativePath)
           _ = logger.info(s"[$id] moving uploaded files in $stagingDir to bag payload ${ draftBag.data }")
-          _ <- draftBag.addPayloadFile(stagedFile, bagRelativePath)(ATOMIC_MOVE)
+          _ <- dataFiles.move(stagedFile, bagRelativePath)
         } yield ()
       }.failFastOr(draftBag.save)
   }

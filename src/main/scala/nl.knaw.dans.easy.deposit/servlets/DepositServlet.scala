@@ -20,10 +20,10 @@ import java.nio.file.{ InvalidPathException, Path, Paths }
 import java.util.UUID
 
 import better.files.File
+import nl.knaw.dans.easy.deposit.EasyDepositApiApp
 import nl.knaw.dans.easy.deposit.Errors._
 import nl.knaw.dans.easy.deposit.docs.JsonUtil.toJson
 import nl.knaw.dans.easy.deposit.docs.{ DatasetMetadata, StateInfo }
-import nl.knaw.dans.easy.deposit.{ DataFiles, EasyDepositApiApp }
 import nl.knaw.dans.lib.string._
 import org.scalatra._
 import org.scalatra.servlet.{ FileUploadSupport, SizeConstraintExceededException }
@@ -152,7 +152,7 @@ class DepositServlet(app: EasyDepositApiApp)
     {
       for {
         uuid <- getUUID
-        path <- getRelativeLocationInBagData(s"[$uuid] retrieve file info for path")
+        path <- getRelativeLocation(s"[$uuid] retrieve file info for path")
         contents <- app.getFileInfo(user.id, uuid, path)
       } yield Ok(body = toJson(contents), headers = Map(contentTypeJson))
     }.getOrRecoverWithActionResult
@@ -161,7 +161,7 @@ class DepositServlet(app: EasyDepositApiApp)
     {
       for {
         uuid <- getUUID
-        path <- getRelativeLocationInBagData(s"[$uuid] upload files to path") // plural
+        path <- getRelativeLocation(s"[$uuid] upload files to path") // plural
         _ <- isMultipart
         fileItems = fileMultiParams.valuesIterator.flatten.buffered
         maybeManagedArchiveInputStream <- fileItems.nextAsArchiveIfOnlyOne
@@ -180,7 +180,7 @@ class DepositServlet(app: EasyDepositApiApp)
     {
       for {
         uuid <- getUUID
-        path <- getRelativeLocationInBagData(s"[$uuid] upload file to path") // single
+        path <- getRelativeLocation(s"[$uuid] upload file to path") // single
         managedIS = managed(request.getInputStream)
         newFileWasCreated <- managedIS.apply(app.writeDepositFile(_, user.id, uuid, path, Option(request.getContentType)))
         _ = logger.info(s"[$uuid] ${
@@ -196,7 +196,7 @@ class DepositServlet(app: EasyDepositApiApp)
     {
       for {
         uuid <- getUUID
-        path <- getRelativeLocationInBagData(s"[$uuid] deleting file")
+        path <- getRelativeLocation(s"[$uuid] deleting file")
         _ <- app.deleteDepositFile(user.id, uuid, path)
       } yield NoContent()
     }.getOrRecoverWithActionResult
@@ -214,13 +214,12 @@ class DepositServlet(app: EasyDepositApiApp)
       .recoverWith { case e => Failure(InvalidResourceException(s"Invalid deposit id: ${ e.getMessage }")) }
   }
 
-  private def getRelativeLocationInBagData(logPrefix: String): Try[Path] = Try {
+  private def getRelativeLocation(logPrefix: String): Try[Path] = Try {
     val splat = multiParams("splat")
       .find(!_.trim.isEmpty)
       .getOrElse("")
-    val path = Paths.get(splat)
     logger.info(s"$logPrefix '${ splat.toOption.getOrElse("/") }'")
-    Paths.get(DataFiles.uploadRootName).resolve(path)
+    Paths.get(splat)
   }.recoverWith { // invalid characters, or other file system specific reasons.
     case t: InvalidPathException => Failure(InvalidResourceException(s"Invalid path: ${ t.getMessage }"))
   }
