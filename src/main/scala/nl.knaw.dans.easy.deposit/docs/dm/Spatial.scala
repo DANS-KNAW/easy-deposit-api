@@ -15,8 +15,6 @@
  */
 package nl.knaw.dans.easy.deposit.docs.dm
 
-import nl.knaw.dans.lib.string._
-
 object Spatial {
   /** coordinate order y, x = latitude (DCX_SPATIAL_Y), longitude (DCX_SPATIAL_X) */
   val DEGREES_SRS_NAME = "http://www.opengis.net/def/crs/EPSG/0/4326"
@@ -38,31 +36,34 @@ trait SchemedSpatial extends OptionalValue {
   }
 }
 
-case class SpatialPoint(override val scheme: Option[String],
+case class SpatialPoint(scheme: Option[String],
                         x: Option[String],
                         y: Option[String],
                        ) extends SchemedSpatial {
-  private val sx: String = x.getOrElse("")
-  private val sy: String = y.getOrElse("")
+  private lazy val sx: String = x.getOrElse("0")
+  private lazy val sy: String = y.getOrElse("0")
   lazy val pos: String = srsName match {
     case Spatial.RD_SRS_NAME => s"$sx $sy"
     case Spatial.DEGREES_SRS_NAME => s"$sy $sx"
     case _ => s"$sy $sx"
   }
 
-  override def hasValue: Boolean = x.exists(!_.isBlank) || y.exists(!_.isBlank)
+  override lazy val value: Option[String] = {
+    (x ++ y).headOption
+      .map(_ => pos)
+  }
 }
 
-case class SpatialBox(override val scheme: Option[String],
+case class SpatialBox(scheme: Option[String],
                       north: Option[String],
                       east: Option[String],
                       south: Option[String],
                       west: Option[String],
                      ) extends SchemedSpatial {
-  private lazy val sWest: String = west.getOrElse("")
-  private lazy val sSouth: String = south.getOrElse("")
-  private lazy val sNorth: String = north.getOrElse("")
-  private lazy val sEast: String = east.getOrElse("")
+  private lazy val sWest: String = west.getOrElse("0")
+  private lazy val sSouth: String = south.getOrElse("0")
+  private lazy val sNorth: String = north.getOrElse("0")
+  private lazy val sEast: String = east.getOrElse("0")
   private lazy val xy = (s"$sWest $sSouth", s"$sEast $sNorth")
   private lazy val yx = (s"$sSouth $sWest", s"$sNorth $sEast")
   /*
@@ -90,8 +91,8 @@ case class SpatialBox(override val scheme: Option[String],
     case _ => yx
   }
 
-  override def hasValue: Boolean = north.exists(!_.isBlank) &&
-    east.exists(!_.isBlank) &&
-    south.exists(!_.isBlank) &&
-    west.exists(!_.isBlank)
+  override lazy val value: Option[String] = {
+    (north ++ east ++ south++ west).headOption
+      .map(_ => s"($lower) ($upper)")
+  }
 }

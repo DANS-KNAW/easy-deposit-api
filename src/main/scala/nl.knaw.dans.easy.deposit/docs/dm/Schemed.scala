@@ -15,6 +15,7 @@
  */
 package nl.knaw.dans.easy.deposit.docs.dm
 
+import nl.knaw.dans.easy.deposit.docs.CollectionUtils._
 import nl.knaw.dans.easy.deposit.docs.dm.SchemedKeyValue.keyedSchemes
 import nl.knaw.dans.lib.string._
 
@@ -22,7 +23,11 @@ case class SchemedValue(scheme: Option[String],
                         value: Option[String],
                        ) extends OptionalValue {
 
-  def hasValue: Boolean = value.exists(!_.isBlank)
+  /** @return this with Some-s of empty strings as None-s for proper pattern matches */
+  def withCleanOptions: SchemedValue = this.copy(
+    scheme = scheme.flatMap(_.toOption),
+    value = value.flatMap(_.toOption),
+  )
 }
 object SchemedValue {
   def apply(scheme: String, value: String): SchemedValue = {
@@ -34,13 +39,29 @@ case class SchemedKeyValue(scheme: Option[String],
                            key: Option[String],
                            value: Option[String],
                           ) extends OptionalValue {
-  override def hasValue: Boolean = {
+
+  /** key if available together with scheme, value otherwise */
+  lazy val keyOrValue: String = this.withCleanOptions match {
+    case SchemedKeyValue(_, Some(key), _) => key
+    case _ => value.orEmpty
+  }
+
+  lazy val keyOrNull: String = key.orNull
+
+  override lazy val hasValue: Boolean = {
     if (schemeNeedsKey)
       key.exists(!_.isBlank)
     else value.exists(!_.isBlank)
   }
 
-  def schemeNeedsKey: Boolean = scheme.exists(keyedSchemes contains _)
+  lazy val schemeNeedsKey: Boolean = scheme.exists(keyedSchemes contains _)
+
+  /** @return this with Some-s of empty strings as None-s for proper pattern matches */
+  def withCleanOptions: SchemedKeyValue = this.copy(
+    scheme = scheme.flatMap(_.toOption),
+    key = key.flatMap(_.toOption),
+    value = value.flatMap(_.toOption),
+  )
 }
 
 object SchemedKeyValue {

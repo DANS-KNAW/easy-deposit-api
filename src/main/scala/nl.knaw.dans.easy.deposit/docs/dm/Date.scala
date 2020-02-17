@@ -17,7 +17,6 @@ package nl.knaw.dans.easy.deposit.docs.dm
 
 import nl.knaw.dans.easy.deposit.docs.JsonUtil.toJson
 import nl.knaw.dans.easy.deposit.docs.dm.DateQualifier.DateQualifier
-import nl.knaw.dans.lib.string._
 import org.joda.time.DateTime
 import org.joda.time.format.ISODateTimeFormat
 
@@ -43,7 +42,7 @@ case class Date(
                  scheme: Option[String],
                  value: Option[String],
                  qualifier: Option[DateQualifier],
-               ) extends OptionalValue {
+               ) extends OptionalValue with OptionalQualifier[DateQualifier] {
 
   /**
    * If the scheme is present and is equal to DateScheme.W3CDTF and
@@ -53,7 +52,7 @@ case class Date(
    *
    * @return the day level representation of this Date
    */
-  def toDayLevel: Date = {
+  lazy val toDayLevel: Date = {
     lazy val hasW3CDTFScheme = scheme contains DateScheme.W3CDTF.toString
     lazy val hasValidValue = value.exists(_ matches "^[0-9]{4}-[0-9]{1,2}-[0-9]{1,2}(.*)$")
 
@@ -62,8 +61,7 @@ case class Date(
     else
       this
   }
-
-  def hasValue: Boolean = value.exists(!_.isBlank)
+  override lazy val qualifierAsString: String = qualifier.getOrElse(DateQualifier.date).toString
 }
 
 object Date {

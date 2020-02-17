@@ -23,7 +23,7 @@ import scala.collection.generic.FilterMonadic
 object CollectionUtils {
 
   implicit class RichSeq[T](val sources: Seq[T]) extends AnyVal {
-    def withNonEmpty: FilterMonadic[T, Seq[T]] = sources.withFilter {
+    def withValue: FilterMonadic[T, Seq[T]] = sources.withFilter {
       case str: String => !str.isBlank
       case x: OptionalValue => x.hasValue
       case _ => true
@@ -31,24 +31,23 @@ object CollectionUtils {
   }
 
   implicit class RichOptionSeq[T](val sources: Option[Seq[T]]) extends AnyVal {
-    def withNonEmpty: FilterMonadic[T, Seq[T]] = sources.toSeq.flatten.withNonEmpty
+
+    /** filters elements without a value (before mapping) */
+    def withValue: FilterMonadic[T, Seq[T]] = sources.toSeq.flatten.withValue
   }
 
   implicit class RichSeqOption[T](val sources: Seq[Option[T]]) extends AnyVal {
-    def withNonEmpty: FilterMonadic[T, Seq[T]] = sources.flatMap(_.toSeq).withNonEmpty
+    def withValue: FilterMonadic[T, Seq[T]] = sources.flatMap(_.toSeq).withValue
   }
 
   implicit class RichOption[T](val sources: Option[T]) extends AnyVal {
-    def withNonEmpty: FilterMonadic[T, Seq[T]] = sources.toSeq.withNonEmpty
-  }
+    def withValue: FilterMonadic[T, Seq[T]] = sources.toSeq.withValue
 
-  implicit class RichOptionString(val optionalString: Option[String]) extends AnyVal {
+    def orEmpty: String = trimmed.getOrElse("")
 
-    // null omits attribute rendering
-    def nonBlankOrNull: String = optionalString
-      .collect { case s if !s.isBlank => s.trim }.orNull
+    /** null omits attribute rendering */
+    def orOmit: String = trimmed.orNull
 
-    def nonBlankOrEmpty: String = optionalString.
-      collect { case s if !s.isBlank => s.trim }.getOrElse("")
+    private def trimmed: Option[String] = sources.flatMap(_.toString.trim.toOption)
   }
 }

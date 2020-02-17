@@ -36,31 +36,42 @@ object RelationQualifier extends Enumeration {
   val conformsTo: RelationQualifier = Value("dcterms:conformsTo")
 }
 
-trait RelationType extends OptionalValue {
-  /** @return this with Some-s of empty strings as None-s */
+trait RelationType extends OptionalValue with OptionalQualifier[RelationQualifier] {
+  val qualifier: Option[RelationQualifier]
+  val url: Option[String]
+  lazy val urlOrNull: String = url.orNull
+
+  /** @return this with Some-s of empty strings as None-s for proper pattern matches */
   def withCleanOptions: RelationType
+
+  override val qualifierAsString: String = qualifier.getOrElse(RelationQualifier.relation).toString
 }
 
 case class Relation(qualifier: Option[RelationQualifier],
                     url: Option[String],
                     title: Option[String],
                    ) extends RelationType {
+  override val value: Option[String] = title.orElse(url)
+
   override def withCleanOptions: RelationType = this.copy(
     url = url.flatMap(_.toOption),
     title = title.flatMap(_.toOption),
   )
-
-  override def hasValue: Boolean = url.exists(!_.isBlank) || title.exists(!_.isBlank)
 }
 
 case class RelatedIdentifier(scheme: Option[String],
                              value: Option[String],
                              qualifier: Option[RelationQualifier],
-                            ) extends RelationType {
+                            ) extends RelationType with OptionalValue {
   override def withCleanOptions: RelationType = this.copy(
     scheme = scheme.flatMap(_.toOption),
     value = value.flatMap(_.toOption),
   )
 
-  override def hasValue: Boolean = value.exists(!_.isBlank)
+  override lazy val url: Option[String] = scheme.flatMap {
+    case "id-type:DOI" => value.map("https://doi.org/" + _)
+    case "id-type:URN" => value.map("https://persistent-identifier.nl/" + _)
+    case "id-type:URI" | "id-type:URL" => value
+    case _ => None
+  }
 }

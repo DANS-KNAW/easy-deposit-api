@@ -161,7 +161,7 @@ class DatasetMetadataSpec extends TestSupportFixture with OptionValues {
     DatasetMetadata("""{ "relations": [ { "qualifier": "dcterms:hasFormat", "title": "string" } ] }""") shouldBe a[Success[_]]
   }
 
-  it should "reject a RelatedIdentifier with an empty scheme" in {
+  it should "accept a RelatedIdentifier with an empty scheme" in {
     val s = """{ "relations": [ { "scheme": "", "value": "abc", "qualifier": "dcterms:hasFormat" } ] }"""
     DatasetMetadata(s) shouldBe a[Success[_]]
   }
@@ -175,7 +175,7 @@ class DatasetMetadataSpec extends TestSupportFixture with OptionValues {
         |  }
         | ]
         |}""".stripMargin)
-      .map(_.rightsHolders.map(_.toString).mkString(";")) shouldBe Success("A Einstein")
+      .map(_.authors.map(_.rightsHolder).map(_.value).mkString(";")) shouldBe Success("A Einstein")
   }
 
   it should "accept an organisation as author" in {

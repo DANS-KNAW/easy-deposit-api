@@ -15,10 +15,8 @@
  */
 package nl.knaw.dans.easy.deposit.docs.dm
 
-import nl.knaw.dans.lib.string._
+trait OptionalQualifier[T] {
+  val qualifier: Option[T]
 
-trait OptionalValue {
-  val value: Option[String]
-
-  lazy val hasValue: Boolean = value.exists(!_.isBlank)
+  val qualifierAsString: String
 }
