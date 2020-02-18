@@ -39,10 +39,10 @@ import scala.util.{ Failure, Success, Try }
 case class DataFiles(bag: DansBag) extends DebugEnhancedLogging {
   private lazy val uploadRoot = {
     lazy val entries = bag.data.entries.toList
-    val original = "original"
-    if (!bag.data.exists || entries.isEmpty || entries == List(bag.data / original))
-      bag.data / original
-    else bag.data
+    val original = bag.data / "original"
+    if (!bag.data.exists || entries.isEmpty || (entries == List(original) && original.isDirectory ))
+      original
+    else bag.data // a deposit created before uploading to 'original' was deployed
   }
 
   // though currently we don't create fetch files, let us not run into trouble whenever we do
