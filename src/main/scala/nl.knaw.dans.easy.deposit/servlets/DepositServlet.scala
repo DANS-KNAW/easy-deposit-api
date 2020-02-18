@@ -19,7 +19,6 @@ import java.io.IOException
 import java.nio.file.{ InvalidPathException, Path, Paths }
 import java.util.UUID
 
-import better.files.File
 import nl.knaw.dans.easy.deposit.EasyDepositApiApp
 import nl.knaw.dans.easy.deposit.Errors._
 import nl.knaw.dans.easy.deposit.docs.JsonUtil.toJson
@@ -36,16 +35,7 @@ class DepositServlet(app: EasyDepositApiApp)
   extends ProtectedServlet(app)
     with FileUploadSupport {
 
-  configureMultipartHandling(app.multipartConfig.copy(location = app.multipartConfig.location
-    .filter(_.trim.nonEmpty)
-    .map { s =>
-      val dir = File(s)
-      val absolutePath = dir.path.toAbsolutePath
-      if (!dir.isDirectory && !dir.isReadable && !dir.isWriteable)
-        throw ConfigurationException(s"$absolutePath not found/readable/writable or not a directory")
-      absolutePath.toString
-    }
-  ))
+  configureMultipartHandling(app.multipartConfig)
 
   error {
     case e: SizeConstraintExceededException => RequestEntityTooLarge(s"too much! ${ e.getMessage }")

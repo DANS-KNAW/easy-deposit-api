@@ -87,7 +87,7 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
     logger.debug(s"Uploads are received at multipart.location: $multipartLocation")
     StartupValidation.allowsAtomicMove(srcDir = multipartLocation, targetDir = stagedBaseDir)
     MultipartConfig(
-      location = Some(multipartLocation.toString()),
+      location = Some(multipartLocation.path.toAbsolutePath.toString),
       maxFileSize = Option(properties.getLong("multipart.max-file-size", null)),
       maxRequestSize = Option(properties.getLong("multipart.max-request-size", null)),
       fileSizeThreshold = Some(properties.getInt("multipart.file-size-threshold")), //throws if not provided
