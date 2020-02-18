@@ -165,7 +165,7 @@ class DepositServlet(app: EasyDepositApiApp)
         _ <- isMultipart
         fileItems = fileMultiParams.valuesIterator.flatten.buffered
         maybeManagedArchiveInputStream <- fileItems.nextAsArchiveIfOnlyOne
-        (managedStagingDir, draftDataFiles) <- app.stageFiles(user.id, uuid, path)
+        (managedStagingDir, draftDataFiles) <- app.stagingContext(user.id, uuid)
         _ <- managedStagingDir.apply(stagingDir =>
           maybeManagedArchiveInputStream
             .map(_.unpackPlainEntriesTo(stagingDir, uuid))
