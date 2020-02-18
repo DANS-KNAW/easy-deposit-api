@@ -37,7 +37,13 @@ import scala.util.{ Failure, Success, Try }
  * @param bag the bag containing the data files
  */
 case class DataFiles(bag: DansBag) extends DebugEnhancedLogging {
-  private val uploadRoot = bag.data / "original"
+  private lazy val uploadRoot = {
+    lazy val entries = bag.data.entries.toList
+    val original = "original"
+    if (!bag.data.exists || entries.isEmpty || entries == List(bag.data / original))
+      bag.data / original
+    else bag.data
+  }
 
   // though currently we don't create fetch files, let us not run into trouble whenever we do
   private lazy val fetchFiles = bag.fetchFiles
@@ -46,13 +52,13 @@ case class DataFiles(bag: DansBag) extends DebugEnhancedLogging {
     )
 
   def cleanUp(bagRelativePath: Path): Try[Any] = {
-    val oldFile = bag.data / bagRelativePath.toString
-    if (oldFile.exists) {
-      logger.info(s"removing payload file $bagRelativePath to be replaced by the newly uploaded file") // TODO prefix?
+    val absFile = bag.data / bagRelativePath.toString
+    if (absFile.exists) {
+      logger.info(s"removing payload file $absFile to be replaced by the newly uploaded file")
       bag.removePayloadFile(bagRelativePath)
     }
     else if (fetchFiles.contains(bagRelativePath)) {
-      logger.info(s"removing fetch file $bagRelativePath to be replaced by the newly uploaded file")
+      logger.info(s"removing fetch file $absFile to be replaced by the newly uploaded file")
       bag.removeFetchItem(bagRelativePath)
     }
     else Success(())
@@ -71,13 +77,13 @@ case class DataFiles(bag: DansBag) extends DebugEnhancedLogging {
       .withFilter(!_.isDirectory)
       .map { stagedFile =>
         val relativeStagedPath = stagingDir.relativize(stagedFile)
-        val destination = destinationRoot.resolve(relativeStagedPath)
-        val bagAbsFile = uploadRoot / destination.toString
-        val bagRelativePath = bag.data.relativize(bagAbsFile)
+        val relativeDestination = destinationRoot.resolve(relativeStagedPath)
+        val absDestinationFile = uploadRoot / relativeDestination.toString
+        val bagRelativeDestination = bag.data.relativize(absDestinationFile)
         for {
-          _ <- cleanUp(bagRelativePath)
-          _ = logger.info(s"moving uploaded file $stagedFile to $bagRelativePath of ${ bag.data }")
-          _ <- bag.addPayloadFile(stagedFile, bagRelativePath)(ATOMIC_MOVE)
+          _ <- cleanUp(bagRelativeDestination)
+          _ = logger.info(s"moving uploaded file $stagedFile to $bagRelativeDestination of ${ bag.data }")
+          _ <- bag.addPayloadFile(stagedFile, bagRelativeDestination)(ATOMIC_MOVE)
         } yield ()
       }.failFastOr(bag.save)
   }
@@ -88,10 +94,7 @@ case class DataFiles(bag: DansBag) extends DebugEnhancedLogging {
    * @param path a relative path.
    * @return 'true' if directory, else 'false'
    */
-  def isDirectory(path: Path): Boolean = {
-    // TODO so far this is the only method with backward compatibility (determines whether list or get is called)
-    (uploadRoot / path.toString).isDirectory || (bag.data / path.toString).isDirectory
-  }
+  def isDirectory(path: Path): Boolean = path.toString.matches("/?") || (uploadRoot / path.toString).isDirectory
 
   /**
    * Lists information about the files in the directory `path` and its subdirectories.
