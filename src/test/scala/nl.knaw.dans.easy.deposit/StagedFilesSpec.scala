@@ -17,7 +17,6 @@ package nl.knaw.dans.easy.deposit
 
 import java.net.{ URL, UnknownHostException }
 import java.nio.file.Paths
-import java.util.UUID
 
 import better.files.StringExtensions
 import nl.knaw.dans.bag.v0.DansV0Bag
@@ -25,10 +24,10 @@ import nl.knaw.dans.lib.error._
 
 import scala.util.Success
 
-class StagedFilesTargetSpec extends TestSupportFixture {
+class StagedFilesSpec extends TestSupportFixture {
 
   private val draftDir = testDir / "draft"
-  private val stagedDir = testDir / "stage-for-submit"
+  private val stagedDir = testDir / "staged"
 
   override def beforeEach(): Unit = {
     super.beforeEach()
@@ -36,7 +35,7 @@ class StagedFilesTargetSpec extends TestSupportFixture {
     stagedDir.createDirectories()
   }
 
-  "moveAllFrom" should "add payload files" in {
+  "DataFiles.moveAll" should "add payload files" in {
     (stagedDir / "sub" / "path").createDirectories()
     (stagedDir / "sub" / "path" / "some.thing").createFile().write("new content")
     (stagedDir / "some.thing").createFile().write("more content")
@@ -45,8 +44,7 @@ class StagedFilesTargetSpec extends TestSupportFixture {
     bag.data.list shouldBe empty
     bag.fetchFiles shouldBe empty
 
-    StagedFilesTarget(UUID.randomUUID(), bag, Paths.get("path/to"))
-      .moveAllFrom(stagedDir) shouldBe Success(())
+    DataFiles(bag).moveAll(stagedDir, Paths.get("path/to")) shouldBe Success(())
 
     bag.fetchFiles shouldBe empty
     (bag.data / "original" / "path" / "to" / "some.thing").contentAsString shouldBe "more content"
@@ -59,8 +57,7 @@ class StagedFilesTargetSpec extends TestSupportFixture {
     val bag = newEmptyBag
     bag.save()
 
-    StagedFilesTarget(UUID.randomUUID(), bag, Paths.get(""))
-      .moveAllFrom(stagedDir) shouldBe Success(())
+    DataFiles(bag).moveAll(stagedDir, Paths.get("")) shouldBe Success(())
 
     (bag.data / "original" / "some.thing").contentAsString shouldBe "new content"
     bag.fetchFiles shouldBe empty
@@ -72,7 +69,7 @@ class StagedFilesTargetSpec extends TestSupportFixture {
     val url = new URL("https://raw.githubusercontent.com/DANS-KNAW/easy-deposit-api/master/README.md")
     val bag = newEmptyBag.addFetchItem(
       url,
-      Paths.get("path/to/some.thing"),
+      Paths.get("original/path/to/some.thing"),
     ).getOrRecover { e =>
       assume(!e.isInstanceOf[UnknownHostException])
       fail(e)
@@ -81,8 +78,7 @@ class StagedFilesTargetSpec extends TestSupportFixture {
     bag.data.entries shouldBe empty
     bag.fetchFiles should not be empty
 
-    StagedFilesTarget(UUID.randomUUID(), bag, Paths.get("path/to"))
-      .moveAllFrom(stagedDir) shouldBe a[Success[_]]
+    DataFiles(bag).moveAll(stagedDir, Paths.get("path/to")) shouldBe a[Success[_]]
 
     bag.data / "original" / "path" / "to" / "some.thing" should exist
     bag.fetchFiles shouldBe empty
@@ -91,14 +87,14 @@ class StagedFilesTargetSpec extends TestSupportFixture {
 
   it should "replace a payload file" in {
     (stagedDir / "some.thing").createFile().write("new content")
-    val bag = newEmptyBag.addPayloadFile("Lorum ipsum".inputStream, Paths.get("path/to/some.thing")).getOrRecover(e => fail(e))
+    val bag = newEmptyBag.addPayloadFile("Lorum ipsum".inputStream, Paths.get("original/path/to/some.thing")).getOrRecover(e => fail(e))
     bag.save()
-    (bag.data / "path" / "to" / "some.thing").contentAsString shouldBe "Lorum ipsum"
+    val target = bag.data / "original" / "path" / "to" / "some.thing"
+    target.contentAsString shouldBe "Lorum ipsum" // pre condition
 
-    StagedFilesTarget(UUID.randomUUID(), bag, Paths.get("path/to"))
-      .moveAllFrom(stagedDir) shouldBe a[Success[_]]
+    DataFiles(bag).moveAll(stagedDir, Paths.get("path/to")) shouldBe a[Success[_]]
 
-    (bag.data / "original" / "path" / "to" / "some.thing").contentAsString shouldBe "new content"
+    target.contentAsString shouldBe "new content" // post condition
     bag.fetchFiles shouldBe empty
     stagedDir.walk().filter(!_.isDirectory) shouldBe empty
   }

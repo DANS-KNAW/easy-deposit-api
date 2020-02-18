@@ -165,12 +165,12 @@ class DepositServlet(app: EasyDepositApiApp)
         _ <- isMultipart
         fileItems = fileMultiParams.valuesIterator.flatten.buffered
         maybeManagedArchiveInputStream <- fileItems.nextAsArchiveIfOnlyOne
-        (managedStagingDir, stagedFilesTarget) <- app.stageFiles(user.id, uuid, path)
+        (managedStagingDir, draftDataFiles) <- app.stageFiles(user.id, uuid, path)
         _ <- managedStagingDir.apply(stagingDir =>
           maybeManagedArchiveInputStream
             .map(_.unpackPlainEntriesTo(stagingDir, uuid))
             .getOrElse(app.multipartConfig.moveNonArchive(fileItems, stagingDir, uuid))
-            .flatMap(_ => stagedFilesTarget.moveAllFrom(stagingDir))
+            .flatMap(_ => draftDataFiles.moveAll(stagingDir, path))
         )
       } yield Created()
     }.getOrRecoverWithActionResult

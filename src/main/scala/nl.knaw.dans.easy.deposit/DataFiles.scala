@@ -39,6 +39,49 @@ import scala.util.{ Failure, Success, Try }
 case class DataFiles(bag: DansBag) extends DebugEnhancedLogging {
   private val uploadRoot = bag.data / "original"
 
+  // though currently we don't create fetch files, let us not run into trouble whenever we do
+  private lazy val fetchFiles = bag.fetchFiles
+    .map(fetchFile =>
+      bag.data.relativize(fetchFile.file)
+    )
+
+  def cleanUp(bagRelativePath: Path): Try[Any] = {
+    val oldFile = bag.data / bagRelativePath.toString
+    if (oldFile.exists) {
+      logger.info(s"removing payload file $bagRelativePath to be replaced by the newly uploaded file") // TODO prefix?
+      bag.removePayloadFile(bagRelativePath)
+    }
+    else if (fetchFiles.contains(bagRelativePath)) {
+      logger.info(s"removing fetch file $bagRelativePath to be replaced by the newly uploaded file")
+      bag.removeFetchItem(bagRelativePath)
+    }
+    else Success(())
+  }
+
+  /**
+   * Moves files from stagingDir to draftBag, after deleting each file in the bag as soon as it would be overwritten.
+   *
+   * @param stagingDir      the temporary container for files, unique per request, same mount as draftBag
+   * @param destinationRoot path relative to the upload root that receives the staged files
+   * @return
+   */
+  def moveAll(stagingDir: File, destinationRoot: Path): Try[Unit] = {
+    stagingDir
+      .walk()
+      .withFilter(!_.isDirectory)
+      .map { stagedFile =>
+        val relativeStagedPath = stagingDir.relativize(stagedFile)
+        val destination = destinationRoot.resolve(relativeStagedPath)
+        val bagAbsFile = uploadRoot / destination.toString
+        val bagRelativePath = bag.data.relativize(bagAbsFile)
+        for {
+          _ <- cleanUp(bagRelativePath)
+          _ = logger.info(s"moving uploaded file $stagedFile to $bagRelativePath of ${ bag.data }")
+          _ <- bag.addPayloadFile(stagedFile, bagRelativePath)(ATOMIC_MOVE)
+        } yield ()
+      }.failFastOr(bag.save)
+  }
+
   /**
    * Returns 'true' if the path points to a directory.
    *
@@ -88,12 +131,13 @@ case class DataFiles(bag: DansBag) extends DebugEnhancedLogging {
   def get(path: Path = Paths.get("")): Try[FileInfo] = {
     val requestedFile = uploadRoot / path.toString
     payloadManifest.map {
-      fileToString => fileToString
-        .find(_._1 == requestedFile)
-        .map((toFileInfo _).tupled)
-        .map(Success(_))
-        .getOrElse(Failure(NoSuchFileInDepositException(path)))
-    } getOrElse (Failure(new Exception(s"no manifest for ${ bag.baseDir }")))
+      fileToString =>
+        fileToString
+          .find(_._1 == requestedFile)
+          .map((toFileInfo _).tupled)
+          .map(Success(_))
+          .getOrElse(Failure(NoSuchFileInDepositException(path)))
+    } getOrElse Failure(new Exception(s"no manifest for ${ bag.baseDir }"))
   }
 
   private def payloadManifest = {
@@ -110,18 +154,13 @@ case class DataFiles(bag: DansBag) extends DebugEnhancedLogging {
    */
   def write(is: InputStream, path: Path): Try[Boolean] = {
     val fileExists = (uploadRoot / path.toString).exists
-    val pathInDataDir = bag.data.relativize((uploadRoot / path.toString))
+    val pathInDataDir = bag.data.relativize(uploadRoot / path.toString)
     for {
-      _ <- if (fileExists) bag.removePayloadFile(pathInDataDir) // TODO see fetchFiles in StagedFilesTarget
+      _ <- if (fileExists) cleanUp(pathInDataDir) // TODO see fetchFiles in StagedFilesTarget
            else Success(())
       _ <- bag.addPayloadFile(is, pathInDataDir)
       _ <- bag.save
     } yield !fileExists
-  }
-
-  def move(staged: File, path: Path): Try[DansBag] = {
-    val pathInDataDir = bag.data.relativize((uploadRoot / path.toString))
-    bag.addPayloadFile(staged, pathInDataDir)(ATOMIC_MOVE)
   }
 
   /**
