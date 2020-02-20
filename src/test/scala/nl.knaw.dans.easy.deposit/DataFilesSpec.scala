@@ -16,6 +16,7 @@
 package nl.knaw.dans.easy.deposit
 
 import java.io.ByteArrayInputStream
+import java.net.{ URL, UnknownHostException }
 import java.nio.charset.StandardCharsets
 import java.nio.file.attribute.PosixFilePermission
 import java.nio.file.{ AccessDeniedException, Paths }
@@ -31,12 +32,15 @@ import scala.util.{ Failure, Success }
 
 class DataFilesSpec extends TestSupportFixture {
 
+  private val stagedDir = testDir / "staged"
+  private val draftsDir = testDir / "drafts"
+
   override def beforeEach(): Unit = {
     super.beforeEach()
     clearTestDir()
+    stagedDir.createDirectories()
   }
 
-  private val draftsDir = testDir / "drafts"
   "write" should "write content to the path specified" in {
     val dataFiles = createDatafiles
     val content = "Lorem ipsum est"
@@ -197,6 +201,75 @@ class DataFilesSpec extends TestSupportFixture {
     inside(dataFiles.list(Paths.get("some"))) { case Success(infos: Seq[_]) =>
       infos should contain theSameElementsAs expected
     }
+  }
+
+
+  "moveAll" should "add payload files" in {
+    (stagedDir / "sub" / "path").createDirectories()
+    (stagedDir / "sub" / "path" / "some.thing").createFile().write("new content")
+    (stagedDir / "some.thing").createFile().write("more content")
+    val bag = newEmptyBag
+    bag.save()
+    bag.data.list shouldBe empty
+    bag.fetchFiles shouldBe empty
+
+    DataFiles(bag, UUID.randomUUID()).moveAll(stagedDir, Paths.get("path/to")) shouldBe Success(())
+
+    bag.fetchFiles shouldBe empty
+    (bag.data / "original" / "path" / "to" / "some.thing").contentAsString shouldBe "more content"
+    (bag.data / "original" / "path" / "to" / "sub" / "path" / "some.thing").contentAsString shouldBe "new content"
+    stagedDir.walk().filter(!_.isDirectory) shouldBe empty
+  }
+
+  it should "add a payload file to the root of the data folder" in {
+    (stagedDir / "some.thing").createFile().write("new content")
+    val bag = newEmptyBag
+    bag.save()
+
+    DataFiles(bag, UUID.randomUUID()).moveAll(stagedDir, Paths.get("")) shouldBe Success(())
+
+    (bag.data / "original" / "some.thing").contentAsString shouldBe "new content"
+    bag.fetchFiles shouldBe empty
+    stagedDir.walk().filter(!_.isDirectory) shouldBe empty
+  }
+
+  it should "replace a fetch file" in {
+    (stagedDir / "some.thing").createFile().write("new content")
+    val url = new URL("https://raw.githubusercontent.com/DANS-KNAW/easy-deposit-api/master/README.md")
+    val bag = newEmptyBag.addFetchItem(
+      url,
+      Paths.get("original/path/to/some.thing"),
+    ).getOrRecover { e =>
+      assume(!e.isInstanceOf[UnknownHostException])
+      fail(e)
+    }
+    bag.save()
+    bag.data.entries shouldBe empty
+    bag.fetchFiles should not be empty
+
+    DataFiles(bag, UUID.randomUUID()).moveAll(stagedDir, Paths.get("path/to")) shouldBe a[Success[_]]
+
+    bag.data / "original" / "path" / "to" / "some.thing" should exist
+    bag.fetchFiles shouldBe empty
+    stagedDir.walk().filter(!_.isDirectory) shouldBe empty
+  }
+
+  it should "replace a payload file" in {
+    (stagedDir / "some.thing").createFile().write("new content")
+    val bag = newEmptyBag.addPayloadFile("Lorum ipsum".inputStream, Paths.get("original/path/to/some.thing")).getOrRecover(e => fail(e))
+    bag.save()
+    val target = bag.data / "original" / "path" / "to" / "some.thing"
+    target.contentAsString shouldBe "Lorum ipsum" // pre condition
+
+    DataFiles(bag, UUID.randomUUID()).moveAll(stagedDir, Paths.get("path/to")) shouldBe a[Success[_]]
+
+    target.contentAsString shouldBe "new content" // post condition
+    bag.fetchFiles shouldBe empty
+    stagedDir.walk().filter(!_.isDirectory) shouldBe empty
+  }
+
+  private def newEmptyBag = {
+    DansV0Bag.empty(draftsDir).getOrRecover(e => fail(e))
   }
 
   private def createDatafiles = {
