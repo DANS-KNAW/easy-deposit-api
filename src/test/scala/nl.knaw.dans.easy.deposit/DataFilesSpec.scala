@@ -68,7 +68,7 @@ class DataFilesSpec extends TestSupportFixture {
     (bag.data / "original" / "file.txt") should exist
     (bag.data.parent / "manifest-sha1.txt").lines.size shouldBe 1
 
-    DataFiles(bag)
+    DataFiles(bag, UUID.randomUUID())
       .delete(Paths.get("file.txt")) should matchPattern { case Success(()) => }
 
     bag.data.children.size shouldBe 0
@@ -85,7 +85,7 @@ class DataFilesSpec extends TestSupportFixture {
     (bag.data / "original").children.size shouldBe 2 // one file one folder
     (bag.baseDir / "manifest-sha1.txt").lines.size shouldBe 6
 
-    DataFiles(bag)
+    DataFiles(bag, UUID.randomUUID())
       .delete(Paths.get("path/to")) should matchPattern { case Success(()) => }
 
     bag.data.children.size shouldBe 1
@@ -115,7 +115,7 @@ class DataFilesSpec extends TestSupportFixture {
       .addPayloadFile(randomContent, Paths.get("original/folder1/5.txt")).getOrRecover(payloadFailure)
     bag.save()
 
-    DataFiles(bag).list(Paths.get(""))
+    DataFiles(bag, UUID.randomUUID()).list(Paths.get(""))
       .map(_.map(fileInfo => fileInfo.dirpath.toString -> fileInfo.filename)) shouldBe Success(Seq(
       /* From path.compare:
        *
@@ -149,7 +149,7 @@ class DataFilesSpec extends TestSupportFixture {
     val bag = DansV0Bag
       .empty(testDir / "testBag").getOrRecover(fail("could not create test bag", _))
     bag.save()
-    val dataFiles = DataFiles(bag)
+    val dataFiles = DataFiles(bag, UUID.randomUUID())
     dataFiles.list() shouldBe Success(Seq.empty)
   }
 
@@ -157,7 +157,7 @@ class DataFilesSpec extends TestSupportFixture {
     val bag = DansV0Bag
       .empty(testDir / "testBag").getOrRecover(fail("could not create test bag", _))
     bag.save()
-    val dataFiles = DataFiles(bag)
+    val dataFiles = DataFiles(bag, UUID.randomUUID())
     dataFiles.list(Paths.get("original")) shouldBe Success(Seq.empty)
   }
 
@@ -165,7 +165,7 @@ class DataFilesSpec extends TestSupportFixture {
     val bag = DansV0Bag
       .empty(testDir / "testBag").getOrRecover(fail("could not create test bag", _))
     bag.save()
-    val dataFiles = DataFiles(bag)
+    val dataFiles = DataFiles(bag, UUID.randomUUID())
     dataFiles.list(Paths.get("foo/bar")) shouldBe Success(Seq.empty)
   }
 
@@ -181,7 +181,7 @@ class DataFilesSpec extends TestSupportFixture {
       .addPayloadFile("lorum ipsum".inputStream, Paths.get("original/some/1.txt")).getOrRecover(payloadFailure)
       .addPayloadFile("doler it".inputStream, Paths.get("original/some/folder/2.txt")).getOrRecover(payloadFailure)
     bag.save()
-    val dataFiles = DataFiles(bag)
+    val dataFiles = DataFiles(bag, UUID.randomUUID())
 
     // get FileInfo for a singe file, alias GET /deposit/{id}/file/some/folder/2.txt
     dataFiles.get(Paths.get("some/folder/2.txt")) should matchPattern {

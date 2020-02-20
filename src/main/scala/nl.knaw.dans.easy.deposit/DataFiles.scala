@@ -17,6 +17,7 @@ package nl.knaw.dans.easy.deposit
 
 import java.io.InputStream
 import java.nio.file.{ Path, Paths }
+import java.util.UUID
 
 import better.files._
 import nl.knaw.dans.bag.ChecksumAlgorithm.SHA1
@@ -36,7 +37,7 @@ import scala.util.{ Failure, Success, Try }
  *
  * @param bag the bag containing the data files
  */
-case class DataFiles(bag: DansBag) extends DebugEnhancedLogging {
+case class DataFiles(bag: DansBag, bagId: UUID) extends DebugEnhancedLogging {
   private lazy val uploadRoot = {
     lazy val children = bag.data.children.toList
     val original = bag.data / "original"
@@ -54,11 +55,11 @@ case class DataFiles(bag: DansBag) extends DebugEnhancedLogging {
   private def cleanUp(bagPayloadPath: Path): Try[Any] = {
     val absFile = bag.data / bagPayloadPath.toString
     if (absFile.exists) {
-      logger.info(s"removing payload file $absFile to be replaced by the newly uploaded file")
+      logger.info(s"[$bagId] removing payload file $absFile to be replaced by the newly uploaded file")
       bag.removePayloadFile(bagPayloadPath)
     }
     else if (fetchFiles.contains(bagPayloadPath)) {
-      logger.info(s"removing fetch file $absFile to be replaced by the newly uploaded file")
+      logger.info(s"[$bagId] removing fetch file $absFile to be replaced by the newly uploaded file")
       bag.removeFetchItem(bagPayloadPath)
     }
     else Success(())
@@ -82,7 +83,7 @@ case class DataFiles(bag: DansBag) extends DebugEnhancedLogging {
         val bagPayloadPath = bag.data.relativize(absDestinationFile)
         for {
           _ <- cleanUp(bagPayloadPath)
-          _ = logger.info(s"moving uploaded file $stagedFile to $bagPayloadPath of ${ bag.data }")
+          _ = logger.info(s"[$bagId] moving uploaded file $stagedFile to $bagPayloadPath of ${ bag.data }")
           _ <- bag.addPayloadFile(stagedFile, bagPayloadPath)(ATOMIC_MOVE)
         } yield ()
       }.failFastOr(bag.save)

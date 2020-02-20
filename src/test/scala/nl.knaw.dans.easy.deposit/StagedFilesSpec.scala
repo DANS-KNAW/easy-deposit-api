@@ -17,6 +17,7 @@ package nl.knaw.dans.easy.deposit
 
 import java.net.{ URL, UnknownHostException }
 import java.nio.file.Paths
+import java.util.UUID
 
 import better.files.StringExtensions
 import nl.knaw.dans.bag.v0.DansV0Bag
@@ -44,7 +45,7 @@ class StagedFilesSpec extends TestSupportFixture {
     bag.data.list shouldBe empty
     bag.fetchFiles shouldBe empty
 
-    DataFiles(bag).moveAll(stagedDir, Paths.get("path/to")) shouldBe Success(())
+    DataFiles(bag, UUID.randomUUID()).moveAll(stagedDir, Paths.get("path/to")) shouldBe Success(())
 
     bag.fetchFiles shouldBe empty
     (bag.data / "original" / "path" / "to" / "some.thing").contentAsString shouldBe "more content"
@@ -57,7 +58,7 @@ class StagedFilesSpec extends TestSupportFixture {
     val bag = newEmptyBag
     bag.save()
 
-    DataFiles(bag).moveAll(stagedDir, Paths.get("")) shouldBe Success(())
+    DataFiles(bag, UUID.randomUUID()).moveAll(stagedDir, Paths.get("")) shouldBe Success(())
 
     (bag.data / "original" / "some.thing").contentAsString shouldBe "new content"
     bag.fetchFiles shouldBe empty
@@ -78,7 +79,7 @@ class StagedFilesSpec extends TestSupportFixture {
     bag.data.entries shouldBe empty
     bag.fetchFiles should not be empty
 
-    DataFiles(bag).moveAll(stagedDir, Paths.get("path/to")) shouldBe a[Success[_]]
+    DataFiles(bag, UUID.randomUUID()).moveAll(stagedDir, Paths.get("path/to")) shouldBe a[Success[_]]
 
     bag.data / "original" / "path" / "to" / "some.thing" should exist
     bag.fetchFiles shouldBe empty
@@ -92,7 +93,7 @@ class StagedFilesSpec extends TestSupportFixture {
     val target = bag.data / "original" / "path" / "to" / "some.thing"
     target.contentAsString shouldBe "Lorum ipsum" // pre condition
 
-    DataFiles(bag).moveAll(stagedDir, Paths.get("path/to")) shouldBe a[Success[_]]
+    DataFiles(bag, UUID.randomUUID()).moveAll(stagedDir, Paths.get("path/to")) shouldBe a[Success[_]]
 
     target.contentAsString shouldBe "new content" // post condition
     bag.fetchFiles shouldBe empty
