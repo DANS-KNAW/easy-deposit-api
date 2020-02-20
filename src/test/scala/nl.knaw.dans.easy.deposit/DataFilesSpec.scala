@@ -15,9 +15,7 @@
  */
 package nl.knaw.dans.easy.deposit
 
-import java.io.ByteArrayInputStream
 import java.net.{ URL, UnknownHostException }
-import java.nio.charset.StandardCharsets
 import java.nio.file.attribute.PosixFilePermission
 import java.nio.file.{ AccessDeniedException, Paths }
 import java.util.UUID
@@ -41,15 +39,48 @@ class DataFilesSpec extends TestSupportFixture {
   }
 
   "write" should "write content to the path specified" in {
-    val dataFiles = DataFiles(save(newEmptyBag), uuid)
+    val bag = newEmptyBag
     val content = "Lorem ipsum est"
-    val inputStream = new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8))
     val fileInBag = "location/in/data/dir/test.txt"
 
-    dataFiles.write(inputStream, Paths.get(fileInBag)) shouldBe Success(true)
+    DataFiles(save(bag), uuid)
+      .write(content.inputStream, Paths.get(fileInBag)) shouldBe Success(true)
 
-    (dataFiles.bag.data / "original" / fileInBag).contentAsString shouldBe content
-    inputStream.close()
+    (bag.data / "original" / fileInBag).contentAsString shouldBe content
+  }
+
+  it should "write content to the path specified of an old style bag" in {
+    val bag = newEmptyBag
+      .addPayloadFile(randomContent, Paths.get("1.txt")).getOrRecover(payloadFailure)
+    val fileInBag = "test.txt"
+
+    DataFiles(save(bag), uuid)
+      .write(randomContent, Paths.get(fileInBag)) shouldBe Success(true)
+
+    (bag.data / fileInBag) should exist // N.B: without "original" of the previous test
+  }
+
+  it should "use bag.data as upload root when 'original' has siblings" in {
+    val bag = newEmptyBag
+      .addPayloadFile(randomContent, Paths.get("1.txt")).getOrRecover(payloadFailure)
+      .addPayloadFile(randomContent, Paths.get("original/2.txt")).getOrRecover(payloadFailure)
+    val fileInBag = "test.txt"
+
+    DataFiles(save(bag), uuid)
+      .write(randomContent, Paths.get(fileInBag)) shouldBe Success(true)
+
+    (bag.data / fileInBag) should exist // N.B: without "original"
+  }
+
+  it should "use bag.data as upload root for and old dataset" in {
+    val bag = newEmptyBag
+      .addPayloadFile(randomContent, Paths.get("original/2.txt")).getOrRecover(payloadFailure)
+    val fileInBag = "test.txt"
+
+    DataFiles(save(bag), uuid)
+      .write(randomContent, Paths.get(fileInBag)) shouldBe Success(true)
+
+    (bag.data / "original" / fileInBag) should exist
   }
 
   it should "report write errors" in {
@@ -57,11 +88,9 @@ class DataFilesSpec extends TestSupportFixture {
     dataFiles.bag.data
       .createIfNotExists(asDirectory = true, createParents = true)
       .removePermission(PosixFilePermission.OWNER_WRITE)
-    val inputStream = new ByteArrayInputStream("Lorem ipsum est".getBytes(StandardCharsets.UTF_8))
 
-    dataFiles.write(inputStream, Paths.get("location/in/data/dir/test.txt")).toString shouldBe
+    dataFiles.write("Lorem ipsum est".inputStream, Paths.get("location/in/data/dir/test.txt")).toString shouldBe
       Failure(new AccessDeniedException((dataFiles.bag.data / "original").toString())).toString
-    inputStream.close()
   }
 
   "delete" should "delete a file" in {
@@ -96,9 +125,11 @@ class DataFilesSpec extends TestSupportFixture {
   }
 
   it should "report a non existing file" in {
-    DataFiles(save(newEmptyBag), uuid).delete(Paths.get("file.txt")) should matchPattern {
-      case Failure(e: NoSuchFileInDepositException) if e.getMessage == "file.txt not found in deposit" =>
-    }
+    DataFiles(save(newEmptyBag), uuid)
+      .delete(Paths.get("file.txt")) should
+      matchPattern {
+        case Failure(e: NoSuchFileInDepositException) if e.getMessage == "file.txt not found in deposit" =>
+      }
   }
 
   "list" should "return files grouped by folder" in {
@@ -115,9 +146,8 @@ class DataFilesSpec extends TestSupportFixture {
       .addPayloadFile(randomContent, Paths.get("original/foo.txt")).getOrRecover(payloadFailure)
       .addPayloadFile(randomContent, Paths.get("original/folder11/4.txt")).getOrRecover(payloadFailure)
       .addPayloadFile(randomContent, Paths.get("original/folder1/5.txt")).getOrRecover(payloadFailure)
-    save(bag)
 
-    DataFiles(bag, uuid).list(Paths.get(""))
+    DataFiles(save(bag), uuid).list(Paths.get(""))
       .map(_.map(fileInfo => fileInfo.dirpath.toString -> fileInfo.filename)) shouldBe Success(Seq(
       /* From path.compare:
        *
@@ -148,18 +178,18 @@ class DataFilesSpec extends TestSupportFixture {
   }
 
   it should "return an empty list on a new bag" in {
-    val dataFiles = DataFiles(save(newEmptyBag), uuid)
-    dataFiles.list() shouldBe Success(Seq.empty)
+    DataFiles(save(newEmptyBag), uuid)
+      .list() shouldBe Success(Seq.empty)
   }
 
   it should "return an empty list on original of a new bag" in {
-    val dataFiles = DataFiles(save(newEmptyBag), uuid)
-    dataFiles.list(Paths.get("original")) shouldBe Success(Seq.empty)
+    DataFiles(save(newEmptyBag), uuid)
+      .list(Paths.get("original")) shouldBe Success(Seq.empty)
   }
 
   it should "return an empty list on foo/bar of a new bag" in {
-    val dataFiles = DataFiles(save(newEmptyBag), uuid)
-    dataFiles.list(Paths.get("foo/bar")) shouldBe Success(Seq.empty)
+    DataFiles(save(newEmptyBag), uuid)
+      .list(Paths.get("foo/bar")) shouldBe Success(Seq.empty)
   }
 
   "fileInfo" should "contain proper information about the files" in {
@@ -172,8 +202,7 @@ class DataFilesSpec extends TestSupportFixture {
     val bag = newEmptyBag
       .addPayloadFile("lorum ipsum".inputStream, Paths.get("original/some/1.txt")).getOrRecover(payloadFailure)
       .addPayloadFile("doler it".inputStream, Paths.get("original/some/folder/2.txt")).getOrRecover(payloadFailure)
-    save(bag)
-    val dataFiles = DataFiles(bag, uuid)
+    val dataFiles = DataFiles(save(bag), uuid)
 
     // get FileInfo for a singe file, alias GET /deposit/{id}/file/some/folder/2.txt
     dataFiles.get(Paths.get("some/folder/2.txt")) should matchPattern {
@@ -191,7 +220,7 @@ class DataFilesSpec extends TestSupportFixture {
     }
   }
 
-  "moveAll" should "add payload files" in {
+  "moveAll" should "add payload files to the upload root of a new bag" in {
     (stagedDir / "sub" / "path").createDirectories()
     (stagedDir / "sub" / "path" / "some.thing").createFile().write("new content")
     (stagedDir / "some.thing").createFile().write("more content")
@@ -204,18 +233,31 @@ class DataFilesSpec extends TestSupportFixture {
     bag.fetchFiles shouldBe empty
     (bag.data / "original" / "path" / "to" / "some.thing").contentAsString shouldBe "more content"
     (bag.data / "original" / "path" / "to" / "sub" / "path" / "some.thing").contentAsString shouldBe "new content"
-    stagedDir.walk().filter(!_.isDirectory) shouldBe empty
+    stagedDir.listRecursively().filter(!_.isDirectory) shouldBe empty
   }
 
-  it should "add a payload file to the root of the data folder" in {
+  it should "use bag.data as upload root for an old dataset" in {
     (stagedDir / "some.thing").createFile().write("new content")
-    val bag = save(newEmptyBag)
+    val bag = newEmptyBag.addPayloadFile(randomContent, Paths.get("1.txt")).getOrRecover(payloadFailure)
 
-    DataFiles(bag, uuid).moveAll(stagedDir, Paths.get("")) shouldBe Success(())
+    DataFiles(save(bag), uuid).moveAll(stagedDir, Paths.get("")) shouldBe Success(())
 
-    (bag.data / "original" / "some.thing").contentAsString shouldBe "new content"
+    (bag.data / "some.thing") should exist
     bag.fetchFiles shouldBe empty
-    stagedDir.walk().filter(!_.isDirectory) shouldBe empty
+    stagedDir.listRecursively().filter(!_.isDirectory) shouldBe empty
+  }
+
+  it should "use bag.data as upload root when 'original' has siblings" in {
+    (stagedDir / "some.thing").createFile().write("new content")
+    val bag = newEmptyBag
+      .addPayloadFile(randomContent, Paths.get("1.txt")).getOrRecover(payloadFailure)
+      .addPayloadFile(randomContent, Paths.get("original/2.txt")).getOrRecover(payloadFailure)
+
+    DataFiles(save(bag), uuid).moveAll(stagedDir, Paths.get("")) shouldBe Success(())
+
+    (bag.data / "some.thing") should exist
+    bag.fetchFiles shouldBe empty
+    stagedDir.listRecursively().filter(!_.isDirectory) shouldBe empty
   }
 
   it should "replace a fetch file" in {
@@ -235,7 +277,7 @@ class DataFilesSpec extends TestSupportFixture {
 
     bag.data / "original" / "path" / "to" / "some.thing" should exist
     bag.fetchFiles shouldBe empty
-    stagedDir.walk().filter(!_.isDirectory) shouldBe empty
+    stagedDir.listRecursively().filter(!_.isDirectory) shouldBe empty
   }
 
   it should "replace a payload file" in {
@@ -248,7 +290,7 @@ class DataFilesSpec extends TestSupportFixture {
 
     target.contentAsString shouldBe "new content" // post condition
     bag.fetchFiles shouldBe empty
-    stagedDir.walk().filter(!_.isDirectory) shouldBe empty
+    stagedDir.listRecursively().filter(!_.isDirectory) shouldBe empty
   }
 
   private def newEmptyBag = {
