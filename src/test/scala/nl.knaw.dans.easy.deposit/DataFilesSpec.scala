@@ -145,7 +145,7 @@ class DataFilesSpec extends TestSupportFixture {
     ))
   }
 
-  it should " return an empty list on a new bag" in {
+  it should "return an empty list on a new bag" in {
     val bag = DansV0Bag
       .empty(testDir / "testBag").getOrRecover(fail("could not create test bag", _))
     bag.save()
@@ -153,7 +153,7 @@ class DataFilesSpec extends TestSupportFixture {
     dataFiles.list() shouldBe Success(Seq.empty)
   }
 
-  it should " return an empty list on original of a new bag" in {
+  it should "return an empty list on original of a new bag" in {
     val bag = DansV0Bag
       .empty(testDir / "testBag").getOrRecover(fail("could not create test bag", _))
     bag.save()
@@ -161,7 +161,7 @@ class DataFilesSpec extends TestSupportFixture {
     dataFiles.list(Paths.get("original")) shouldBe Success(Seq.empty)
   }
 
-  it should " return an empty list on foo/bar of a new bag" in {
+  it should "return an empty list on foo/bar of a new bag" in {
     val bag = DansV0Bag
       .empty(testDir / "testBag").getOrRecover(fail("could not create test bag", _))
     bag.save()
