@@ -37,8 +37,10 @@ import scala.util.{ Failure, Success, Try }
  *
  * @param bag the bag containing the data files
  */
-case class DataFiles(bag: DansBag, bagId: UUID) extends DebugEnhancedLogging {
+case class DataFiles(bag: DansBag, depositId: UUID) extends DebugEnhancedLogging {
   private lazy val uploadRoot = {
+    // initially files were uploaded to gab/data, later to bag/data/original
+    // here we take care of backward compatibility
     lazy val children = bag.data.children.toList
     val original = bag.data / "original"
     if (!bag.data.exists || children.isEmpty || (children == List(original) && original.isDirectory))
@@ -53,13 +55,14 @@ case class DataFiles(bag: DansBag, bagId: UUID) extends DebugEnhancedLogging {
     )
 
   private def cleanUp(bagPayloadPath: Path): Try[Any] = {
+    // the only concern is different treatment of fetch item and and normal payload files
     val absFile = bag.data / bagPayloadPath.toString
     if (absFile.exists) {
-      logger.info(s"[$bagId] removing payload file $absFile to be replaced by the newly uploaded file")
+      logger.info(s"[$depositId] removing payload file $absFile to be replaced by the newly uploaded file")
       bag.removePayloadFile(bagPayloadPath)
     }
     else if (fetchFiles.contains(bagPayloadPath)) {
-      logger.info(s"[$bagId] removing fetch file $absFile to be replaced by the newly uploaded file")
+      logger.info(s"[$depositId] removing fetch file $absFile to be replaced by the newly uploaded file")
       bag.removeFetchItem(bagPayloadPath)
     }
     else Success(())
@@ -83,7 +86,7 @@ case class DataFiles(bag: DansBag, bagId: UUID) extends DebugEnhancedLogging {
         val bagPayloadPath = bag.data.relativize(absDestinationFile)
         for {
           _ <- cleanUp(bagPayloadPath)
-          _ = logger.info(s"[$bagId] moving uploaded file $stagedFile to $bagPayloadPath of ${ bag.data }")
+          _ = logger.info(s"[$depositId] moving uploaded file $stagedFile to $bagPayloadPath of ${ bag.data }")
           _ <- bag.addPayloadFile(stagedFile, bagPayloadPath)(ATOMIC_MOVE)
         } yield ()
       }.failFastOr(bag.save)
