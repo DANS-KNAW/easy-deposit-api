@@ -87,7 +87,7 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
     logger.debug(s"Uploads are received at multipart.location: $multipartLocation")
     StartupValidation.allowsAtomicMove(srcDir = multipartLocation, targetDir = stagedBaseDir)
     MultipartConfig(
-      location = Some(multipartLocation.toString()),
+      location = Some(multipartLocation.path.toAbsolutePath.toString),
       maxFileSize = Option(properties.getLong("multipart.max-file-size", null)),
       maxRequestSize = Option(properties.getLong("multipart.max-request-size", null)),
       fileSizeThreshold = Some(properties.getInt("multipart.file-size-threshold")), //throws if not provided
@@ -417,7 +417,7 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
   }
 
   private def pathNotADirectory(path: Path, dataFiles: DataFiles): Try[Unit] = {
-    if ((dataFiles.bag / "data" / path.toString).isDirectory)
+    if (dataFiles.isDirectory(path))
       Failure(OverwriteException("Attempt to overwrite a directory with a file."))
     else Success(())
   }
@@ -431,14 +431,20 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
     }
   }
 
-  def stageFiles(userId: String, id: UUID, destination: Path): Try[(Dispose[File], StagedFilesTarget)] = {
-    trace(userId, id, destination)
+  /**
+   *
+   * @param userId      id of the user uploading files
+   * @param id          draft bag receiving the uploads
+   * @return
+   */
+  def stagingContext(userId: String, id: UUID): Try[(Dispose[File], DataFiles)] = {
+    trace(userId, id)
     for {
       _ <- canUpdate(userId, id)
       deposit <- DepositDir.get(draftBase, userId, id)
       dataFiles <- deposit.getDataFiles
       disposableStagingDir <- getStagedDir(userId, id)
-    } yield (disposableStagingDir, StagedFilesTarget(id, dataFiles.bag, destination))
+    } yield (disposableStagingDir, dataFiles)
   }
 
   // the temporary directory is dropped when the disposable resource is released on completion of the request

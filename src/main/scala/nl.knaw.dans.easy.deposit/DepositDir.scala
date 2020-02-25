@@ -129,7 +129,7 @@ case class DepositDir private(draftBase: File, user: String, id: UUID) extends D
   /**
    * @return object to access the data files of this deposit
    */
-  def getDataFiles: Try[DataFiles] = DansV0Bag.read(bagDir).map(DataFiles)
+  def getDataFiles: Try[DataFiles] = DansV0Bag.read(bagDir).map(DataFiles(_, id))
 
   /**
    * @param pidRequester used to mint a new doi if none was found yet

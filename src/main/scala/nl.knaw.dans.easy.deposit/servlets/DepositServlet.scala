@@ -19,7 +19,6 @@ import java.io.IOException
 import java.nio.file.{ InvalidPathException, Path, Paths }
 import java.util.UUID
 
-import better.files.File
 import nl.knaw.dans.easy.deposit.EasyDepositApiApp
 import nl.knaw.dans.easy.deposit.Errors._
 import nl.knaw.dans.easy.deposit.docs.JsonUtil.toJson
@@ -36,16 +35,7 @@ class DepositServlet(app: EasyDepositApiApp)
   extends ProtectedServlet(app)
     with FileUploadSupport {
 
-  configureMultipartHandling(app.multipartConfig.copy(location = app.multipartConfig.location
-    .filter(_.trim.nonEmpty)
-    .map { s =>
-      val dir = File(s)
-      val absolutePath = dir.path.toAbsolutePath
-      if (!dir.isDirectory && !dir.isReadable && !dir.isWriteable)
-        throw ConfigurationException(s"$absolutePath not found/readable/writable or not a directory")
-      absolutePath.toString
-    }
-  ))
+  configureMultipartHandling(app.multipartConfig)
 
   error {
     case e: SizeConstraintExceededException => RequestEntityTooLarge(s"too much! ${ e.getMessage }")
@@ -152,8 +142,7 @@ class DepositServlet(app: EasyDepositApiApp)
     {
       for {
         uuid <- getUUID
-        path <- getPath
-        _ = logger.info(s"[$uuid] retrieve file info for path '${ path.toString.toOption.getOrElse("/") }'")
+        path <- getRelativeLocation(s"[$uuid] retrieve file info for path")
         contents <- app.getFileInfo(user.id, uuid, path)
       } yield Ok(body = toJson(contents), headers = Map(contentTypeJson))
     }.getOrRecoverWithActionResult
@@ -162,17 +151,16 @@ class DepositServlet(app: EasyDepositApiApp)
     {
       for {
         uuid <- getUUID
-        path <- getPath
-        _ = logger.info(s"[$uuid] upload file to path '${ path.toString.toOption.getOrElse("/") }'")
+        path <- getRelativeLocation(s"[$uuid] upload files to path") // plural
         _ <- isMultipart
         fileItems = fileMultiParams.valuesIterator.flatten.buffered
         maybeManagedArchiveInputStream <- fileItems.nextAsArchiveIfOnlyOne
-        (managedStagingDir, stagedFilesTarget) <- app.stageFiles(user.id, uuid, path)
+        (managedStagingDir, draftDataFiles) <- app.stagingContext(user.id, uuid)
         _ <- managedStagingDir.apply(stagingDir =>
           maybeManagedArchiveInputStream
             .map(_.unpackPlainEntriesTo(stagingDir, uuid))
-            .getOrElse(app.multipartConfig.moveNonArchive(fileItems, stagingDir, uuid))
-            .flatMap(_ => stagedFilesTarget.moveAllFrom(stagingDir))
+            .getOrElse(fileItems.moveNonArchive(app.multipartConfig.location, stagingDir, uuid))
+            .flatMap(_ => draftDataFiles.moveAll(stagingDir, path))
         )
       } yield Created()
     }.getOrRecoverWithActionResult
@@ -182,8 +170,7 @@ class DepositServlet(app: EasyDepositApiApp)
     {
       for {
         uuid <- getUUID
-        path <- getPath
-        _ = logger.info(s"[$uuid] upload file to path '${ path.toString.toOption.getOrElse("/") }'")
+        path <- getRelativeLocation(s"[$uuid] upload file to path") // single
         managedIS = managed(request.getInputStream)
         newFileWasCreated <- managedIS.apply(app.writeDepositFile(_, user.id, uuid, path, Option(request.getContentType)))
         _ = logger.info(s"[$uuid] ${
@@ -199,8 +186,7 @@ class DepositServlet(app: EasyDepositApiApp)
     {
       for {
         uuid <- getUUID
-        path <- getPath
-        _ = logger.info(s"[$uuid] deleting file ${ path.toString.toOption.getOrElse("/") }")
+        path <- getRelativeLocation(s"[$uuid] deleting file")
         _ <- app.deleteDepositFile(user.id, uuid, path)
       } yield NoContent()
     }.getOrRecoverWithActionResult
@@ -218,8 +204,12 @@ class DepositServlet(app: EasyDepositApiApp)
       .recoverWith { case e => Failure(InvalidResourceException(s"Invalid deposit id: ${ e.getMessage }")) }
   }
 
-  private def getPath: Try[Path] = Try {
-    Paths.get(multiParams("splat").find(!_.trim.isEmpty).getOrElse(""))
+  private def getRelativeLocation(logPrefix: String): Try[Path] = Try {
+    val splat = multiParams("splat")
+      .find(!_.trim.isEmpty)
+      .getOrElse("")
+    logger.info(s"$logPrefix '${ splat.toOption.getOrElse("/") }'")
+    Paths.get(splat)
   }.recoverWith { // invalid characters, or other file system specific reasons.
     case t: InvalidPathException => Failure(InvalidResourceException(s"Invalid path: ${ t.getMessage }"))
   }

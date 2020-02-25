@@ -27,7 +27,7 @@ import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream
 import org.apache.commons.compress.archivers.zip.ZipArchiveInputStream
 import org.apache.commons.compress.archivers.{ ArchiveEntry, ArchiveInputStream }
-import org.scalatra.servlet.{ FileItem, MultipartConfig }
+import org.scalatra.servlet.FileItem
 import org.scalatra.util.RicherString._
 import resource.{ ManagedResource, managed }
 
@@ -140,33 +140,32 @@ package object servlets extends DebugEnhancedLogging {
     }
   }
 
-  implicit class RichMultipartConfig(config: MultipartConfig) {
-    def moveNonArchive(srcItems: Iterator[FileItem], targetDir: File, id: UUID): Try[Unit] = {
-      srcItems
-        .map(moveIfNotAnArchive(_, targetDir, id))
-        .failFastOr(Success(()))
+  implicit class RichFileItems(val fileItems: BufferedIterator[FileItem]) extends AnyVal {
+
+    def moveNonArchive(multiPartLocation: Option[String], targetDir: File, id: UUID): Try[Unit] = {
+      multiPartLocation.map(location =>
+        fileItems
+          .map(moveIfNotAnArchive(_, File(location), targetDir, id))
+          .failFastOr(Success(()))
+      ).getOrElse(Failure(ConfigurationException("multipart.location is missing")))
     }
 
-    private def moveIfNotAnArchive(srcItem: FileItem, targetDir: File, id: UUID): Try[Unit] = {
+    private def moveIfNotAnArchive(srcItem: FileItem, multiPartLocation: File, targetDir: File, id: UUID): Try[Unit] = {
       val target = targetDir / srcItem.name
       logger.info(s"[$id] staging upload to $target, contentType = ${ srcItem.contentType }")
       if (srcItem.name.isBlank) Success(()) // skip form field without selected files
       else if (srcItem.isArchive) Failure(ArchiveMustBeOnlyFileException(srcItem))
       else Try {
         val f = UUID.randomUUID().toString
-        val location = File(config.location.getOrElse(throw ConfigurationException("multipart.location is missing")))
 
         // Try to move the (big) uploaded file to a known name,
         // otherwise write the in-memory content, depending on the MultipartConfig values of the servlet.
         srcItem.part.write(f)
 
         // now we can move the upload to the location we really want
-        (location / f).moveTo(target)(CopyOptions.atomically)
+        (multiPartLocation / f).moveTo(target)(CopyOptions.atomically)
       }
     }
-  }
-
-  implicit class RichFileItems(val fileItems: BufferedIterator[FileItem]) extends AnyVal {
 
     def nextAsArchiveIfOnlyOne: Try[Option[ManagedResource[ArchiveInputStream]]] = {
       skipLeadingEmptyFormFields()
