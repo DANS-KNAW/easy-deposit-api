@@ -39,7 +39,7 @@ import scala.util.{ Failure, Success, Try }
  */
 case class DataFiles(bag: DansBag, depositId: UUID) extends DebugEnhancedLogging {
   private lazy val uploadRoot = {
-    // initially files were uploaded to gab/data, later to bag/data/original
+    // initially files were uploaded to bag/data, later to bag/data/original
     // here we take care of backward compatibility
     lazy val children = bag.data.children.toList
     val original = bag.data / "original"
