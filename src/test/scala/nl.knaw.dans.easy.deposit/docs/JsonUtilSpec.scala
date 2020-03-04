@@ -53,8 +53,8 @@ class JsonUtilSpec extends TestSupportFixture {
   }
 
   "FileInfo" should "serialize with lower case, not camel case" in {
-    val fileInfo = FileInfo("test.txt", Paths.get("a/b"), "abc123")
-    toJson(fileInfo) shouldBe """{"filename":"test.txt","dirpath":"a/b","sha1sum":"abc123"}"""
+    val fileInfo = FileInfo("test.txt", Paths.get("a/b"), "abc123", 12345L)
+    toJson(fileInfo) shouldBe """{"filename":"test.txt","dirpath":"a/b","sha1sum":"abc123","size":12345}"""
   }
 
   "deserialize" should "reject additional json info" in {

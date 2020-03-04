@@ -363,7 +363,7 @@ class UploadSpec extends ServletFixture with Inspectors {
       headers = Seq(fooBarBasicAuthHeader),
     ) {
       status shouldBe OK_200
-      body shouldBe s"""[{"filename":"text.txt","dirpath":"path/to","sha1sum":"$sha"}]"""
+      body shouldBe s"""[{"filename":"text.txt","dirpath":"path/to","sha1sum":"$sha","size":11}]"""
     }
   }
 
@@ -389,7 +389,7 @@ class UploadSpec extends ServletFixture with Inspectors {
       headers = Seq(fooBarBasicAuthHeader),
     ) {
       status shouldBe OK_200
-      body shouldBe s"""[{"filename":"text.txt","dirpath":"","sha1sum":"$sha"}]"""
+      body shouldBe s"""[{"filename":"text.txt","dirpath":"","sha1sum":"$sha","size":11}]"""
     }
   }
 

@@ -169,7 +169,7 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
     ) {
       status shouldBe OK_200
       // a single json object: {"..."}, more details are tested in DataFilesSpec.fileInfo
-      body should (fullyMatch regex """^\{.*"\}$""")
+      body should (fullyMatch regex """^\{.*\}$""")
     }
 
     // get directory
@@ -180,7 +180,7 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
     ) {
       status shouldBe OK_200
       // a list of json objects: [{"..."}], more details are tested in DataFilesSpec.fileInfo
-      body should (fullyMatch regex """^\[\{.*"\}\]$""")
+      body should (fullyMatch regex """^\[\{.*\}\]$""")
     }
   }
 
