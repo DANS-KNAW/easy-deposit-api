@@ -195,7 +195,7 @@ class DatasetMetadataSpec extends TestSupportFixture with OptionValues {
 
   "DatasetMetadata.*" should "only report the item in the list that are invalid" in {
     val alteredData = createCorruptMetadataJsonString(""""scheme": "string"""", """"invalid": "property"""")
-    expectErrorMessage(alteredData, """invalid DatasetMetadata: don't recognize {"languageOfDescription":{"invalid":"property"},"audiences":{"invalid":"property"},"subjects":{"invalid":"property"},"temporalCoverages":{"invalid":"property"}}""")
+    expectErrorMessage(alteredData, """invalid DatasetMetadata: don't recognize """)
   }
 
   "DatasetMetadata.spatialBoxes" should "only report spatial points of the box that are invalid" in {
@@ -205,7 +205,7 @@ class DatasetMetadataSpec extends TestSupportFixture with OptionValues {
   }
 
   "DatasetMetadata.spatialCoverages" should "only report someCoverage if is supplied instead of spatialCoverages" in {
-    expectErrorMessage(createCorruptMetadataJsonString(""" "spatialCoverages"""", """ "someCoverage""""), """invalid DatasetMetadata: don't recognize {"someCoverage":[{"scheme":"dcterms:ISO3166","value":"string","key":"string"}]}""")
+    expectErrorMessage(createCorruptMetadataJsonString(""" "spatialCoverages"""", """ "someCoverage""""), """invalid DatasetMetadata: don't recognize """)
   }
 
   "DatasetMetadata.Dates" should "only report the dates that are not correct" in {

@@ -31,7 +31,7 @@ case class Author(titles: Option[String] = None,
 
   override lazy val value: Option[String] = {
     def name = Seq(titles, initials, insertions, surname)
-      .collect { case Some(s) if !s.isBlank => s }
+      .collect { case Some(s) if (!s.isBlank) => s }
       .mkString(" ")
 
     (surname.flatMap(_.toOption), organization.flatMap(_.toOption)) match {

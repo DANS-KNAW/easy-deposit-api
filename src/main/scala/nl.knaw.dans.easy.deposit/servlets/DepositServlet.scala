@@ -165,7 +165,7 @@ class DepositServlet(app: EasyDepositApiApp)
         path <- getPath
         _ = logger.info(s"[$uuid] upload file to path '${ path.toString.toOption.getOrElse("/") }'")
         _ <- isMultipart
-        fileItems = fileMultiParams.valuesIterator.flatten.buffered
+        fileItems = fileMultiParams.toMap.valuesIterator.flatten.buffered
         maybeManagedArchiveInputStream <- fileItems.nextAsArchiveIfOnlyOne
         (managedStagingDir, stagedFilesTarget) <- app.stageFiles(user.id, uuid, path)
         _ <- managedStagingDir.apply(stagingDir =>

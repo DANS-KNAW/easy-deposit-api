@@ -15,6 +15,8 @@
  */
 package nl.knaw.dans.easy.deposit.authentication
 
+import java.time.Clock
+
 import nl.knaw.dans.easy.deposit.authentication.AuthUser.UserState
 import nl.knaw.dans.easy.deposit.authentication.TokenSupport._
 import nl.knaw.dans.lib.error._
@@ -47,6 +49,7 @@ trait TokenSupport extends DebugEnhancedLogging {
   def encodeJWT(user: AuthUser): String = {
     // TODO Add other user properties, audience=?=remote-ip?
     // Claim.content can only have primitive members, not even lists
+    implicit val clock: Clock = Clock.systemUTC()
     val claim = JwtClaim(s"""{"uid":"${ user.id }"}""")
       .issuedNow
       .expiresIn(tokenConfig.expiresIn)
@@ -56,7 +59,7 @@ trait TokenSupport extends DebugEnhancedLogging {
   def decodeJWT(token: String): Try[AuthUser] = {
     for {
       decoded <- Jwt.decode(token, tokenConfig.secretKey, Seq(tokenConfig.algorithm))
-      parsed <- fromJson(decoded)
+      parsed <- fromJson(decoded.content)
     } yield AuthUser(parsed.uid, state = UserState.active)
     // TODO user status might have changed since sign-up, retrieve and check status from ldap
   }
