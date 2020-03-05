@@ -90,12 +90,12 @@ class RichFileItemsSpec extends TestSupportFixture with MockFactory {
     }
   }
 
-  "moveNonZips" should "have no problems with an empty list" in {
+  "moveNonArchive" should "have no problems with an empty list" in {
     val fileItems = Iterator(
       mockFileItem(""),
     ).buffered
 
-    createMultipartConfig.moveNonArchive(fileItems, createStageDir, UUID.randomUUID()) shouldBe a[Success[_]]
+    fileItems.moveNonArchive(createMultipartConfig.location, createStageDir, UUID.randomUUID()) shouldBe a[Success[_]]
     (testDir / "staged").list should have size 0
   }
 
@@ -107,7 +107,7 @@ class RichFileItemsSpec extends TestSupportFixture with MockFactory {
       mockFileItem("another.txt", content = "Dolor sit amet"),
     ).buffered
 
-    createMultipartConfig.moveNonArchive(fileItems, createStageDir, UUID.randomUUID()) should matchPattern {
+    fileItems.moveNonArchive(createMultipartConfig.location, createStageDir, UUID.randomUUID()) should matchPattern {
       case Failure(e: ArchiveMustBeOnlyFileException) if e.getMessage ==
         "A multipart/form-data message contained an archive part [some.zip] but also other parts." =>
       // moveNonZips should not have been called at all by the servlet with these items

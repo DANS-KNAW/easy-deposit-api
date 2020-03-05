@@ -15,8 +15,7 @@
  */
 package nl.knaw.dans.easy.deposit
 
-import java.io.ByteArrayInputStream
-import java.nio.charset.StandardCharsets
+import java.net.{ URL, UnknownHostException }
 import java.nio.file.attribute.PosixFilePermission
 import java.nio.file.{ AccessDeniedException, Paths }
 import java.util.UUID
@@ -27,50 +26,81 @@ import nl.knaw.dans.easy.deposit.Errors.NoSuchFileInDepositException
 import nl.knaw.dans.easy.deposit.docs.FileInfo
 import nl.knaw.dans.lib.error._
 
-import scala.collection.JavaConverters._
 import scala.util.{ Failure, Success }
 
 class DataFilesSpec extends TestSupportFixture {
 
+  private val stagedDir = testDir / "staged"
+
   override def beforeEach(): Unit = {
     super.beforeEach()
     clearTestDir()
+    stagedDir.createDirectories()
   }
 
-  private val draftsDir = testDir / "drafts"
-
   "write" should "write content to the path specified" in {
-    val dataFiles = createDatafiles
+    val bag = newEmptyBag
     val content = "Lorem ipsum est"
-    val inputStream = new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8))
     val fileInBag = "location/in/data/dir/test.txt"
 
-    dataFiles.write(inputStream, Paths.get(fileInBag)) shouldBe Success(true)
+    DataFiles(save(bag), uuid)
+      .write(content.inputStream, Paths.get(fileInBag)) shouldBe Success(true)
 
-    (dataFiles.bag.data / fileInBag).contentAsString shouldBe content
-    inputStream.close()
+    (bag.data / "original" / fileInBag).contentAsString shouldBe content
+  }
+
+  it should "write content to the path specified of an old style bag" in {
+    val bag = newEmptyBag
+      .addPayloadFile(randomContent, Paths.get("1.txt")).getOrRecover(payloadFailure)
+    val fileInBag = "test.txt"
+
+    DataFiles(save(bag), uuid)
+      .write(randomContent, Paths.get(fileInBag)) shouldBe Success(true)
+
+    (bag.data / fileInBag) should exist // N.B: without "original" of the previous test
+  }
+
+  it should "use bag.data as upload root when 'original' has siblings" in {
+    val bag = newEmptyBag
+      .addPayloadFile(randomContent, Paths.get("1.txt")).getOrRecover(payloadFailure)
+      .addPayloadFile(randomContent, Paths.get("original/2.txt")).getOrRecover(payloadFailure)
+    val fileInBag = "test.txt"
+
+    DataFiles(save(bag), uuid)
+      .write(randomContent, Paths.get(fileInBag)) shouldBe Success(true)
+
+    (bag.data / fileInBag) should exist // N.B: without "original"
+  }
+
+  it should "use bag.data as upload root for and old dataset" in {
+    val bag = newEmptyBag
+      .addPayloadFile(randomContent, Paths.get("original/2.txt")).getOrRecover(payloadFailure)
+    val fileInBag = "test.txt"
+
+    DataFiles(save(bag), uuid)
+      .write(randomContent, Paths.get(fileInBag)) shouldBe Success(true)
+
+    (bag.data / "original" / fileInBag) should exist
   }
 
   it should "report write errors" in {
-    val dataFiles = createDatafiles
+    val dataFiles = DataFiles(save(newEmptyBag), uuid)
     dataFiles.bag.data
       .createIfNotExists(asDirectory = true, createParents = true)
       .removePermission(PosixFilePermission.OWNER_WRITE)
-    val inputStream = new ByteArrayInputStream("Lorem ipsum est".getBytes(StandardCharsets.UTF_8))
 
-    dataFiles.write(inputStream, Paths.get("location/in/data/dir/test.txt")).toString shouldBe
-      Failure(new AccessDeniedException((dataFiles.bag.data / "location").toString())).toString
-    inputStream.close()
+    dataFiles.write("Lorem ipsum est".inputStream, Paths.get("location/in/data/dir/test.txt")).toString shouldBe
+      Failure(new AccessDeniedException((dataFiles.bag.data / "original").toString())).toString
   }
 
   "delete" should "delete a file" in {
-    val bag = DansV0Bag.empty(testDir / bagDirName).getOrRecover(e => fail(s"could not create test bag $e"))
-    bag.addPayloadFile("Lorum ipsum est".inputStream, Paths.get("file.txt"))
-    bag.save
-    (bag.data / "file.txt") should exist
+    val bag = newEmptyBag
+    bag.addPayloadFile("Lorum ipsum est".inputStream, Paths.get("original/file.txt")).getOrRecover(payloadFailure)
+    save(bag)
+    (bag.data / "original" / "file.txt") should exist
     (bag.data.parent / "manifest-sha1.txt").lines.size shouldBe 1
 
-    DataFiles(bag)
+    DataFiles(bag, uuid)
       .delete(Paths.get("file.txt")) should matchPattern { case Success(()) => }
 
     bag.data.children.size shouldBe 0
@@ -78,16 +108,16 @@ class DataFilesSpec extends TestSupportFixture {
   }
 
   it should "recursively delete files" in {
-    val bag = DansV0Bag.empty(testDir / bagDirName).getOrRecover(e => fail(s"could not create test bag $e"))
-    bag.addPayloadFile("Lorum ipsum est".inputStream, Paths.get("file.txt"))
+    val bag = newEmptyBag
+    bag.addPayloadFile("Lorum ipsum est".inputStream, Paths.get("original/file.txt")).getOrRecover(payloadFailure)
     (0 until 5).foreach { n =>
-      bag.addPayloadFile(s"$n Lorum ipsum est".inputStream, Paths.get(s"path/to/file$n.txt"))
+      bag.addPayloadFile(s"$n Lorum ipsum est".inputStream, Paths.get(s"original/path/to/file$n.txt")).getOrRecover(payloadFailure)
     }
-    bag.save
-    bag.data.children.size shouldBe 2 // one file one folder
+    save(bag)
+    (bag.data / "original").children.size shouldBe 2 // one file one folder
     (bag.baseDir / "manifest-sha1.txt").lines.size shouldBe 6
 
-    DataFiles(bag)
+    DataFiles(bag, uuid)
       .delete(Paths.get("path/to")) should matchPattern { case Success(()) => }
 
     bag.data.children.size shouldBe 1
@@ -95,29 +125,29 @@ class DataFilesSpec extends TestSupportFixture {
   }
 
   it should "report a non existing file" in {
-    createDatafiles.delete(Paths.get("file.txt")) should matchPattern {
-      case Failure(e: NoSuchFileInDepositException) if e.getMessage == "file.txt not found in deposit" =>
-    }
+    DataFiles(save(newEmptyBag), uuid)
+      .delete(Paths.get("file.txt")) should
+      matchPattern {
+        case Failure(e: NoSuchFileInDepositException) if e.getMessage == "file.txt not found in deposit" =>
+      }
   }
 
   "list" should "return files grouped by folder" in {
-    val bag = DansV0Bag
-      .empty(testDir / "testBag").getOrRecover(fail("could not create test bag", _))
-      .addPayloadFile(randomContent, Paths.get("1.txt")).getOrRecover(payloadFailure)
-      .addPayloadFile(randomContent, Paths.get("folder1/b/x.txt")).getOrRecover(payloadFailure)
-      .addPayloadFile(randomContent, Paths.get("folder1#b/x.txt")).getOrRecover(payloadFailure)
-      .addPayloadFile(randomContent, Paths.get("folder1.x/y.txt")).getOrRecover(payloadFailure)
-      .addPayloadFile(randomContent, Paths.get("folder1y/x.txt")).getOrRecover(payloadFailure)
-      .addPayloadFile(randomContent, Paths.get("folder1/3.txt")).getOrRecover(payloadFailure)
-      .addPayloadFile(randomContent, Paths.get(".hidden")).getOrRecover(payloadFailure)
-      .addPayloadFile(randomContent, Paths.get("#/1.txt")).getOrRecover(payloadFailure)
-      .addPayloadFile(randomContent, Paths.get("folder2/4.txt")).getOrRecover(payloadFailure)
-      .addPayloadFile(randomContent, Paths.get("foo.txt")).getOrRecover(payloadFailure)
-      .addPayloadFile(randomContent, Paths.get("folder11/4.txt")).getOrRecover(payloadFailure)
-      .addPayloadFile(randomContent, Paths.get("folder1/5.txt")).getOrRecover(payloadFailure)
-    bag.save()
+    val bag = newEmptyBag
+      .addPayloadFile(randomContent, Paths.get("original/1.txt")).getOrRecover(payloadFailure)
+      .addPayloadFile(randomContent, Paths.get("original/folder1/b/x.txt")).getOrRecover(payloadFailure)
+      .addPayloadFile(randomContent, Paths.get("original/folder1#b/x.txt")).getOrRecover(payloadFailure)
+      .addPayloadFile(randomContent, Paths.get("original/folder1.x/y.txt")).getOrRecover(payloadFailure)
+      .addPayloadFile(randomContent, Paths.get("original/folder1y/x.txt")).getOrRecover(payloadFailure)
+      .addPayloadFile(randomContent, Paths.get("original/folder1/3.txt")).getOrRecover(payloadFailure)
+      .addPayloadFile(randomContent, Paths.get("original/.hidden")).getOrRecover(payloadFailure)
+      .addPayloadFile(randomContent, Paths.get("original/#/1.txt")).getOrRecover(payloadFailure)
+      .addPayloadFile(randomContent, Paths.get("original/folder2/4.txt")).getOrRecover(payloadFailure)
+      .addPayloadFile(randomContent, Paths.get("original/foo.txt")).getOrRecover(payloadFailure)
+      .addPayloadFile(randomContent, Paths.get("original/folder11/4.txt")).getOrRecover(payloadFailure)
+      .addPayloadFile(randomContent, Paths.get("original/folder1/5.txt")).getOrRecover(payloadFailure)
 
-    DataFiles(bag).list(Paths.get(""))
+    DataFiles(save(bag), uuid).list(Paths.get(""))
       .map(_.map(fileInfo => fileInfo.dirpath.toString -> fileInfo.filename)) shouldBe Success(Seq(
       /* From path.compare:
        *
@@ -147,6 +177,21 @@ class DataFilesSpec extends TestSupportFixture {
     ))
   }
 
+  it should "return an empty list on a new bag" in {
+    DataFiles(save(newEmptyBag), uuid)
+      .list() shouldBe Success(Seq.empty)
+  }
+
+  it should "return an empty list on original of a new bag" in {
+    DataFiles(save(newEmptyBag), uuid)
+      .list(Paths.get("original")) shouldBe Success(Seq.empty)
+  }
+
+  it should "return an empty list on foo/bar of a new bag" in {
+    DataFiles(save(newEmptyBag), uuid)
+      .list(Paths.get("foo/bar")) shouldBe Success(Seq.empty)
+  }
+
   "fileInfo" should "contain proper information about the files" in {
     val sha1 = "a57ec0c3239f30b29f1e9270581be50a70c74c04"
     val sha2 = "815bc8056fe15e00f24514051f1d06016852360c"
@@ -154,12 +199,10 @@ class DataFilesSpec extends TestSupportFixture {
       FileInfo("1.txt", Paths.get("some/"), sha1),
       FileInfo("2.txt", Paths.get("some/folder"), sha2),
     )
-    val bag = DansV0Bag
-      .empty(testDir / "testBag").getOrRecover(fail("could not create test bag", _))
-      .addPayloadFile("lorum ipsum".inputStream, Paths.get("some/1.txt")).getOrRecover(payloadFailure)
-      .addPayloadFile("doler it".inputStream, Paths.get("some/folder/2.txt")).getOrRecover(payloadFailure)
-    bag.save()
-    val dataFiles = DataFiles(bag)
+    val bag = newEmptyBag
+      .addPayloadFile("lorum ipsum".inputStream, Paths.get("original/some/1.txt")).getOrRecover(payloadFailure)
+      .addPayloadFile("doler it".inputStream, Paths.get("original/some/folder/2.txt")).getOrRecover(payloadFailure)
+    val dataFiles = DataFiles(save(bag), uuid)
 
     // get FileInfo for a singe file, alias GET /deposit/{id}/file/some/folder/2.txt
     dataFiles.get(Paths.get("some/folder/2.txt")) should matchPattern {
@@ -177,10 +220,86 @@ class DataFilesSpec extends TestSupportFixture {
     }
   }
 
-  private def createDatafiles = {
-    DepositDir.create(draftsDir, "user01")
-      .getOrRecover(e => fail("can't create test deposit", e))
-      .getDataFiles.getOrRecover(e => fail("can't get datafiles from test deposit", e))
+  "moveAll" should "add payload files to the upload root of a new bag" in {
+    (stagedDir / "sub" / "path").createDirectories()
+    (stagedDir / "sub" / "path" / "some.thing").createFile().write("new content")
+    (stagedDir / "some.thing").createFile().write("more content")
+    val bag = save(newEmptyBag)
+    bag.data.list shouldBe empty
+    bag.fetchFiles shouldBe empty
+
+    DataFiles(bag, uuid).moveAll(stagedDir, Paths.get("path/to")) shouldBe Success(())
+
+    bag.fetchFiles shouldBe empty
+    (bag.data / "original" / "path" / "to" / "some.thing").contentAsString shouldBe "more content"
+    (bag.data / "original" / "path" / "to" / "sub" / "path" / "some.thing").contentAsString shouldBe "new content"
+    stagedDir.listRecursively().filter(!_.isDirectory) shouldBe empty
+  }
+
+  it should "use bag.data as upload root for an old dataset" in {
+    (stagedDir / "some.thing").createFile().write("new content")
+    val bag = newEmptyBag.addPayloadFile(randomContent, Paths.get("1.txt")).getOrRecover(payloadFailure)
+
+    DataFiles(save(bag), uuid).moveAll(stagedDir, Paths.get("")) shouldBe Success(())
+
+    (bag.data / "some.thing") should exist
+    bag.fetchFiles shouldBe empty
+    stagedDir.listRecursively().filter(!_.isDirectory) shouldBe empty
+  }
+
+  it should "use bag.data as upload root when 'original' has siblings" in {
+    (stagedDir / "some.thing").createFile().write("new content")
+    val bag = newEmptyBag
+      .addPayloadFile(randomContent, Paths.get("1.txt")).getOrRecover(payloadFailure)
+      .addPayloadFile(randomContent, Paths.get("original/2.txt")).getOrRecover(payloadFailure)
+
+    DataFiles(save(bag), uuid).moveAll(stagedDir, Paths.get("")) shouldBe Success(())
+
+    (bag.data / "some.thing") should exist
+    bag.fetchFiles shouldBe empty
+    stagedDir.listRecursively().filter(!_.isDirectory) shouldBe empty
+  }
+
+  it should "replace a fetch file" in {
+    (stagedDir / "some.thing").createFile().write("new content")
+    val url = new URL("https://raw.githubusercontent.com/DANS-KNAW/easy-deposit-api/master/README.md")
+    val bag = save(newEmptyBag.addFetchItem(
+      url,
+      Paths.get("original/path/to/some.thing"),
+    ).getOrRecover { e =>
+      assume(!e.isInstanceOf[UnknownHostException])
+      fail(e)
+    })
+    bag.data.entries shouldBe empty
+    bag.fetchFiles should not be empty
+
+    DataFiles(bag, uuid).moveAll(stagedDir, Paths.get("path/to")) shouldBe a[Success[_]]
+
+    bag.data / "original" / "path" / "to" / "some.thing" should exist
+    bag.fetchFiles shouldBe empty
+    stagedDir.listRecursively().filter(!_.isDirectory) shouldBe empty
+  }
+
+  it should "replace a payload file" in {
+    (stagedDir / "some.thing").createFile().write("new content")
+    val bag = save(newEmptyBag.addPayloadFile("Lorum ipsum".inputStream, Paths.get("original/path/to/some.thing")).getOrRecover(payloadFailure))
+    val target = bag.data / "original" / "path" / "to" / "some.thing"
+    target.contentAsString shouldBe "Lorum ipsum" // pre condition
+
+    DataFiles(bag, uuid).moveAll(stagedDir, Paths.get("path/to")) shouldBe a[Success[_]]
+
+    target.contentAsString shouldBe "new content" // post condition
+    bag.fetchFiles shouldBe empty
+    stagedDir.listRecursively().filter(!_.isDirectory) shouldBe empty
+  }
+
+  private def newEmptyBag = {
+    DansV0Bag.empty(testDir / "draft").getOrRecover(e => fail("can't create test bag", e))
+  }
+
+  private def save(bag: DansV0Bag) = {
+    bag.save.getOrRecover(e => fail("can't save test bag", e))
+    bag
   }
 
   private def payloadFailure(value: Throwable) =
