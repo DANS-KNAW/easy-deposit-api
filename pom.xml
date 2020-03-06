@@ -32,6 +32,8 @@
     <inceptionYear>2018</inceptionYear>
     <properties>
         <main-class>nl.knaw.dans.easy.deposit.Command</main-class>
+        <jwt-core.version>4.2.0</jwt-core.version>
+        <commons-email.version>1.5</commons-email.version>
     </properties>
     <scm>
         <developerConnection>scm:git:https://github.com/DANS-KNAW/${project.artifactId}</developerConnection>
@@ -49,7 +51,6 @@
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>jul-to-slf4j</artifactId>
-            <version>2.0.0-alpha1</version>
         </dependency>
         <dependency>
             <groupId>org.scalatest</groupId>
@@ -74,7 +75,6 @@
         <dependency>
             <groupId>nl.knaw.dans.lib</groupId>
             <artifactId>dans-bag-lib_2.12</artifactId>
-            <version>1.0.0-beta-4</version>
         </dependency>
         <dependency>
             <groupId>com.jsuereth</groupId>
@@ -115,7 +115,7 @@
         <dependency>
             <groupId>com.pauldijou</groupId>
             <artifactId>jwt-core_2.12</artifactId>
-            <version>4.2.0</version>
+            <version>${jwt-core.version}</version>
         </dependency>
         <dependency>
             <groupId>joda-time</groupId>
@@ -124,21 +124,15 @@
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-email</artifactId>
-            <version>1.5</version>
+            <version>${commons-email.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.velocity</groupId>
             <artifactId>velocity</artifactId>
-            <version>1.7</version>
         </dependency>
         <dependency>
             <groupId>org.json4s</groupId>
             <artifactId>json4s-native_2.12</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.json4s</groupId>
-            <artifactId>json4s-jackson_2.12</artifactId>
-            <version>3.6.7</version>
         </dependency>
         <dependency>
             <groupId>org.json4s</groupId>
@@ -155,7 +149,6 @@
         <dependency>
             <groupId>com.squareup.okhttp3</groupId>
             <artifactId>mockwebserver</artifactId>
-            <version>4.4.0</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
