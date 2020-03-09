@@ -128,7 +128,12 @@ case class DataFiles(bag: DansBag, depositId: UUID) extends DebugEnhancedLogging
   }
 
   private def toFileInfo(absFile: File, checksum: String): FileInfo = {
-    FileInfo(absFile.name, uploadRoot.relativize(absFile.parent), checksum)
+    FileInfo(
+      absFile.name,
+      uploadRoot.relativize(absFile.parent),
+      checksum,
+      absFile.toJava.length(), // use `JFile.length` here instead of `file.size` because (1) that's the same way it is done in easy-ingest-flow and (2) https://stackoverflow.com/a/7226770/2389405
+    )
   }
 
   /**

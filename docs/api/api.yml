@@ -395,9 +395,11 @@ paths:
                   - filename: myfile.txt
                     dirpath: path/to/parent/dir
                     sha1sum: ab3aa0555f31a8d7809fae4b03a95195edb01f5c
+                    size: 12345
                   - filename: myfile2.txt
                     dirpath: path/to/parent/dir
                     sha1sum: ab3aa0555f31a8d7809fae4b03a95195edb01f5d
+                    size: 12345
 
         401:
           $ref: "#/components/responses/Unauthorized"
@@ -767,10 +769,13 @@ components:
           type: string
         sha1sum:
           type: string
+        size:
+          type: number
       example:
         filename: file.txt
         dirpath: path/to/containing/dir
         sha1sum: ab3aa0555f31a8d7809fae4b03a95195edb01f5c
+        size: 12345
 
     DatasetMetadata:
       type: object

@@ -196,8 +196,8 @@ class DataFilesSpec extends TestSupportFixture {
     val sha1 = "a57ec0c3239f30b29f1e9270581be50a70c74c04"
     val sha2 = "815bc8056fe15e00f24514051f1d06016852360c"
     val expected = Seq(
-      FileInfo("1.txt", Paths.get("some/"), sha1),
-      FileInfo("2.txt", Paths.get("some/folder"), sha2),
+      FileInfo("1.txt", Paths.get("some/"), sha1, 11),
+      FileInfo("2.txt", Paths.get("some/folder"), sha2, 8),
     )
     val bag = newEmptyBag
       .addPayloadFile("lorum ipsum".inputStream, Paths.get("original/some/1.txt")).getOrRecover(payloadFailure)
@@ -206,7 +206,7 @@ class DataFilesSpec extends TestSupportFixture {
 
     // get FileInfo for a singe file, alias GET /deposit/{id}/file/some/folder/2.txt
     dataFiles.get(Paths.get("some/folder/2.txt")) should matchPattern {
-      case Success(FileInfo("2.txt", p, _)) if p.toString == "some/folder" =>
+      case Success(FileInfo("2.txt", p, _, _)) if p.toString == "some/folder" =>
     }
 
     // get FileInfo for all files, alias GET /deposit/{id}/file
