@@ -96,35 +96,43 @@ package object servlets extends DebugEnhancedLogging {
         }
       }
 
-      Try(Option(archiveInputStream.getNextEntry)) match {
-        case Success(None) |
-             Failure(_: EOFException) => Failure(MalformedArchiveException(s"No entries found."))
-        case Failure(e: ZipException) =>
-          // for example the tested: Unexpected record signature: 0X88B1F
-          Failure(MalformedArchiveException(e.getMessage))
-        case Failure(e: IOException) if e.getCause != null && e.getCause.isInstanceOf[IllegalArgumentException] =>
-          // for example EASY-2619: At offset ..., ... byte binary number exceeds maximum signed long value
-          Failure(MalformedArchiveException(draftDeposit.mailToDansMessage(
-            linkIntro = s"Extracting file(s) to $path caused a problem: ${ e.getCause.getMessage }",
-            bodyMsg =
-              s"""Something went wrong while extracting file(s) to $path.
-                 |Cause: ${ e.getCause.getMessage }
-                 |Could you please investigate the issue?
-                 |""".stripMargin,
-            ref = draftDeposit.id.toString,
-          )))
-        case Failure(e) => Failure(e)
-        case Success(Some(firstEntry: ArchiveEntry)) =>
+      def buildMessage(e: IOException) = {
+        draftDeposit.mailToDansMessage(
+          linkIntro = s"Extracting file(s) to $path caused a problem: ${ e.getCause.getMessage }",
+          bodyMsg =
+            s"""Something went wrong while extracting file(s) to $path.
+               |Cause: ${ e.getCause.getMessage }
+
+               |Could you please inve
+
+               |""".
+              stripMargin,
+          ref =
+            draftDeposit.id.toString,
+        )
+      }
+      Try(Option(archiveInputStream.getNextEntry)).flatMap {
+        case None => Failure(MalformedArchiveException(s"No entries found."))
+        case Some(firstEntry: ArchiveEntry) =>
           logger.info(s"[$draftDeposit] Extracting archive to $targetDir")
           for {
             _ <- extract(firstEntry)
             _ <- Stream
-              .continually(archiveInputStream.getNextEntry) // TODO recover from ZipException and IllegalArgumentException
+              .continually(archiveInputStream.getNextEntry)
               .takeWhile(Option(_).nonEmpty)
               .map(extract)
               .failFastOr(Success(()))
             _ = targetDir.walk().foreach(cleanup)
           } yield ()
+      }.recoverWith{
+        case _: EOFException => Failure(MalformedArchiveException(s"No entries found."))
+        case e: ZipException =>
+          // for example the tested: Unexpected record signature: 0X88B1F
+          Failure(MalformedArchiveException(e.getMessage))
+        case e: IOException if e.getCause != null && e.getCause.isInstanceOf[IllegalArgumentException] =>
+          // for example EASY-2619: At offset ..., ... byte binary number exceeds maximum signed long value
+          Failure(MalformedArchiveException(buildMessage(e)))
+        case e => Failure(e)
       }
     }
   }
