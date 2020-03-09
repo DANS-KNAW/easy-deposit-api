@@ -17,12 +17,12 @@ package nl.knaw.dans.easy.deposit.servlets
 
 import java.io.{ ByteArrayInputStream, FileInputStream, InputStream }
 import java.nio.charset.{ Charset, StandardCharsets }
-import java.util.UUID
+import java.nio.file.Paths
 import java.util.zip.ZipException
 
 import better.files.{ File, UnicodeCharset, _ }
 import nl.knaw.dans.easy.deposit.Errors.MalformedArchiveException
-import nl.knaw.dans.easy.deposit.TestSupportFixture
+import nl.knaw.dans.easy.deposit.{ DepositDir, TestSupportFixture }
 import org.apache.commons.compress.archivers.ArchiveInputStream
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream
 import org.apache.commons.compress.archivers.zip.ZipArchiveInputStream
@@ -172,16 +172,15 @@ class RichArchiveInputStreamSpec extends TestSupportFixture {
   }
 
   private def unzip(stream: ArchiveInputStream): Try[Unit] = {
-    stream.unpackPlainEntriesTo(stagingDir.createDirectories(), UUID.randomUUID())
+    lazy val depositDir = DepositDir(testDir / "drafts", "user001", uuid)
+    stream.unpackPlainEntriesTo(stagingDir.createDirectories(), depositDir, Paths.get("some/path"), "uploaded.filename")
   }
 
   /** Mocks how a file item of a http request is processed by the application */
   private def mockRichFileItemGetZipInputStream(inputStream: InputStream): ManagedResource[ZipArchiveInputStream] = {
     /*
-     The next example would use java.util throwing the tested ZipException, we use apache.commons
-
-     import better.files._
-     inputStream.asZipInputStream
+     better.files.inputStream.asZipInputStream(inputStream)
+     would use java.util throwing the tested ZipException, we use apache.commons
      */
     managed(new ZipArchiveInputStream(inputStream, "UTF8", true, true))
   }

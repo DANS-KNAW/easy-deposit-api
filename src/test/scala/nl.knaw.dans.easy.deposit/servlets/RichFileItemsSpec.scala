@@ -35,7 +35,7 @@ class RichFileItemsSpec extends TestSupportFixture with MockFactory {
 
   "nextAsZipIfOnlyOne" should "return nothing" in {
     val fileItems = Iterator[FileItem]().buffered
-    fileItems.nextAsArchiveIfOnlyOne shouldBe Success(None)
+    fileItems.nextArchiveIfOnlyOne shouldBe Success(None)
     fileItems.hasNext shouldBe false
   }
 
@@ -45,7 +45,7 @@ class RichFileItemsSpec extends TestSupportFixture with MockFactory {
       mockFileItem("some.zip"),
       mockFileItem(""),
     ).buffered
-    fileItems.nextAsArchiveIfOnlyOne should matchPattern { case Success(Some(_)) => }
+    fileItems.nextArchiveIfOnlyOne should matchPattern { case Success(Some(_)) => }
     fileItems.hasNext shouldBe false
   }
 
@@ -70,7 +70,7 @@ class RichFileItemsSpec extends TestSupportFixture with MockFactory {
     fileItems.map {
       Iterator(_)
         .buffered
-        .nextAsArchiveIfOnlyOne
+        .nextArchiveIfOnlyOne
         .map(_.isDefined)
         .toString
     }.mkString("") shouldBe ("Success(true)" * fileItems.size)
@@ -84,7 +84,7 @@ class RichFileItemsSpec extends TestSupportFixture with MockFactory {
       mockFileItem("other.zip"),
       mockFileItem(""),
     ).buffered
-    fileItems.nextAsArchiveIfOnlyOne should matchPattern {
+    fileItems.nextArchiveIfOnlyOne should matchPattern {
       case Failure(e: ArchiveMustBeOnlyFileException) if e.getMessage ==
         "A multipart/form-data message contained an archive part [some.zip] but also other parts." =>
     }

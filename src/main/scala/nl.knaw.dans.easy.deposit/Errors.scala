@@ -114,6 +114,9 @@ object Errors extends DebugEnhancedLogging {
   case class InvalidDoiException(uuid: UUID)
     extends ServletResponseException(BAD_REQUEST_400, s"InvalidDoi: DOI must be obtained by calling GET /deposit/$uuid")
 
+  case class ArchiveException(msgAboutEntry: String)
+    extends ServletResponseException(INTERNAL_SERVER_ERROR_500, s"Not expected exception when extracting $msgAboutEntry")
+
   case class MalformedArchiveException(msgAboutEntry: String)
     extends ServletResponseException(BAD_REQUEST_400, s"Archive file is malformed. $msgAboutEntry")
 
