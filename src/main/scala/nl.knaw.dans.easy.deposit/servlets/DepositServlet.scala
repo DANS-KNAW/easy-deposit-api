@@ -156,7 +156,8 @@ class DepositServlet(app: EasyDepositApiApp)
         fileItems = fileMultiParams.valuesIterator.flatten.buffered
         maybeArchivedItem <- fileItems.nextArchiveIfOnlyOne
         (managedStagingDir, draftDeposit) <- app.stagingContext(user.id, uuid)
-        _ <- managedStagingDir.apply(stagingDir => maybeArchivedItem
+        _ <- managedStagingDir.apply(stagingDir =>
+          maybeArchivedItem
             .map(_.unpackPlainEntriesTo(stagingDir, draftDeposit, path))
             .getOrElse(fileItems.moveNonArchive(app.multipartConfig.location, stagingDir, uuid))
             .flatMap(_ => draftDeposit.getDataFiles.flatMap(_.moveAll(stagingDir, path)))

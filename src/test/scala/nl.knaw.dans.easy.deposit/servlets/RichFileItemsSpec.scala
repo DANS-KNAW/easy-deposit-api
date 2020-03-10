@@ -136,7 +136,7 @@ class RichFileItemsSpec extends TestSupportFixture with MockFactory {
     mocked.getHeader _ expects "content-disposition" returning "filename=" + fileName anyNumberOfTimes()
     mocked.getHeader _ expects "content-type" returning contentType anyNumberOfTimes()
     (() => mocked.getContentType) expects() returning contentType anyNumberOfTimes()
-    mocked.write _ expects *  anyNumberOfTimes() onCall { f: String =>
+    mocked.write _ expects * anyNumberOfTimes() onCall { f: String =>
       (multipartLocation / f).write(content)
       ()
     }

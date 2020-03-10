@@ -184,6 +184,7 @@ class RichArchiveInputStreamSpec extends TestSupportFixture {
      */
     managed(new ZipArchiveInputStream(inputStream, "UTF8", true, true))
   }
+
   private def mockRichFileItemGetTarInputStream(inputStream: InputStream): ManagedResource[TarArchiveInputStream] = {
     managed(new TarArchiveInputStream(inputStream, "UTF8"))
   }

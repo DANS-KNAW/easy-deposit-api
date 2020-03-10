@@ -433,8 +433,8 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
 
   /**
    *
-   * @param userId      id of the user uploading files
-   * @param id          draft bag receiving the uploads
+   * @param userId id of the user uploading files
+   * @param id     draft bag receiving the uploads
    * @return
    */
   def stagingContext(userId: String, id: UUID): Try[(Dispose[File], DepositDir)] = {

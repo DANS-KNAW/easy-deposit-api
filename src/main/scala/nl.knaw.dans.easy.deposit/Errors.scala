@@ -116,7 +116,7 @@ object Errors extends DebugEnhancedLogging {
 
   case class ArchiveException(msg: String, cause: Throwable)
     extends ServletResponseException(INTERNAL_SERVER_ERROR_500, msg) {
-    logger.error(s"$msg: ${cause.getMessage}", cause)
+    logger.error(s"$msg: ${ cause.getMessage }", cause)
   }
 
   case class MalformedArchiveException(msgAboutEntry: String)
