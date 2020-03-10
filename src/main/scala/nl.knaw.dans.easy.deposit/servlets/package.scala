@@ -88,7 +88,10 @@ package object servlets extends DebugEnhancedLogging {
             targetFile.parent.createDirectories() // in case a directory was not specified separately
             Files.copy(archiveInputStream, targetFile.path)
             ()
-          }.recoverWith { case e: Throwable => Failure(ArchiveException(clientMsg, e)) }
+          }.recoverWith {
+            case e: ZipException => Failure(MalformedArchiveException(s"$clientMsg, cause: ${ e.getMessage }"))
+            case e: Throwable => Failure(ArchiveException(clientMsg, e))
+          }
         }
       }
 
@@ -105,14 +108,20 @@ package object servlets extends DebugEnhancedLogging {
         }
       }
 
-      def buildMessage(e: IOException) = {
+      def noEntriesMsg = s"No entries found in $uploadName."
+
+      def canNotExtract(msg: String) = {
+        s"Could not extract file(s) from $uploadName to $path, cause: $msg"
+      }
+
+      def buildMessage(cause: String) = {
         draftDeposit.mailToDansMessage(
           ref = draftDeposit.id.toString,
-          linkIntro = s"Extracting file(s) to $path caused a problem: ${ e.getCause.getMessage }",
+          linkIntro = canNotExtract(cause),
           bodyMsg =
             s"""Something went wrong while extracting file(s) from $uploadName to $path.
-               |Cause: ${ e.getCause.getMessage }
-               |Could you please inve
+               |Cause: $cause
+               |Could you please investigate this issue
                |""".
               stripMargin,
         )
@@ -132,17 +141,17 @@ package object servlets extends DebugEnhancedLogging {
       }
 
       Try(Option(archiveInputStream.getNextEntry))
-        .recoverWith { case _: EOFException => Failure(MalformedArchiveException(s"No entries found.")) }
+        .recoverWith { case _: EOFException => Failure(MalformedArchiveException(noEntriesMsg)) }
         .flatMap {
-          case None => Failure(MalformedArchiveException(s"No entries found."))
+          case None => Failure(MalformedArchiveException(noEntriesMsg))
           case Some(firstEntry: ArchiveEntry) => extractAll(firstEntry)
         }.recoverWith {
         case e: ZipException =>
           // for example the tested: Unexpected record signature: 0X88B1F
-          Failure(MalformedArchiveException(e.getMessage))
+          Failure(MalformedArchiveException(canNotExtract(e.getMessage)))
         case e: IOException if e.getCause != null && e.getCause.isInstanceOf[IllegalArgumentException] =>
           // for example EASY-2619: At offset ..., ... byte binary number exceeds maximum signed long value
-          Failure(MalformedArchiveException(buildMessage(e)))
+          Failure(MalformedArchiveException(buildMessage(e.getCause.getMessage)))
       }
     }
   }
@@ -160,7 +169,7 @@ package object servlets extends DebugEnhancedLogging {
     private def getArchiveInputStream: Try[resource.ManagedResource[ArchiveInputStream]] = Try {
       val charSet = fileItem.charset.getOrElse("UTF8")
       if (matchesEitherOf(s".+[.]$tarExtRegexp", tarContentTypeRegexp))
-        managed(new TarArchiveInputStream(fileItem.getInputStream, charSet))
+        managed(new TarArchiveInputStream(fileItem.getInputStream, 10240, 512, charSet, true))
       else managed(new ZipArchiveInputStream(fileItem.getInputStream, charSet, true, true))
     }
 

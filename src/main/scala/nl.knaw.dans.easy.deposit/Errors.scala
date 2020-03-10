@@ -116,11 +116,13 @@ object Errors extends DebugEnhancedLogging {
 
   case class ArchiveException(msg: String, cause: Throwable)
     extends ServletResponseException(INTERNAL_SERVER_ERROR_500, msg) {
-    logger.error(s"$msg: ${ cause.getMessage }", cause)
+    logger.error(msg, cause)
   }
 
   case class MalformedArchiveException(msgAboutEntry: String)
-    extends ServletResponseException(BAD_REQUEST_400, s"Archive file is malformed. $msgAboutEntry")
+    extends ServletResponseException(BAD_REQUEST_400, s"Archive file is malformed. $msgAboutEntry"){
+    logger.error(getMessage)
+  }
 
   case class PendingUploadException()
     extends ServletResponseException(CONFLICT_409, "Another upload or submit is pending.")

@@ -168,7 +168,7 @@ class UploadSpec extends ServletFixture with Inspectors {
       files = bodyParts
     ) {
       status shouldBe BAD_REQUEST_400
-      body shouldBe "Archive file is malformed. No entries found."
+      body shouldBe "Archive file is malformed. No entries found in 1.zip."
     }
     absoluteTarget.entries shouldBe empty
   }
