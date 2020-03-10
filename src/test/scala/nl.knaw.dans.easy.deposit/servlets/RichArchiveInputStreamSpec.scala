@@ -57,7 +57,7 @@ class RichArchiveInputStreamSpec extends TestSupportFixture {
   it should "complain about a zip trying to put files outside the intended target" in {
     val zipFile = "src/test/resources/manual-test/slip.zip"
     mockRichFileItemGetZipInputStream(new FileInputStream(zipFile)).apply(
-      unzip(_) shouldBe Failure(MalformedArchiveException("Can't extract ../../user001washere.txt"))
+      unzip(_) shouldBe Failure(MalformedArchiveException("Can't extract ../../user001washere.txt from uploaded.filename, invalid path"))
     )
     stagingDir.entries shouldBe empty
     testDir.entries should have size 1

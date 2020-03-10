@@ -63,23 +63,32 @@ package object servlets extends DebugEnhancedLogging {
 
   implicit class RichArchiveInputStream(val archiveInputStream: ArchiveInputStream) extends AnyVal {
 
+    /**
+     *
+     * @param targetDir    temporary file to stage uploads
+     * @param draftDeposit deposit receiving the uploads (info for error message)
+     * @param path         relative path for the upload root (info for error message)
+     * @param uploadName   of multipart item of request (client point of view, info for error message)
+     * @return
+     */
     def unpackPlainEntriesTo(targetDir: File, draftDeposit: => DepositDir, path: => Path, uploadName: String): Try[Unit] = {
-      def extract(entry: ArchiveEntry): Try[Unit] = {
-        if (!(targetDir / entry.getName).isChildOf(targetDir))
-          Failure(MalformedArchiveException(s"Can't extract ${ entry.getName }"))
+      def extractOne(entry: ArchiveEntry): Try[Unit] = {
+        lazy val clientMsg = s"Can't extract ${ entry.getName } from $uploadName"
+        val targetFile = targetDir / entry.getName
+        if (!targetFile.isChildOf(targetDir)) {
+          Failure(MalformedArchiveException(clientMsg + ", invalid path"))
+        }
         else if (entry.isDirectory) {
-          Try((targetDir / entry.getName).createDirectories())
+          Try(targetFile.createDirectories())
         }
         else {
-          logger.debug(s"[${ draftDeposit.id }] Extracting ${ entry.getName }")
+          lazy val logMsg = s"[${ draftDeposit.id }] Extracting ${ entry.getName } from $uploadName"
+          logger.debug(logMsg)
           Try {
-            (targetDir / entry.getName).parent.createDirectories() // in case a directory was not specified separately
-            Files.copy(archiveInputStream, (targetDir / entry.getName).path)
+            targetFile.parent.createDirectories() // in case a directory was not specified separately
+            Files.copy(archiveInputStream, targetFile.path)
             ()
-          }.recoverWith { case e: Throwable =>
-            logger.error(e.getMessage, e)
-            Failure(ArchiveException(entry.getName))
-          }
+          }.recoverWith { case e: Throwable => Failure(ArchiveException(clientMsg, e)) }
         }
       }
 
@@ -98,41 +107,42 @@ package object servlets extends DebugEnhancedLogging {
 
       def buildMessage(e: IOException) = {
         draftDeposit.mailToDansMessage(
+          ref = draftDeposit.id.toString,
           linkIntro = s"Extracting file(s) to $path caused a problem: ${ e.getCause.getMessage }",
           bodyMsg =
-            s"""Something went wrong while extracting file(s) to $path.
+            s"""Something went wrong while extracting file(s) from $uploadName to $path.
                |Cause: ${ e.getCause.getMessage }
-
                |Could you please inve
-
                |""".
               stripMargin,
-          ref =
-            draftDeposit.id.toString,
         )
       }
-      Try(Option(archiveInputStream.getNextEntry)).flatMap {
-        case None => Failure(MalformedArchiveException(s"No entries found."))
-        case Some(firstEntry: ArchiveEntry) =>
-          logger.info(s"[$draftDeposit] Extracting archive to $targetDir")
-          for {
-            _ <- extract(firstEntry)
-            _ <- Stream
-              .continually(archiveInputStream.getNextEntry)
-              .takeWhile(Option(_).nonEmpty)
-              .map(extract)
-              .failFastOr(Success(()))
-            _ = targetDir.walk().foreach(cleanup)
-          } yield ()
-      }.recoverWith{
-        case _: EOFException => Failure(MalformedArchiveException(s"No entries found."))
+
+      def extractAll(firstEntry: ArchiveEntry) = {
+        logger.info(s"[${ draftDeposit.id }] Extracting archive to $targetDir")
+        for {
+          _ <- extractOne(firstEntry)
+          _ <- Stream
+            .continually(archiveInputStream.getNextEntry)
+            .takeWhile(Option(_).nonEmpty)
+            .map(extractOne)
+            .failFastOr(Success(()))
+          _ = targetDir.walk().foreach(cleanup)
+        } yield ()
+      }
+
+      Try(Option(archiveInputStream.getNextEntry))
+        .recoverWith { case _: EOFException => Failure(MalformedArchiveException(s"No entries found.")) }
+        .flatMap {
+          case None => Failure(MalformedArchiveException(s"No entries found."))
+          case Some(firstEntry: ArchiveEntry) => extractAll(firstEntry)
+        }.recoverWith {
         case e: ZipException =>
           // for example the tested: Unexpected record signature: 0X88B1F
           Failure(MalformedArchiveException(e.getMessage))
         case e: IOException if e.getCause != null && e.getCause.isInstanceOf[IllegalArgumentException] =>
           // for example EASY-2619: At offset ..., ... byte binary number exceeds maximum signed long value
           Failure(MalformedArchiveException(buildMessage(e)))
-        case e => Failure(e)
       }
     }
   }
