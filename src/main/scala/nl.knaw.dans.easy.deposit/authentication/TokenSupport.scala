@@ -59,7 +59,7 @@ trait TokenSupport extends DebugEnhancedLogging {
   def decodeJWT(token: String): Try[AuthUser] = {
     for {
       decoded <- Jwt.decode(token, tokenConfig.secretKey, Seq(tokenConfig.algorithm))
-      parsed <- fromJson(decoded.content)
+      parsed <- fromJson(decoded.toJson)
     } yield AuthUser(parsed.uid, state = UserState.active)
     // TODO user status might have changed since sign-up, retrieve and check status from ldap
   }
