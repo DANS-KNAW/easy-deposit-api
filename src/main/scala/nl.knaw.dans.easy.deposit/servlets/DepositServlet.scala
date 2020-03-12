@@ -160,7 +160,7 @@ class DepositServlet(app: EasyDepositApiApp)
           maybeArchivedItem
             .map(_.unpackPlainEntriesTo(stagingDir, draftDeposit, path))
             .getOrElse(fileItems.moveNonArchive(app.multipartConfig.location, stagingDir, uuid))
-            .flatMap(_ => draftDeposit.getDataFiles.flatMap(_.moveAll(stagingDir, path)))
+            .flatMap(_ => draftDeposit.addFiles(stagingDir, path))
         )
       } yield Created()
     }.getOrRecoverWithActionResult

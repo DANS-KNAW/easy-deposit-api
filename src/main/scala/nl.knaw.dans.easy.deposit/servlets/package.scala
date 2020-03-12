@@ -24,7 +24,7 @@ import better.files.File
 import better.files.File.CopyOptions
 import nl.knaw.dans.easy.deposit.Errors.{ ArchiveException, ArchiveMustBeOnlyFileException, ConfigurationException, MalformedArchiveException }
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
-import org.apache.commons.compress.archivers.tar.TarArchiveInputStream
+import org.apache.commons.compress.archivers.tar.{ TarArchiveInputStream, TarConstants }
 import org.apache.commons.compress.archivers.zip.ZipArchiveInputStream
 import org.apache.commons.compress.archivers.{ ArchiveEntry, ArchiveInputStream }
 import org.scalatra.servlet.FileItem
@@ -82,8 +82,7 @@ package object servlets extends DebugEnhancedLogging {
           Try(targetFile.createDirectories())
         }
         else {
-          lazy val logMsg = s"[${ draftDeposit.id }] Extracting ${ entry.getName } from $uploadName"
-          logger.debug(logMsg)
+          logger.debug(s"[${ draftDeposit.id }] Extracting ${ entry.getName } from $uploadName")
           Try {
             targetFile.parent.createDirectories() // in case a directory was not specified separately
             Files.copy(archiveInputStream, targetFile.path)
@@ -101,14 +100,14 @@ package object servlets extends DebugEnhancedLogging {
         // a __MACOSX gets deleted because its content was deleted
         // it will simply not be a directory anymore and not cause trouble
         if (file.isDirectory && (file.isEmpty || file.name == "__MACOSX")) {
-          logger.info(s"[$draftDeposit] cleaning up $file")
+          logger.info(s"[${ draftDeposit.id }] cleaning up $file")
           file.delete()
           if (file.parent != targetDir)
             cleanup(file.parent)
         }
       }
 
-      def noEntriesMsg = s"No entries found in $uploadName."
+      lazy val noEntriesMsg = s"No entries found in $uploadName."
 
       def canNotExtract(msg: String) = {
         s"Could not extract file(s) from $uploadName to $path, cause: $msg"
@@ -169,7 +168,7 @@ package object servlets extends DebugEnhancedLogging {
     private def getArchiveInputStream: Try[resource.ManagedResource[ArchiveInputStream]] = Try {
       val charSet = fileItem.charset.getOrElse("UTF8")
       if (matchesEitherOf(s".+[.]$tarExtRegexp", tarContentTypeRegexp))
-        managed(new TarArchiveInputStream(fileItem.getInputStream, 10240, 512, charSet, true))
+        managed(new TarArchiveInputStream(fileItem.getInputStream, TarConstants.DEFAULT_BLKSIZE, TarConstants.DEFAULT_RCDSIZE, charSet, true))
       else managed(new ZipArchiveInputStream(fileItem.getInputStream, charSet, true, true))
     }
 

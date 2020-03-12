@@ -441,9 +441,9 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
     trace(userId, id)
     for {
       _ <- canUpdate(userId, id)
-      deposit <- DepositDir.get(draftBase, userId, id)
+      draftDeposit <- DepositDir.get(draftBase, userId, id)
       disposableStagingDir <- getStagedDir(userId, id)
-    } yield (disposableStagingDir, deposit)
+    } yield (disposableStagingDir, draftDeposit)
   }
 
   // the temporary directory is dropped when the disposable resource is released on completion of the request

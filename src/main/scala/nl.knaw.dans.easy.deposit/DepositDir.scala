@@ -17,7 +17,7 @@ package nl.knaw.dans.easy.deposit
 
 import java.io.FileNotFoundException
 import java.net.URL
-import java.nio.file.{ NoSuchFileException, Paths }
+import java.nio.file.{ NoSuchFileException, Path, Paths }
 import java.util.UUID
 
 import better.files._
@@ -159,6 +159,14 @@ case class DepositDir private(draftBase: File, user: String, id: UUID) extends D
    * @return object to access the data files of this deposit
    */
   def getDataFiles: Try[DataFiles] = DansV0Bag.read(bagDir).map(DataFiles(_, id))
+
+
+  def addFiles(stagingDir: File, target: Path): Try[Unit] = {
+    for {
+      dataFiles <- getDataFiles
+      _ <- dataFiles.moveAll(stagingDir, target)
+    } yield ()
+  }
 
   /**
    * @param pidRequester used to mint a new doi if none was found yet

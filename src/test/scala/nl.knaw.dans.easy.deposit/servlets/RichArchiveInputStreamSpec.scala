@@ -58,13 +58,11 @@ class RichArchiveInputStreamSpec extends TestSupportFixture {
     // logs: actual and claimed size don't match ... see ...
     // from https://github.com/apache/commons-compress/blob/f5d0bb1e287038de05415ca65145d82166a7bf0f/src/test/resources/bla-stored-dd-contradicts-actualsize.zip
     val archiveFile = "src/test/resources/manual-test/bla-stored-dd-contradicts-actualsize.zip"
-    mockRichFileItemGetZipInputStream(new FileInputStream(archiveFile)).apply(
-      unzip(_) should matchPattern {
-        case Failure(e: Throwable) if e.getMessage.matches("Archive file is malformed. Can't extract test1.xml from uploaded.filename, cause: actual and claimed size.*See http.*") =>
-      }
-    )
-    stagingDir.entries.toList should have size (1)
-    (stagingDir / "test1.xml").toJava.length() == 0
+    mockRichFileItemGetZipInputStream(new FileInputStream(archiveFile)).apply(unzip(_)) should matchPattern {
+      case Failure(e: MalformedArchiveException) if e.getMessage.matches("Archive file is malformed. Can't extract test1.xml from uploaded.filename, cause: actual and claimed size.*See http.*") =>
+    }
+    stagingDir.entries.toList should have size 1
+    (stagingDir / "test1.xml").toJava should have length 0
   }
 
   it should "complain about a zip trying to put files outside the intended target" in {
@@ -79,17 +77,15 @@ class RichArchiveInputStreamSpec extends TestSupportFixture {
 
   it should "complain about an empty zip" in {
     val zipFile = "src/test/resources/manual-test/empty.zip"
-    mockRichFileItemGetZipInputStream(new FileInputStream(zipFile)).apply(
-      unzip(_) shouldBe Failure(MalformedArchiveException("No entries found in uploaded.filename."))
-    )
+    mockRichFileItemGetZipInputStream(new FileInputStream(zipFile)).apply(unzip(_)) shouldBe
+      Failure(MalformedArchiveException("No entries found in uploaded.filename."))
     stagingDir.entries shouldBe empty
   }
 
   it should "not accept an invalid tar" in {
     val archiveFile = "src/test/resources/manual-test/invalid.tar.gz"
-    mockRichFileItemGetZipInputStream(new FileInputStream(archiveFile)).apply(
-      unzip(_) shouldBe Failure(MalformedArchiveException("Could not extract file(s) from uploaded.filename to some/path, cause: Unexpected record signature: 0X88B1F"))
-    )
+    mockRichFileItemGetZipInputStream(new FileInputStream(archiveFile)).apply(unzip(_)) shouldBe
+      Failure(MalformedArchiveException("Could not extract file(s) from uploaded.filename to some/path, cause: Unexpected record signature: 0X88B1F"))
     stagingDir.entries shouldBe empty
   }
 
