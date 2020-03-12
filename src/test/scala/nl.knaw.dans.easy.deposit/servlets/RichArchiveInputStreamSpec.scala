@@ -40,13 +40,13 @@ class RichArchiveInputStreamSpec extends TestSupportFixture {
   }
 
   "unpackPlainEntriesTo" should "report invalid content" in {
-    unpackZip(new ByteArrayInputStream("Lorem ipsum est".getBytes(StandardCharsets.UTF_8)))shouldBe
+    unpackZip(new ByteArrayInputStream("Lorem ipsum est".getBytes(StandardCharsets.UTF_8))) shouldBe
       Failure(MalformedArchiveException("No entries found in uploaded.filename."))
     stagingDir.entries shouldBe empty
   }
 
   it should "complain about an invalid zip" in {
-    unpackZip(new FileInputStream(s"src/test/resources/manual-test/invalid.zip"))shouldBe
+    unpackZip(new FileInputStream(s"src/test/resources/manual-test/invalid.zip")) shouldBe
       Failure(MalformedArchiveException("No entries found in uploaded.filename."))
     stagingDir.entries shouldBe empty
   }
@@ -60,7 +60,7 @@ class RichArchiveInputStreamSpec extends TestSupportFixture {
   }
 
   it should "complain about a zip trying to put files outside the intended target" in {
-    unpackZip(new FileInputStream(s"src/test/resources/manual-test/slip.zip"))shouldBe
+    unpackZip(new FileInputStream(s"src/test/resources/manual-test/slip.zip")) shouldBe
       Failure(MalformedArchiveException("Can't extract ../../user001washere.txt from uploaded.filename, invalid path"))
 
     stagingDir.entries shouldBe empty
@@ -69,7 +69,7 @@ class RichArchiveInputStreamSpec extends TestSupportFixture {
   }
 
   it should "complain about an empty zip" in {
-    unpackZip(new FileInputStream(s"src/test/resources/manual-test/empty.zip"))shouldBe
+    unpackZip(new FileInputStream(s"src/test/resources/manual-test/empty.zip")) shouldBe
       Failure(MalformedArchiveException("No entries found in uploaded.filename."))
     stagingDir.entries shouldBe empty
   }
