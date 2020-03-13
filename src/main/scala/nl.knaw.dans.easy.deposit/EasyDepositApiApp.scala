@@ -433,18 +433,17 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
 
   /**
    *
-   * @param userId      id of the user uploading files
-   * @param id          draft bag receiving the uploads
+   * @param userId id of the user uploading files
+   * @param id     draft bag receiving the uploads
    * @return
    */
-  def stagingContext(userId: String, id: UUID): Try[(Dispose[File], DataFiles)] = {
+  def stagingContext(userId: String, id: UUID): Try[(Dispose[File], DepositDir)] = {
     trace(userId, id)
     for {
       _ <- canUpdate(userId, id)
-      deposit <- DepositDir.get(draftBase, userId, id)
-      dataFiles <- deposit.getDataFiles
+      draftDeposit <- DepositDir.get(draftBase, userId, id)
       disposableStagingDir <- getStagedDir(userId, id)
-    } yield (disposableStagingDir, dataFiles)
+    } yield (disposableStagingDir, draftDeposit)
   }
 
   // the temporary directory is dropped when the disposable resource is released on completion of the request

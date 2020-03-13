@@ -154,13 +154,13 @@ class DepositServlet(app: EasyDepositApiApp)
         path <- getRelativeLocation(s"[$uuid] upload files to path") // plural
         _ <- isMultipart
         fileItems = fileMultiParams.valuesIterator.flatten.buffered
-        maybeManagedArchiveInputStream <- fileItems.nextAsArchiveIfOnlyOne
-        (managedStagingDir, draftDataFiles) <- app.stagingContext(user.id, uuid)
+        maybeArchivedItem <- fileItems.nextArchiveIfOnlyOne
+        (managedStagingDir, draftDeposit) <- app.stagingContext(user.id, uuid)
         _ <- managedStagingDir.apply(stagingDir =>
-          maybeManagedArchiveInputStream
-            .map(_.unpackPlainEntriesTo(stagingDir, uuid))
+          maybeArchivedItem
+            .map(_.unpackPlainEntriesTo(stagingDir, draftDeposit, path))
             .getOrElse(fileItems.moveNonArchive(app.multipartConfig.location, stagingDir, uuid))
-            .flatMap(_ => draftDataFiles.moveAll(stagingDir, path))
+            .flatMap(_ => draftDeposit.addFiles(stagingDir, path))
         )
       } yield Created()
     }.getOrRecoverWithActionResult

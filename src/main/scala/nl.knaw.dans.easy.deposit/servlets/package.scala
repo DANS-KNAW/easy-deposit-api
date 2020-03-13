@@ -15,21 +15,21 @@
  */
 package nl.knaw.dans.easy.deposit
 
-import java.io.EOFException
-import java.nio.file.Files
+import java.io.{ EOFException, IOException }
+import java.nio.file.{ Files, Path }
 import java.util.UUID
 import java.util.zip.ZipException
 
 import better.files.File
 import better.files.File.CopyOptions
-import nl.knaw.dans.easy.deposit.Errors.{ ArchiveMustBeOnlyFileException, ConfigurationException, MalformedArchiveException }
+import nl.knaw.dans.easy.deposit.Errors.{ ArchiveException, ArchiveMustBeOnlyFileException, ConfigurationException, MalformedArchiveException, escape, printableRegexp }
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
-import org.apache.commons.compress.archivers.tar.TarArchiveInputStream
+import org.apache.commons.compress.archivers.tar.{ TarArchiveInputStream, TarConstants }
 import org.apache.commons.compress.archivers.zip.ZipArchiveInputStream
 import org.apache.commons.compress.archivers.{ ArchiveEntry, ArchiveInputStream }
 import org.scalatra.servlet.FileItem
 import org.scalatra.util.RicherString._
-import resource.{ ManagedResource, managed }
+import resource.managed
 
 import scala.annotation.tailrec
 import scala.util.{ Failure, Success, Try }
@@ -61,30 +61,35 @@ package object servlets extends DebugEnhancedLogging {
   val contentTypeJson: (String, String) = "content-type" -> "application/json;charset=UTF-8"
   val contentTypePlainText: (String, String) = "content-type" -> "text/plain;charset=UTF-8"
 
-  implicit class RichManagedArchiveInputStream(val archiveInputStream: ManagedResource[ArchiveInputStream]) extends AnyVal {
-    def unpackPlainEntriesTo(dir: File, id: => UUID): Try[Unit] = {
-      archiveInputStream.apply(_.unpackPlainEntriesTo(dir, id))
-    }
-  }
-
   implicit class RichArchiveInputStream(val archiveInputStream: ArchiveInputStream) extends AnyVal {
 
-    def unpackPlainEntriesTo(targetDir: File, id: => UUID): Try[Unit] = {
-      def extract(entry: ArchiveEntry): Try[Unit] = {
-        if (!(targetDir / entry.getName).isChildOf(targetDir))
-          Failure(MalformedArchiveException(s"Can't extract ${ entry.getName }"))
+    /**
+     *
+     * @param targetDir    temporary file to stage uploads
+     * @param draftDeposit deposit receiving the uploads (info for error message)
+     * @param path         relative path for the upload root (info for error message)
+     * @param uploadName   of multipart item of request (client point of view, info for error message)
+     * @return
+     */
+    def unpackPlainEntriesTo(targetDir: File, draftDeposit: => DepositDir, path: => Path, uploadName: String): Try[Unit] = {
+      def extractOne(entry: ArchiveEntry): Try[Unit] = {
+        lazy val clientMsg = s"Can't extract ${ entry.getName } from $uploadName"
+        val targetFile = targetDir / entry.getName
+        if (!targetFile.isChildOf(targetDir)) {
+          Failure(MalformedArchiveException(uploadName, entry.getName, path, "Invalid path"))
+        }
         else if (entry.isDirectory) {
-          Try((targetDir / entry.getName).createDirectories())
+          Try(targetFile.createDirectories())
         }
         else {
-          logger.debug(s"[$id] Extracting ${ entry.getName }")
+          logger.debug(s"[${ draftDeposit.id }] Extracting ${ entry.getName } from $uploadName")
           Try {
-            (targetDir / entry.getName).parent.createDirectories() // in case a directory was not specified separately
-            Files.copy(archiveInputStream, (targetDir / entry.getName).path)
+            targetFile.parent.createDirectories() // in case a directory was not specified separately
+            Files.copy(archiveInputStream, targetFile.path)
             ()
-          }.recoverWith { case e: ZipException =>
-            logger.error(e.getMessage, e)
-            Failure(MalformedArchiveException(s"Can't extract ${ entry.getName }"))
+          }.recoverWith {
+            case e: ZipException => Failure(MalformedArchiveException(uploadName, entry.getName, path, escape(e.getMessage)))
+            case e: Throwable => Failure(ArchiveException(clientMsg, e))
           }
         }
       }
@@ -95,29 +100,54 @@ package object servlets extends DebugEnhancedLogging {
         // a __MACOSX gets deleted because its content was deleted
         // it will simply not be a directory anymore and not cause trouble
         if (file.isDirectory && (file.isEmpty || file.name == "__MACOSX")) {
-          logger.info(s"[$id] cleaning up $file")
+          logger.info(s"[${ draftDeposit.id }] cleaning up $file")
           file.delete()
           if (file.parent != targetDir)
             cleanup(file.parent)
         }
       }
 
-      Try(Option(archiveInputStream.getNextEntry)) match {
-        case Success(None) |
-             Failure(_: EOFException) => Failure(MalformedArchiveException(s"No entries found."))
-        case Failure(e: ZipException) => Failure(MalformedArchiveException(e.getMessage))
-        case Failure(e) => Failure(e)
-        case Success(Some(firstEntry: ArchiveEntry)) =>
-          logger.info(s"[$id] Extracting archive to $targetDir")
-          for {
-            _ <- extract(firstEntry)
-            _ <- Stream
-              .continually(archiveInputStream.getNextEntry)
-              .takeWhile(Option(_).nonEmpty)
-              .map(extract)
-              .failFastOr(Success(()))
-            _ = targetDir.walk().foreach(cleanup)
-          } yield ()
+      def buildMessage(cause: String) = {
+        val printableCause = cause.replaceAll(printableRegexp, "?")
+        draftDeposit.mailToDansMessage(
+          ref = draftDeposit.id.toString,
+          linkIntro = printableCause,
+          bodyMsg =
+            s"""Something went wrong while extracting file(s) from $uploadName to $path.
+               |Cause: ${ printableCause }
+               |Could you please investigate this issue
+               |""".
+              stripMargin,
+        )
+      }
+
+      def extractAll(firstEntry: ArchiveEntry) = {
+        logger.info(s"[${ draftDeposit.id }] Extracting archive to $targetDir")
+        for {
+          _ <- extractOne(firstEntry)
+          _ <- Stream
+            .continually(archiveInputStream.getNextEntry)
+            .takeWhile(Option(_).nonEmpty)
+            .map(extractOne)
+            .failFastOr(Success(()))
+          _ = targetDir.walk().foreach(cleanup)
+        } yield ()
+      }
+
+      lazy val noEntriesMsg = s"No entries found."
+
+      Try(Option(archiveInputStream.getNextEntry))
+        .recoverWith { case _: EOFException => Failure(MalformedArchiveException(uploadName, "file(s)", path, noEntriesMsg)) }
+        .flatMap {
+          case None => Failure(MalformedArchiveException(uploadName, "file(s)", path, escape(noEntriesMsg)))
+          case Some(firstEntry: ArchiveEntry) => extractAll(firstEntry)
+        }.recoverWith {
+        case e: ZipException =>
+          // for example the tested: Unexpected record signature: 0X88B1F
+          Failure(MalformedArchiveException(uploadName, "file(s)", path, escape(e.getMessage)))
+        case e: IOException if e.getCause != null && e.getCause.isInstanceOf[IllegalArgumentException] =>
+          // for example EASY-2619: At offset ..., ... byte binary number exceeds maximum signed long value
+          Failure(MalformedArchiveException(uploadName, "file(s)", path, buildMessage(e.getCause.getMessage)))
       }
     }
   }
@@ -132,11 +162,22 @@ package object servlets extends DebugEnhancedLogging {
       matchesEitherOf(archiveExtRegexp, archiveContentTypeRegexp)
     }
 
-    def getArchiveInputStream: Try[resource.ManagedResource[ArchiveInputStream]] = Try {
+    private def getArchiveInputStream: Try[resource.ManagedResource[ArchiveInputStream]] = Try {
       val charSet = fileItem.charset.getOrElse("UTF8")
       if (matchesEitherOf(s".+[.]$tarExtRegexp", tarContentTypeRegexp))
-        managed(new TarArchiveInputStream(fileItem.getInputStream, charSet))
-      else managed(new ZipArchiveInputStream(fileItem.getInputStream, charSet, true, true))
+        managed(new TarArchiveInputStream(fileItem.getInputStream, TarConstants.DEFAULT_BLKSIZE, TarConstants.DEFAULT_RCDSIZE, charSet, true))
+      else
+        managed(new ZipArchiveInputStream(fileItem.getInputStream, charSet, true, true))
+    }
+
+    /**
+     * @param targetDir    target for the extracted files
+     * @param draftDeposit info for error messages
+     * @param path         location relative to uploadRoot of draftDeposit (info for error messages)
+     * @return
+     */
+    def unpackPlainEntriesTo(targetDir: File, draftDeposit: => DepositDir, path: => Path): Try[Unit] = {
+      getArchiveInputStream.flatMap(_.apply(_.unpackPlainEntriesTo(targetDir, draftDeposit, path, fileItem.name)))
     }
   }
 
@@ -167,7 +208,7 @@ package object servlets extends DebugEnhancedLogging {
       }
     }
 
-    def nextAsArchiveIfOnlyOne: Try[Option[ManagedResource[ArchiveInputStream]]] = {
+    def nextArchiveIfOnlyOne: Try[Option[FileItem]] = {
       skipLeadingEmptyFormFields()
       if (!fileItems.headOption.exists(_.isArchive)) Success(None)
       else {
@@ -175,7 +216,7 @@ package object servlets extends DebugEnhancedLogging {
         skipLeadingEmptyFormFields()
         if (fileItems.hasNext)
           Failure(ArchiveMustBeOnlyFileException(leadingArchiveItem))
-        else leadingArchiveItem.getArchiveInputStream.map(Some(_))
+        else Success(Some(leadingArchiveItem))
       }
     }
 
