@@ -116,12 +116,10 @@ object Errors extends DebugEnhancedLogging {
 
   case class ArchiveException(msg: String, cause: Throwable)
     extends ServletResponseException(INTERNAL_SERVER_ERROR_500, "Could not extract files from upload") {
-    logger.error(msg, cause)
   }
 
   case class MalformedArchiveException(uploadFile: String, item: String, path: Path, reason: String)
     extends ServletResponseException(BAD_REQUEST_400, s"Can't extract ${ escape(item) } from ${ escape(uploadFile) } into ${ escape(path.toString) }/. ${ reason.replaceAll(printableRegexp, "") }") {
-    logger.error(getMessage)
   }
 
   val printableRegexp = "[^ -~]"
