@@ -40,37 +40,45 @@ class RichArchiveInputStreamSpec extends TestSupportFixture {
   }
 
   "unpackPlainEntriesTo" should "report invalid content" in {
-    unpackZip(new ByteArrayInputStream("Lorem ipsum est".getBytes(StandardCharsets.UTF_8))) shouldBe
-      Failure(MalformedArchiveException("No entries found in uploaded.filename."))
+    unpackZip(new ByteArrayInputStream("Lorem ipsum est".getBytes(StandardCharsets.UTF_8))) should matchPattern {
+      case Failure(e: MalformedArchiveException) if e.getMessage ==
+        "Can't extract file(s) from uploaded.filename for some/path, No entries found." =>
+    }
     stagingDir.entries shouldBe empty
   }
 
   it should "complain about an invalid zip" in {
-    unpackZip(new FileInputStream(s"src/test/resources/manual-test/invalid.zip")) shouldBe
-      Failure(MalformedArchiveException("No entries found in uploaded.filename."))
+    unpackZip(new FileInputStream(s"src/test/resources/manual-test/invalid.zip")) should matchPattern {
+      case Failure(e: MalformedArchiveException) if e.getMessage ==
+        "Can't extract file(s) from uploaded.filename for some/path, No entries found." =>
+    }
     stagingDir.entries shouldBe empty
   }
 
   it should "complain about an invalid item" in {
     unpackZip(new FileInputStream(s"src/test/resources/manual-test/bla-stored-dd-contradicts-actualsize.zip")) should matchPattern {
-      case Failure(e: MalformedArchiveException) if e.getMessage.matches("Archive file is malformed. Can't extract test1.xml from uploaded.filename, cause: actual and claimed size.*See http.*") =>
+      case Failure(e: MalformedArchiveException) if e.getMessage
+        .matches("Can't extract test1.xml from uploaded.filename for some/path, actual and claimed size don't match.*See http.*") =>
     }
     stagingDir.entries.toList should have size 1
     (stagingDir / "test1.xml").toJava should have length 0
   }
 
   it should "complain about a zip trying to put files outside the intended target" in {
-    unpackZip(new FileInputStream(s"src/test/resources/manual-test/slip.zip")) shouldBe
-      Failure(MalformedArchiveException("Can't extract ../../user001washere.txt from uploaded.filename, invalid path"))
-
+    unpackZip(new FileInputStream(s"src/test/resources/manual-test/slip.zip")) should matchPattern {
+      case Failure(e: MalformedArchiveException) if e.getMessage == "" +
+        "Can't extract ../../user001washere.txt from uploaded.filename for some/path, Invalid path" =>
+    }
     stagingDir.entries shouldBe empty
     testDir.entries should have size 1
     testDir.parent.entries.filter(!_.name.endsWith("Spec")) shouldBe empty
   }
 
   it should "complain about an empty zip" in {
-    unpackZip(new FileInputStream(s"src/test/resources/manual-test/empty.zip")) shouldBe
-      Failure(MalformedArchiveException("No entries found in uploaded.filename."))
+    unpackZip(new FileInputStream(s"src/test/resources/manual-test/empty.zip")) should matchPattern {
+      case Failure(e: MalformedArchiveException) if e.getMessage ==
+        "Can't extract file(s) from uploaded.filename for some/path, No entries found." =>
+    }
     stagingDir.entries shouldBe empty
   }
 
@@ -82,8 +90,10 @@ class RichArchiveInputStreamSpec extends TestSupportFixture {
   it should "complain about a not supported zip" in {
     // note that the file intentionally has the wrong extension. It content looks like nested.zip
     // Apparently a different zip-format, see also https://issues.apache.org/jira/browse/COMPRESS-480
-    unpackZip(new FileInputStream(s"src/test/resources/manual-test/invalid.tar.gz")) shouldBe
-      Failure(MalformedArchiveException("Could not extract file(s) from uploaded.filename to some/path, cause: Unexpected record signature: 0X88B1F"))
+    unpackZip(new FileInputStream(s"src/test/resources/manual-test/invalid.tar.gz")) should matchPattern {
+      case Failure(e: MalformedArchiveException) if e.getMessage ==
+        "Can't extract file(s) from uploaded.filename for some/path, Unexpected record signature: 0X88B1F" =>
+    }
     stagingDir.entries shouldBe empty
   }
 
@@ -92,8 +102,8 @@ class RichArchiveInputStreamSpec extends TestSupportFixture {
       // the cause in the message has unprintable characters
       // might cause the failure of: e.getMessage.matches(".*Please <a href=.*>contact DANS</a>.*")
       case Failure(e: MalformedArchiveException) if e.getMessage
-        .contains("Please <a href=") && e.getMessage
-        .endsWith(">contact DANS</a>") =>
+        .endsWith(">contact DANS</a>") && e.getMessage
+        .startsWith("Can't extract file(s) from uploaded.filename for some/path, Could not extract file(s) from uploaded.filename to some/path, cause: Invalid byte 73 at offset 0 in 'I???D??????.' len=12. Please <a href=") =>
       // compare https://github.com/DANS-KNAW/easy-deposit-api/blob/296c615b/src/main/scala/nl.knaw.dans.easy.deposit/servlets/package.scala#L105
       // with the stack trace for a too large archive reported by https://drivenbydata.atlassian.net/browse/EASY-2619
       // now recovering from IOException with cause IllegalArgumentException
@@ -180,9 +190,9 @@ class RichArchiveInputStreamSpec extends TestSupportFixture {
     File(zipFile).newZipInputStream(charset).mapEntries(_.getName).toList
   }
 
-  private def unpack(stream: ArchiveInputStream): Try[Unit] = {
+  private def unpack(stream: ArchiveInputStream, fileName: String = "uploaded.filename"): Try[Unit] = {
     lazy val depositDir = DepositDir(testDir / "drafts", "user001", uuid)
-    stream.unpackPlainEntriesTo(stagingDir.createDirectories(), depositDir, Paths.get("some/path"), "uploaded.filename")
+    stream.unpackPlainEntriesTo(stagingDir.createDirectories(), depositDir, Paths.get("some/path"), fileName)
   }
 
   /** Mocks how a file item of a http request is processed by the application */

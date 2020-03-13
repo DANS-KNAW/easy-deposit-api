@@ -22,7 +22,7 @@ import java.util.zip.ZipException
 
 import better.files.File
 import better.files.File.CopyOptions
-import nl.knaw.dans.easy.deposit.Errors.{ ArchiveException, ArchiveMustBeOnlyFileException, ConfigurationException, MalformedArchiveException }
+import nl.knaw.dans.easy.deposit.Errors.{ ArchiveException, ArchiveMustBeOnlyFileException, ConfigurationException, MalformedArchiveException, escape, printableRegexp }
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.apache.commons.compress.archivers.tar.{ TarArchiveInputStream, TarConstants }
 import org.apache.commons.compress.archivers.zip.ZipArchiveInputStream
@@ -76,7 +76,7 @@ package object servlets extends DebugEnhancedLogging {
         lazy val clientMsg = s"Can't extract ${ entry.getName } from $uploadName"
         val targetFile = targetDir / entry.getName
         if (!targetFile.isChildOf(targetDir)) {
-          Failure(MalformedArchiveException(clientMsg + ", invalid path"))
+          Failure(MalformedArchiveException(uploadName, entry.getName, path, "Invalid path"))
         }
         else if (entry.isDirectory) {
           Try(targetFile.createDirectories())
@@ -88,7 +88,7 @@ package object servlets extends DebugEnhancedLogging {
             Files.copy(archiveInputStream, targetFile.path)
             ()
           }.recoverWith {
-            case e: ZipException => Failure(MalformedArchiveException(s"$clientMsg, cause: ${ e.getMessage }"))
+            case e: ZipException => Failure(MalformedArchiveException(uploadName, entry.getName, path, escape(e.getMessage)))
             case e: Throwable => Failure(ArchiveException(clientMsg, e))
           }
         }
@@ -107,19 +107,14 @@ package object servlets extends DebugEnhancedLogging {
         }
       }
 
-      lazy val noEntriesMsg = s"No entries found in $uploadName."
-
-      def canNotExtract(msg: String) = {
-        s"Could not extract file(s) from $uploadName to $path, cause: $msg"
-      }
-
       def buildMessage(cause: String) = {
+        val printableCause = cause.replaceAll(printableRegexp, "?")
         draftDeposit.mailToDansMessage(
           ref = draftDeposit.id.toString,
-          linkIntro = canNotExtract(cause),
+          linkIntro = s"Could not extract file(s) from $uploadName to $path, cause: $printableCause",
           bodyMsg =
             s"""Something went wrong while extracting file(s) from $uploadName to $path.
-               |Cause: $cause
+               |Cause: ${ printableCause }
                |Could you please investigate this issue
                |""".
               stripMargin,
@@ -139,18 +134,20 @@ package object servlets extends DebugEnhancedLogging {
         } yield ()
       }
 
+      lazy val noEntriesMsg = s"No entries found."
+
       Try(Option(archiveInputStream.getNextEntry))
-        .recoverWith { case _: EOFException => Failure(MalformedArchiveException(noEntriesMsg)) }
+        .recoverWith { case _: EOFException => Failure(MalformedArchiveException(uploadName, "file(s)", path, noEntriesMsg)) }
         .flatMap {
-          case None => Failure(MalformedArchiveException(noEntriesMsg))
+          case None => Failure(MalformedArchiveException(uploadName, "file(s)", path, escape(noEntriesMsg)))
           case Some(firstEntry: ArchiveEntry) => extractAll(firstEntry)
         }.recoverWith {
         case e: ZipException =>
           // for example the tested: Unexpected record signature: 0X88B1F
-          Failure(MalformedArchiveException(canNotExtract(e.getMessage)))
+          Failure(MalformedArchiveException(uploadName, "file(s)", path, escape(e.getMessage)))
         case e: IOException if e.getCause != null && e.getCause.isInstanceOf[IllegalArgumentException] =>
           // for example EASY-2619: At offset ..., ... byte binary number exceeds maximum signed long value
-          Failure(MalformedArchiveException(buildMessage(e.getCause.getMessage)))
+          Failure(MalformedArchiveException(uploadName, "file(s)", path, buildMessage(e.getCause.getMessage)))
       }
     }
   }
