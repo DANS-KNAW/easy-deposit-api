@@ -111,7 +111,7 @@ package object servlets extends DebugEnhancedLogging {
         val printableCause = cause.replaceAll(printableRegexp, "?")
         draftDeposit.mailToDansMessage(
           ref = draftDeposit.id.toString,
-          linkIntro = s"Could not extract file(s) from $uploadName to $path, cause: $printableCause",
+          linkIntro = printableCause,
           bodyMsg =
             s"""Something went wrong while extracting file(s) from $uploadName to $path.
                |Cause: ${ printableCause }
@@ -164,9 +164,14 @@ package object servlets extends DebugEnhancedLogging {
 
     private def getArchiveInputStream: Try[resource.ManagedResource[ArchiveInputStream]] = Try {
       val charSet = fileItem.charset.getOrElse("UTF8")
-      if (matchesEitherOf(s".+[.]$tarExtRegexp", tarContentTypeRegexp))
+      if (matchesEitherOf(s".+[.]$tarExtRegexp", tarContentTypeRegexp)) {
+        logger.info(s"${fileItem.name}: tar")
         managed(new TarArchiveInputStream(fileItem.getInputStream, TarConstants.DEFAULT_BLKSIZE, TarConstants.DEFAULT_RCDSIZE, charSet, true))
-      else managed(new ZipArchiveInputStream(fileItem.getInputStream, charSet, true, true))
+      }
+      else {
+        logger.info(s"${fileItem.name}: zip")
+        managed(new ZipArchiveInputStream(fileItem.getInputStream, charSet, true, true))
+      }
     }
 
     /**

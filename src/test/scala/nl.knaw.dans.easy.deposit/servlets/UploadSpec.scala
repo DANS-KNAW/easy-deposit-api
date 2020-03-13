@@ -168,7 +168,7 @@ class UploadSpec extends ServletFixture with Inspectors {
       files = bodyParts
     ) {
       status shouldBe BAD_REQUEST_400
-      body shouldBe "Can't extract file(s) from 1&lt;x.zip for path/to/dir, No entries found."
+      body shouldBe "Can't extract file(s) from 1&lt;x.zip into path/to/dir/. No entries found."
     }
     absoluteTarget.entries shouldBe empty
   }
