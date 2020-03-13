@@ -164,14 +164,10 @@ package object servlets extends DebugEnhancedLogging {
 
     private def getArchiveInputStream: Try[resource.ManagedResource[ArchiveInputStream]] = Try {
       val charSet = fileItem.charset.getOrElse("UTF8")
-      if (matchesEitherOf(s".+[.]$tarExtRegexp", tarContentTypeRegexp)) {
-        logger.info(s"${fileItem.name}: tar")
+      if (matchesEitherOf(s".+[.]$tarExtRegexp", tarContentTypeRegexp))
         managed(new TarArchiveInputStream(fileItem.getInputStream, TarConstants.DEFAULT_BLKSIZE, TarConstants.DEFAULT_RCDSIZE, charSet, true))
-      }
-      else {
-        logger.info(s"${fileItem.name}: zip")
+      else
         managed(new ZipArchiveInputStream(fileItem.getInputStream, charSet, true, true))
-      }
     }
 
     /**
