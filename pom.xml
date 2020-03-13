@@ -20,7 +20,7 @@
     <parent>
         <groupId>nl.knaw.dans.shared</groupId>
         <artifactId>dans-scala-app-project</artifactId>
-        <version>6.0.0-SNAPSHOT</version>
+        <version>6.0.0</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
     <groupId>nl.knaw.dans.easy</groupId>
@@ -32,7 +32,7 @@
     <inceptionYear>2018</inceptionYear>
     <properties>
         <main-class>nl.knaw.dans.easy.deposit.Command</main-class>
-        <jwt-core.version>4.2.0</jwt-core.version>
+        <jwt-core.version>4.3.0</jwt-core.version>
         <commons-email.version>1.5</commons-email.version>
     </properties>
     <scm>
@@ -133,10 +133,12 @@
         <dependency>
             <groupId>org.json4s</groupId>
             <artifactId>json4s-native_2.12</artifactId>
+<!--            <version>3.5.5</version>-->
         </dependency>
         <dependency>
             <groupId>org.json4s</groupId>
             <artifactId>json4s-ext_2.12</artifactId>
+<!--            <version>3.5.5</version>-->
         </dependency>
         <dependency>
             <groupId>org.scalaj</groupId>
