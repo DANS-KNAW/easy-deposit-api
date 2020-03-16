@@ -221,10 +221,9 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
     for {
       stateManager <- getDepositStateManager(user, id)
       oldStateInfo <- stateManager.getStateInfo
-      _ <- if (update) stateManager.changeState(oldStateInfo, newStateInfo)
-           else Success(())
+      _ = if (update) stateManager.saveInDraft(newStateInfo)
     } yield
-      s"""OLD: ${ toJson(stateManager.getStateInfo) }
+      s"""OLD: ${ toJson(oldStateInfo) }
          |NEW: ${ toJson(newStateInfo) }
          |""".stripMargin
   }

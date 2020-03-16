@@ -162,7 +162,7 @@ case class StateManager(draftDeposit: DepositDir, submitBase: File, easyHome: UR
     )
   }
 
-  private def saveInDraft(newStateInfo: StateInfo): StateInfo = {
+  def saveInDraft(newStateInfo: StateInfo): StateInfo = {
     draftProps.setProperty(stateLabelKey, newStateInfo.state.toString)
     draftProps.setProperty(stateDescriptionKey, newStateInfo.stateDescription)
     draftProps.save()
