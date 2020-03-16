@@ -28,17 +28,15 @@ object Command extends App with DebugEnhancedLogging {
   type FeedBackMessage = String
 
   val configuration = Configuration(File(System.getProperty("app.home")))
-  val commandLine: CommandLineOptions = new CommandLineOptions(args, configuration) {
-    verify()
-  }
+  val commandLine: CommandLineOptions = new CommandLineOptions(args, configuration)
   Try { new EasyDepositApiApp(configuration) }
     .flatMap(runSubcommand)
     .doIfSuccess(msg => Console.err.println(s"OK: $msg"))
     .doIfFailure { case e => logger.error(e.getMessage, e) }
     .doIfFailure { case NonFatal(e) => Console.err.println(s"FAILED: ${ e.getMessage }") }
 
-  private def runSubcommand(app: EasyDepositApiApp): Try[FeedBackMessage] = {
-    commandLine.subcommand
+  def runSubcommand(clo: CommandLineOptions, app: EasyDepositApiApp): Try[FeedBackMessage] =
+    clo.subcommand
       .collect {
         case commandLine.runService => runAsService(app)
         case cmd @ commandLine.changeState => app.forceChangeState(
@@ -49,6 +47,9 @@ object Command extends App with DebugEnhancedLogging {
         )
       }
       .getOrElse(Failure(new IllegalArgumentException(s"Unknown command: ${ commandLine.subcommand }")))
+
+  private def runSubcommand(app: EasyDepositApiApp): Try[FeedBackMessage] = {
+    runSubcommand(commandLine, app)
   }
 
   private def runAsService(app: EasyDepositApiApp): Try[FeedBackMessage] = Try {

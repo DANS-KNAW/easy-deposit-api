@@ -72,4 +72,5 @@ class CommandLineOptions(args: Array[String], configuration: Configuration) exte
   addSubcommand(changeState)
 
   footer("")
+  verify()
 }

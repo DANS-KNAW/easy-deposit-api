@@ -15,20 +15,45 @@
  */
 package nl.knaw.dans.easy.deposit
 
-import java.nio.file.Paths
+import nl.knaw.dans.easy.deposit.Errors.NoSuchDepositException
+import nl.knaw.dans.easy.deposit.docs.StateInfo
+
+import scala.util.Failure
 
 class CommandSpec extends TestSupportFixture {
   System.setProperty("app.home", "src/main/assembly/dist") // Use the default settings in this test
 
-  private TestCommand
   private def cmdLine(args: Array[String]) = {
-    new CommandLineOptions(args, Configuration(Paths.get("src/main/assembly/dist"))) {
+    val cmd = new CommandLineOptions(args, minimalAppConfig){
       // avoids System.exit() in case of invalid arguments or "--help"
-      override def verify(): Unit = {}
+      //override def verify(): Unit = { verified = true }
+    }.changeState
+    val app = new EasyDepositApiApp(minimalAppConfig)
+    app.forceChangeState(
+      cmd.draftOwnerId(),
+      cmd.draftDepositId(),
+      StateInfo(cmd.state(), cmd.description()),
+      cmd.doUpdate(),
+    )
+  }
+
+  "forceChangeState" should "report a missing deposit" in {
+    cmdLine(Array("change-state",
+      "-l", "SUBMITTED",
+      "-d", "submitted by administrator",
+      defaultUserInfo.id, uuid.toString),
+    ) should matchPattern{
+      case Failure(e: NoSuchDepositException) if e.getMessage == s"Deposit $uuid not found" =>
     }
   }
-  "changeState" should "" in {
-    Command.runSubcommand()
-    cmdLine(Array("blabla")).changeState shouldBe 1
+
+  it should "report a wrong label" in {
+    cmdLine(Array("change-state",
+      "-l", "SUBSMITTED",
+      "-d", "submitted by administrator",
+      defaultUserInfo.id, uuid.toString),
+    ) should matchPattern{
+      case Failure(e: NoSuchDepositException) if e.getMessage == s"Deposit $uuid not found" =>
+    }
   }
 }
