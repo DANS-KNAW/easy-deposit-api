@@ -263,8 +263,8 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
       trace(deposit, stateManager)
       for {
         userData <- getUserData(userId)
-        disposableStagedDir <- getPermanentStagedDir(userId, id)
-        _ <- submitter.submit(deposit, stateManager, userData, disposableStagedDir)
+        stagedDir <- getPermanentStagedDir(userId, id)
+        _ <- submitter.submit(deposit, stateManager, userData, stagedDir)
       } yield ()
     }
 
@@ -480,7 +480,7 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
     val prefix = s"$userId-$id-"
     for {
       disposableStagingDir <- Try { newTemporaryDirectory(prefix, Some(stagedBaseDir.createDirectories())) }
-      _ <- atMostOneTempDir(prefix).doIfFailure { case _ => disposableStagingDir }
+      _ <- atMostOneTempDir(prefix).doIfFailure { case _ => disposableStagingDir.delete() }
     } yield disposableStagingDir
   }
 

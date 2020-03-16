@@ -108,6 +108,10 @@ class SubmitJob( // deposit values
       _ = logger.info(s"[$draftDepositId] move $stagedDepositDir to $submitDir")
       _ = stagedDepositDir.moveTo(submitDir)(CopyOptions.atomically)
     } yield ()
+  }.doIfFailure {
+    case _ =>
+      // if submitDeposit fails, the stagedDepositDir is not moved and should be deleted
+      stagedDepositDir.delete()
   }
 
   private def setStagedDepositBagName(propertiesFile: File, bagName: String): Try[Unit] = Try {
