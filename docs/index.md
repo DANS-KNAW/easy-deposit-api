@@ -6,7 +6,7 @@ SYNOPSIS
 --------
 
     easy-deposit-api run-service
-    easy-deposit-api change-state [ --doUpdate ] --label <value> --description <string> <depositId>""".stripMargin
+    easy-deposit-api change-state [ --doUpdate ] --label <value> --description <string> <user> <depositId>
 
 DESCRIPTION
 -----------
@@ -32,15 +32,15 @@ ARGUMENTS
     Subcommand: change-state - Changes the state of a deposit, when changing to SUBMITTED just the state is changed, the rest of the submit-cycle is not started
       -d, --description  <arg>   A desription of the new state
           --doUpdate             without this argument only the current status is
-                                 shown
+                                 shown in json format
       -l, --label  <arg>         The label of the new state, on of: REJECTED, DRAFT,
                                  SUBMITTED, IN_PROGRESS, ARCHIVED
       -h, --help                 Show help message
     
      trailing arguments:
-      draftDepositId (required)   The UUID of an existing draft deposit
+      draftOwnerId (required)     The owner of the existing draft deposit
+      draftDepositId (required)   The UUID of the existing draft deposit
     ---
-
 
 INSTALLATION AND CONFIGURATION
 ------------------------------
