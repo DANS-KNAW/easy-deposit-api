@@ -16,6 +16,7 @@
 package nl.knaw.dans.easy.deposit
 
 import better.files.File
+import nl.knaw.dans.easy.deposit.docs.StateInfo
 import nl.knaw.dans.lib.error._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 
@@ -40,6 +41,12 @@ object Command extends App with DebugEnhancedLogging {
     commandLine.subcommand
       .collect {
         case commandLine.runService => runAsService(app)
+        case cmd @ commandLine.changeState => app.forceChangeState(
+          cmd.draftOwnerId(),
+          cmd.draftDepositId(),
+          StateInfo(cmd.state(), cmd.description()),
+          cmd.doUpdate(),
+        )
       }
       .getOrElse(Failure(new IllegalArgumentException(s"Unknown command: ${ commandLine.subcommand }")))
   }

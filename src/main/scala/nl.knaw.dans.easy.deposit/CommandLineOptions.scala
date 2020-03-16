@@ -31,7 +31,7 @@ class CommandLineOptions(args: Array[String], configuration: Configuration) exte
   val synopsis: String =
     s"""
        |  $printedName run-service
-       |  $printedName change-state [ --doUpdate ] --label <value> --description <string> <depositId>""".stripMargin
+       |  $printedName change-state [ --doUpdate ] --label <value> --description <string> <user> <depositId>""".stripMargin
 
   version(s"$printedName v${ configuration.version }")
   banner(
@@ -53,17 +53,19 @@ class CommandLineOptions(args: Array[String], configuration: Configuration) exte
       "Starts EASY Deposit Api as a daemon that services HTTP requests")
     footer(SUBCOMMAND_SEPARATOR)
   }
-  val changeState: Subcommand = new Subcommand("change-state") {
+  val changeState = new Subcommand("change-state") {
     descr(
       "Changes the state of a deposit, when changing to SUBMITTED just the state is changed, the rest of the submit-cycle is not started")
     val doUpdate: ScallopOption[Boolean] = opt(name = "doUpdate", noshort = true, required = false,
-      descr = s"without this argument only the current status is shown")
-    val label: ScallopOption[State] = opt(name = "label", short = 'l', required = true,
+      descr = s"without this argument only the current status is shown in json format")
+    val state: ScallopOption[State] = opt(name = "label", short = 'l', required = true,
       descr = s"The label of the new state, on of: ${State.values.mkString(", ")}")
     val description: ScallopOption[String] = opt(name = "description", short = 'd', required = true,
       descr = "A desription of the new state")
-    val draftDepositID: ScallopOption[UUID] = trailArg(name = "draftDepositId", required = true,
-      descr = "The UUID of an existing draft deposit")
+    val draftOwnerId: ScallopOption[String] = trailArg(name = "draftOwnerId", required = true,
+      descr = "The owner of the existing draft deposit")
+    val draftDepositId: ScallopOption[UUID] = trailArg(name = "draftDepositId", required = true,
+      descr = "The UUID of the existing draft deposit")
     footer(SUBCOMMAND_SEPARATOR)
   }
   addSubcommand(runService)
