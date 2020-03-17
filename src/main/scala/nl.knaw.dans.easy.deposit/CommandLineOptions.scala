@@ -59,7 +59,7 @@ class CommandLineOptions(args: Array[String], configuration: Configuration) exte
     val doUpdate: ScallopOption[Boolean] = opt(name = "doUpdate", noshort = true, required = false,
       descr = s"without this argument only the current status is shown in json format")
     val state: ScallopOption[State] = opt(name = "label", short = 'l', required = true,
-      descr = s"The label of the new state, on of: ${State.values.mkString(", ")}")
+      descr = s"The label of the new state, one of: ${State.values.mkString(", ")}")
     val description: ScallopOption[String] = opt(name = "description", short = 'd', required = true,
       descr = "A desription of the new state")
     val draftOwnerId: ScallopOption[String] = trailArg(name = "draftOwnerId", required = true,

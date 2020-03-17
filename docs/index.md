@@ -33,8 +33,8 @@ ARGUMENTS
       -d, --description  <arg>   A desription of the new state
           --doUpdate             without this argument only the current status is
                                  shown in json format
-      -l, --label  <arg>         The label of the new state, on of: REJECTED, DRAFT,
-                                 SUBMITTED, IN_PROGRESS, ARCHIVED
+      -l, --label  <arg>         The label of the new state, one of: REJECTED,
+                                 DRAFT, SUBMITTED, IN_PROGRESS, ARCHIVED
       -h, --help                 Show help message
     
      trailing arguments:
