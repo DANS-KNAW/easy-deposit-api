@@ -307,7 +307,7 @@ class SubmitterSpec extends TestSupportFixture with MockFactory with BeforeAndAf
     new Submitter(submitDir, validGroup, depositHome, jobQueue = expectsScheduleJob(), createMailer, agreementGenerator)
       .submit(draftDeposit, stateManager, defaultUserInfo, stageDir) shouldBe Success(())
 
-    stageDir.list shouldNot be(empty)
+    stageDir shouldNot exist
     submitDir.list shouldBe empty
     stateInfoShouldHaveContactDansMessage(stateManager)
   }
@@ -319,7 +319,7 @@ class SubmitterSpec extends TestSupportFixture with MockFactory with BeforeAndAf
       .submit(draftDeposit, stateManager, defaultUserInfo, stageDir) shouldBe Success(())
 
     // post conditions
-    stageDir.list shouldNot be(empty)
+    stageDir shouldNot exist
     submitDir.list shouldBe empty
     stateInfoShouldHaveContactDansMessage(stateManager)
   }
@@ -332,7 +332,7 @@ class SubmitterSpec extends TestSupportFixture with MockFactory with BeforeAndAf
       .submit(draftDeposit, stateManager, defaultUserInfo, stageDir) shouldBe Success(())
 
     // post conditions
-    stageDir.list shouldNot be(empty)
+    stageDir shouldNot exist
     submitDir.list shouldBe empty
     stateInfoShouldHaveContactDansMessage(stateManager)
     draftPropertiesFile.contentAsString should include("bag-store.bag-id = ")
