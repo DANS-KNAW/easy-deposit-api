@@ -218,14 +218,21 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
 
   def forceChangeState(user: String, id: UUID, newStateInfo: StateInfo, update: Boolean): Try[String] = {
     trace(user, id)
+
+    def doUpdate(stateManager: StateManager) = {
+      stateManager.saveInDraft(newStateInfo)
+      "the change is saved"
+    }
+
     for {
       stateManager <- getDepositStateManager(user, id)
       oldStateInfo <- stateManager.getStateInfo
-      _ = if (update) stateManager.saveInDraft(newStateInfo)
+      result = if (update) doUpdate(stateManager)
+               else "the change is not saved because --doUpdate was not specified"
     } yield
       s"""OLD: ${ toJson(oldStateInfo) }
          |NEW: ${ toJson(newStateInfo) }
-         |""".stripMargin
+         |$result""".stripMargin
   }
 
   private def getDepositStateManager(user: String, id: UUID): Try[StateManager] = {

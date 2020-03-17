@@ -38,14 +38,6 @@ class EasyDepositApiAppSpec extends TestSupportFixture {
 
   private val oldState: StateInfo = StateInfo(State.draft, "Deposit is open for changes.")
   private val newState = StateInfo(State.archived, "blabla")
-  private val expectedStates = {
-    Success(
-      """OLD: {"state":"DRAFT","stateDescription":"Deposit is open for changes."}
-        |NEW: {"state":"ARCHIVED","stateDescription":"blabla"}
-        |""".stripMargin
-    )
-  }
-
   "forceChangeState" should "report a missing deposit" in {
     app.forceChangeState(
       defaultUserInfo.id,
@@ -57,17 +49,25 @@ class EasyDepositApiAppSpec extends TestSupportFixture {
     }
   }
 
-  it should "show the old and new state" in {
+  it should "tell how to save the change" in {
     val uuid = app.createDeposit(defaultUserInfo.id).getOrRecover(e => fail(e)).id // preparation
 
-    app.forceChangeState(defaultUserInfo.id, uuid, newState, update = false) shouldBe expectedStates
+    app.forceChangeState(defaultUserInfo.id, uuid, newState, update = false) shouldBe Success(
+      """OLD: {"state":"DRAFT","stateDescription":"Deposit is open for changes."}
+        |NEW: {"state":"ARCHIVED","stateDescription":"blabla"}
+        |the change is not saved because --doUpdate was not specified""".stripMargin
+    )
     app.getDepositState(defaultUserInfo.id, uuid) shouldBe Success(oldState) // post condition
   }
 
-  it should "alter the state" in {
+  it should "save the state" in {
     val uuid = app.createDeposit(defaultUserInfo.id).getOrRecover(e => fail(e)).id // preparation
 
-    app.forceChangeState(defaultUserInfo.id, uuid, newState, update = true) shouldBe expectedStates
+    app.forceChangeState(defaultUserInfo.id, uuid, newState, update = true) shouldBe Success(
+      """OLD: {"state":"DRAFT","stateDescription":"Deposit is open for changes."}
+        |NEW: {"state":"ARCHIVED","stateDescription":"blabla"}
+        |the change is saved""".stripMargin
+    )
     app.getDepositState(defaultUserInfo.id, uuid) shouldBe Success(newState) // post condition
   }
 
@@ -79,7 +79,7 @@ class EasyDepositApiAppSpec extends TestSupportFixture {
     app.forceChangeState(defaultUserInfo.id, uuid, newState, update = true) shouldBe Success(
       """OLD: {"state":"DRAFT","stateDescription":"Deposit is open for changes."}
         |NEW: {"state":"SUBMITTED","stateDescription":"blabla"}
-        |""".stripMargin
+        |the change is saved""".stripMargin
     )
     // post condition, note the different message
     // logs: s"no value for 'bag-store.bag-id' in $testDir/drafts/user001/$uuid/deposit.properties"
