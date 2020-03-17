@@ -38,8 +38,8 @@ ARGUMENTS
       -h, --help                 Show help message
     
      trailing arguments:
-      draftOwnerId (required)     The owner of the existing draft deposit
-      draftDepositId (required)   The UUID of the existing draft deposit
+      ownerId (required)     The owner of the existing draft deposit
+      depositId (required)   The UUID of the existing draft deposit
     ---
 
 INSTALLATION AND CONFIGURATION

@@ -23,7 +23,8 @@ import org.scalatest.{ FlatSpec, Matchers }
 class ReadmeSpec extends FlatSpec with Matchers with CustomMatchers {
   System.setProperty("app.home", "src/main/assembly/dist") // Use the default settings in this test
 
-  private val commandLineOptions = new CommandLineOptions(Array[String](), Configuration(Paths.get("src/main/assembly/dist"))) {
+  private val configuration: Configuration = Configuration(Paths.get("src/main/assembly/dist"))
+  private val commandLineOptions = new CommandLineOptions(Array[String](), configuration) {
     // avoids System.exit() in case of invalid arguments or "--help"
     override def verify(): Unit = {}
   }

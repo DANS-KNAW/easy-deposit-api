@@ -35,22 +35,18 @@ object Command extends App with DebugEnhancedLogging {
     .doIfFailure { case e => logger.error(e.getMessage, e) }
     .doIfFailure { case NonFatal(e) => Console.err.println(s"FAILED: ${ e.getMessage }") }
 
-  def runSubcommand(clo: CommandLineOptions, app: EasyDepositApiApp): Try[FeedBackMessage] =
-    clo.subcommand
+  def runSubcommand(app: EasyDepositApiApp) =
+    commandLine.subcommand
       .collect {
         case commandLine.runService => runAsService(app)
         case cmd @ commandLine.changeState => app.forceChangeState(
           cmd.draftOwnerId(),
           cmd.draftDepositId(),
-          StateInfo(cmd.state(), cmd.description()),
+          StateInfo(cmd.stateLabel(), cmd.stateDescription()),
           cmd.doUpdate(),
         )
       }
       .getOrElse(Failure(new IllegalArgumentException(s"Unknown command: ${ commandLine.subcommand }")))
-
-  private def runSubcommand(app: EasyDepositApiApp): Try[FeedBackMessage] = {
-    runSubcommand(commandLine, app)
-  }
 
   private def runAsService(app: EasyDepositApiApp): Try[FeedBackMessage] = Try {
     val service = new EasyDepositApiService(configuration.properties.getInt("daemon.http.port"), app)

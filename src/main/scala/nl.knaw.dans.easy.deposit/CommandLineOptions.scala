@@ -56,15 +56,15 @@ class CommandLineOptions(args: Array[String], configuration: Configuration) exte
   val changeState = new Subcommand("change-state") {
     descr(
       "Changes the state of a deposit, when changing to SUBMITTED just the state is changed, the rest of the submit-cycle is not started")
-    val doUpdate: ScallopOption[Boolean] = opt(name = "doUpdate", noshort = true, required = false,
+    val doUpdate: ScallopOption[Boolean] = opt(name = "doUpdate", default = Some(false), noshort = true, required = false,
       descr = s"without this argument only the current status is shown in json format")
-    val state: ScallopOption[State] = opt(name = "label", short = 'l', required = true,
+    val stateLabel: ScallopOption[State] = opt(name = "label", short = 'l', required = true,
       descr = s"The label of the new state, one of: ${State.values.mkString(", ")}")
-    val description: ScallopOption[String] = opt(name = "description", short = 'd', required = true,
+    val stateDescription: ScallopOption[String] = opt(name = "description", short = 'd', required = true,
       descr = "A desription of the new state")
-    val draftOwnerId: ScallopOption[String] = trailArg(name = "draftOwnerId", required = true,
+    val draftOwnerId: ScallopOption[String] = trailArg(name = "ownerId", required = true,
       descr = "The owner of the existing draft deposit")
-    val draftDepositId: ScallopOption[UUID] = trailArg(name = "draftDepositId", required = true,
+    val draftDepositId: ScallopOption[UUID] = trailArg(name = "depositId", required = true,
       descr = "The UUID of the existing draft deposit")
     footer(SUBCOMMAND_SEPARATOR)
   }
