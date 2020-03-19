@@ -57,7 +57,7 @@ class CommandLineOptions(args: Array[String], configuration: Configuration) exte
     descr(
       "Changes the state of a deposit, when changing to SUBMITTED just the state is changed, the rest of the submit-cycle is not started")
     val doUpdate: ScallopOption[Boolean] = opt(name = "doUpdate", default = Some(false), noshort = true, required = false,
-      descr = s"without this argument only the current status is shown in json format")
+      descr = s"Changes are not saved without this argument")
     val stateLabel: ScallopOption[State] = opt(name = "label", short = 'l', required = true,
       descr = s"The label of the new state, one of: ${State.values.mkString(", ")}")
     val stateDescription: ScallopOption[String] = opt(name = "description", short = 'd', required = true,

@@ -31,8 +31,7 @@ ARGUMENTS
     
     Subcommand: change-state - Changes the state of a deposit, when changing to SUBMITTED just the state is changed, the rest of the submit-cycle is not started
       -d, --description  <arg>   A desription of the new state
-          --doUpdate             without this argument only the current status is
-                                 shown in json format
+          --doUpdate             Changes are not saved without this argument
       -l, --label  <arg>         The label of the new state, one of: REJECTED,
                                  DRAFT, SUBMITTED, IN_PROGRESS, ARCHIVED
       -h, --help                 Show help message
