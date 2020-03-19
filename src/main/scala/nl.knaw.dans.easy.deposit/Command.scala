@@ -35,7 +35,7 @@ object Command extends App with DebugEnhancedLogging {
     .doIfFailure { case e => logger.error(e.getMessage, e) }
     .doIfFailure { case NonFatal(e) => Console.err.println(s"FAILED: ${ e.getMessage }") }
 
-  def runSubcommand(app: EasyDepositApiApp) =
+  private def runSubcommand(app: EasyDepositApiApp): Try[FeedBackMessage] = {
     commandLine.subcommand
       .collect {
         case commandLine.runService => runAsService(app)
@@ -47,6 +47,7 @@ object Command extends App with DebugEnhancedLogging {
         )
       }
       .getOrElse(Failure(new IllegalArgumentException(s"Unknown command: ${ commandLine.subcommand }")))
+  }
 
   private def runAsService(app: EasyDepositApiApp): Try[FeedBackMessage] = Try {
     val service = new EasyDepositApiService(configuration.properties.getInt("daemon.http.port"), app)
