@@ -17,7 +17,7 @@ package nl.knaw.dans.easy.deposit
 
 import java.io.FileNotFoundException
 import java.net.URL
-import java.nio.file.{ NoSuchFileException, Paths }
+import java.nio.file.{ NoSuchFileException, Path, Paths }
 import java.util.UUID
 
 import better.files._
@@ -31,6 +31,7 @@ import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.apache.commons.configuration.PropertiesConfiguration
 import org.joda.time.DateTime
 import org.joda.time.DateTimeZone.UTC
+import org.scalatra.util.UrlCodingUtils.queryPartEncode
 
 import scala.collection.Seq
 import scala.util.{ Failure, Success, Try }
@@ -76,6 +77,34 @@ case class DepositDir private(draftBase: File, user: String, id: UUID) extends D
   } recoverWith {
     case t: CorruptDepositException => Failure(t)
     case t => corruptDepositFailure(t)
+  }
+
+  def mailToDansMessage(linkIntro: String, bodyMsg: String, ref: String): String = {
+    val title: String = (getDatasetMetadata.map(_.titles) match {
+      case Success(Some(titles)) => titles.headOption
+      case _ => None
+    }).getOrElse("").trim()
+    val shortTitle = title.substring(0, Math.min(42, title.length))
+      .replaceAll("[\r\n]+", " ") // wrap a multiline title into a single line
+      .replaceAll("<.*", "") // avoid html tags in subject and body
+    val ellipsis = if (shortTitle == title) ""
+                   else "…"
+    val subject = queryPartEncode(s"Deposit processing error: $shortTitle$ellipsis reference $ref")
+    val body = queryPartEncode(
+      s"""Dear data manager,
+         |
+         |$bodyMsg
+         |
+         |Dataset reference:
+         |   $ref
+         |Title:
+         |   $shortTitle$ellipsis
+         |
+         |Kind regards,
+         |${ user }
+         |""".stripMargin
+    )
+    s"""$linkIntro. Please <a href="mailto:info@dans.knaw.nl?subject=$subject&body=$body">contact DANS</a>"""
   }
 
   private def getDatasetTitle: Try[String] = {
@@ -130,6 +159,14 @@ case class DepositDir private(draftBase: File, user: String, id: UUID) extends D
    * @return object to access the data files of this deposit
    */
   def getDataFiles: Try[DataFiles] = DansV0Bag.read(bagDir).map(DataFiles(_, id))
+
+
+  def addFiles(stagingDir: File, target: Path): Try[Unit] = {
+    for {
+      dataFiles <- getDataFiles
+      _ <- dataFiles.moveAll(stagingDir, target)
+    } yield ()
+  }
 
   /**
    * @param pidRequester used to mint a new doi if none was found yet

@@ -114,8 +114,21 @@ object Errors extends DebugEnhancedLogging {
   case class InvalidDoiException(uuid: UUID)
     extends ServletResponseException(BAD_REQUEST_400, s"InvalidDoi: DOI must be obtained by calling GET /deposit/$uuid")
 
-  case class MalformedArchiveException(msgAboutEntry: String)
-    extends ServletResponseException(BAD_REQUEST_400, s"Archive file is malformed. $msgAboutEntry")
+  case class ArchiveException(msg: String, cause: Throwable)
+    extends ServletResponseException(INTERNAL_SERVER_ERROR_500, "Could not extract files from upload") {
+  }
+
+  case class MalformedArchiveException(uploadFile: String, item: String, path: Path, reason: String)
+    extends ServletResponseException(BAD_REQUEST_400, s"Can't extract ${ escape(item) } from ${ escape(uploadFile) } into ${ escape(path.toString) }/. ${ reason.replaceAll(printableRegexp, "") }") {
+  }
+
+  val printableRegexp = "[^ -~]"
+
+  def escape(item: String): String = {
+    item
+      .replaceAll("<", "&lt;").replaceAll(">", "&gt;") // safe for html interpretation
+      .replaceAll(printableRegexp, "?")
+  } // keep only printable characters
 
   case class PendingUploadException()
     extends ServletResponseException(CONFLICT_409, "Another upload or submit is pending.")

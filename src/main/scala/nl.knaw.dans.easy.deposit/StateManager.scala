@@ -25,7 +25,6 @@ import nl.knaw.dans.easy.deposit.docs.StateInfo.State
 import nl.knaw.dans.lib.error._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.apache.commons.configuration.{ ConfigurationException, PropertiesConfiguration }
-import org.scalatra.util.UrlCodingUtils.queryPartEncode
 
 import scala.util.{ Failure, Success, Try }
 
@@ -156,32 +155,11 @@ case class StateManager(draftDeposit: DepositDir, submitBase: File, easyHome: UR
    *         in easy-ingest-flow or with the preparation of its input
    */
   private def mailToDansMessage: String = {
-    val title: String = (draftDeposit.getDatasetMetadata.map(_.titles) match {
-      case Success(Some(titles)) => titles.headOption
-      case _ => None
-    }).getOrElse("").trim()
-    val shortTitle = title.substring(0, Math.min(42, title.length))
-      .replaceAll("[\r\n]+", " ") // wrap a multiline title into a single line
-      .replaceAll("<.*", "") // avoid html tags in subject and body
-    val ellipsis = if (shortTitle == title) ""
-                   else "…"
-    val ref = getSubmittedBagId.map(_.toString).getOrElse(s"DRAFT/$relativeDraftDir")
-    val subject = queryPartEncode(s"Deposit processing error: $shortTitle$ellipsis reference $ref")
-    val body = queryPartEncode(
-      s"""Dear data manager,
-         |
-         |Something went wrong while processing my deposit. Could you please investigate the issue?
-         |
-         |Dataset reference:
-         |   $ref
-         |Title:
-         |   $shortTitle$ellipsis
-         |
-         |Kind regards,
-         |${ draftDeposit.user }
-         |""".stripMargin
+    draftDeposit.mailToDansMessage(
+      linkIntro = "Something went wrong while processing this deposit",
+      bodyMsg = "Something went wrong while processing my deposit. Could you please investigate the issue?",
+      ref = getSubmittedBagId.map(_.toString).getOrElse(s"DRAFT/$relativeDraftDir"),
     )
-    s"""Something went wrong while processing this deposit. Please <a href="mailto:info@dans.knaw.nl?subject=$subject&body=$body">contact DANS</a>"""
   }
 
   private def saveInDraft(newStateInfo: StateInfo): StateInfo = {

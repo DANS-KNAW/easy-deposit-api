@@ -156,8 +156,8 @@ class UploadSpec extends ServletFixture with Inspectors {
     absoluteTarget.entries shouldBe empty
   }
 
-  it should "report a malformed ZIP" in {
-    val bodyParts = createBodyParts(Seq(("some", "1.zip", "invalid zip content")))
+  it should "escape file name in error message" in {
+    val bodyParts = createBodyParts(Seq(("some", "1<x.zip", "invalid zip content")))
     val uuid = createDeposit
     val relativeTarget = "path/to/dir"
     val absoluteTarget = (uploadRootOf(bagDirOf(uuid)) / relativeTarget).createDirectories()
@@ -168,7 +168,7 @@ class UploadSpec extends ServletFixture with Inspectors {
       files = bodyParts
     ) {
       status shouldBe BAD_REQUEST_400
-      body shouldBe "Archive file is malformed. No entries found."
+      body shouldBe "Can't extract file(s) from 1&lt;x.zip into path/to/dir/. No entries found."
     }
     absoluteTarget.entries shouldBe empty
   }
