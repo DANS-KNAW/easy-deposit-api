@@ -59,7 +59,7 @@ trait TokenSupport extends DebugEnhancedLogging {
   def decodeJWT(token: String): Try[AuthUser] = {
     for {
       decoded <- Jwt.decode(token, tokenConfig.secretKey, Seq(tokenConfig.algorithm))
-      parsed <- fromJson(decoded.toJson)
+      parsed <- fromJson(decoded.content)
     } yield AuthUser(parsed.uid, state = UserState.active)
     // TODO user status might have changed since sign-up, retrieve and check status from ldap
   }
@@ -71,7 +71,7 @@ object TokenSupport {
                          options: JwtOptions = JwtOptions.DEFAULT
                         )
   private implicit val jsonFormats: Formats = new DefaultFormats() {}
-  private case class Token(exp: Long, iat: Long, uid: String)
+  private case class Token(uid: String)
   private def fromJson(token: String) = Try(parse(token).extract[Token])
     .recoverWith { case t =>
       Failure(new Exception(s"parse error [$t] for: $token", t))
