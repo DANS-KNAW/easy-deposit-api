@@ -52,7 +52,7 @@ class SessionSpec extends TestSupportFixture with ServletFixture with ScalatraSu
     get("/deposit") {
       status shouldBe UNAUTHORIZED_401
       body shouldBe "missing, invalid or expired credentials"
-      header("Content-Type").toLowerCase shouldBe "text/plain;charset=utf-8"
+      response.header("Content-Type").toLowerCase shouldBe "text/plain;charset=utf-8"
       response.headers should not contain key("Set-Cookie")
     }
   }
@@ -65,8 +65,8 @@ class SessionSpec extends TestSupportFixture with ServletFixture with ScalatraSu
     ) {
       body should startWith("AuthUser(foo,ACTIVE) ")
       body should endWith(" EASY Deposit API Service running")
-      header("REMOTE_USER") shouldBe "foo"
-      header("Set-Cookie") should startWith regex "scentry.auth.default.user=[^;].+;"
+      response.header("REMOTE_USER") shouldBe "foo"
+      response.header("Set-Cookie") should startWith regex "scentry.auth.default.user=[^;].+;"
       status shouldBe OK_200
     }
   }
@@ -95,7 +95,7 @@ class SessionSpec extends TestSupportFixture with ServletFixture with ScalatraSu
       headers = Seq(("Cookie", s"${ Scentry.scentryAuthKey }=$jwtCookie"))
     ) {
       status shouldBe UNAUTHORIZED_401
-      header("Content-Type").toLowerCase shouldBe "text/plain;charset=utf-8"
+      response.header("Content-Type").toLowerCase shouldBe "text/plain;charset=utf-8"
       response.headers should not contain key("Set-Cookie")
     }
   }
@@ -109,9 +109,9 @@ class SessionSpec extends TestSupportFixture with ServletFixture with ScalatraSu
       headers = Seq(("Cookie", s"${ Scentry.scentryAuthKey }=$jwtCookie"))
     ) {
       status shouldBe NO_CONTENT_204
-      header("Content-Type").toLowerCase shouldBe "text/html;charset=utf-8"
-      header("Expires") shouldBe "Thu, 01 Jan 1970 00:00:00 GMT" // page cache
-      header("REMOTE_USER") shouldBe ""
+      response.header("Content-Type").toLowerCase shouldBe "text/html;charset=utf-8"
+      response.header("Expires") shouldBe "Thu, 01 Jan 1970 00:00:00 GMT" // page cache
+      response.header("REMOTE_USER") shouldBe ""
       shouldHaveEmptyCookie(1)
     }
   }
@@ -123,7 +123,7 @@ class SessionSpec extends TestSupportFixture with ServletFixture with ScalatraSu
       headers = Seq(fooBarBasicAuthHeader)
     ) {
       body shouldBe ""
-      header("REMOTE_USER") shouldBe ""
+      response.header("REMOTE_USER") shouldBe ""
       status shouldBe NO_CONTENT_204
       shouldHaveEmptyCookie(2)
     }
@@ -137,12 +137,12 @@ class SessionSpec extends TestSupportFixture with ServletFixture with ScalatraSu
     ) {
       body shouldBe ""
       status shouldBe NO_CONTENT_204
-      header("Expires") shouldBe "Thu, 01 Jan 1970 00:00:00 GMT" // page cache
-      header("REMOTE_USER") shouldBe "foo"
-      val newCookie = header("Set-Cookie")
+      response.header("Expires") shouldBe "Thu, 01 Jan 1970 00:00:00 GMT" // page cache
+      response.header("REMOTE_USER") shouldBe "foo"
+      val newCookie = response.header("Set-Cookie")
       newCookie should startWith regex "scentry.auth.default.user=[^;].+;"
-      newCookie should include("; Path=/")
-      newCookie should include("; HttpOnly")
+      newCookie should include(";Path=/")
+      newCookie should include(";HttpOnly")
       cookieAge(newCookie) should be < 1000L
     }
   }
@@ -155,7 +155,7 @@ class SessionSpec extends TestSupportFixture with ServletFixture with ScalatraSu
     ) {
       body shouldBe "invalid credentials"
       status shouldBe UNAUTHORIZED_401
-      header("Content-Type").toLowerCase shouldBe "text/plain;charset=utf-8"
+      response.header("Content-Type").toLowerCase shouldBe "text/plain;charset=utf-8"
       response.headers should not contain key("Set-Cookie")
     }
   }
@@ -164,9 +164,9 @@ class SessionSpec extends TestSupportFixture with ServletFixture with ScalatraSu
     val newCookie = response.headers("Set-Cookie")
     val lastCookie = newCookie.lastOption.getOrElse("")
     lastCookie should include("scentry.auth.default.user=;") // note the empty value
-    lastCookie should include("; Path=/")
-    lastCookie should include("; Expires=")
-    lastCookie should include("; HttpOnly")
+    lastCookie should include(";Path=/")
+    lastCookie should include(";Expires=")
+    lastCookie should include(";HttpOnly")
     newCookie.size shouldBe nrOfCookies
   }
 
