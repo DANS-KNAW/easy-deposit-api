@@ -3,19 +3,19 @@
 </head>
 <body>
 <p>Dear $displayName,</p>
-<p>Thank you very much for submitting your dataset '$datasetTitle' to EASY. This E-mail contains more information regarding when your dataset will become available to the public, implementation of any changes, your data's permanent discoverability, and the deposit agreement.</p>
+<p>Thank you very much for submitting your dataset '$datasetTitle' to EASY. This e-mail contains more information regarding your dataset.</p>
 <h4>Availability to the public</h4>
 Within a few working days, DANS staff will make your data available to the public in accordance with the conditions indicated by you. DANS guarantees that your data will remain accessible and safely stored for the long term.
 <p>You can follow the status of your dataset in 'My datasets' to see if it is already available to the public. You will see this option in EASY when you log in. Or you may use this direct link: <a href="$myDatasetsUrl">$myDatasetsUrl</a></p>
-<h4>Implementing changes</h4>
-<p>Should you wish to implement any changes to the metadata or to upload complementary files, either now or in the future, please contact us: <a href="mailto:info@dans.knaw.nl">info@dans.knaw.nl</a>.</p>
 <h4>Permanent discoverability</h4>
 <p>You can include the following link in your paper or electronic publication to refer to your dataset:</p>
 <blockquote><a href="https://doi.org/$doi">https://doi.org/$doi</a></blockquote>
 <p>We also ask those who refer to your dataset in their publications to include this link. It contains a 'Persistent Identifier', which is coupled to your dataset and ensures that it will also remain discoverable via the Internet in the long term.</p>
-<p>Note: This link will not yet work until the day after your dataset becomes available to the public.</p>
+<p>Note: This link will not yet work until your dataset becomes available to the public.</p>
 <h4>Deposit agreement</h4>
-<p>Attached is a copy of the deposit agreement with the terms and conditions which were agreed with DANS when you deposited the data.</p>
+<p>Attached is a copy of the deposit agreement concluded between you and DANS when you deposited the dataset.</p>
+<h4>Processing agreement</h4>
+<p>When your dataset includes personal data within the meaning of the General Data Protection Regulation (GDPR) the data controller under the GDPR and DANS must conclude a processing agreement. DANS will contact you for concluding this agreement when you indicated that your dataset contains personal data or when DANS has reason to believe that this is the case. A processing agreement does not apply if your dataset only contains personal data to account for the dataset, such as the ‘Creator’ (one of the metadata fields) or citations.</p>
 #if ($hasFileListAttached)
     <h4>Other attachments</h4>
     <p>Also attached are:</p>
@@ -31,6 +31,8 @@ Within a few working days, DANS staff will make your data available to the publi
     <h4>Your message for the data manager</h4>
     <p>$msg4Datamanager</p>
 #end
+<h4>Questions?</h4>
+<p>If you have any questions regarding the archiving and publication of your dataset, please contact us at <a href="mailto:info@dans.knaw.nl">info@dans.knaw.nl.</a></p>
 <p>Kind regards,</p>
 <p>
 <span style="color: #d7392e;"><strong>Data Archiving and Networked Services (DANS)</strong></span><br/>
