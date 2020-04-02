@@ -30,14 +30,16 @@ import org.apache.commons.configuration.PropertiesConfiguration
 import org.apache.commons.mail.MultiPartEmail
 import org.joda.time.{ DateTime, DateTimeUtils, DateTimeZone }
 import org.scalamock.scalatest.MockFactory
-import org.scalatest._
+import org.scalatest.{ BeforeAndAfterEach, Inside }
 import org.scalatest.enablers.Existence
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 import org.slf4j.bridge.SLF4JBridgeHandler
 import scalaj.http.Http
 
 import scala.util.{ Properties, Success, Try }
 
-trait TestSupportFixture extends FlatSpec with Matchers with Inside with BeforeAndAfterEach with MockFactory {
+trait TestSupportFixture extends AnyFlatSpec with Matchers with Inside with BeforeAndAfterEach with MockFactory {
 
   // disable logs from okhttp3.mockwebserver
   SLF4JBridgeHandler.removeHandlersForRootLogger()

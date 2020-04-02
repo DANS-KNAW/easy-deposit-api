@@ -194,7 +194,7 @@ package object servlets extends DebugEnhancedLogging {
     private def moveIfNotAnArchive(srcItem: FileItem, multiPartLocation: File, targetDir: File, id: UUID): Try[Unit] = {
       val target = targetDir / srcItem.name
       logger.info(s"[$id] staging upload to $target, contentType = ${ srcItem.contentType }")
-      if (srcItem.name.isBlank) Success(()) // skip form field without selected files
+      if (srcItem.name.isEmpty) Success(()) // skip form field without selected files
       else if (srcItem.isArchive) Failure(ArchiveMustBeOnlyFileException(srcItem))
       else Try {
         val f = UUID.randomUUID().toString
@@ -222,7 +222,7 @@ package object servlets extends DebugEnhancedLogging {
 
     private def skipLeadingEmptyFormFields(): Unit = {
       // forward pointer after check
-      while (fileItems.headOption.exists(_.name.isBlank)) { fileItems.next() }
+      while (fileItems.headOption.exists(_.name.isEmpty)) { fileItems.next() }
     }
   }
 }
