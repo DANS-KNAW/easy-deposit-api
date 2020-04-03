@@ -24,11 +24,11 @@ import better.files.File
 import better.files.File.CopyOptions
 import nl.knaw.dans.easy.deposit.Errors.{ ArchiveException, ArchiveMustBeOnlyFileException, ConfigurationException, MalformedArchiveException, escape, printableRegexp }
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
+import nl.knaw.dans.lib.string._
 import org.apache.commons.compress.archivers.tar.{ TarArchiveInputStream, TarConstants }
 import org.apache.commons.compress.archivers.zip.ZipArchiveInputStream
 import org.apache.commons.compress.archivers.{ ArchiveEntry, ArchiveInputStream }
 import org.scalatra.servlet.FileItem
-import org.scalatra.util.RicherString._
 import resource.managed
 
 import scala.annotation.tailrec
