@@ -153,7 +153,7 @@ class DepositServlet(app: EasyDepositApiApp)
         uuid <- getUUID
         path <- getRelativeLocation(s"[$uuid] upload files to path") // plural
         _ <- isMultipart
-        fileItems = fileMultiParams.valuesIterator.flatten.buffered
+        fileItems = fileMultiParams.toMap.valuesIterator.flatten.buffered
         maybeArchivedItem <- fileItems.nextArchiveIfOnlyOne
         (managedStagingDir, draftDeposit) <- app.stagingContext(user.id, uuid)
         _ <- managedStagingDir.apply(stagingDir =>
