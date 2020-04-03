@@ -16,6 +16,7 @@
 package nl.knaw.dans.easy.deposit
 
 import better.files.File
+import nl.knaw.dans.easy.deposit.docs.StateInfo
 import nl.knaw.dans.lib.error._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 
@@ -27,9 +28,7 @@ object Command extends App with DebugEnhancedLogging {
   type FeedBackMessage = String
 
   val configuration = Configuration(File(System.getProperty("app.home")))
-  val commandLine: CommandLineOptions = new CommandLineOptions(args, configuration) {
-    verify()
-  }
+  val commandLine: CommandLineOptions = new CommandLineOptions(args, configuration)
   Try { new EasyDepositApiApp(configuration) }
     .flatMap(runSubcommand)
     .doIfSuccess(msg => Console.err.println(s"OK: $msg"))
@@ -40,6 +39,12 @@ object Command extends App with DebugEnhancedLogging {
     commandLine.subcommand
       .collect {
         case commandLine.runService => runAsService(app)
+        case cmd @ commandLine.changeState => app.forceChangeState(
+          cmd.draftOwnerId(),
+          cmd.draftDepositId(),
+          StateInfo(cmd.stateLabel(), cmd.stateDescription()),
+          cmd.doUpdate(),
+        )
       }
       .getOrElse(Failure(new IllegalArgumentException(s"Unknown command: ${ commandLine.subcommand }")))
   }

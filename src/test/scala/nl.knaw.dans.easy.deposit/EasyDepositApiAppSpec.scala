@@ -15,25 +15,91 @@
  */
 package nl.knaw.dans.easy.deposit
 
+import java.nio.file.attribute.PosixFilePermission
 import java.util.UUID
 
-import nl.knaw.dans.easy.deposit.docs.DepositInfo
+import nl.knaw.dans.easy.deposit.Errors.NoSuchDepositException
 import nl.knaw.dans.easy.deposit.docs.StateInfo.State
 import nl.knaw.dans.easy.deposit.docs.StateInfo.State.State
-import org.apache.commons.configuration.PropertiesConfiguration
+import nl.knaw.dans.easy.deposit.docs.{ DepositInfo, StateInfo }
+import nl.knaw.dans.lib.error._
+import org.apache.commons.configuration.{ ConfigurationException, PropertiesConfiguration }
 import org.joda.time.DateTime
 import org.joda.time.DateTimeZone.UTC
 
-import scala.util.Success
-
+import scala.util.{ Failure, Success }
 class EasyDepositApiAppSpec extends TestSupportFixture {
   private val app: EasyDepositApiApp = createTestApp()
-
-  private val defaultUser: String = "user001"
 
   override def beforeEach(): Unit = {
     super.beforeEach()
     clearTestDir()
+  }
+
+  private val oldState: StateInfo = StateInfo(State.draft, "Deposit is open for changes.")
+  private val newState = StateInfo(State.archived, "blabla")
+  "forceChangeState" should "report a missing deposit" in {
+    app.forceChangeState(
+      defaultUserInfo.id,
+      uuid,
+      StateInfo(State.submitted, "blabla"),
+      update = false,
+    ) should matchPattern {
+      case Failure(e: NoSuchDepositException) if e.getMessage == s"Deposit $uuid not found" =>
+    }
+  }
+
+  it should "tell how to save the change" in {
+    val uuid = app.createDeposit(defaultUserInfo.id).getOrRecover(e => fail(e)).id // preparation
+
+    app.forceChangeState(defaultUserInfo.id, uuid, newState, update = false) shouldBe Success(
+      """OLD: {"state":"DRAFT","stateDescription":"Deposit is open for changes."}
+        |NEW: {"state":"ARCHIVED","stateDescription":"blabla"}
+        |the change is not saved because --doUpdate was not specified""".stripMargin
+    )
+    app.getDepositState(defaultUserInfo.id, uuid) shouldBe Success(oldState) // post condition
+  }
+
+  it should "save the state" in {
+    val uuid = app.createDeposit(defaultUserInfo.id).getOrRecover(e => fail(e)).id // preparation
+
+    app.forceChangeState(defaultUserInfo.id, uuid, newState, update = true) shouldBe Success(
+      """OLD: {"state":"DRAFT","stateDescription":"Deposit is open for changes."}
+        |NEW: {"state":"ARCHIVED","stateDescription":"blabla"}
+        |the change is saved""".stripMargin
+    )
+    app.getDepositState(defaultUserInfo.id, uuid) shouldBe Success(newState) // post condition
+  }
+
+  it should "cause trouble when setting the state from draft to submitted" in {
+    // preparation
+    val uuid = app.createDeposit(defaultUserInfo.id).getOrRecover(e => fail(e)).id
+    val newState = StateInfo(State.submitted, "blabla")
+
+    app.forceChangeState(defaultUserInfo.id, uuid, newState, update = true) shouldBe Success(
+      """OLD: {"state":"DRAFT","stateDescription":"Deposit is open for changes."}
+        |NEW: {"state":"SUBMITTED","stateDescription":"blabla"}
+        |the change is saved""".stripMargin
+    )
+    // post condition, note the different message
+    // logs: s"no value for 'bag-store.bag-id' in $testDir/drafts/user001/$uuid/deposit.properties"
+    app.getDepositState(defaultUserInfo.id, uuid) should matchPattern {
+      case Success(StateInfo(State.submitted, msg))
+        if msg.startsWith("Something went wrong while processing this deposit. Please <a href=") =>
+    }
+  }
+
+  it should "fail to save the new state" in {
+    val uuid = app.createDeposit(defaultUserInfo.id).getOrRecover(e => fail(e)).id // preparation
+
+    (testDir / "drafts" / defaultUserInfo.id / uuid.toString / "deposit.properties")
+      .removePermission(PosixFilePermission.OWNER_WRITE)
+
+    app.forceChangeState(defaultUserInfo.id, uuid, newState, update = true) should matchPattern {
+      case Failure(e: ConfigurationException) if e.getMessage ==
+        s"Unable to save to file $testDir/drafts/user001/$uuid/deposit.properties" =>
+    }
+    app.getDepositState(defaultUserInfo.id, uuid) shouldBe Success(oldState) // post condition
   }
 
   "getDeposits" should "list the deposits of a user in sorted order" in {
@@ -49,9 +115,9 @@ class EasyDepositApiAppSpec extends TestSupportFixture {
     copyDepositToSubmitArea(deposit5.id)
 
     // the state is required for the pattern match but the description is error prone and beyond the scope of the test
-    val expectedState = app.getDepositState(defaultUser, deposit5.id).getOrElse(fail())
+    val expectedState = app.getDepositState(defaultUserInfo.id, deposit5.id).getOrElse(fail())
 
-    val testResult = app.getDeposits(defaultUser)
+    val testResult = app.getDeposits(defaultUserInfo.id)
     inside(testResult) {
       case Success(sortedDeposits) =>
         sortedDeposits should contain inOrderOnly(
@@ -71,7 +137,7 @@ class EasyDepositApiAppSpec extends TestSupportFixture {
     }
   }
 
-  private def createDeposit(state: State, createdDaysAgo: Int, user: String = defaultUser, title: String = "my-title"): DepositInfo = {
+  private def createDeposit(state: State, createdDaysAgo: Int, user: String = defaultUserInfo.id, title: String = "my-title"): DepositInfo = {
     val depositId = UUID.randomUUID()
     val deposit = (testDir / "drafts" / user / depositId.toString).createDirectories()
     val creationTimestamp = DateTime.now.minusDays(createdDaysAgo).withZone(UTC)
@@ -96,7 +162,7 @@ class EasyDepositApiAppSpec extends TestSupportFixture {
     DepositInfo(depositId, title, state, "my-description", creationTimestamp)
   }
 
-  private def copyDepositToSubmitArea(depositId: UUID, user: String = defaultUser): Unit = {
+  private def copyDepositToSubmitArea(depositId: UUID, user: String = defaultUserInfo.id): Unit = {
     testDir / "drafts" / user / depositId.toString copyTo testDir / "easy-ingest-flow-inbox" / depositId.toString
   }
 }

@@ -25,6 +25,7 @@ import better.files.File.{ newTemporaryDirectory, temporaryDirectory }
 import better.files.{ Dispose, File }
 import nl.knaw.dans.easy.deposit.Errors._
 import nl.knaw.dans.easy.deposit.authentication.{ AuthenticationProvider, LdapAuthentication }
+import nl.knaw.dans.easy.deposit.docs.JsonUtil.toJson
 import nl.knaw.dans.easy.deposit.docs.StateInfo.State
 import nl.knaw.dans.easy.deposit.docs.StateInfo.State.State
 import nl.knaw.dans.easy.deposit.docs.{ DatasetMetadata, DepositInfo, StateInfo, UserData }
@@ -211,11 +212,35 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
    */
   def getDepositState(user: String, id: UUID): Try[StateInfo] = {
     trace(user, id)
+    getDepositStateManager(user, id)
+      .flatMap(_.getStateInfo)
+  }
+
+  def forceChangeState(user: String, id: UUID, newStateInfo: StateInfo, update: Boolean): Try[String] = {
+    trace(user, id)
+
+    def doUpdate(stateManager: StateManager) = {
+      stateManager.saveInDraft(newStateInfo)
+      "the change is saved"
+    }
+
+    for {
+      stateManager <- getDepositStateManager(user, id)
+      oldStateInfo <- stateManager.getStateInfo
+      result = if (update) doUpdate(stateManager)
+               else "the change is not saved because --doUpdate was not specified"
+    } yield
+      s"""OLD: ${ toJson(oldStateInfo) }
+         |NEW: ${ toJson(newStateInfo) }
+         |$result""".stripMargin
+  }
+
+  private def getDepositStateManager(user: String, id: UUID): Try[StateManager] = {
+    trace(user, id)
     for {
       deposit <- getDeposit(user, id)
       stateManager <- deposit.getStateManager(submitBase, easyHome)
-      state <- stateManager.getStateInfo
-    } yield state
+    } yield stateManager
   }
 
   /**

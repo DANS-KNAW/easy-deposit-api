@@ -6,7 +6,7 @@ SYNOPSIS
 --------
 
     easy-deposit-api run-service
-                          
+    easy-deposit-api change-state [ --doUpdate ] --label <value> --description <string> <user> <depositId>
 
 DESCRIPTION
 -----------
@@ -22,14 +22,24 @@ For details about the service API see the [OpenAPI specification].
 ARGUMENTS
 ---------
 
-          --help                Show help message
-          --version             Show version of this program
-
-    Subcommand: run-service - Starts the EASY Bag Store as a daemon that services
-                              HTTP requests
-          --help   Show help message
+      -h, --help      Show help message
+      -v, --version   Show version of this program
+    
+    Subcommand: run-service - Starts EASY Deposit Api as a daemon that services HTTP requests
+      -h, --help   Show help message
     ---
-
+    
+    Subcommand: change-state - Changes the state of a deposit, when changing to SUBMITTED just the state is changed, the rest of the submit-cycle is not started
+      -d, --description  <arg>   A desription of the new state
+          --doUpdate             Changes are not saved without this argument
+      -l, --label  <arg>         The label of the new state, one of: REJECTED,
+                                 DRAFT, SUBMITTED, IN_PROGRESS, ARCHIVED
+      -h, --help                 Show help message
+    
+     trailing arguments:
+      ownerId (required)     The owner of the existing draft deposit
+      depositId (required)   The UUID of the existing draft deposit
+    ---
 
 INSTALLATION AND CONFIGURATION
 ------------------------------

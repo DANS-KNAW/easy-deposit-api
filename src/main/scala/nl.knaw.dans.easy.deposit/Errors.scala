@@ -127,8 +127,8 @@ object Errors extends DebugEnhancedLogging {
   def escape(item: String): String = {
     item
       .replaceAll("<", "&lt;").replaceAll(">", "&gt;") // safe for html interpretation
-      .replaceAll(printableRegexp, "?")
-  } // keep only printable characters
+      .replaceAll(printableRegexp, "?") // keep only printable characters
+  }
 
   case class PendingUploadException()
     extends ServletResponseException(CONFLICT_409, "Another upload or submit is pending.")
