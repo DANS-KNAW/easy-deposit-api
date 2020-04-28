@@ -16,7 +16,6 @@
 package nl.knaw.dans.easy.deposit
 
 import javax.servlet.ServletContext
-import nl.knaw.dans.easy.deposit.servlets._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.eclipse.jetty.server.Server
 import org.eclipse.jetty.servlet.ServletContextHandler
@@ -25,27 +24,27 @@ import org.scalatra.servlet.ScalatraListener
 
 import scala.util.Try
 
-class EasyDepositApiService(serverPort: Int, app: EasyDepositApiApp) extends DebugEnhancedLogging {
+class EasyDepositApiService(serverPort: Int, servlets: Map[String, ScalatraServlet]) extends DebugEnhancedLogging {
 
   import logger._
 
-  private val server = new Server(serverPort)
-  private val context = new ServletContextHandler(ServletContextHandler.NO_SESSIONS & ServletContextHandler.SECURITY)
-  context.addEventListener(new ScalatraListener() {
-    override def probeForCycleClass(classLoader: ClassLoader): (String, LifeCycle) = {
-      ("anonymous", new LifeCycle {
-        override def init(context: ServletContext): Unit = {
-          context.mount(new EasyDepositApiServlet(app), "/*")
-          context.mount(new DepositServlet(app), "/deposit/*")
-          context.mount(new UserServlet(app), "/user/*")
-          context.mount(new AuthServlet(app), "/auth/*")
-          context.mount(new HealthServlet(app), "/health/*")
-        }
-      })
-    }
-  })
-  server.setHandler(context)
-  info(s"HTTP port is ${ serverPort }")
+  private val server = new Server(serverPort) {
+    setHandler(
+      new ServletContextHandler(ServletContextHandler.NO_SESSIONS & ServletContextHandler.SECURITY) {
+        addEventListener(new ScalatraListener() {
+          override def probeForCycleClass(classLoader: ClassLoader): (String, LifeCycle) = {
+            ("anonymous", new LifeCycle {
+              override def init(context: ServletContext): Unit = {
+                for ((path, servlet) <- servlets)
+                  context.mount(servlet, path)
+              }
+            })
+          }
+        })
+      }
+    )
+  }
+  info(s"HTTP port is $serverPort")
 
   def start(): Try[Unit] = Try {
     info("Starting service...")

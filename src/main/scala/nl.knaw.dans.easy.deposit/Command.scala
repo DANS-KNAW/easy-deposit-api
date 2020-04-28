@@ -17,6 +17,7 @@ package nl.knaw.dans.easy.deposit
 
 import better.files.File
 import nl.knaw.dans.easy.deposit.docs.StateInfo
+import nl.knaw.dans.easy.deposit.servlets.{ AuthServlet, DepositServlet, EasyDepositApiServlet, HealthServlet, UserServlet }
 import nl.knaw.dans.lib.error._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 
@@ -50,7 +51,13 @@ object Command extends App with DebugEnhancedLogging {
   }
 
   private def runAsService(app: EasyDepositApiApp): Try[FeedBackMessage] = Try {
-    val service = new EasyDepositApiService(configuration.properties.getInt("daemon.http.port"), app)
+    val service = new EasyDepositApiService(configuration.properties.getInt("daemon.http.port"), Map(
+      "/" -> new EasyDepositApiServlet(app),
+      "/deposit" -> new DepositServlet(app),
+      "/user" -> new UserServlet(app),
+      "/auth" -> new AuthServlet(app),
+      "/health" -> new HealthServlet(app),
+    ))
     Runtime.getRuntime.addShutdownHook(new Thread("service-shutdown") {
       override def run(): Unit = {
         service.stop()
