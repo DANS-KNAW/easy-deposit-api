@@ -15,12 +15,12 @@
  */
 package nl.knaw.dans.easy.deposit
 
-import java.io.{ ByteArrayOutputStream, File }
+import java.io.ByteArrayOutputStream
 import java.nio.file.Paths
 
-import org.scalatest.{ FlatSpec, Matchers }
+import better.files.File
 
-class ReadmeSpec extends FlatSpec with Matchers with CustomMatchers {
+class ReadmeSpec extends TestSupportFixture with CustomMatchers {
   System.setProperty("app.home", "src/main/assembly/dist") // Use the default settings in this test
 
   private val configuration: Configuration = Configuration(Paths.get("src/main/assembly/dist"))
@@ -41,15 +41,15 @@ class ReadmeSpec extends FlatSpec with Matchers with CustomMatchers {
     val lineSeparators = s"(${ System.lineSeparator() })+"
     val options = helpInfo.split(s"${ lineSeparators }Options:$lineSeparators")(1)
     options.trim.length shouldNot be(0)
-    new File("docs/index.md") should containTrimmed(options)
+    File("docs/index.md") should containTrimmed(options)
   }
 
   "synopsis in help info" should "be part of README.md" in {
-    new File("docs/index.md") should containTrimmed(commandLineOptions.synopsis)
+    File("docs/index.md") should containTrimmed(commandLineOptions.synopsis)
   }
 
   "description line(s) in help info" should "be part of README.md and pom.xml" in {
-    new File("docs/index.md") should containTrimmed(commandLineOptions.description)
-    new File("pom.xml") should containTrimmed(commandLineOptions.description)
+    File("docs/index.md") should containTrimmed(commandLineOptions.description)
+    File("pom.xml") should containTrimmed(commandLineOptions.description)
   }
 }

@@ -15,11 +15,8 @@
  */
 package nl.knaw.dans.easy.deposit
 
-import java.io.File
-
+import better.files.File
 import org.scalatest.matchers.{ MatchResult, Matcher }
-
-import scala.io.Source
 
 /** Does not dump the full file but just the searched content if it is not found.
  *
@@ -30,7 +27,7 @@ trait CustomMatchers {
       def trimLines(s: String): String = s.split("\n").map(_.trim).mkString("\n")
 
       MatchResult(
-        trimLines(Source.fromFile(left).mkString).contains(trimLines(content)),
+        trimLines(left.contentAsString).contains(trimLines(content)),
         s"$left did not contain: $content",
         s"$left contains $content"
       )
