@@ -90,7 +90,7 @@ class SubmitterSpec extends TestSupportFixture with MockFactory with BeforeAndAf
     val doi: String = datasetMetadata.doi.getOrElse("")
     if (withDoiInProps) {
       if (doi.isEmpty) fail(new IllegalArgumentException("can't add to to props when metadata does not have one"))
-      props.append(s"identifier.doi=${ doi }")
+      props.append(s"identifier.doi=$doi")
     }
 
     deposit.writeDatasetMetadataJson(datasetMetadata)

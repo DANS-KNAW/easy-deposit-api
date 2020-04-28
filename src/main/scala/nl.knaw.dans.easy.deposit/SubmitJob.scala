@@ -85,7 +85,7 @@ class SubmitJob( // deposit values
 
     val stagedBagDir = stagedDepositDir / draftDepositId.toString
     val stageDepositProperties = stagedDepositDir / propsFileName
-    logger.info(s"[$draftDepositId] Created staged bag in ${ stagedBagDir }")
+    logger.info(s"[$draftDepositId] Created staged bag in $stagedBagDir")
     for {
       stageBag <- DansV0Bag.empty(stagedBagDir).map(_.withCreated())
       _ = (draftBag.baseDir.parent / propsFileName).copyTo(stageDepositProperties)

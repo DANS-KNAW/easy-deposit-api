@@ -24,8 +24,8 @@ class DepositInfoSpec extends TestSupportFixture {
 
   private val strict = true
   DateTimeZone.getDefault.convertLocalToUTC(new DateTime(now).getMillis, strict)
-  val depositInfoObject = DepositInfo(title = "Lorum ipsum")
-  val depositInfoString = s"""{"id":"$uuid","title":"Lorum ipsum","state":"DRAFT","stateDescription":"Deposit is open for changes.","date":"2018-03-22T21:43:01Z"}"""
+  private val depositInfoObject = DepositInfo(title = "Lorum ipsum")
+  private val depositInfoString = s"""{"id":"$uuid","title":"Lorum ipsum","state":"DRAFT","stateDescription":"Deposit is open for changes.","date":"2018-03-22T21:43:01Z"}"""
 
   "serialization/deserialisation" should "return the same object" in {
     DepositInfo(JsonUtil.toJson(depositInfoObject)) shouldBe Success(depositInfoObject.copy(date = depositInfoObject.date))

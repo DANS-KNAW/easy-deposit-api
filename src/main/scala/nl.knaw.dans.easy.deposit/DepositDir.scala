@@ -94,7 +94,7 @@ case class DepositDir private(draftBase: File, user: String, id: UUID) extends D
          |   $shortTitle$ellipsis
          |
          |Kind regards,
-         |${ user }
+         |$user
          |""".stripMargin
     )
     s"""$linkIntro. Please <a href="mailto:info@dans.knaw.nl?subject=$subject&body=$body">contact DANS</a>"""

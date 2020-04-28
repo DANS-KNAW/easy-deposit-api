@@ -114,7 +114,7 @@ package object servlets extends DebugEnhancedLogging {
           linkIntro = printableCause,
           bodyMsg =
             s"""Something went wrong while extracting file(s) from $uploadName to $path.
-               |Cause: ${ printableCause }
+               |Cause: $printableCause
                |Could you please investigate this issue
                |""".
               stripMargin,

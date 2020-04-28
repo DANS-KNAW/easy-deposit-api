@@ -95,7 +95,7 @@ class Submitter(submitToBaseDir: File,
 
   private def queueMessage = {
     val queueSize = jobQueue.getSystemStatus.queueSize
-    if (queueSize > 0) s"; currently ${ queueSize } jobs waiting to be processed"
+    if (queueSize > 0) s"; currently $queueSize jobs waiting to be processed"
     else ""
   }
 

@@ -156,8 +156,7 @@ trait TestSupportFixture extends AnyFlatSpec with Matchers with Inside with Befo
     }
   }
 
-  private def jobQueueStub(onSchedule: SubmitJob => Try[Unit] = (job: SubmitJob) => Try(job.run()),
-                          ): JobQueueManager = {
+  private def jobQueueStub(): JobQueueManager = {
     val threadPoolExecutor: ThreadPoolExecutor = null
     new JobQueueManager(threadPoolExecutor) {
       override def getSystemStatus: SystemStatus = {
