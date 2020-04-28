@@ -30,6 +30,7 @@ import nl.knaw.dans.easy.deposit.docs.StateInfo.State
 import nl.knaw.dans.easy.deposit.docs.StateInfo.State.State
 import nl.knaw.dans.easy.deposit.docs.{ DatasetMetadata, DepositInfo, StateInfo, UserData }
 import nl.knaw.dans.easy.deposit.executor.{ JobQueueManager, SystemStatus, ThreadPoolConfig }
+import nl.knaw.dans.easy.deposit.properties.{ DepositPropertiesRepository, FileDepositPropertiesRepository }
 import nl.knaw.dans.easy.deposit.servlets.archiveContentTypeRegexp
 import nl.knaw.dans.lib.error._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
@@ -82,6 +83,7 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
   protected val submitBase: File = getConfiguredDirectory("deposits.submit-to")
   StartupValidation.allowsAtomicMove(srcDir = stagedBaseDir, targetDir = draftBase)
   StartupValidation.allowsAtomicMove(srcDir = stagedBaseDir, targetDir = submitBase)
+  private val depositPropertiesRepo: DepositPropertiesRepository = new FileDepositPropertiesRepository(submitBase)
 
   val multipartConfig: MultipartConfig = {
     val multipartLocation = getConfiguredDirectory("multipart.location")
@@ -183,7 +185,7 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
     trace(user)
     for {
       depositDir <- DepositDir.create(draftBase, user)
-      depositInfo <- depositDir.getDepositInfo(submitBase, easyHome)
+      depositInfo <- depositDir.getDepositInfo(depositPropertiesRepo, easyHome)
     } yield depositInfo
   }
 
@@ -198,7 +200,7 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
     implicit val timestampOrdering: Ordering[DateTime] = Ordering.fromLessThan[DateTime](_ isBefore _).reverse
     implicit val tupleOrdering: Ordering[(State, DateTime)] = Ordering.Tuple2[State, DateTime]
     for {
-      infos <- DepositDir.list(draftBase, user).map(_.getDepositInfo(submitBase, easyHome)).collectResults
+      infos <- DepositDir.list(draftBase, user).map(_.getDepositInfo(depositPropertiesRepo, easyHome)).collectResults
       sortedInfos = infos.sortBy(deposit => (deposit.state, deposit.date))
     } yield sortedInfos
   }
@@ -239,7 +241,7 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
     trace(user, id)
     for {
       deposit <- getDeposit(user, id)
-      stateManager <- deposit.getStateManager(submitBase, easyHome)
+      stateManager <- deposit.getStateManager(depositPropertiesRepo, easyHome)
     } yield stateManager
   }
 
@@ -277,7 +279,7 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
 
     for {
       deposit <- getDeposit(userId, id)
-      stateManager <- deposit.getStateManager(submitBase, easyHome)
+      stateManager <- deposit.getStateManager(depositPropertiesRepo, easyHome)
       oldStateInfo <- stateManager.getStateInfo
       _ <- stateManager.canChangeState(oldStateInfo, newStateInfo)
         .doIfSuccess { _ => logger.info(s"[$id] state change from ${ oldStateInfo.state } to ${ newStateInfo.state } is allowed") }
@@ -299,7 +301,7 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
     trace(user, id)
     for {
       deposit <- getDeposit(user, id)
-      stateManager <- deposit.getStateManager(submitBase, easyHome)
+      stateManager <- deposit.getStateManager(depositPropertiesRepo, easyHome)
       state <- stateManager.getStateInfo
       _ <- state.canDelete
       _ = deposit.bagDir.parent.delete()

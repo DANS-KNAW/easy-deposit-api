@@ -18,17 +18,19 @@ package nl.knaw.dans.easy.deposit
 import java.net.URL
 import java.util.UUID
 
-import better.files.File
 import nl.knaw.dans.easy.deposit.Errors.{ IllegalStateTransitionException, InvalidPropertyException, PropertyNotFoundException }
 import nl.knaw.dans.easy.deposit.docs.StateInfo
 import nl.knaw.dans.easy.deposit.docs.StateInfo.State
+import nl.knaw.dans.easy.deposit.docs.StateInfo.State.State
+import nl.knaw.dans.easy.deposit.properties.{ DepositProperties, DepositPropertiesRepository }
 import nl.knaw.dans.lib.error._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
+import nl.knaw.dans.lib.string._
 import org.apache.commons.configuration.{ ConfigurationException, PropertiesConfiguration }
 
 import scala.util.{ Failure, Success, Try }
 
-case class StateManager(draftDeposit: DepositDir, submitBase: File, easyHome: URL) extends DebugEnhancedLogging {
+case class StateManager(draftDeposit: DepositDir, submitPropertiesRepo: DepositPropertiesRepository, easyHome: URL) extends DebugEnhancedLogging {
 
   private val depositDir = draftDeposit.bagDir.parent
   private val relativeDraftDir = s"${ draftDeposit.user }/${ draftDeposit.id }"
@@ -44,14 +46,8 @@ case class StateManager(draftDeposit: DepositDir, submitBase: File, easyHome: UR
     (depositDir / "deposit.properties").toJava
   )
 
-  private def triedSubmittedProps: Try[PropertiesConfiguration] = {
-    getProp(bagIdKey, draftProps)
-      .map(submittedId => {
-        val submitDepositPropsFile = submitBase / submittedId / "deposit.properties"
-        if (submitDepositPropsFile.exists)
-          new PropertiesConfiguration(submitDepositPropsFile.toJava)
-        else new PropertiesConfiguration // when the next request is done before the deposit is moved to `submitBase`.
-      })
+  private def triedSubmittedProps: Try[DepositProperties] = {
+    getProp(bagIdKey, draftProps) flatMap (_.toUUID.toTry) flatMap submitPropertiesRepo.load
   }
 
   /** @return the state-label/description from drafts/USER/UUID/deposit.properties
@@ -72,29 +68,28 @@ case class StateManager(draftDeposit: DepositDir, submitBase: File, easyHome: UR
     }
   }
 
-  private def newStateFromSubmitted(draftState: State.State, submittedProps: PropertiesConfiguration): Option[StateInfo] = {
+  private def newStateFromSubmitted(draftState: State, submittedProps: DepositProperties): Try[StateInfo] = {
 
-    def landingPage(msgStart: String): String = {
-      val url = getProp("identifier.fedora", submittedProps)
+    def landingPage(msgStart: String, fedoraId: Option[String]): String = {
+      val url = fedoraId
         .map(id => s"$easyHome/datasets/id/$id")
         .getOrElse(s"$easyHome/mydatasets") // fall back
       s"""$msgStart <a href="$url" target="_blank">$url</a>"""
     }
 
-    Option(submittedProps.getString(stateLabelKey, null)).map {
-      case "SUBMITTED" => StateInfo(draftState, getStateDescription(draftProps))
-      case "REJECTED" => getProp("curation.performed", submittedProps) match {
-        case Success("yes") => saveInDraft(StateInfo(State.rejected, getStateDescription(submittedProps)))
-        case _ => StateInfo(draftState, mailToDansMessage)
-      }
-      case "FAILED" => StateInfo(draftState, mailToDansMessage)
-      case "IN_REVIEW" => saveInDraft(StateInfo(State.inProgress, landingPage("The deposit is available at")))
-      case "FEDORA_ARCHIVED" |
-           "ARCHIVED" => saveInDraft(StateInfo(State.archived, landingPage("The dataset is published at")))
-      case str =>
-        logger.error(InvalidPropertyException(stateLabelKey, str, submittedProps).getMessage)
-        StateInfo(draftState, mailToDansMessage)
-    }
+    submittedProps.getSubmittedProperties
+      .map(props => {
+        props.stateLabel match {
+          case "SUBMITTED" => StateInfo(draftState, props.stateDescription)
+          case "REJECTED" if props.curationPerformed => saveInDraft(StateInfo(State.rejected, props.stateDescription))
+          case "REJECTED" | "FAILED" => StateInfo(draftState, mailToDansMessage)
+          case "IN_REVIEW" => saveInDraft(StateInfo(State.inProgress, landingPage("The deposit is available at", props.fedoraId)))
+          case "FEDORA_ARCHIVED" | "ARCHIVED" => saveInDraft(StateInfo(State.archived, landingPage("The dataset is published at", props.fedoraId)))
+          case str =>
+            logger.error(InvalidPropertyException(stateLabelKey, str, submittedProps.depositId).getMessage)
+            StateInfo(draftState, mailToDansMessage)
+        }
+      })
   }
 
   def setMailToDansDescription(): Try[Unit] = Try {
