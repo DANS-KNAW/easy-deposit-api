@@ -59,7 +59,7 @@ case class StateManager(draftDeposit: DepositDir, submitPropertiesRepo: DepositP
         StateInfo(draftState, getStateDescription(draftProps))
       case draftState @ (State.submitted | State.inProgress) =>
         triedSubmittedProps
-          .map(newStateFromSubmitted(draftState, _).getOrElse(StateInfo(draftState, getStateDescription(draftProps))))
+          .flatMap(newStateFromSubmitted(draftState, _))
           .getOrRecover { e =>
             logger.error(e.getMessage, e)
             // saving the changed message won't change behaviour on the next call
@@ -79,7 +79,7 @@ case class StateManager(draftDeposit: DepositDir, submitPropertiesRepo: DepositP
 
     submittedProps.getSubmittedProperties
       .map(props => {
-        props.stateLabel match {
+        Option(props.stateLabel).map {
           case "SUBMITTED" => StateInfo(draftState, props.stateDescription)
           case "REJECTED" if props.curationPerformed => saveInDraft(StateInfo(State.rejected, props.stateDescription))
           case "REJECTED" | "FAILED" => StateInfo(draftState, mailToDansMessage)
@@ -88,7 +88,7 @@ case class StateManager(draftDeposit: DepositDir, submitPropertiesRepo: DepositP
           case str =>
             logger.error(InvalidPropertyException(stateLabelKey, str, submittedProps.depositId).getMessage)
             StateInfo(draftState, mailToDansMessage)
-        }
+        }.getOrElse(StateInfo(draftState, getStateDescription(draftProps)))
       })
   }
 
