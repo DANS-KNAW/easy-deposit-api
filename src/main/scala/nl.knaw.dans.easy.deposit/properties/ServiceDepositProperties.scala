@@ -19,11 +19,16 @@ import java.util.UUID
 
 import better.files.File
 import nl.knaw.dans.easy.deposit.properties.DepositProperties.SubmittedProperties
+import nl.knaw.dans.easy.deposit.properties.ServiceDepositProperties.GetSubmittedProperties
+import nl.knaw.dans.easy.deposit.properties.graphql.GraphQLClient
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
+import org.apache.commons.lang.BooleanUtils
+import org.json4s.JsonAST.JString
 
-import scala.util.{ Success, Try }
+import scala.util.{ Failure, Success, Try }
+import org.json4s.{ Formats, JValue }
 
-class ServiceDepositProperties(submitBase: File, override val depositId: UUID) extends DepositProperties with DebugEnhancedLogging {
+class ServiceDepositProperties(submitBase: File, override val depositId: UUID, client: GraphQLClient)(implicit formats: Formats) extends DepositProperties with DebugEnhancedLogging {
 
   override def getSubmittedProperties: Try[SubmittedProperties] = {
     getSubmittedPropertiesFromService
@@ -31,13 +36,55 @@ class ServiceDepositProperties(submitBase: File, override val depositId: UUID) e
         case Some(props) => Success(props)
         case None =>
           // if the deposit is moved to easy-ingest-flow, but is not picked up by that service yet,
+          // so the deposit has not been registered in the properties-service yet,
           // read the properties from the file in easy-ingest-flow-inbox instead
           new FileDepositProperties(submitBase, depositId).getSubmittedProperties
       }
   }
 
-  private def getSubmittedPropertiesFromService: Try[Option[SubmittedProperties]] = {
-    // TODO implement GraphQL call to easy-deposit-properties
-    ???
+  def getSubmittedPropertiesFromService: Try[Option[SubmittedProperties]] = {
+    implicit val convertJson: Any => JValue = {
+      case s: UUID => JString(s.toString)
+    }
+    for {
+      json <- client.doQuery(GetSubmittedProperties.query, GetSubmittedProperties.operationName, Map("depositId" -> depositId)).toTry
+      deposit = json.extract[GetSubmittedProperties.Data].deposit
+      props <- deposit.map(deposit => {
+        for {
+          state <- deposit.state.map(Success(_))
+            .getOrElse(Failure(NoStateForDeposit(depositId)))
+          curationPerformed = deposit.isCurationPerformed.exists(isCurationPerformed => BooleanUtils.toBoolean(isCurationPerformed.value))
+          fedoraIdentifier = deposit.identifier.map(_.value)
+        } yield Some(SubmittedProperties(depositId, state.label, state.description, curationPerformed, fedoraIdentifier))
+      }).getOrElse(Success(None))
+    } yield props
+  }
+}
+
+object ServiceDepositProperties {
+
+  object GetSubmittedProperties {
+    case class Data(deposit: Option[Deposit])
+    case class Deposit(state: Option[State], isCurationPerformed: Option[IsCurationPerformed], identifier: Option[FedoraIdentifier])
+    case class FedoraIdentifier(value: String)
+    case class IsCurationPerformed(value: String)
+    case class State(label: String, description: String)
+
+    val operationName = "GetSubmittedProperties"
+    val query: String =
+      """query GetSubmittedProperties($depositId: UUID!) {
+        |  deposit(id: $depositId) {
+        |    state {
+        |      label
+        |      description
+        |    }
+        |    curationPerformed {
+        |      value
+        |    }
+        |    identifier(type: FEDORA) {
+        |      value
+        |    }
+        |  }
+        |}""".stripMargin
   }
 }

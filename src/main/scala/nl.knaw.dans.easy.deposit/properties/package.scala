@@ -13,20 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package nl.knaw.dans.easy.deposit.properties
+package nl.knaw.dans.easy.deposit
 
 import java.util.UUID
 
-import better.files.File
-import nl.knaw.dans.easy.deposit.properties.graphql.GraphQLClient
-import nl.knaw.dans.lib.logging.DebugEnhancedLogging
-import org.json4s.Formats
+package object properties {
 
-import scala.util.Try
-
-class ServiceDepositPropertiesRepository(submitBase: File, client: GraphQLClient)(implicit formats: Formats) extends DepositPropertiesRepository with DebugEnhancedLogging {
-
-  override def load(depositId: UUID): Try[DepositProperties] = Try {
-    new ServiceDepositProperties(submitBase, depositId, client)
-  }
+  case class DepositDoesNotExist(depositId: UUID) extends Exception(s"Deposit $depositId does not exist")
+  case class NoStateForDeposit(depositId: UUID) extends Exception(s"No state available for deposit $depositId")
 }
