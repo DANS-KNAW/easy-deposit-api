@@ -79,7 +79,23 @@ class StateManagerSpec extends TestSupportFixture {
          |bag-store.bag-id = $submittedUuid
       """.stripMargin)
     repo.load _ expects submittedUuid returning Success(properties)
-    properties.getSubmittedProperties _ expects () returning Failure(new Exception("missing ingest-flow-inbox state property"))
+    properties.getSubmittedProperties _ expects () returning Failure(new Exception("No state available for deposit"))
+
+    StateManager(draftDeposit, repo, easyHome).getStateInfo shouldBe Success(StateInfo(
+      State.submitted,
+      mailtoMessage(s"""mailto:info@dans.knaw.nl?subject=Deposit%20processing%20error:%20%20reference%20$submittedUuid&body=Dear%20data%20manager%2C%0A%0ASomething%20went%20wrong%20while%20processing%20my%20deposit.%20Could%20you%20please%20investigate%20the%20issue?%0A%0ADataset%20reference:%0A%20%20%20$submittedUuid%0ATitle:%0A%20%20%20%0A%0AKind%20regards%2C%0Afoo%0A"""),
+    ))
+  }
+
+  it should "search for deposit.properties file if the deposit is not yet registered in the ServiceDepositRepository" in {
+    // the problem will be logged
+    draftPropsFile.writeText(
+      s"""state.label = SUBMITTED
+         |state.description = The deposit is being processed
+         |bag-store.bag-id = $submittedUuid
+      """.stripMargin)
+    repo.load _ expects submittedUuid returning Success(properties)
+    properties.getSubmittedProperties _ expects () returning Success(SubmittedProperties(submittedUuid, null, null, false, None))
 
     StateManager(draftDeposit, repo, easyHome).getStateInfo shouldBe Success(StateInfo(
       State.submitted,
