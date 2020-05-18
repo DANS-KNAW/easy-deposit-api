@@ -21,16 +21,15 @@ import better.files.File
 import nl.knaw.dans.easy.deposit.TestSupportFixture
 import nl.knaw.dans.easy.deposit.properties.DepositProperties.SubmittedProperties
 import nl.knaw.dans.easy.deposit.properties.graphql.GraphQLClient
-import scalaj.http.{ BaseHttp, Http }
 import okhttp3.HttpUrl
 import okhttp3.mockwebserver.{ MockResponse, MockWebServer }
-import org.scalatest.BeforeAndAfterAll
 import org.json4s.JsonDSL._
 import org.json4s.native.Serialization
 import org.json4s.{ DefaultFormats, Formats }
+import org.scalatest.BeforeAndAfterAll
+import scalaj.http.{ BaseHttp, Http }
 
-import scala.util.{ Failure, Success }
-
+import scala.util.Success
 
 class ServiceDepositPropertiesSpec extends TestSupportFixture with BeforeAndAfterAll {
   // configure the mock server
@@ -61,7 +60,7 @@ class ServiceDepositPropertiesSpec extends TestSupportFixture with BeforeAndAfte
         |        "description": "deposit is archived"
         |      },
         |      "curationPerformed": {
-        |        "value": "false"
+        |        "value": false
         |      },
         |      "identifier": {
         |        "value": "easy-dataset:1"
@@ -71,7 +70,36 @@ class ServiceDepositPropertiesSpec extends TestSupportFixture with BeforeAndAfte
         |}""".stripMargin
     server.enqueue(new MockResponse().setBody(response))
 
-    properties.getSubmittedPropertiesFromService shouldBe Success(Some(SubmittedProperties(depositId, "ARCHIVED", "deposit is archived", false, Some("easy-dataset:1"))))
+    properties.getSubmittedPropertiesFromService shouldBe Success(Some(SubmittedProperties(depositId, "ARCHIVED", "deposit is archived", curationPerformed = false, Some("easy-dataset:1"))))
+
+    server.takeRequest().getBody.readUtf8() shouldBe Serialization.write {
+      ("query" -> ServiceDepositProperties.GetSubmittedProperties.query) ~
+        ("operationName" -> ServiceDepositProperties.GetSubmittedProperties.operationName) ~
+        ("variables" -> Map("depositId" -> depositId.toString))
+    }
+  }
+
+  it should "return properties if the deposit exists (with curationPerformed = true)" in {
+    val response =
+      """{
+        |  "data": {
+        |    "deposit": {
+        |      "state": {
+        |        "label": "REJECTED",
+        |        "description": "deposit is rejected"
+        |      },
+        |      "curationPerformed": {
+        |        "value": true
+        |      },
+        |      "identifier": {
+        |        "value": "easy-dataset:1"
+        |      }
+        |    }
+        |  }
+        |}""".stripMargin
+    server.enqueue(new MockResponse().setBody(response))
+
+    properties.getSubmittedPropertiesFromService shouldBe Success(Some(SubmittedProperties(depositId, "REJECTED", "deposit is rejected", curationPerformed = true, Some("easy-dataset:1"))))
 
     server.takeRequest().getBody.readUtf8() shouldBe Serialization.write {
       ("query" -> ServiceDepositProperties.GetSubmittedProperties.query) ~
@@ -98,7 +126,7 @@ class ServiceDepositPropertiesSpec extends TestSupportFixture with BeforeAndAfte
         |}""".stripMargin
     server.enqueue(new MockResponse().setBody(response))
 
-    properties.getSubmittedPropertiesFromService shouldBe Success(Some(SubmittedProperties(depositId, "ARCHIVED", "deposit is archived", false, Some("easy-dataset:1"))))
+    properties.getSubmittedPropertiesFromService shouldBe Success(Some(SubmittedProperties(depositId, "ARCHIVED", "deposit is archived", curationPerformed = false, Some("easy-dataset:1"))))
 
     server.takeRequest().getBody.readUtf8() shouldBe Serialization.write {
       ("query" -> ServiceDepositProperties.GetSubmittedProperties.query) ~
@@ -123,7 +151,7 @@ class ServiceDepositPropertiesSpec extends TestSupportFixture with BeforeAndAfte
         |}""".stripMargin
     server.enqueue(new MockResponse().setBody(response))
 
-    properties.getSubmittedPropertiesFromService shouldBe Success(Some(SubmittedProperties(depositId, "ARCHIVED", "deposit is archived", false, None)))
+    properties.getSubmittedPropertiesFromService shouldBe Success(Some(SubmittedProperties(depositId, "ARCHIVED", "deposit is archived", curationPerformed = false, None)))
 
     server.takeRequest().getBody.readUtf8() shouldBe Serialization.write {
       ("query" -> ServiceDepositProperties.GetSubmittedProperties.query) ~

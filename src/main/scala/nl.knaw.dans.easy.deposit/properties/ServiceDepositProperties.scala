@@ -22,11 +22,10 @@ import nl.knaw.dans.easy.deposit.properties.DepositProperties.SubmittedPropertie
 import nl.knaw.dans.easy.deposit.properties.ServiceDepositProperties.GetSubmittedProperties
 import nl.knaw.dans.easy.deposit.properties.graphql.GraphQLClient
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
-import org.apache.commons.lang.BooleanUtils
 import org.json4s.JsonAST.JString
+import org.json4s.{ Formats, JValue }
 
 import scala.util.{ Failure, Success, Try }
-import org.json4s.{ Formats, JValue }
 
 class ServiceDepositProperties(submitBase: File, override val depositId: UUID, client: GraphQLClient)(implicit formats: Formats) extends DepositProperties with DebugEnhancedLogging {
 
@@ -53,7 +52,7 @@ class ServiceDepositProperties(submitBase: File, override val depositId: UUID, c
         for {
           state <- deposit.state.map(Success(_))
             .getOrElse(Failure(NoStateForDeposit(depositId)))
-          curationPerformed = deposit.isCurationPerformed.exists(isCurationPerformed => BooleanUtils.toBoolean(isCurationPerformed.value))
+          curationPerformed = deposit.curationPerformed.exists(_.value)
           fedoraIdentifier = deposit.identifier.map(_.value)
         } yield Some(SubmittedProperties(depositId, state.label, state.description, curationPerformed, fedoraIdentifier))
       }).getOrElse(Success(None))
@@ -65,9 +64,9 @@ object ServiceDepositProperties {
 
   object GetSubmittedProperties {
     case class Data(deposit: Option[Deposit])
-    case class Deposit(state: Option[State], isCurationPerformed: Option[IsCurationPerformed], identifier: Option[FedoraIdentifier])
+    case class Deposit(state: Option[State], curationPerformed: Option[IsCurationPerformed], identifier: Option[FedoraIdentifier])
     case class FedoraIdentifier(value: String)
-    case class IsCurationPerformed(value: String)
+    case class IsCurationPerformed(value: Boolean)
     case class State(label: String, description: String)
 
     val operationName = "GetSubmittedProperties"
