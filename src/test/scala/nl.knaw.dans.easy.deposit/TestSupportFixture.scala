@@ -131,6 +131,14 @@ trait TestSupportFixture extends AnyFlatSpec with Matchers with Inside with Befo
       addProperty("agreement-generator.url", "http://agreementGeneratorDoesNotExist.dans.knaw.nl")
       addProperty("agreement-generator.connection-timeout-ms", "3000")
       addProperty("agreement-generator.read-timeout-ms", "60000")
+
+      addProperty("easy-deposit-properties.url", "http://localhost:20200/graphql")
+      addProperty("easy-deposit-properties.username", "easy-deposit-properties")
+      addProperty("easy-deposit-properties.password", "changeme")
+      addProperty("easy-deposit-properties.connection-timeout-ms", "5000")
+      addProperty("easy-deposit-properties.read-timeout-ms", "5000")
+      addProperty("easy-deposit-properties.mode", "FILE")
+
     })
   }
 

@@ -30,7 +30,8 @@ import nl.knaw.dans.easy.deposit.docs.StateInfo.State
 import nl.knaw.dans.easy.deposit.docs.StateInfo.State.State
 import nl.knaw.dans.easy.deposit.docs.{ DatasetMetadata, DepositInfo, StateInfo, UserData }
 import nl.knaw.dans.easy.deposit.executor.{ JobQueueManager, SystemStatus, ThreadPoolConfig }
-import nl.knaw.dans.easy.deposit.properties.{ DepositPropertiesRepository, FileDepositPropertiesRepository }
+import nl.knaw.dans.easy.deposit.properties.graphql.GraphQLClient
+import nl.knaw.dans.easy.deposit.properties._
 import nl.knaw.dans.easy.deposit.servlets.archiveContentTypeRegexp
 import nl.knaw.dans.lib.error._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
@@ -41,6 +42,9 @@ import org.scalatra.servlet.MultipartConfig
 
 import scala.util.control.NonFatal
 import scala.util.{ Failure, Success, Try }
+import org.json4s.ext.EnumNameSerializer
+import org.json4s.{ DefaultFormats, Formats }
+import scalaj.http.BaseHttp
 
 class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLogging
   with AutoCloseable
@@ -83,7 +87,32 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
   protected val submitBase: File = getConfiguredDirectory("deposits.submit-to")
   StartupValidation.allowsAtomicMove(srcDir = stagedBaseDir, targetDir = draftBase)
   StartupValidation.allowsAtomicMove(srcDir = stagedBaseDir, targetDir = submitBase)
-  private val depositPropertiesRepo: DepositPropertiesRepository = new FileDepositPropertiesRepository(submitBase)
+
+  private val depositPropertiesRepo: DepositPropertiesRepository = {
+    implicit val http: BaseHttp = Http
+    implicit val jsonFormats: Formats = new DefaultFormats {} + new EnumNameSerializer(State)
+
+    lazy val serviceRepository = new ServiceDepositPropertiesRepository(
+      submitBase,
+      client = new GraphQLClient(
+        url = new URL(properties.getString("easy-deposit-properties.url")),
+        timeout = for {
+          conn <- Option(properties.getInt("easy-deposit-properties.connection-timeout-ms"))
+          read <- Option(properties.getInt("easy-deposit-properties.read-timeout-ms"))
+        } yield (conn, read),
+        credentials = for {
+          username <- Option(properties.getString("easy-deposit-properties.username"))
+          password <- Option(properties.getString("easy-deposit-properties.password"))
+        } yield (username, password),
+      )
+    )
+
+    DepositMode.withName(properties.getString("easy-deposit-properties.mode")) match {
+      case DepositMode.FILE => new FileDepositPropertiesRepository(submitBase)
+      case DepositMode.SERVICE => serviceRepository
+      case DepositMode.BOTH => new CompoundDepositPropertiesRepository(new FileDepositPropertiesRepository(submitBase), serviceRepository)
+    }
+  }
 
   val multipartConfig: MultipartConfig = {
     val multipartLocation = getConfiguredDirectory("multipart.location")
