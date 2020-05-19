@@ -19,6 +19,5 @@ import java.util.UUID
 
 package object properties {
 
-  case class DepositDoesNotExist(depositId: UUID) extends Exception(s"Deposit $depositId does not exist")
   case class NoStateForDeposit(depositId: UUID) extends Exception(s"No state available for deposit $depositId")
 }
