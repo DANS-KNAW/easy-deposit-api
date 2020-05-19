@@ -34,7 +34,6 @@ import okhttp3.mockwebserver.{ MockResponse, MockWebServer }
 import org.apache.commons.configuration.PropertiesConfiguration
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{ Assertion, BeforeAndAfterAll }
-import scalaj.http.Http
 
 import scala.util.{ Failure, Success, Try }
 
@@ -56,7 +55,7 @@ class SubmitterSpec extends TestSupportFixture with MockFactory with BeforeAndAf
   private val server = new MockWebServer
   private val agreementTestServer = "/generate/"
   private val contentType = "application/pdf"
-  private val agreementGenerator = AgreementGenerator(Http, server.url(agreementTestServer).url(), contentType)
+  private val agreementGenerator = AgreementGenerator(server.url(agreementTestServer).url(), contentType)
 
   override protected def afterAll(): Unit = {
     server.shutdown()

@@ -35,7 +35,7 @@ import org.scalatest.enablers.Existence
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import org.slf4j.bridge.SLF4JBridgeHandler
-import scalaj.http.Http
+import scalaj.http.{ BaseHttp, Http }
 
 import scala.util.{ Properties, Success, Try }
 
@@ -46,6 +46,7 @@ trait TestSupportFixture extends AnyFlatSpec with Matchers with Inside with Befo
   SLF4JBridgeHandler.install()
 
   implicit def existenceOfFile[FILE <: better.files.File]: Existence[FILE] = _.exists
+  implicit val http: BaseHttp = Http
 
   lazy val testDir: File = currentWorkingDirectory / "target" / "test" / getClass.getSimpleName
   lazy val uuid: UUID = UUID.randomUUID()
@@ -100,7 +101,7 @@ trait TestSupportFixture extends AnyFlatSpec with Matchers with Inside with Befo
   DateTimeUtils.setCurrentMillisFixed(new DateTime(nowUTC).getMillis)
   DateTimeZone.setDefault(DateTimeZone.forTimeZone(TimeZone.getTimeZone("Europe/Amsterdam")))
 
-  class MockedPidRequester extends PidRequester(Http, new URI("http://does.not.exist.dans.knaw.nl/pid-generator"))
+  class MockedPidRequester extends PidRequester(new URI("http://does.not.exist.dans.knaw.nl/pid-generator"))
 
   def minimalAppConfig: Configuration = {
     new Configuration("", new PropertiesConfiguration() {
@@ -178,7 +179,7 @@ trait TestSupportFixture extends AnyFlatSpec with Matchers with Inside with Befo
   }
 
   private def agreementGeneratorStub = {
-    new AgreementGenerator(Http, new URL("http://does.not.exist"), "text/html") {
+    new AgreementGenerator(new URL("http://does.not.exist"), "text/html") {
       override def generate(agreementData: AgreementData, id: UUID): Try[Array[Byte]] = {
         Success("mocked pdf".getBytes)
       }

@@ -27,7 +27,6 @@ import org.json4s.JsonDSL._
 import org.json4s.native.Serialization
 import org.json4s.{ DefaultFormats, Formats }
 import org.scalatest.BeforeAndAfterAll
-import scalaj.http.{ BaseHttp, Http }
 
 import scala.util.Success
 
@@ -38,7 +37,6 @@ class ServiceDepositPropertiesSpec extends TestSupportFixture with BeforeAndAfte
   private val test_server = "/test_server/"
   private val baseUrl: HttpUrl = server.url(test_server)
 
-  implicit val http: BaseHttp = Http
   implicit val formats: Formats = DefaultFormats
   private val client = new GraphQLClient(baseUrl.url())
   private val depositId = UUID.randomUUID()

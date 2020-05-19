@@ -53,8 +53,9 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
 
   val properties: PropertiesConfiguration = configuration.properties
   override val applicationVersion: String = configuration.version
+  implicit val http: BaseHttp = Http
 
-  val pidRequester: PidRequester = new PidRequester(Http, new URI(properties.getString("pids.generator-service")))
+  val pidRequester: PidRequester = new PidRequester(new URI(properties.getString("pids.generator-service")))
   override val authentication: AuthenticationProvider = new Authentication {
     override val ldapUserIdAttrName: String = properties.getString("users.ldap-user-id-attr-name")
     override val ldapParentEntry: String = properties.getString("users.ldap-parent-entry")
@@ -89,8 +90,7 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
   StartupValidation.allowsAtomicMove(srcDir = stagedBaseDir, targetDir = submitBase)
 
   private val depositPropertiesRepo: DepositPropertiesRepository = {
-    implicit val http: BaseHttp = Http
-    implicit val jsonFormats: Formats = new DefaultFormats {} + new EnumNameSerializer(State)
+    implicit val jsonFormats: Formats = DefaultFormats + new EnumNameSerializer(State)
 
     lazy val serviceRepository = new ServiceDepositPropertiesRepository(
       submitBase,
@@ -139,7 +139,6 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
   }
 
   private val agreementGenerator: AgreementGenerator = AgreementGenerator(
-    http = Http,
     url = new URL(properties.getString("agreement-generator.url", "http://localhost")),
     acceptHeader = properties.getString("agreement-generator.accept", "application/pdf"),
     connectionTimeoutMs = properties.getInt("agreement-generator.connection-timeout-ms"),

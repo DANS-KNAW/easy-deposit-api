@@ -26,7 +26,7 @@ import scalaj.http.{ BaseHttp, HttpResponse }
 
 import scala.util.{ Failure, Success, Try }
 
-class PidRequester(http: BaseHttp, uri: URI) extends DebugEnhancedLogging {
+class PidRequester(uri: URI)(implicit http: BaseHttp) extends DebugEnhancedLogging {
 
   def requestPid(id: UUID, pidType: PidType): Try[String] = Try {
     logger.info(s"[$id] calling easy-pid-generator with type ${ PidType.doi }")
