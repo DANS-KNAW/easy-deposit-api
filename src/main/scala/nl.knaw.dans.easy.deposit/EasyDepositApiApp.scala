@@ -92,6 +92,7 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
   private val depositPropertiesRepo: DepositPropertiesRepository = {
     implicit val jsonFormats: Formats = DefaultFormats + new EnumNameSerializer(State)
 
+    lazy val fileRepository = new FileDepositPropertiesRepository(submitBase)
     lazy val serviceRepository = new ServiceDepositPropertiesRepository(
       submitBase,
       client = new GraphQLClient(
@@ -108,9 +109,9 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
     )
 
     DepositMode.withName(properties.getString("easy-deposit-properties.mode")) match {
-      case DepositMode.FILE => new FileDepositPropertiesRepository(submitBase)
+      case DepositMode.FILE => fileRepository
       case DepositMode.SERVICE => serviceRepository
-      case DepositMode.BOTH => new CompoundDepositPropertiesRepository(new FileDepositPropertiesRepository(submitBase), serviceRepository)
+      case DepositMode.BOTH => new CompoundDepositPropertiesRepository(fileRepository, serviceRepository)
     }
   }
 
