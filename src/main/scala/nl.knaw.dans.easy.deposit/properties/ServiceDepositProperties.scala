@@ -42,6 +42,7 @@ class ServiceDepositProperties(submitBase: File, override val depositId: UUID, c
   }
 
   def getSubmittedPropertiesFromService: Try[Option[SubmittedProperties]] = {
+    logger.info(s"[$depositId] calling easy-deposit-properties with operationName = ${ GetSubmittedProperties.operationName }")
     implicit val convertJson: Any => JValue = {
       case s: UUID => JString(s.toString)
     }
