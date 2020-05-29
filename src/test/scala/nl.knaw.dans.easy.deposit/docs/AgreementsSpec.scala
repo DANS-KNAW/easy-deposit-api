@@ -115,7 +115,7 @@ class AgreementsSpec extends TestSupportFixture {
       ),
       user = null,
     ) should matchPattern {
-      case Failure(e: NullPointerException) =>
+      case Failure(_: NullPointerException) =>
     }
   }
 

@@ -79,8 +79,8 @@ object Errors extends DebugEnhancedLogging {
   case class PropertyNotFoundException(key: String, props: PropertiesConfiguration)
     extends PropertyException(s"no value for '$key' in ${ Option(props.getFile).getOrElse("not found properties file") }")
 
-  case class InvalidPropertyException(key: String, value: String, props: PropertiesConfiguration)
-    extends PropertyException(s"Not expected value '$value' for '$key' in ${ props.getFile }")
+  case class InvalidPropertyException(key: String, value: String, id: UUID)
+    extends PropertyException(s"Not expected value '$value' for '$key' in $id")
 
   case class IllegalStateTransitionException(oldState: State, newState: State)
     extends ServletResponseException(FORBIDDEN_403, s"Cannot transition from $oldState to $newState")

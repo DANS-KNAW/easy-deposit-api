@@ -38,7 +38,7 @@ trait TokenSupport extends DebugEnhancedLogging {
     }.getOrRecover { t => throw new Exception(s"asymmetrical or unknown JwtHmacAlgorithm configured [$value]: $t") }
   }
 
-  val tokenConfig = TokenConfig(
+  val tokenConfig: TokenConfig = TokenConfig(
     secretKey = getProperties.getString("auth.jwt.secret.key", "test"), // TODO Change type to SecretKey? Really in application.properties?
     expiresIn = getProperties.getInt("auth.cookie.expiresIn", 10), // seconds, MUST be same default as in AuthenticationSupport
     algorithm = toHmacAlgorithm(getProperties.getString("auth.jwt.hmac.algorithm", "HS256")),

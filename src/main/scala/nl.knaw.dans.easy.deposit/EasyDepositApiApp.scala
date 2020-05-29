@@ -30,6 +30,8 @@ import nl.knaw.dans.easy.deposit.docs.StateInfo.State
 import nl.knaw.dans.easy.deposit.docs.StateInfo.State.State
 import nl.knaw.dans.easy.deposit.docs.{ DatasetMetadata, DepositInfo, StateInfo, UserData }
 import nl.knaw.dans.easy.deposit.executor.{ JobQueueManager, SystemStatus, ThreadPoolConfig }
+import nl.knaw.dans.easy.deposit.properties.graphql.GraphQLClient
+import nl.knaw.dans.easy.deposit.properties._
 import nl.knaw.dans.easy.deposit.servlets.archiveContentTypeRegexp
 import nl.knaw.dans.lib.error._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
@@ -40,6 +42,9 @@ import org.scalatra.servlet.MultipartConfig
 
 import scala.util.control.NonFatal
 import scala.util.{ Failure, Success, Try }
+import org.json4s.ext.EnumNameSerializer
+import org.json4s.{ DefaultFormats, Formats }
+import scalaj.http.BaseHttp
 
 class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLogging
   with AutoCloseable
@@ -48,8 +53,9 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
 
   val properties: PropertiesConfiguration = configuration.properties
   override val applicationVersion: String = configuration.version
+  implicit val http: BaseHttp = Http
 
-  val pidRequester: PidRequester = new PidRequester(Http, new URI(properties.getString("pids.generator-service")))
+  val pidRequester: PidRequester = new PidRequester(new URI(properties.getString("pids.generator-service")))
   override val authentication: AuthenticationProvider = new Authentication {
     override val ldapUserIdAttrName: String = properties.getString("users.ldap-user-id-attr-name")
     override val ldapParentEntry: String = properties.getString("users.ldap-parent-entry")
@@ -83,6 +89,32 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
   StartupValidation.allowsAtomicMove(srcDir = stagedBaseDir, targetDir = draftBase)
   StartupValidation.allowsAtomicMove(srcDir = stagedBaseDir, targetDir = submitBase)
 
+  private val depositPropertiesRepo: DepositPropertiesRepository = {
+    implicit val jsonFormats: Formats = DefaultFormats + new EnumNameSerializer(State)
+
+    lazy val fileRepository = new FileDepositPropertiesRepository(submitBase)
+    lazy val serviceRepository = new ServiceDepositPropertiesRepository(
+      submitBase,
+      client = new GraphQLClient(
+        url = new URL(properties.getString("easy-deposit-properties.url")),
+        timeout = for {
+          conn <- Option(properties.getInt("easy-deposit-properties.connection-timeout-ms"))
+          read <- Option(properties.getInt("easy-deposit-properties.read-timeout-ms"))
+        } yield (conn, read),
+        credentials = for {
+          username <- Option(properties.getString("easy-deposit-properties.username"))
+          password <- Option(properties.getString("easy-deposit-properties.password"))
+        } yield (username, password),
+      )
+    )
+
+    DepositMode.withName(properties.getString("easy-deposit-properties.mode")) match {
+      case DepositMode.FILE => fileRepository
+      case DepositMode.SERVICE => serviceRepository
+      case DepositMode.BOTH => new CompoundDepositPropertiesRepository(fileRepository, serviceRepository)
+    }
+  }
+
   val multipartConfig: MultipartConfig = {
     val multipartLocation = getConfiguredDirectory("multipart.location")
     logger.debug(s"Uploads are received at multipart.location: $multipartLocation")
@@ -108,7 +140,6 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
   }
 
   private val agreementGenerator: AgreementGenerator = AgreementGenerator(
-    http = Http,
     url = new URL(properties.getString("agreement-generator.url", "http://localhost")),
     acceptHeader = properties.getString("agreement-generator.accept", "application/pdf"),
     connectionTimeoutMs = properties.getInt("agreement-generator.connection-timeout-ms"),
@@ -183,7 +214,7 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
     trace(user)
     for {
       depositDir <- DepositDir.create(draftBase, user)
-      depositInfo <- depositDir.getDepositInfo(submitBase, easyHome)
+      depositInfo <- depositDir.getDepositInfo(depositPropertiesRepo, easyHome)
     } yield depositInfo
   }
 
@@ -198,7 +229,7 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
     implicit val timestampOrdering: Ordering[DateTime] = Ordering.fromLessThan[DateTime](_ isBefore _).reverse
     implicit val tupleOrdering: Ordering[(State, DateTime)] = Ordering.Tuple2[State, DateTime]
     for {
-      infos <- DepositDir.list(draftBase, user).map(_.getDepositInfo(submitBase, easyHome)).collectResults
+      infos <- DepositDir.list(draftBase, user).map(_.getDepositInfo(depositPropertiesRepo, easyHome)).collectResults
       sortedInfos = infos.sortBy(deposit => (deposit.state, deposit.date))
     } yield sortedInfos
   }
@@ -239,7 +270,7 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
     trace(user, id)
     for {
       deposit <- getDeposit(user, id)
-      stateManager <- deposit.getStateManager(submitBase, easyHome)
+      stateManager <- deposit.getStateManager(depositPropertiesRepo, easyHome)
     } yield stateManager
   }
 
@@ -277,7 +308,7 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
 
     for {
       deposit <- getDeposit(userId, id)
-      stateManager <- deposit.getStateManager(submitBase, easyHome)
+      stateManager <- deposit.getStateManager(depositPropertiesRepo, easyHome)
       oldStateInfo <- stateManager.getStateInfo
       _ <- stateManager.canChangeState(oldStateInfo, newStateInfo)
         .doIfSuccess { _ => logger.info(s"[$id] state change from ${ oldStateInfo.state } to ${ newStateInfo.state } is allowed") }
@@ -299,7 +330,7 @@ class EasyDepositApiApp(configuration: Configuration) extends DebugEnhancedLoggi
     trace(user, id)
     for {
       deposit <- getDeposit(user, id)
-      stateManager <- deposit.getStateManager(submitBase, easyHome)
+      stateManager <- deposit.getStateManager(depositPropertiesRepo, easyHome)
       state <- stateManager.getStateInfo
       _ <- state.canDelete
       _ = deposit.bagDir.parent.delete()

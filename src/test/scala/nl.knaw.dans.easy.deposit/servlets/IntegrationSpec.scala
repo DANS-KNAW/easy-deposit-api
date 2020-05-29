@@ -79,7 +79,7 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
     ) {
       status shouldBe NO_CONTENT_204
     }
-    (testDir / "drafts" / "foo" / uuid.toString / bagDirName / "metadata" / "dataset.json") should exist
+    (testDir / "drafts" / "foo" / uuid / bagDirName / "metadata" / "dataset.json") should exist
 
     // get dataset metadata
     authMocker.expectsUserFooBar
@@ -313,7 +313,7 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
     val uuid = createDeposit
 
     // hack state
-    val props = testDir / "drafts" / "foo" / uuid.toString / "deposit.properties"
+    val props = testDir / "drafts" / "foo" / uuid / "deposit.properties"
     props.write(props.contentAsString.replace("DRAFT", "ARCHIVED"))
 
     // submit
@@ -328,7 +328,7 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
     }
 
     // submit did not complain about missing metadata, so the state transition check indeed came first
-    (testDir / "drafts" / "foo" / uuid.toString / bagDirName / "metatada") shouldNot exist
+    (testDir / "drafts" / "foo" / uuid / bagDirName / "metatada") shouldNot exist
   }
 
   private def setupSubmittedDeposit: String = {
@@ -344,7 +344,7 @@ class IntegrationSpec extends TestSupportFixture with ServletFixture with Scalat
     // create dataset
     authMocker.expectsUserFooBar
     val uuid = createDeposit
-    val depositDir = testDir / "drafts" / "foo" / uuid.toString
+    val depositDir = testDir / "drafts" / "foo" / uuid
 
     // copy DOI from metadata into deposit.properties
     (depositDir / "deposit.properties").append(s"identifier.doi=$doi")

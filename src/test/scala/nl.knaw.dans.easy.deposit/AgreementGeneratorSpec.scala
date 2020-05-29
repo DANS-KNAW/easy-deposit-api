@@ -23,7 +23,7 @@ import nl.knaw.dans.easy.deposit.docs.dm.SchemedValue
 import nl.knaw.dans.easy.deposit.docs.{ AgreementData, MinimalDatasetMetadata }
 import okhttp3.mockwebserver.{ MockResponse, MockWebServer }
 import org.scalatest.BeforeAndAfterAll
-import scalaj.http.{ Http, HttpResponse }
+import scalaj.http.HttpResponse
 
 import scala.util.{ Failure, Success }
 
@@ -41,7 +41,7 @@ class AgreementGeneratorSpec extends TestSupportFixture with BeforeAndAfterAll {
   private val server = new MockWebServer
   private val test_server = "/generate/"
 
-  private val generator = AgreementGenerator(Http, server.url(test_server).url(),"text/html")
+  private val generator = AgreementGenerator(server.url(test_server).url(), "text/html")
 
   override protected def afterAll(): Unit = {
     server.shutdown()

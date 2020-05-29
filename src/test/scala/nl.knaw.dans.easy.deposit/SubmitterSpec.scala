@@ -28,12 +28,12 @@ import nl.knaw.dans.easy.deposit.Errors.{ CorruptDepositException, InvalidDocume
 import nl.knaw.dans.easy.deposit.docs.StateInfo.State
 import nl.knaw.dans.easy.deposit.docs.{ DatasetMetadata, StateInfo }
 import nl.knaw.dans.easy.deposit.executor.{ JobQueueManager, SystemStatus }
+import nl.knaw.dans.easy.deposit.properties.DepositPropertiesRepository
 import nl.knaw.dans.lib.error._
 import okhttp3.mockwebserver.{ MockResponse, MockWebServer }
 import org.apache.commons.configuration.PropertiesConfiguration
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{ Assertion, BeforeAndAfterAll }
-import scalaj.http.Http
 
 import scala.util.{ Failure, Success, Try }
 
@@ -55,7 +55,7 @@ class SubmitterSpec extends TestSupportFixture with MockFactory with BeforeAndAf
   private val server = new MockWebServer
   private val agreementTestServer = "/generate/"
   private val contentType = "application/pdf"
-  private val agreementGenerator = AgreementGenerator(Http, server.url(agreementTestServer).url(), contentType)
+  private val agreementGenerator = AgreementGenerator(server.url(agreementTestServer).url(), contentType)
 
   override protected def afterAll(): Unit = {
     server.shutdown()
@@ -89,13 +89,13 @@ class SubmitterSpec extends TestSupportFixture with MockFactory with BeforeAndAf
     val doi: String = datasetMetadata.doi.getOrElse("")
     if (withDoiInProps) {
       if (doi.isEmpty) fail(new IllegalArgumentException("can't add to to props when metadata does not have one"))
-      props.append(s"identifier.doi=${ doi }")
+      props.append(s"identifier.doi=$doi")
     }
 
     deposit.writeDatasetMetadataJson(datasetMetadata)
     submitDir.createDirectories()
 
-    val stateManager = deposit.getStateManager(submitDir, easyHome)
+    val stateManager = deposit.getStateManager(mock[DepositPropertiesRepository], easyHome)
       .getOrRecover(e => fail(s"could not get stateManager of test deposit $e"))
 
     (deposit, stateManager, props, bag, doi)
@@ -207,12 +207,11 @@ class SubmitterSpec extends TestSupportFixture with MockFactory with BeforeAndAf
     val submittedDeposit = submitDir / load(draftPropertiesFile).getString("bag-store.bag-id")
     draftPropertiesFile.contentAsString should
       (// compare with pre conditions:
-        include("SUBMITTED") and include("bag-store.bag-id")
+        include("SUBMITTED") and include("bag-store.bag-id") and include("The deposit is being processed")
           // submitted properties has another bag-store.bag-name than the draft:
           and be((submittedDeposit / "deposit.properties").contentAsString.replace(draftDeposit.id.toString, "bag"))
         )
     jsonFile.size shouldBe mdOldSize
-    stateManager.getStateInfo shouldBe Success(StateInfo(State.submitted, "The deposit is being processed"))
     (draftDeposit.bagDir / "metadata").list.toSeq.map(_.name) shouldBe Seq("dataset.json") // compare with submitted bag/metadata files
     val submittedBag = s"$submittedDeposit/${ draftDeposit.id }"
     submittedDeposit.listRecursively.toSeq.map(_.toString) should contain theSameElementsAs Seq(

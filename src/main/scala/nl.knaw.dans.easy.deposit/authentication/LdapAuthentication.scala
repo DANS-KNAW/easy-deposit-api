@@ -20,7 +20,7 @@ import java.util
 import javax.naming.directory.{ Attribute, SearchControls, SearchResult }
 import javax.naming.ldap.{ InitialLdapContext, LdapContext }
 import javax.naming.{ AuthenticationException, Context }
-import nl.knaw.dans.easy.deposit.docs.{ UserData, UserInfo }
+import nl.knaw.dans.easy.deposit.docs.UserData
 import nl.knaw.dans.lib.error.TryExtensions
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import resource.managed

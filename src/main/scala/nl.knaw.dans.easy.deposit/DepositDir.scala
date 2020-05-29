@@ -27,6 +27,7 @@ import nl.knaw.dans.easy.deposit.Errors._
 import nl.knaw.dans.easy.deposit.PidRequester.PidType
 import nl.knaw.dans.easy.deposit.docs.JsonUtil.toJson
 import nl.knaw.dans.easy.deposit.docs._
+import nl.knaw.dans.easy.deposit.properties.DepositPropertiesRepository
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.apache.commons.configuration.PropertiesConfiguration
 import org.joda.time.DateTime
@@ -49,22 +50,14 @@ case class DepositDir private(draftBase: File, user: String, id: UUID) extends D
   private val depositPropertiesFile = bagDir.parent / "deposit.properties"
   private val datasetMetadataJsonFile = metadataDir / "dataset.json"
 
-  /**
-   * @param submitBase the base directory with submitted deposits to extract the actual state
-   * @return the `StateManager` for this deposit
-   */
-  def getStateManager(submitBase: File, easyHome: URL): Try[StateManager] = Try {
-    StateManager(this, submitBase, easyHome)
+  def getStateManager(submitPropertiesRepo: DepositPropertiesRepository, easyHome: URL): Try[StateManager] = Try {
+    StateManager(this, submitPropertiesRepo, easyHome)
   }
 
-  /**
-   * @param submitBase the base directory with submitted deposits to extract the actual state
-   * @return basic information about the deposit.
-   */
-  def getDepositInfo(submitBase: File, easyHome: URL): Try[DepositInfo] = {
+  def getDepositInfo(submitPropertiesRepo: DepositPropertiesRepository, easyHome: URL): Try[DepositInfo] = {
     for {
       title <- getDatasetTitle
-      stateManager <- getStateManager(submitBase, easyHome)
+      stateManager <- getStateManager(submitPropertiesRepo, easyHome)
       stateInfo <- stateManager.getStateInfo
       created = new DateTime(stateManager.draftProps.getString("creation.timestamp")).withZone(UTC)
     } yield DepositInfo(
@@ -101,7 +94,7 @@ case class DepositDir private(draftBase: File, user: String, id: UUID) extends D
          |   $shortTitle$ellipsis
          |
          |Kind regards,
-         |${ user }
+         |$user
          |""".stripMargin
     )
     s"""$linkIntro. Please <a href="mailto:info@dans.knaw.nl?subject=$subject&body=$body">contact DANS</a>"""
