@@ -90,16 +90,6 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
     expectedDdmContent = minimalDDM
   )
 
-  "minimal with multiple titles" should behave like validDatasetMetadata(
-    input = new MinimalDatasetMetadata(titles = Some(Seq("Lorum", "ipsum"))),
-    subset = actualDDM => profileElements(actualDDM, "title"),
-    expectedDdmContent =
-      <ddm:profile>
-        <dc:title>Lorum</dc:title>
-        <dc:title>ipsum</dc:title>
-      </ddm:profile>
-  )
-
   "minimal with multiple descriptions" should behave like validDatasetMetadata(
     input = new MinimalDatasetMetadata(descriptions = Some(Seq(
       "Lorum <a href='mailto:does.not.exist@dans.knaw.nl'>ipsum</a>",
@@ -298,7 +288,7 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
 
   it should "report missing descriptions" in {
     validate(new MinimalDatasetMetadata(descriptions = None)) should
-      matchSaxMessage(".*Invalid content was found starting with element 'dcx-dai:creatorDetails'. One of '.*:title, .*:description.' is expected.")
+      matchSaxMessage(".*Invalid content was found starting with element 'dcx-dai:creatorDetails'. One of '.*:description.' is expected.")
   }
 
   it should "report missing audiences" in {
@@ -537,162 +527,6 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
             </Point>
           </dcx-gml:spatial>
         </ddm:dcmiMetadata>
-  )
-
-  "issue-1538.json" should behave like validDatasetMetadata(
-    input = parseTestResource("issue-1538.json").setDoi("mocked_DOI")
-  )
-
-  "datasetmetadata.json" should behave like validDatasetMetadata(
-    input = parseTestResource("datasetmetadata.json").setDoi("mocked_DOI")
-  )
-  // TODO keep resources in sync with UI module: https://github.com/DANS-KNAW/easy-deposit-ui/blob/784fdc5/src/test/typescript/mockserver/metadata.ts#L246
-  "datasetmetadata-from-ui-some.json with an additional DOI" should behave like validDatasetMetadata(
-    input = parseTestResource("datasetmetadata-from-ui-some.json")
-      .copy(identifiers = Some(Seq(SchemedValue(DatasetMetadata.doiScheme, "mocked-doi"))))
-  )
-  "datasetmetadata-from-ui-all.json without one of the authors" should behave like validDatasetMetadata(
-    input = parseTestResource("datasetmetadata-from-ui-all.json"),
-    expectedDdmContent =
-      <ddm:profile>
-        <dc:title xml:lang="nld">title 1</dc:title>
-        <dc:title xml:lang="nld">title2</dc:title>
-        <dcterms:description xml:lang="nld">description1</dcterms:description>
-        <dcterms:description xml:lang="nld">description2</dcterms:description>
-        <ddm:description descriptionType="TechnicalInfo">remark1</ddm:description>
-        <ddm:description descriptionType="TechnicalInfo">remark2</ddm:description>
-        <dcx-dai:creatorDetails>
-          <dcx-dai:author>
-            <dcx-dai:titles xml:lang="nld">Drs.</dcx-dai:titles>
-            <dcx-dai:initials>D.A.</dcx-dai:initials>
-            <dcx-dai:surname>NS</dcx-dai:surname>
-            <dcx-dai:DAI>93313935x</dcx-dai:DAI>
-            <dcx-dai:ORCID>0000-0002-9079-593X</dcx-dai:ORCID>
-            <dcx-dai:role>ContactPerson</dcx-dai:role>
-            <dcx-dai:organization>
-              <dcx-dai:name xml:lang="nld">KNAW</dcx-dai:name>
-            </dcx-dai:organization>
-          </dcx-dai:author>
-        </dcx-dai:creatorDetails>
-        <dcx-dai:creatorDetails>
-          <dcx-dai:author>
-            <dcx-dai:initials>Foo</dcx-dai:initials>
-            <dcx-dai:insertions>van</dcx-dai:insertions>
-            <dcx-dai:surname>Bar</dcx-dai:surname>
-          </dcx-dai:author>
-        </dcx-dai:creatorDetails>
-        <ddm:created>2018-03-19</ddm:created>
-        <ddm:available>2018-03-14</ddm:available>
-        <ddm:audience>D35200</ddm:audience>
-        <ddm:audience>D33000</ddm:audience>
-        <ddm:accessRights>OPEN_ACCESS</ddm:accessRights>
-      </ddm:profile>
-      <ddm:dcmiMetadata>
-        <dcterms:identifier xsi:type="id-type:DOI">10.17632/DANS.6wg5xccnjd.1</dcterms:identifier>
-        <dcterms:alternative xml:lang="nld">alternative title 1</dcterms:alternative>
-        <dcterms:alternative xml:lang="nld">alternative title2</dcterms:alternative>
-        <dcterms:isReferencedBy xsi:type="id-type:ISSN">2123-34X</dcterms:isReferencedBy>
-        <ddm:conformsTo xml:lang="nld" href="http://x">title1</ddm:conformsTo>
-        <dcterms:requires xml:lang="nld">title2</dcterms:requires>
-        <ddm:isReplacedBy href="http://y">http://y</ddm:isReplacedBy>
-        <ddm:relation href="http://z">http://z</ddm:relation>
-        <dcterms:relation xml:lang="nld">title3</dcterms:relation>
-        <dcterms:isFormatOf xsi:type="id-type:ISBN">test identifier 1</dcterms:isFormatOf>
-        <dcterms:isFormatOf xsi:type="id-type:NWO-PROJECTNR">test identifier 2</dcterms:isFormatOf>
-        <dcterms:isFormatOf xsi:type="id-type:ARCHIS-ZAAK-IDENTIFICATIE">archis nr. 1</dcterms:isFormatOf>
-        <dcterms:isFormatOf xsi:type="id-type:ARCHIS-ZAAK-IDENTIFICATIE">archis nr. 2</dcterms:isFormatOf>
-        <ddm:isFormatOf scheme="id-type:DOI" href="https://doi.org/10.5072/test-doi">10.5072/test-doi</ddm:isFormatOf>
-        <dcx-dai:contributorDetails>
-          <dcx-dai:author>
-            <dcx-dai:titles xml:lang="nld">Dr.</dcx-dai:titles>
-            <dcx-dai:initials>O.</dcx-dai:initials>
-            <dcx-dai:insertions>van</dcx-dai:insertions>
-            <dcx-dai:surname>Belix</dcx-dai:surname>
-          </dcx-dai:author>
-        </dcx-dai:contributorDetails>
-        <dcx-dai:contributorDetails>
-          <dcx-dai:organization>
-            <dcx-dai:name xml:lang="nld">my organization</dcx-dai:name>
-          </dcx-dai:organization>
-        </dcx-dai:contributorDetails>
-        <dcx-dai:contributorDetails>
-          <dcx-dai:organization>
-            <dcx-dai:name xml:lang="nld">rightsHolder1</dcx-dai:name>
-            <dcx-dai:role>RightsHolder</dcx-dai:role>
-          </dcx-dai:organization>
-        </dcx-dai:contributorDetails>
-        <dcx-dai:contributorDetails>
-          <dcx-dai:author>
-            <dcx-dai:titles xml:lang="nld">Dr.</dcx-dai:titles>
-            <dcx-dai:initials>A.S.</dcx-dai:initials>
-            <dcx-dai:insertions>van</dcx-dai:insertions>
-            <dcx-dai:surname>Terix</dcx-dai:surname>
-            <dcx-dai:role>RightsHolder</dcx-dai:role>
-          </dcx-dai:author>
-        </dcx-dai:contributorDetails>
-        <dcterms:rightsHolder>rightsHolder1</dcterms:rightsHolder>
-        <dcterms:rightsHolder>Dr. A.S. van Terix</dcterms:rightsHolder>
-        <dcterms:publisher xml:lang="nld">pub1</dcterms:publisher>
-        <dcterms:publisher xml:lang="nld">pub2</dcterms:publisher>
-        <dc:source xml:lang="nld">source1</dc:source>
-        <dc:source xml:lang="nld">source2</dc:source>
-        <dcterms:type xsi:type="dcterms:DCMIType">Dataset</dcterms:type>
-        <dcterms:type xsi:type="dcterms:DCMIType">Software</dcterms:type>
-        <dcterms:type>drawings</dcterms:type>
-        <dcterms:type>paintings</dcterms:type>
-        <dcterms:format xsi:type="dcterms:IMT">text/plain</dcterms:format>
-        <dcterms:format xsi:type="dcterms:IMT">image/tiff</dcterms:format>
-        <dcterms:format>paperback</dcterms:format>
-        <dcterms:format>audiobook</dcterms:format>
-        <dcterms:format xsi:type="dcterms:IMT">application/x-cmdi+xml</dcterms:format>
-        <dc:subject xml:lang="nld">subject1</dc:subject>
-        <dc:subject xml:lang="nld">subject2</dc:subject>
-        <dcterms:subject xsi:type="abr:ABRcomplex">RKER</dcterms:subject>
-        <dcterms:subject xsi:type="abr:ABRcomplex">VK</dcterms:subject>
-        <dcterms:temporal xsi:type="abr:ABRperiode">ROMLA</dcterms:temporal>
-        <dcterms:temporal xsi:type="abr:ABRperiode">ROMLB</dcterms:temporal>
-        <dcterms:temporal xml:lang="nld">temp1</dcterms:temporal>
-        <dcterms:temporal xml:lang="nld">temp2</dcterms:temporal>
-        <dcterms:spatial xsi:type="dcterms:ISO3166">NLD</dcterms:spatial>
-        <dcterms:spatial xml:lang="nld">Haringvliet</dcterms:spatial>
-        <dcterms:spatial xml:lang="nld">Grevelingenmeer</dcterms:spatial>
-        <dcterms:dateSubmitted xsi:type="dcterms:W3CDTF">2018-03-22</dcterms:dateSubmitted>
-        <dcterms:dateCopyrighted xsi:type="dcterms:W3CDTF">2018-03-18</dcterms:dateCopyrighted>
-        <dcterms:valid xsi:type="dcterms:W3CDTF">2018-03-17</dcterms:valid>
-        <dcterms:modified>2018-02-02</dcterms:modified>
-        <dcterms:issued>Groundhog day</dcterms:issued>
-        <dcx-gml:spatial srsName="http://www.opengis.net/def/crs/EPSG/0/28992">
-          <Point xmlns="http://www.opengis.net/gml">
-            <pos>12 34</pos>
-          </Point>
-        </dcx-gml:spatial>
-        <dcx-gml:spatial srsName="http://www.opengis.net/def/crs/EPSG/0/4326">
-          <Point xmlns="http://www.opengis.net/gml">
-            <pos>78 56</pos>
-          </Point>
-        </dcx-gml:spatial>
-        <dcx-gml:spatial>
-          <boundedBy xmlns="http://www.opengis.net/gml">
-            <Envelope srsName="http://www.opengis.net/def/crs/EPSG/0/28992">
-              <lowerCorner>4 3</lowerCorner>
-              <upperCorner>2 1</upperCorner>
-            </Envelope>
-          </boundedBy>
-        </dcx-gml:spatial>
-        <dcx-gml:spatial>
-          <boundedBy xmlns="http://www.opengis.net/gml">
-            <Envelope srsName="http://www.opengis.net/def/crs/EPSG/0/4326">
-              <lowerCorner>7 8</lowerCorner>
-              <upperCorner>5 6</upperCorner>
-            </Envelope>
-          </boundedBy>
-        </dcx-gml:spatial>
-        <dcterms:license xsi:type="dcterms:URI">http://creativecommons.org/publicdomain/zero/1.0</dcterms:license>
-        <dcterms:language xsi:type="dcterms:ISO639-2">eng</dcterms:language>
-        <dcterms:language xsi:type="dcterms:ISO639-2">nld</dcterms:language>
-        <dcterms:language>Flakkees</dcterms:language>
-        <dcterms:language>Goerees</dcterms:language>
-      </ddm:dcmiMetadata>
   )
 
   private def dcmiMetadata(actualDDM: Elem) = emptyDDM.copy(child =
