@@ -282,45 +282,61 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
 
   // documenting (not exhaustive) what the client should validate to get the metadata ingested
   "Schema.validate(DDM(json))" should "report missing titles" in {
-    validate(new MinimalDatasetMetadata(titles = None)) should
+    val metadata = new MinimalDatasetMetadata(titles = None)
+    assume(triedSchema.isAvailable)
+    validate(metadata) should
       matchSaxMessage(".*Invalid content was found starting with element 'dcterms:description'. One of '.*:title.' is expected.")
   }
 
   it should "report missing descriptions" in {
-    validate(new MinimalDatasetMetadata(descriptions = None)) should
+    val metadata = new MinimalDatasetMetadata(descriptions = None)
+    assume(triedSchema.isAvailable)
+    validate(metadata) should
       matchSaxMessage(".*Invalid content was found starting with element 'dcx-dai:creatorDetails'. One of '.*:description.' is expected.")
   }
 
   it should "report missing audiences" in {
-    validate(new MinimalDatasetMetadata(audiences = None)) should
+    val metadata = new MinimalDatasetMetadata(audiences = None)
+    assume(triedSchema.isAvailable)
+    validate(metadata) should
       matchSaxMessage(".*Invalid content was found starting with element 'ddm:accessRights'. One of '.*:audience.' is expected.")
   }
 
   it should "report missing creators" in {
-    validate(new MinimalDatasetMetadata(creators = None)) should
+    val metadata = new MinimalDatasetMetadata(creators = None)
+    assume(triedSchema.isAvailable)
+    validate(metadata) should
       matchSaxMessage(".*Invalid content was found starting with element 'ddm:created'. One of '.*:description, .*:creator.' is expected.")
   }
 
   it should "report missing dateCreated" in {
-    validate(new MinimalDatasetMetadata(dates = Some(Seq(mandatoryDates.head)))) should
+    val metadata = new MinimalDatasetMetadata(dates = Some(Seq(mandatoryDates.head)))
+    assume(triedSchema.isAvailable)
+    validate(metadata) should
       matchSaxMessage(".*Invalid content was found starting with element 'ddm:audience'. One of '.*:available.' is expected.")
   }
 
   it should "report missing dateAvailable" in {
-    validate(new MinimalDatasetMetadata(dates = Some(Seq(mandatoryDates.last)))) should
+    val metadata = new MinimalDatasetMetadata(dates = Some(Seq(mandatoryDates.last)))
+    assume(triedSchema.isAvailable)
+    validate(metadata) should
       matchSaxMessage(".*Invalid content was found starting with element 'ddm:available'. One of '.*:creator, .*:created.' is expected.")
   }
 
   it should "report missing accessRights" in {
-    validate(new MinimalDatasetMetadata(accessRights = None)) should
+    val metadata = new MinimalDatasetMetadata(accessRights = None)
+    assume(triedSchema.isAvailable)
+    validate(metadata) should
       matchSaxMessage(".*The content of element 'ddm:profile' is not complete. One of '.*:audience, .*:accessRights.' is expected.")
   }
 
   it should "report spatial box without scheme" in {
     val box = """{"north": 1, "east": 2, "south": 3, "west": 4}"""
-    validate(new MinimalDatasetMetadata(
+    val metadata = new MinimalDatasetMetadata(
       spatialBoxes = parse(s"""{"spatialBoxes":[$box]}""").spatialBoxes
-    )) should matchSaxMessage(".*Attribute 'srsName' must appear on element 'Envelope'.")
+    )
+    assume(triedSchema.isAvailable)
+    validate(metadata) should matchSaxMessage(".*Attribute 'srsName' must appear on element 'Envelope'.")
   }
 
   it should "report an invalid name space for author ID" in {
@@ -332,6 +348,7 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
         |}"""
     val ddm = toDDM(new MinimalDatasetMetadata(contributors = parse(s"""{"contributors":[$author]}""").contributors))
     prettyPrinter.format(ddm) should include("<dcx-dai:dcx-dai:ISNI>ISNI:000000012281955X</dcx-dai:dcx-dai:ISNI>")
+    assume(triedSchema.isAvailable)
     triedSchema.validate(ddm) should matchSaxMessage(".*dcx-dai:dcx-dai.*") // note the duplication
   }
 
@@ -344,6 +361,7 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
         |}"""
     val ddm = toDDM(new MinimalDatasetMetadata(contributors = parse(s"""{"contributors":[$author]}""").contributors))
     prettyPrinter.format(ddm) should include("<dcx-dai:foo>bar</dcx-dai:foo>")
+    assume(triedSchema.isAvailable)
     triedSchema.validate(ddm) should matchSaxMessage(".*dcx-dai:foo.*")
   }
 
