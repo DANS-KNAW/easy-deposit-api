@@ -32,7 +32,7 @@ package object deposit {
     def serialize: String = {
       val printer = new PrettyPrinter(160, 2)
       val trimmed = Utility.trim(elem)
-      prologue + "\n" + printer.format(trimmed)
+      prologue + "\n" + printer.format(elem)
     }
   }
   implicit class BagExtensions(val bag: DansBag) extends AnyVal {
