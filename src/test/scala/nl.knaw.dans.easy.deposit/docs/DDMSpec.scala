@@ -121,7 +121,9 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
     expectedDdmContent =
       <ddm:profile>
         <dcterms:description>first</dcterms:description>
-        <dcterms:description>par1 par 2 par4</dcterms:description>
+        <dcterms:description>par1
+          par  2
+          par4</dcterms:description>
         <ddm:description descriptionType="TechnicalInfo">blabla rabarbera</ddm:description>
       </ddm:profile>
   )
