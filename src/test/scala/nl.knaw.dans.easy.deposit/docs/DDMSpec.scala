@@ -15,12 +15,12 @@
  */
 package nl.knaw.dans.easy.deposit.docs
 
-import javax.xml.validation.Schema
 import nl.knaw.dans.easy.deposit.TestSupportFixture
 import nl.knaw.dans.easy.deposit.docs.dm.DateScheme.W3CDTF
 import nl.knaw.dans.easy.deposit.docs.dm._
 import nl.knaw.dans.lib.error._
 
+import javax.xml.validation.Schema
 import scala.util.{ Failure, Success, Try }
 import scala.xml._
 
@@ -100,6 +100,29 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
       <ddm:profile>
         <dcterms:description>Lorum &lt;a href='mailto:does.not.exist@dans.knaw.nl'&gt;ipsum&lt;/a&gt;</dcterms:description>
         <dcterms:description>ipsum</dcterms:description>
+      </ddm:profile>
+  )
+
+  "descriptions with complex white space" should behave like validDatasetMetadata(
+    input = new MinimalDatasetMetadata(
+      descriptions = Some(Seq(
+        "first",
+        """par1
+          |par  2
+          |
+          |par4""".stripMargin
+      )),
+      instructionsForReuse = Some(Seq(
+        """blabla
+          |rabarbera""".stripMargin
+      )),
+    ),
+    subset = actualDDM => profileElements(actualDDM, "description"),
+    expectedDdmContent =
+      <ddm:profile>
+        <dcterms:description>first</dcterms:description>
+        <dcterms:description>par1 par 2 par4</dcterms:description>
+        <ddm:description descriptionType="TechnicalInfo">blabla rabarbera</ddm:description>
       </ddm:profile>
   )
 
