@@ -232,6 +232,10 @@ class SubmitterSpec extends TestSupportFixture with MockFactory with BeforeAndAf
       s"$submittedBag/metadata/depositor-info/agreements.xml",
       s"$submittedBag/metadata/depositor-info/message-from-depositor.txt",
     )
+    (submittedBag / "metadata" / "dataset.xml").contentAsString should include(
+      """<dcterms:description xml:lang="nld">description1
+        |with another line</dcterms:description>""".stripMargin
+    )
     (submittedBag / "metadata" / "files.xml").contentAsString should include("""<file filepath="data/folder/text.txt">""")
     (submittedBag / "metadata" / "depositor-info" / "message-from-depositor.txt").contentAsString shouldBe
       s"""Lorum Ipsum

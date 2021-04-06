@@ -30,9 +30,7 @@ package object deposit {
   implicit class XmlExtensions(val elem: Elem) extends AnyVal {
 
     def serialize: String = {
-      val printer = new PrettyPrinter(160, 2)
-      val trimmed = Utility.trim(elem)
-      prologue + "\n" + printer.format(elem)
+      prologue + "\n" + Utility.serialize(elem).toString
     }
   }
   implicit class BagExtensions(val bag: DansBag) extends AnyVal {
