@@ -44,8 +44,7 @@ object DDM extends SchemedXml with DebugEnhancedLogging {
     >
       <ddm:profile>
         { dm.titles.withValue.map(str => <dc:title xml:lang={ lang }>{ str }</dc:title>) }
-        { dm.descriptions.withValue.map(str => <dcterms:description xml:lang={ lang }>{
-        str }</dcterms:description>) }
+        { dm.descriptions.withValue.map(str => <dcterms:description xml:lang={ lang }>{ str }</dcterms:description>) }
         { dm.instructionsForReuse.withValue.map(str => <ddm:description descriptionType="TechnicalInfo">{ str }</ddm:description>) }
         { dm.creators.withValue.map(author => <dcx-dai:creatorDetails>{ nestedXML(author, lang) }</dcx-dai:creatorDetails>) }
         { dm.datesCreated.withValue.map(src => <ddm:created>{ src.value.orEmpty }</ddm:created>) }
