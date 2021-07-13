@@ -43,7 +43,7 @@ object DDM extends SchemedXml with DebugEnhancedLogging {
       xsi:schemaLocation={s"$schemaNameSpace $schemaLocation"}
     >
       <ddm:profile>
-        { dm.titles.withValue.map(str => <dc:title xml:lang={ lang }>{ str }</dc:title>) }
+        { dm.titles.flatMap(_.headOption).withValue.map(str => <dc:title xml:lang={ lang }>{ str }</dc:title>) }
         { dm.descriptions.withValue.map(str => <dcterms:description xml:lang={ lang }>{ str }</dcterms:description>) }
         { dm.instructionsForReuse.withValue.map(str => <ddm:description descriptionType="TechnicalInfo">{ str }</ddm:description>) }
         { dm.creators.withValue.map(author => <dcx-dai:creatorDetails>{ nestedXML(author, lang) }</dcx-dai:creatorDetails>) }
@@ -54,6 +54,7 @@ object DDM extends SchemedXml with DebugEnhancedLogging {
       </ddm:profile>
       <ddm:dcmiMetadata>
         { dm.identifiers.withValue.map(id => <dcterms:identifier xsi:type={ id.scheme.orOmit }>{ id.value.orEmpty }</dcterms:identifier>) }
+        { dm.titles.getOrElse(Seq.empty).drop(1).withValue.map(str => <dcterms:alternative xml:lang={ lang }>{ str }</dcterms:alternative>) }
         { dm.alternativeTitles.withValue.map(str => <dcterms:alternative xml:lang={ lang }>{ str }</dcterms:alternative>) }
         { dm.allRelations.withValue.map(basicContent(_, lang)) }
         { dm.contributors.withValue.map(author => <dcx-dai:contributorDetails>{ nestedXML(author, lang) }</dcx-dai:contributorDetails>) }
