@@ -141,8 +141,8 @@ class SessionSpec extends TestSupportFixture with ServletFixture with ScalatraSu
       response.header("REMOTE_USER") shouldBe "foo"
       val newCookie = response.header("Set-Cookie")
       newCookie should startWith regex "scentry.auth.default.user=[^;].+;"
-      newCookie should include(";Path=/")
-      newCookie should include(";HttpOnly")
+      newCookie should include regex """;\s*Path\s*="""
+      newCookie should include regex """;\s*HttpOnly"""
       cookieAge(newCookie) should be < 1000L
     }
   }
@@ -164,9 +164,9 @@ class SessionSpec extends TestSupportFixture with ServletFixture with ScalatraSu
     val newCookie = response.headers("Set-Cookie")
     val lastCookie = newCookie.lastOption.getOrElse("")
     lastCookie should include("scentry.auth.default.user=;") // note the empty value
-    lastCookie should include(";Path=/")
-    lastCookie should include(";Expires=")
-    lastCookie should include(";HttpOnly")
+    lastCookie should include regex """;\s*Path\s*=\s*/"""
+    lastCookie should include regex """;\s*Expires\s*="""
+    lastCookie should include regex """;\s*HttpOnly"""
     newCookie.size shouldBe nrOfCookies
   }
 
