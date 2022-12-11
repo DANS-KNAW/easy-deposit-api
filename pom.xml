@@ -37,7 +37,7 @@
         <commons-compress.version>1.21</commons-compress.version>
     </properties>
     <scm>
-        <developerConnection>scm:git:https://github.com/DANS-KNAW/${project.artifactId}</developerConnection>
+        <developerConnection>scm:git:ssh://github.com/DANS-KNAW/${project.artifactId}</developerConnection>
         <tag>HEAD</tag>
     </scm>
     <dependencies>
