@@ -309,43 +309,44 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
   "Schema.validate(DDM(json))" should "report missing titles" in {
     val metadata = new MinimalDatasetMetadata(titles = None)
     assume(triedSchema.isAvailable)
-    validate(metadata) should
-      matchSaxMessage(".*Invalid content was found starting with element 'dcterms:description'. One of '.*:title.' is expected.")
+    val result = validate(metadata)
+    result should
+      matchSaxMessage(".*Invalid content was found starting with element '.*:description.'. One of '.*:title.' is expected.")
   }
 
   it should "report missing descriptions" in {
     val metadata = new MinimalDatasetMetadata(descriptions = None)
     assume(triedSchema.isAvailable)
     validate(metadata) should
-      matchSaxMessage(".*Invalid content was found starting with element 'dcx-dai:creatorDetails'. One of '.*:description.' is expected.")
+      matchSaxMessage(".*Invalid content was found starting with element '.*:creatorDetails.'. One of '.*:description.' is expected.")
   }
 
   it should "report missing audiences" in {
     val metadata = new MinimalDatasetMetadata(audiences = None)
     assume(triedSchema.isAvailable)
     validate(metadata) should
-      matchSaxMessage(".*Invalid content was found starting with element 'ddm:accessRights'. One of '.*:audience.' is expected.")
+      matchSaxMessage(".*Invalid content was found starting with element '.*:accessRights.'. One of '.*:audience.' is expected.")
   }
 
   it should "report missing creators" in {
     val metadata = new MinimalDatasetMetadata(creators = None)
     assume(triedSchema.isAvailable)
     validate(metadata) should
-      matchSaxMessage(".*Invalid content was found starting with element 'ddm:created'. One of '.*:description, .*:creator.' is expected.")
+      matchSaxMessage(".*Invalid content was found starting with element '.*:created.'. One of '.*:description, .*:creator.' is expected.")
   }
 
   it should "report missing dateCreated" in {
     val metadata = new MinimalDatasetMetadata(dates = Some(Seq(mandatoryDates.head)))
     assume(triedSchema.isAvailable)
     validate(metadata) should
-      matchSaxMessage(".*Invalid content was found starting with element 'ddm:audience'. One of '.*:available.' is expected.")
+      matchSaxMessage(".*Invalid content was found starting with element '.*:audience.'. One of '.*:available.' is expected.")
   }
 
   it should "report missing dateAvailable" in {
     val metadata = new MinimalDatasetMetadata(dates = Some(Seq(mandatoryDates.last)))
     assume(triedSchema.isAvailable)
     validate(metadata) should
-      matchSaxMessage(".*Invalid content was found starting with element 'ddm:available'. One of '.*:creator, .*:created.' is expected.")
+      matchSaxMessage(".*Invalid content was found starting with element '.*:available.'. One of '.*:creator, .*:created.' is expected.")
   }
 
   it should "report missing accessRights" in {
@@ -387,7 +388,7 @@ class DDMSpec extends TestSupportFixture with DdmBehavior {
     val ddm = toDDM(new MinimalDatasetMetadata(contributors = parse(s"""{"contributors":[$author]}""").contributors))
     prettyPrinter.format(ddm) should include("<dcx-dai:foo>bar</dcx-dai:foo>")
     assume(triedSchema.isAvailable)
-    triedSchema.validate(ddm) should matchSaxMessage(".*dcx-dai:foo.*")
+    triedSchema.validate(ddm) should matchSaxMessage(".*:foo.*")
   }
 
   "minimal with SchemedKeyValue variants" should behave like {
