@@ -26,7 +26,7 @@ import scala.util.Success
 class DoiSpec extends TestSupportFixture with ServletFixture {
   private def propsFile(uuid: String): File = testDir / "drafts/foo" / uuid / "deposit.properties"
 
-  private def jsonFile(uuid: String): File = testDir / "drafts/foo" / uuid / bagDirName / "metadata" / "dataset.json"
+  private def datasetMetadataFile(uuid: String): File = testDir / "drafts/foo" / uuid / bagDirName / "metadata" / "dataset.json"
 
   private val submit = """{"state":"SUBMITTED","stateDescription":"blabla"}"""
   private val doi = "10.17632/DANS.6wg5xccnjd.1"
@@ -71,13 +71,13 @@ class DoiSpec extends TestSupportFixture with ServletFixture {
 
   it should "fail when json has a DOI and properties not" in {
     val uuid = createDeposit
-    jsonFile(uuid).write(s"""{$doiForJson}""")
+    datasetMetadataFile(uuid).write(s"""{$doiForJson}""")
     get(s"/deposit/$uuid/doi", headers = Seq(fooBarBasicAuthHeader)) { shouldReturnBadRequest(uuid) }
   }
 
   it should "fail when DOI's are different" in {
     val uuid = createDeposit
-    jsonFile(uuid).write(s"""{$doiForJson}""")
+    datasetMetadataFile(uuid).write(s"""{$doiForJson}""")
     get(s"/deposit/$uuid/doi", headers = Seq(fooBarBasicAuthHeader)) { shouldReturnBadRequest(uuid) }
   }
 
@@ -92,6 +92,17 @@ class DoiSpec extends TestSupportFixture with ServletFixture {
     val uuid = createDeposit
     propsFile(uuid).append(doiProperty)
     put(s"/deposit/$uuid/metadata", headers = Seq(fooBarBasicAuthHeader), body = s"""{$doiForJson}""") { status shouldBe NO_CONTENT_204 }
+  }
+
+  it should "filter ezproxy from license URL (EASY-2878 ticket/10290)" in {
+    val uuid = createDeposit
+    val license = """{"license": { "scheme": "dcterms:URI", "value": "http://dans.knaw.nl.ezproxy2.something.nl/en/about/organisation-and-policy/legal-information/DANSLicence.pdf"}}"""
+    put(s"/deposit/$uuid/metadata", headers = Seq(fooBarBasicAuthHeader), body = license) { status shouldBe NO_CONTENT_204 }
+    val datasetMetadata = datasetMetadataFile(uuid).contentAsString
+    datasetMetadata should include ("http://dans.knaw.nl/en/about")
+    datasetMetadata should include ("DANSLicence.pdf")
+    datasetMetadata should not include "ezproxy"
+    datasetMetadata should not include "something"
   }
 
   it should "succeed without any DOI" in {
@@ -119,32 +130,32 @@ class DoiSpec extends TestSupportFixture with ServletFixture {
   "PUT /deposit/{id}/state" should "succeed when DOI's are equal" in {
     val uuid = createDeposit
     propsFile(uuid).append(doiProperty)
-    jsonFile(uuid).write(s"""{$doiForJson,$mandatoryOnSubmit}""")
+    datasetMetadataFile(uuid).write(s"""{$doiForJson,$mandatoryOnSubmit}""")
     put(s"/deposit/$uuid/state", headers = Seq(fooBarBasicAuthHeader), body = submit) { status shouldBe NO_CONTENT_204 }
   }
 
   it should "fail without any DOI" in {
     val uuid = createDeposit
-    jsonFile(uuid).write(s"""{$mandatoryOnSubmit}""")
+    datasetMetadataFile(uuid).write(s"""{$mandatoryOnSubmit}""")
     put(s"/deposit/$uuid/state", headers = Seq(fooBarBasicAuthHeader), body = submit) { shouldReturnBadRequest(uuid) }
   }
 
   it should "fail when DOI's are different" in {
     val uuid = createDeposit
     propsFile(uuid).append(doiProperty + "xyz")
-    jsonFile(uuid).write(s"""{$doiForJson,$mandatoryOnSubmit}""")
+    datasetMetadataFile(uuid).write(s"""{$doiForJson,$mandatoryOnSubmit}""")
     put(s"/deposit/$uuid/state", headers = Seq(fooBarBasicAuthHeader), body = submit) { shouldReturnBadRequest(uuid) }
   }
 
   it should "fail when json has a DOI but properties not" in {
     val uuid = createDeposit
-    jsonFile(uuid).write(s"""{$doiForJson,$mandatoryOnSubmit}""")
+    datasetMetadataFile(uuid).write(s"""{$doiForJson,$mandatoryOnSubmit}""")
     put(s"/deposit/$uuid/state", headers = Seq(fooBarBasicAuthHeader), body = submit) { shouldReturnBadRequest(uuid) }
   }
 
   it should "fail when properties has a DOI but json not" in {
     val uuid = createDeposit
-    jsonFile(uuid).write(s"""{$mandatoryOnSubmit}""")
+    datasetMetadataFile(uuid).write(s"""{$mandatoryOnSubmit}""")
     propsFile(uuid).append(doiProperty)
     put(s"/deposit/$uuid/state", headers = Seq(fooBarBasicAuthHeader), body = submit) { shouldReturnBadRequest(uuid) }
   }

@@ -18,10 +18,10 @@ package nl.knaw.dans.easy.deposit.servlets
 import java.io.IOException
 import java.nio.file.{ InvalidPathException, Path, Paths }
 import java.util.UUID
-
 import nl.knaw.dans.easy.deposit.EasyDepositApiApp
 import nl.knaw.dans.easy.deposit.Errors._
 import nl.knaw.dans.easy.deposit.docs.JsonUtil.toJson
+import nl.knaw.dans.easy.deposit.docs.dm.SchemedValue
 import nl.knaw.dans.easy.deposit.docs.{ DatasetMetadata, StateInfo }
 import nl.knaw.dans.lib.string._
 import org.scalatra._
@@ -95,6 +95,15 @@ class DepositServlet(app: EasyDepositApiApp)
       } yield Ok(body = s"""{"doi":"$doi"}""", headers = Map(contentTypeJson))
     }.getOrRecoverWithActionResult
   }
+
+  private def fixLicenseUrl(maybeSchemedValue: Option[SchemedValue]) = {
+    def replace(str: String) = {
+      str.replaceAll(".ezproxy[A-Za-z0-9.]+/", "/")
+    }
+
+    maybeSchemedValue.map(schemedValue => schemedValue.copy(value = schemedValue.value.map(replace)))
+  }
+
   put("/:uuid/metadata") {
     {
       for {
@@ -102,10 +111,11 @@ class DepositServlet(app: EasyDepositApiApp)
         _ = logger.info(s"[$uuid] saving metadata")
         managedIS = managed(request.getInputStream)
         datasetMetadata <- managedIS.apply(is => DatasetMetadata(is))
+        fixedDatasetMetadata = datasetMetadata.copy(license = fixLicenseUrl(datasetMetadata.license))
         _ = logger.debug(s"[$uuid] comparing DOI in deposit.properties and newly uploaded dataset metadata")
-        _ <- app.checkDoi(user.id, uuid, datasetMetadata)
+        _ <- app.checkDoi(user.id, uuid, fixedDatasetMetadata)
         _ = logger.debug(s"[$uuid] writing newly uploaded dataset metadata to deposit")
-        _ <- app.writeDataMetadataToDeposit(datasetMetadata, user.id, uuid)
+        _ <- app.writeDataMetadataToDeposit(fixedDatasetMetadata, user.id, uuid)
       } yield NoContent()
     }.getOrRecoverWithActionResult
   }
