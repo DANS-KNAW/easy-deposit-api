@@ -96,9 +96,8 @@ class DoiSpec extends TestSupportFixture with ServletFixture {
 
   it should "filter ezproxy from license URL (EASY-2878 ticket/10290)" in {
     val uuid = createDeposit
-    propsFile(uuid).append(doiProperty)
-    val license = """"license": { "scheme": "dcterms:URI", "value": "http://dans.knaw.nl.ezproxy2.something.nl/en/about/organisation-and-policy/legal-information/DANSLicence.pdf"}"""
-    put(s"/deposit/$uuid/metadata", headers = Seq(fooBarBasicAuthHeader), body = s"""{$doiForJson,$license}""") { status shouldBe NO_CONTENT_204 }
+    val license = """{"license": { "scheme": "dcterms:URI", "value": "http://dans.knaw.nl.ezproxy2.something.nl/en/about/organisation-and-policy/legal-information/DANSLicence.pdf"}}"""
+    put(s"/deposit/$uuid/metadata", headers = Seq(fooBarBasicAuthHeader), body = license) { status shouldBe NO_CONTENT_204 }
     val datasetMetadata = datasetMetadataFile(uuid).contentAsString
     datasetMetadata should include ("http://dans.knaw.nl/en/about")
     datasetMetadata should include ("DANSLicence.pdf")
