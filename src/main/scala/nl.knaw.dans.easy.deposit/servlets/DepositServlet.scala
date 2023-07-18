@@ -98,7 +98,7 @@ class DepositServlet(app: EasyDepositApiApp)
 
   private def fixLicenseUrl(maybeSchemedValue: Option[SchemedValue]) = {
     def replace(str: String) = {
-      str.replaceAll(".ezproxy[A-Za-z0-9.]+/", "/")
+      str.replaceAll("""\.ezproxy[^/]+/""", "/")
     }
 
     maybeSchemedValue.map(schemedValue => schemedValue.copy(value = schemedValue.value.map(replace)))
